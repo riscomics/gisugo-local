@@ -7482,3 +7482,88 @@ body:has(.jobs-header) {
   font-weight: 500;
 }
 
+/* ===== Gigs Manager role chrome (matched to Alerts .page-alerts) =====
+   Worker/Customer band + blue 2nd borderline + bottom gap + page fill.
+   Does not restyle gig/job cards. */
+.page-jobs {
+  --jobs-role-h: 70px;
+  --jobs-role-gap: 16px;
+  --jobs-section-tabs-h: 52px;
+  --jobs-chrome-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + var(--jobs-role-h));
+}
+
+html body.page-jobs:has(.uniform-header) {
+  background: #141b24 !important;
+}
+
+.page-jobs .role-tabs {
+  left: 0;
+  right: 0;
+  width: 100%;
+  margin-left: 0;
+  background: linear-gradient(180deg, #1a2430 0%, #141c26 100%);
+  border-bottom: var(--header-borderline-height, 4px) solid var(--header-borderline-color, #0ea5e9);
+  box-shadow: none;
+}
+
+.page-jobs .role-tab-btn {
+  border-color: rgba(230, 214, 174, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.page-jobs .role-tab-btn:not(.active) {
+  background: linear-gradient(135deg, #3a4556 0%, #2c3544 100%);
+  color: #d1d5db;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.page-jobs .role-tab-btn:not(.active):hover {
+  background: linear-gradient(135deg, #455266 0%, #343e50 100%);
+  border-color: rgba(230, 214, 174, 0.35);
+  color: #f3f4f6;
+}
+
+.page-jobs .role-tab-btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: rgba(167, 243, 208, 0.45);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+/* Space below the blue line before OFFERS/LISTINGS tabs */
+.page-jobs .jobs-tabs {
+  top: calc(var(--jobs-chrome-top) + var(--jobs-role-gap)) !important;
+  margin-top: 0 !important;
+  background: #141b24;
+}
+
+.page-jobs .tab-content-wrapper {
+  top: calc(var(--jobs-chrome-top) + var(--jobs-role-gap) + var(--jobs-section-tabs-h)) !important;
+  height: calc(100vh - (var(--jobs-chrome-top) + var(--jobs-role-gap) + var(--jobs-section-tabs-h))) !important;
+  margin-top: 0 !important;
+  background: #141b24;
+}
+
+.page-jobs .tab-scroll-container {
+  background: #141b24;
+}
+
+@media (max-width: 600px) {
+  .page-jobs {
+    --jobs-role-h: 60px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1023px) {
+  .page-jobs {
+    --jobs-role-h: 85px;
+    --jobs-role-gap: 18px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-jobs {
+    --jobs-role-h: 90px;
+    --jobs-role-gap: 18px;
+  }
+}
+

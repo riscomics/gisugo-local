@@ -8997,32 +8997,59 @@ body:has(.selection-controls[style*="display: flex"]) {
     }
 }
 
-/* ===== Standalone Alerts / Support pages (no ALERTS|CHATS|SUPPORT section tabs) =====
-   messages.css still reserves ~52px for .messages-tabs. Drop that offset here. */
-.page-alerts .alerts-lang-tabs {
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 2px + var(--alerts-lang-top-adjust, 0px)) !important;
+/* ===== Standalone Alerts page layout =====
+   Role + language are one continuous full-bleed chrome stack.
+   Do NOT inherit body.page-messages (that page still reserves 52px for .messages-tabs). */
+.page-alerts {
+  --alerts-role-h: 70px;
+  --alerts-chrome-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + var(--alerts-role-h));
+  --alerts-role-lang-gap: 16px; /* empty page gap — whole lang strip sits lower */
+  --alerts-lang-pad-y: 6px;
+  --alerts-lang-tab-h: 36px;
+  --alerts-lang-row-height: calc(var(--alerts-lang-pad-y) * 2 + var(--alerts-lang-tab-h));
+}
+
+html body.page-alerts:has(.uniform-header) {
+  background: #141b24 !important;
 }
 
 .page-alerts .tab-content-wrapper {
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px) !important;
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px)) !important;
+  top: var(--alerts-chrome-top) !important;
+  height: calc(100vh - var(--alerts-chrome-top)) !important;
+}
+
+.page-alerts .alerts-lang-tabs {
+  display: none;
+  top: calc(var(--alerts-chrome-top) + var(--alerts-role-lang-gap)) !important;
+  height: var(--alerts-lang-row-height) !important;
+}
+
+.page-alerts.alerts-lang-visible .alerts-lang-tabs {
+  display: flex !important;
 }
 
 .page-alerts.alerts-lang-visible #worker-alerts-content,
 .page-alerts.alerts-lang-visible #customer-alerts-content {
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + var(--alerts-lang-row-height, 64px)) !important;
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + var(--alerts-lang-row-height, 64px))) !important;
+  top: calc(var(--alerts-chrome-top) + var(--alerts-role-lang-gap) + var(--alerts-lang-row-height)) !important;
+  height: calc(100vh - (var(--alerts-chrome-top) + var(--alerts-role-lang-gap) + var(--alerts-lang-row-height))) !important;
+}
+
+.page-alerts.alerts-lang-visible #worker-alerts-content .notifications-container,
+.page-alerts.alerts-lang-visible #customer-alerts-content .notifications-container {
+  padding-top: var(--alerts-list-pad, 12px) !important;
+}
+
+@media (max-width: 600px) {
+  .page-alerts {
+    --alerts-role-h: 60px; /* matches .role-tabs mobile height */
+  }
 }
 
 @media (min-width: 601px) {
-  .page-alerts .alerts-lang-tabs {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 20px) !important;
-  }
-
-  .page-alerts.alerts-lang-visible #worker-alerts-content,
-  .page-alerts.alerts-lang-visible #customer-alerts-content {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 110px) !important;
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 110px)) !important;
+  .page-alerts {
+    --alerts-role-lang-gap: 18px;
+    --alerts-lang-pad-y: 8px;
+    --alerts-lang-tab-h: 40px;
   }
 }
 
@@ -9155,4 +9182,350 @@ body:has(.selection-controls[style*="display: flex"]) {
   width: 100% !important;
   height: 100vh !important;
   z-index: 12050;
+}
+
+/* ===== Alerts page visual refresh (standalone .page-alerts only) ===== */
+.page-alerts {
+  --alerts-page-bg: #0f1419;
+  --alerts-card-bg: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+  --alerts-card-border: rgba(230, 214, 174, 0.28);
+  --alerts-card-unread-border: rgba(52, 211, 153, 0.7);
+  --alerts-list-pad: 12px;
+}
+
+/* Do not restyle .uniform-header — shared site theme. Below the borderline only.
+   Flat page fill — gradients were muddying the role/lang chrome seam. */
+.page-alerts #worker-alerts-content .tab-scroll-container,
+.page-alerts #customer-alerts-content .tab-scroll-container {
+  background: #141b24;
+}
+
+/* Role chrome — full-bleed (base .role-tabs has margin-left: -12px which left a right-edge notch) */
+.page-alerts .role-tabs {
+  left: 0;
+  right: 0;
+  width: 100%;
+  margin-left: 0;
+  background: linear-gradient(180deg, #1a2430 0%, #141c26 100%);
+  /* Match header borderline color + thickness */
+  border-bottom: var(--header-borderline-height, 4px) solid var(--header-borderline-color, #0ea5e9);
+  box-shadow: none;
+}
+
+.page-alerts .role-tab-btn {
+  border-color: rgba(230, 214, 174, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.page-alerts .role-tab-btn:not(.active) {
+  background: linear-gradient(135deg, #3a4556 0%, #2c3544 100%);
+  color: #d1d5db;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.page-alerts .role-tab-btn:not(.active):hover {
+  background: linear-gradient(135deg, #455266 0%, #343e50 100%);
+  border-color: rgba(230, 214, 174, 0.35);
+  color: #f3f4f6;
+}
+
+.page-alerts .role-tab-btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: rgba(167, 243, 208, 0.45);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+/* Language strip — separate band below role-tabs (gap is page bg, not inner padding) */
+.page-alerts .alerts-lang-tabs {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  gap: 6px !important;
+  padding-top: var(--alerts-lang-pad-y) !important;
+  padding-bottom: var(--alerts-lang-pad-y) !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #0c1218 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.page-alerts .alerts-lang-tab {
+  height: var(--alerts-lang-tab-h) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: transparent;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.page-alerts .alerts-lang-tab:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.38);
+  color: #e2e8f0;
+  box-shadow: none;
+}
+
+.page-alerts .alerts-lang-tab.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #a7f3d0;
+  box-shadow: none;
+}
+
+@media (min-width: 601px) {
+  .page-alerts .alerts-lang-tabs {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    height: var(--alerts-lang-row-height) !important;
+    padding-top: var(--alerts-lang-pad-y) !important;
+    padding-bottom: var(--alerts-lang-pad-y) !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    top: calc(var(--alerts-chrome-top) + var(--alerts-role-lang-gap)) !important;
+  }
+
+  .page-alerts .alerts-lang-tab {
+    height: var(--alerts-lang-tab-h) !important;
+    font-size: 0.95rem !important;
+    border-radius: 8px !important;
+  }
+}
+
+.page-alerts .notifications-container {
+  padding: var(--alerts-list-pad) var(--alerts-list-pad) 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.page-alerts .notification-item {
+  align-items: flex-start;
+  gap: 14px;
+  min-height: 118px;
+  padding: 18px 16px 16px;
+  margin: 0;
+  border: 1px solid var(--alerts-card-border);
+  border-bottom: 1px solid var(--alerts-card-border);
+  border-radius: 14px;
+  background: var(--alerts-card-bg);
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.page-alerts .notification-item:last-child {
+  border-bottom: 1px solid var(--alerts-card-border);
+}
+
+.page-alerts .notification-item:hover {
+  border-color: rgba(230, 214, 174, 0.45);
+  background: linear-gradient(160deg, #323d52 0%, #243041 55%, #1f2a38 100%);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.page-alerts .notification-item:not(.read) {
+  border-color: var(--alerts-card-unread-border);
+  background: linear-gradient(160deg, #2f3d3a 0%, #24322e 45%, #1c2824 100%);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.18),
+    0 10px 26px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(110, 231, 183, 0.08);
+}
+
+.page-alerts .notification-item:not(.read)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+}
+
+.page-alerts .notification-item.read {
+  opacity: 1;
+  background: linear-gradient(160deg, #232b38 0%, #1a212c 100%);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+.page-alerts .notification-item.read::before {
+  display: none;
+}
+
+.page-alerts .notification-item.theme-attention:not(.read)::before {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+}
+
+.page-alerts .notification-item.theme-alert:not(.read)::before {
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+}
+
+.page-alerts .notification-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 1.45rem;
+  margin-right: 0;
+  margin-top: 2px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.page-alerts .notification-content {
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.page-alerts .notification-title {
+  font-size: 1.12rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #f5edd4;
+  margin-bottom: 0.45rem;
+  line-height: 1.3;
+  padding-right: 3.5rem; /* room for Read chip */
+}
+
+.page-alerts .notification-message {
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: #e2e8f0;
+  margin-bottom: 0.85rem;
+}
+
+.page-alerts .notification-meta {
+  gap: 0.65rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.page-alerts .notification-time,
+.page-alerts .notification-date {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.page-alerts .notification-time {
+  color: #6ee7b7;
+  font-weight: 600;
+}
+
+.page-alerts .read-indicator {
+  top: 14px;
+  right: 14px;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #a7f3d0;
+  box-shadow: none;
+}
+
+.page-alerts .notification-actions {
+  margin-top: 0.55rem;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.page-alerts .notification-action-btn {
+  padding: 8px 14px;
+  font-size: 0.82rem;
+  border-radius: 10px;
+}
+
+.page-alerts .empty-state,
+.page-alerts .messages-placeholder {
+  margin: 24px 8px;
+  padding: 36px 20px !important;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+@media (max-width: 600px) {
+  .page-alerts {
+    --alerts-list-pad: 10px;
+  }
+
+  .page-alerts .notifications-container {
+    gap: 10px;
+  }
+
+  .page-alerts .notification-item {
+    min-height: 112px;
+    padding: 16px 14px 14px;
+    gap: 12px;
+  }
+
+  .page-alerts .notification-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.3rem;
+    border-radius: 12px;
+  }
+
+  .page-alerts .notification-title {
+    font-size: 1.08rem;
+  }
+
+  .page-alerts .notification-message {
+    font-size: 0.98rem;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 601px) {
+  .page-alerts {
+    --alerts-list-pad: 16px;
+  }
+
+  .page-alerts .notifications-container {
+    gap: 14px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .page-alerts .notification-item {
+    min-height: 128px;
+    padding: 22px 20px 18px;
+  }
+
+  .page-alerts .notification-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 1.55rem;
+  }
+
+  .page-alerts .notification-title {
+    font-size: 1.18rem;
+  }
+
+  .page-alerts .notification-message {
+    font-size: 1.05rem;
+  }
 }
