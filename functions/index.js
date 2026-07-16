@@ -159,7 +159,9 @@ function buildPushPayloadFromNotification(notification = {}) {
       type,
       recipientId: String(notification.recipientId || ""),
       jobId: String(notification.jobId || ""),
-      role
+      role,
+      // SW notificationclick reads data.link (fcmOptions.link alone is not always copied there).
+      link: alertsLink
     },
     webpush: {
       fcmOptions: {

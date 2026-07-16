@@ -987,6 +987,16 @@ function updateAlertTabBadgeCounts(notifications) {
     setTabNotificationCount('#workerAlertsTab', workerUnread);
     setTabNotificationCount('#customerAlertsTab', customerUnread);
     updateRoleTopUnreadCounts();
+    // Feed shared-menu / header badge without a second Firestore unread query on this page.
+    try {
+        document.dispatchEvent(new CustomEvent('gisugo:alerts-page-counter-update', {
+            detail: {
+                workerUnread,
+                customerUnread,
+                totalUnread: workerUnread + customerUnread
+            }
+        }));
+    } catch (_) { /* ignore */ }
 }
 
 function resetTabBadgeCounts() {
@@ -8772,14 +8782,20 @@ function showPhotoLightbox(imageUrl) {
         }
     });
 
-    // ESC key to close
+    // ESC key to close (also removed in lightbox _cleanup paths below).
     const handleEscKey = (e) => {
         if (e.key === 'Escape') {
             closeLightbox();
-            document.removeEventListener('keydown', handleEscKey);
         }
     };
     document.addEventListener('keydown', handleEscKey);
+    const previousCleanup = typeof lightboxOverlay._cleanup === 'function'
+        ? lightboxOverlay._cleanup
+        : null;
+    lightboxOverlay._cleanup = () => {
+        document.removeEventListener('keydown', handleEscKey);
+        if (previousCleanup) previousCleanup();
+    };
 }
 
 /**

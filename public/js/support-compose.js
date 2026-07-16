@@ -379,7 +379,7 @@
       const contactData = {
         source: 'public_contact',
         messageType: 'support_request',
-        channel: 'support_page',
+        channel: 'contact_page',
         categoryCode: formData.categoryCode,
         categoryLabel,
         subject: formData.subject,
@@ -455,11 +455,7 @@
     const overlay = document.getElementById('composeOverlay');
     if (overlay) overlay.style.display = 'none';
     document.body.classList.remove('support-compose-open');
-    if (force || hasComposeChanges()) {
-      // Only wipe after send (force) or confirmed discard.
-      if (force) resetComposeForm();
-      else resetComposeForm();
-    }
+    resetComposeForm();
   }
 
   function initializeSupportCompose() {

@@ -2243,10 +2243,11 @@ function guardedExecuteAllCleanups() {
 window.addEventListener('pagehide', guardedExecuteAllCleanups);
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
+    // bfcache restore: restart Support inbox (not worker-alerts leftovers from messages.js).
     requestMessagesPageLoadingOverlay(2200);
-    initializeWorkerAlertsTab()
+    Promise.resolve(switchToUnifiedMessages())
         .catch((error) => {
-            console.warn('⚠️ pageshow alerts refresh failed:', error);
+            console.warn('⚠️ pageshow support refresh failed:', error);
         })
         .finally(() => {
             hideMessagesPageLoadingOverlay();
@@ -8831,14 +8832,20 @@ function showPhotoLightbox(imageUrl) {
         }
     });
 
-    // ESC key to close
+    // ESC key to close (removed via _cleanup on any close path).
     const handleEscKey = (e) => {
         if (e.key === 'Escape') {
             closeLightbox();
-            document.removeEventListener('keydown', handleEscKey);
         }
     };
     document.addEventListener('keydown', handleEscKey);
+    const previousCleanup = typeof lightboxOverlay._cleanup === 'function'
+        ? lightboxOverlay._cleanup
+        : null;
+    lightboxOverlay._cleanup = () => {
+        document.removeEventListener('keydown', handleEscKey);
+        if (previousCleanup) previousCleanup();
+    };
 }
 
 /**
@@ -10189,6 +10196,7 @@ function loadUnifiedMessages() {
         updateMainMessagesTabCount();
     }
 }
+window.loadUnifiedMessages = loadUnifiedMessages;
 
 // Load worker messages  
 function loadWorkerMessages() {
@@ -11430,6 +11438,9 @@ function closeReplyModal() {
 
 // Initialize reply modal event handlers
 function initializeReplyModal() {
+    if (window.__gisugoReplyModalInitialized) return;
+    window.__gisugoReplyModalInitialized = true;
+
     const closeBtn = document.getElementById('closeReplyModal');
     const cancelBtn = document.getElementById('cancelReplyBtn');
     const sendBtn = document.getElementById('sendFloatingReplyBtn');

@@ -270,6 +270,7 @@ let _menuUnreadInitTimer = null;
 let _menuCounterState = { workerUnread: 0, customerUnread: 0, totalUnread: 0 };
 let _menuMessagesUnreadOverride = null;
 let _menuMessagesUnreadEventHandler = null;
+let _menuAlertsPageCounterHandler = null;
 let _menuChatUnreadAuthUnsub = null;
 let _menuChatUnreadCounterUnsub = null;
 let _menuChatUnreadInitTimer = null;
@@ -352,6 +353,10 @@ function stopMenuUnreadCounterListeners() {
   if (_menuUnreadInitTimer) {
     clearTimeout(_menuUnreadInitTimer);
     _menuUnreadInitTimer = null;
+  }
+  if (_menuAlertsPageCounterHandler) {
+    document.removeEventListener('gisugo:alerts-page-counter-update', _menuAlertsPageCounterHandler);
+    _menuAlertsPageCounterHandler = null;
   }
 }
 
@@ -516,7 +521,33 @@ function startMenuChatUnreadListeners(retry = 0) {
   });
 }
 
+function isStandaloneAlertsPage() {
+  try {
+    return /\/alerts\.html$/i.test(String(window.location.pathname || ''));
+  } catch (_) {
+    return false;
+  }
+}
+
 function startMenuUnreadCounterListeners(retry = 0) {
+  // On alerts.html the page already opens a notifications stream. Do not open a
+  // second unread-counter query — alerts.js publishes counts for the menu badge.
+  if (isStandaloneAlertsPage()) {
+    if (!_menuAlertsPageCounterHandler) {
+      _menuAlertsPageCounterHandler = (event) => {
+        const safeCounters = event?.detail || {};
+        _menuCounterState = {
+          workerUnread: Math.max(0, Number(safeCounters.workerUnread) || 0),
+          customerUnread: Math.max(0, Number(safeCounters.customerUnread) || 0),
+          totalUnread: Math.max(0, Number(safeCounters.totalUnread) || 0)
+        };
+        publishMenuCounterUpdate();
+      };
+      document.addEventListener('gisugo:alerts-page-counter-update', _menuAlertsPageCounterHandler);
+    }
+    return;
+  }
+
   if (typeof firebase === 'undefined' || !firebase.auth || typeof subscribeToUnreadNotificationCounters !== 'function') {
     if (retry < 120) {
       _menuUnreadInitTimer = setTimeout(() => startMenuUnreadCounterListeners(retry + 1), 500);
