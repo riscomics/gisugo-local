@@ -9053,11 +9053,21 @@ html body.page-alerts:has(.uniform-header) {
   }
 }
 
-/* Support: no role tabs, no section tabs, no lang row — sit content under the header */
+/* Support: no role tabs, no section tabs, no lang row — sit content under the header.
+   Page fill matches Alerts / Gigs Manager / Profile (#141b24). */
+html body.page-support:has(.uniform-header) {
+  background: #141b24 !important;
+}
+
 .page-support .tab-content-wrapper,
 .page-support #unified-messages-content {
   top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 8px) !important;
   height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 8px)) !important;
+  background: #141b24;
+}
+
+.page-support .tab-scroll-container {
+  background: #141b24;
 }
 
 /* Support Write (compose) control — sits with New/Old, does not add another tab row */
