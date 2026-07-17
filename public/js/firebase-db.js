@@ -2204,6 +2204,23 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
     }
     
     const jobData = jobDoc.data();
+
+    // Idempotent guard: do not re-send an offer already waiting on this worker.
+    const appStatus = String(appData.status || '').trim().toLowerCase();
+    const jobStatus = String(jobData.status || '').trim().toLowerCase();
+    const hiredWorkerId = String(jobData.hiredWorkerId || '').trim();
+    const applicantId = String(appData.applicantId || '').trim();
+    if (
+      applicantId
+      && hiredWorkerId === applicantId
+      && (jobStatus === 'hired' || appStatus === 'accepted' || appStatus === 'hired')
+    ) {
+      return {
+        success: false,
+        alreadySent: true,
+        message: 'Offer already sent. Waiting for the worker to respond.'
+      };
+    }
     
     // Determine agreed price. Priority: customer-confirmed price from the hire
     // overlay (price-verify field) → worker counter offer → job's original price.

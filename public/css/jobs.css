@@ -1705,6 +1705,24 @@ body:has(.jobs-header) {
   transform: translateY(0);
 }
 
+.hire-applicant-btn:disabled,
+.hire-applicant-btn.offer-sent {
+  cursor: default;
+  pointer-events: none;
+  animation: none;
+  transform: none;
+  border-color: rgba(148, 163, 184, 0.45);
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  box-shadow: none;
+  opacity: 0.95;
+}
+
+.hire-applicant-btn:disabled:hover,
+.hire-applicant-btn.offer-sent:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .hire-applicant-btn span {
   font-size: 0.95rem;
   font-weight: 800;

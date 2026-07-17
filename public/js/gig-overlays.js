@@ -4,6 +4,8 @@
     const state = {
         controller: null,
         escapeHandler: null,
+        hireController: null,
+        hireEscapeHandler: null,
         hireProfileCache: new Map()
     };
 
@@ -63,6 +65,59 @@
         if (state.escapeHandler) {
             document.removeEventListener('keydown', state.escapeHandler);
             state.escapeHandler = null;
+        }
+    }
+
+    function runHireCleanup() {
+        if (state.hireController) {
+            state.hireController.abort();
+            state.hireController = null;
+        }
+        if (state.hireEscapeHandler) {
+            document.removeEventListener('keydown', state.hireEscapeHandler);
+            state.hireEscapeHandler = null;
+        }
+    }
+
+    function isOfferAlreadySent(data) {
+        const status = String(
+            (data && (data.applicationStatus || data.status)) || ''
+        ).trim().toLowerCase();
+        if (status === 'accepted' || status === 'hired') return true;
+        if (data && (data.offerSent === true || data.offerSent === '1' || data.offerSent === 1)) {
+            return true;
+        }
+        return false;
+    }
+
+    function markApplicationCardOfferSent(applicationId) {
+        const safeId = String(applicationId || '').trim();
+        if (!safeId) return;
+        const card = document.querySelector(
+            `#applicationsList .application-card[data-application-id="${safeId}"]`
+        );
+        if (!card) return;
+        card.setAttribute('data-status', 'accepted');
+        card.setAttribute('data-offer-sent', '1');
+    }
+
+    function setHireApplicantButtonState(hireBtn, offerSent) {
+        if (!hireBtn) return;
+        const labelEl = hireBtn.querySelector('span');
+        if (offerSent) {
+            hireBtn.disabled = true;
+            hireBtn.setAttribute('aria-disabled', 'true');
+            hireBtn.classList.add('offer-sent');
+            hireBtn.dataset.offerSent = '1';
+            if (labelEl) labelEl.textContent = 'OFFER SENT';
+            else hireBtn.textContent = 'OFFER SENT';
+        } else {
+            hireBtn.disabled = false;
+            hireBtn.removeAttribute('aria-disabled');
+            hireBtn.classList.remove('offer-sent');
+            delete hireBtn.dataset.offerSent;
+            if (labelEl) labelEl.textContent = 'HIRE';
+            else hireBtn.textContent = 'HIRE';
         }
     }
 
@@ -217,6 +272,9 @@
 
         if (hireBtn) {
             hireBtn.addEventListener('click', function () {
+                if (hireBtn.disabled || hireBtn.dataset.offerSent === '1' || isOfferAlreadySent(data)) {
+                    return;
+                }
                 const applicationId = String(data.applicationId || '').trim();
                 const jobId = String(data.jobId || '').trim();
                 if (!applicationId || !jobId) return;
@@ -291,7 +349,9 @@
             jobId: String(data.jobId || '').trim(),
             jobTitle: String(data.jobTitle || '').trim(),
             priceOffer: String(data.priceOffer || '').trim(),
-            priceType: String(data.priceType || '').trim()
+            priceType: String(data.priceType || '').trim(),
+            applicationStatus: String(data.applicationStatus || data.status || '').trim(),
+            offerSent: data.offerSent
         };
 
         profileName.textContent = normalized.userName || 'User';
@@ -331,6 +391,7 @@
             hireBtn.setAttribute('data-job-title', normalized.jobTitle);
             hireBtn.setAttribute('data-price-offer', normalized.priceOffer);
             hireBtn.setAttribute('data-price-type', normalized.priceType);
+            setHireApplicantButtonState(hireBtn, isOfferAlreadySent(normalized));
         }
 
         bindHandlers(normalized);
@@ -602,14 +663,7 @@
     function hideHireConfirmationOverlay() {
         const overlay = getElement('hireConfirmationOverlay');
         if (!overlay) return;
-        if (state.hireController) {
-            state.hireController.abort();
-            state.hireController = null;
-        }
-        if (state.hireEscapeHandler) {
-            document.removeEventListener('keydown', state.hireEscapeHandler);
-            state.hireEscapeHandler = null;
-        }
+        runHireCleanup();
         overlay.classList.remove('show');
     }
 
@@ -1315,9 +1369,8 @@
             priceInput.value = prefill;
         }
 
-        if (state.hireController) {
-            state.hireController.abort();
-        }
+        // Abort prior hire listeners + Escape handler (prevents stacked keydown leaks).
+        runHireCleanup();
         const hireController = new AbortController();
         const signal = hireController.signal;
         state.hireController = hireController;
@@ -1420,10 +1473,15 @@
             }
             try {
                 const result = await window.hireWorker(jobId, applicationId, confirmedPrice);
-                if (result && result.success) {
+                if (result && (result.success || result.alreadySent)) {
+                    markApplicationCardOfferSent(applicationId);
                     hideHireConfirmationOverlay();
                     if (typeof window.showTemporaryNotification === 'function') {
-                        window.showTemporaryNotification(`Offer sent to ${workerName}.`);
+                        window.showTemporaryNotification(
+                            result.alreadySent
+                                ? `Offer already sent to ${workerName}.`
+                                : `Offer sent to ${workerName}.`
+                        );
                     }
                 } else {
                     if (typeof window.showTemporaryNotification === 'function') {

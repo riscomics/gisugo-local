@@ -7931,6 +7931,10 @@ function initializeApplicationCardHandlers() {
         const jobId = card.getAttribute('data-job-id');
         const priceOffer = card.getAttribute('data-price-offer');
         const priceType = card.getAttribute('data-price-type');
+        const applicationStatus = card.getAttribute('data-status') || 'pending';
+        const offerSent = card.getAttribute('data-offer-sent') === '1'
+            || applicationStatus === 'accepted'
+            || applicationStatus === 'hired';
         
         console.log(`Opening application action overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
         console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
@@ -7946,7 +7950,9 @@ function initializeApplicationCardHandlers() {
                 jobId: jobId,
                 jobTitle: jobTitle,
                 priceOffer: priceOffer,
-                priceType: priceType
+                priceType: priceType,
+                applicationStatus: applicationStatus,
+                offerSent: offerSent
             });
             return;
         }
