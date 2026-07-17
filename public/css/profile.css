@@ -975,6 +975,40 @@ body.page-profile.profile-preload .tab-content-wrapper {
   box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
 }
 
+/* Face Verification controls in Account Settings → Profile Verification */
+.account-face-verify-card {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.account-face-verify-copy {
+  margin-bottom: 0.75rem;
+}
+
+.account-face-verify-title {
+  color: #dbeafe;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+}
+
+.account-face-verify-desc {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.account-face-verify-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 /* Login Methods List */
 .login-methods-list {
   display: flex;
@@ -6298,4 +6332,153 @@ html body.page-profile:has(.uniform-header) {
   height: var(--header-borderline-height, 4px);
   background: var(--header-borderline-color, #0ea5e9);
   box-shadow: none;
+}
+
+/* ===== Notifications settings overlay ===== */
+.notif-settings-intro {
+  margin: 0 0 1.25rem;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.notif-device-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.notif-device-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.88rem;
+}
+
+.notif-device-label {
+  color: #a0aec0;
+}
+
+.notif-device-value {
+  color: #e2e8f0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.notif-device-value.is-ok {
+  color: #34d399;
+}
+
+.notif-device-value.is-warn {
+  color: #fbbf24;
+}
+
+.notif-device-value.is-bad {
+  color: #f87171;
+}
+
+.notif-enable-device-btn {
+  width: 100%;
+  margin-top: 0.55rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.notif-enable-device-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.notif-device-hint {
+  margin-top: 0.55rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  min-height: 1.1em;
+}
+
+.notif-toggle-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  cursor: pointer;
+}
+
+.notif-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.notif-toggle-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-toggle-title {
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.notif-toggle-desc {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.notif-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.notif-toggle-slider {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #475569;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.notif-toggle-slider::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.notif-toggle-input:checked + .notif-toggle-slider {
+  background: #10b981;
+}
+
+.notif-toggle-input:checked + .notif-toggle-slider::after {
+  transform: translateX(20px);
+}
+
+.notif-toggle-input:disabled + .notif-toggle-slider {
+  opacity: 0.45;
+}
+
+.notif-type-toggles-disabled .notif-toggle-row {
+  opacity: 0.55;
 }

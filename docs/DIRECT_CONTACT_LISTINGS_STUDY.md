@@ -248,7 +248,10 @@ Marketplace). Not treated as a blocker.
 ## 10. Related friction work (separate, already actionable)
 
 Some of the "flow feels clunky" worry is **execution, not concept** and can be fixed without Direct:
-- **Notification deep-linking + punchier tray copy** — alert pushes now open `/alerts.html?role=…`
-  (Item 3). Still open: shorter tray title/body per type; chat `threadId` deep-links when premium
+- **Notification deep-linking + punchier tray copy** — alert push *payloads* target
+  `/alerts.html?role=…` (Item 3), but **2026-07-17 smoke:** tray tap only opens the mobile
+  browser / focuses GISUGO, does not land on Alerts (see `V1_HARDENING_TASKLIST` Track E +
+  Item 3 §D2). Still open: fix tray-tap navigation; shorter tray title/body; chat `threadId`
+  deep-links when premium
   Messages returns. Tracked in V1 tasklist Track E.
 - General **hire-flow tap-count review** for over-engineering (pending trace).

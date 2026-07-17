@@ -658,45 +658,103 @@ async function markApplicationCoinReleasedViaFirestoreRest(applicationId, releas
   return true;
 }
 
-async function incrementJobApplicationCountViaFirestoreRest(jobId, applicationId, headers = null) {
+/**
+ * Set jobs.applicationCount from a live pending query (REST / iOS path).
+ * Optionally appends applicationId to applicationIds (apply flow).
+ */
+async function syncJobApplicationCountViaFirestoreRest(jobId, applicationId = '', headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for job REST update');
   const safeJobId = String(jobId || '').trim();
+  if (!safeJobId) throw new Error('Missing job id for applicationCount sync');
+
+  const pending = await fetchPendingApplicationsByJobViaFirestoreRest(safeJobId, 11, headers);
+  const correctCount = Array.isArray(pending) ? pending.length : 0;
   const safeApplicationId = String(applicationId || '').trim();
-  if (!safeJobId || !safeApplicationId) {
-    throw new Error('Missing job/application id for job REST update');
-  }
-  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:commit`;
-  const payload = {
-    writes: [
-      {
-        transform: {
-          document: `projects/${projectId}/databases/(default)/documents/jobs/${safeJobId}`,
-          fieldTransforms: [
-            {
-              fieldPath: 'applicationCount',
-              increment: { integerValue: '1' }
-            },
-            {
-              fieldPath: 'applicationIds',
-              appendMissingElements: {
-                values: [{ stringValue: safeApplicationId }]
-              }
-            }
-          ]
-        }
+
+  const fieldTransforms = [];
+  if (safeApplicationId) {
+    fieldTransforms.push({
+      fieldPath: 'applicationIds',
+      appendMissingElements: {
+        values: [{ stringValue: safeApplicationId }]
       }
-    ]
+    });
+  }
+
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:commit`;
+  const write = {
+    update: {
+      name: `projects/${projectId}/databases/(default)/documents/jobs/${safeJobId}`,
+      fields: {
+        applicationCount: { integerValue: String(correctCount) }
+      }
+    },
+    updateMask: { fieldPaths: ['applicationCount'] }
   };
+  if (fieldTransforms.length) {
+    write.updateTransforms = fieldTransforms;
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: headers || { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ writes: [write] })
   });
   if (!response.ok) {
-    throw new Error(`REST job update failed (${response.status})`);
+    throw new Error(`REST job applicationCount sync failed (${response.status})`);
   }
-  return true;
+  return correctCount;
+}
+
+// Legacy name used by applyForJob — now recounts pending instead of increment(+1).
+async function incrementJobApplicationCountViaFirestoreRest(jobId, applicationId, headers = null) {
+  return syncJobApplicationCountViaFirestoreRest(jobId, applicationId, headers);
+}
+
+/**
+ * Authoritative jobs.applicationCount = number of pending applications.
+ * Prefer this over FieldValue.increment(±1) so Listings badges cannot drift.
+ * @param {string} jobId
+ * @param {{ applicationIdToUnion?: string, skipWriteIfCountEquals?: number }} [options]
+ *   applicationIdToUnion — apply flow: also union the new app id into applicationIds.
+ *     When set, failures THROW (the union is required for later job-delete cleanup).
+ *   skipWriteIfCountEquals — bulk repair: skip the job write when count already matches.
+ * @returns {Promise<number>} pending count (or -1 on soft failure)
+ */
+async function syncJobApplicationCount(jobId, options = {}) {
+  const db = getFirestore();
+  const safeJobId = String(jobId || '').trim();
+  const unionId = String(options.applicationIdToUnion || '').trim();
+  if (!db || !safeJobId) {
+    if (unionId) throw new Error('syncJobApplicationCount: missing db or jobId');
+    return -1;
+  }
+
+  try {
+    const pendingApps = await db.collection('applications')
+      .where('jobId', '==', safeJobId)
+      .where('status', '==', 'pending')
+      .get();
+    const correctCount = pendingApps.size;
+
+    if (!unionId
+        && Number.isFinite(options.skipWriteIfCountEquals)
+        && options.skipWriteIfCountEquals === correctCount) {
+      return correctCount;
+    }
+
+    const updatePayload = { applicationCount: correctCount };
+    if (unionId) {
+      updatePayload.applicationIds = firebase.firestore.FieldValue.arrayUnion(unionId);
+    }
+    await db.collection('jobs').doc(safeJobId).update(updatePayload);
+    return correctCount;
+  } catch (error) {
+    if (unionId) throw error;
+    console.warn('⚠️ syncJobApplicationCount failed:', safeJobId, error);
+    return -1;
+  }
 }
 
 async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6, headers = null) {
@@ -1650,13 +1708,7 @@ async function withdrawWorkerApplication(applicationId) {
       withdrawnAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    try {
-      await db.collection('jobs').doc(appData.jobId).update({
-        applicationCount: firebase.firestore.FieldValue.increment(-1)
-      });
-    } catch (_) {
-      // Non-fatal for withdrawal workflow.
-    }
+    await syncJobApplicationCount(appData.jobId);
 
     await releaseApplicationCoinForApplication(safeApplicationId, 'withdrawn');
     return { success: true, message: 'Application withdrawn successfully' };
@@ -2044,15 +2096,12 @@ async function applyForJob(jobId, applicationData) {
     });
     if (useRestPrimaryForApply) {
       await withFirestoreReadTimeout(
-        incrementJobApplicationCountViaFirestoreRest(jobId, appRef.id, restAuthHeaders),
+        syncJobApplicationCountViaFirestoreRest(jobId, appRef.id, restAuthHeaders),
         applyWriteTimeoutMs
       );
     } else {
       await withFirestoreReadTimeout(
-        db.collection('jobs').doc(jobId).update({
-          applicationCount: firebase.firestore.FieldValue.increment(1),
-          applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
-        }),
+        syncJobApplicationCount(jobId, { applicationIdToUnion: appRef.id }),
         applyWriteTimeoutMs
       );
     }
@@ -2243,7 +2292,9 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
       hiredWorkerThumbnail: appData.applicantThumbnail,
       agreedPrice: agreedPrice, // Store the agreed price
       hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
-      applicationCount: 0 // Visually zeroed while waiting; restored if worker rejects
+      // Offer-out UI: badge shows 0 until worker responds (other pendings stay pending).
+      // rejectGigOfferInChat / jobs reject-offer path recounts via syncJobApplicationCount.
+      applicationCount: 0
     });
     
     // Update application status of the chosen applicant to 'accepted' (offer extended)
@@ -2449,16 +2500,7 @@ async function rejectGigOfferInChat(jobId) {
       await Promise.all(releasePromises);
     }
 
-    // Restore live pending count after rejection.
-    try {
-      const pendingApps = await db.collection('applications')
-        .where('jobId', '==', safeJobId)
-        .where('status', '==', 'pending')
-        .get();
-      await db.collection('jobs').doc(safeJobId).update({ applicationCount: pendingApps.size });
-    } catch (countError) {
-      console.warn('⚠️ applicationCount restore skipped:', countError);
-    }
+    await syncJobApplicationCount(safeJobId);
 
     try {
       const workerProfile = await getUserProfile(currentUser.uid);
@@ -2535,7 +2577,6 @@ async function relistGigFromChat(jobId, reason) {
       relistReason: safeReason,
       voidedWorker: hiredWorkerName,
       voidedWorkerId: hiredWorkerId,
-      applicationCount: 0,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -2568,6 +2609,8 @@ async function relistGigFromChat(jobId, reason) {
         console.warn('⚠️ Worker application voiding skipped:', appError);
       }
     }
+
+    await syncJobApplicationCount(safeJobId);
 
     if (hiredWorkerId && typeof sendContractVoidedNotification === 'function') {
       await sendContractVoidedNotification(
@@ -2630,7 +2673,6 @@ async function resignGigFromChat(jobId, reason) {
       resignReason: safeReason,
       resignedWorkerId: currentUser.uid,
       resignedWorkerName: workerName,
-      applicationCount: 0,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -2661,6 +2703,8 @@ async function resignGigFromChat(jobId, reason) {
     } catch (appError) {
       console.warn('⚠️ Resigned application update skipped:', appError);
     }
+
+    await syncJobApplicationCount(safeJobId);
 
     if (customerId && typeof sendWorkerResignedNotification === 'function') {
       await sendWorkerResignedNotification(
@@ -2844,27 +2888,15 @@ async function fixApplicationCounts() {
   try {
     console.log('🔧 Fixing application counts for all jobs...');
     
-    // Get all jobs
     const jobsSnapshot = await db.collection('jobs').get();
     let fixed = 0;
     
     for (const jobDoc of jobsSnapshot.docs) {
       const jobId = jobDoc.id;
-      
-      // Count ONLY pending applications for this job
-      const pendingApps = await db.collection('applications')
-        .where('jobId', '==', jobId)
-        .where('status', '==', 'pending')
-        .get();
-      
-      const correctCount = pendingApps.size;
-      const currentCount = jobDoc.data().applicationCount || 0;
-      
-      if (correctCount !== currentCount) {
-        console.log(`📊 Job ${jobId}: Fixing count from ${currentCount} to ${correctCount}`);
-        await db.collection('jobs').doc(jobId).update({
-          applicationCount: correctCount
-        });
+      const currentCount = Number(jobDoc.data().applicationCount) || 0;
+      const correctCount = await syncJobApplicationCount(jobId, { skipWriteIfCountEquals: currentCount });
+      if (correctCount >= 0 && correctCount !== currentCount) {
+        console.log(`📊 Job ${jobId}: Fixed count from ${currentCount} to ${correctCount}`);
         fixed++;
       }
     }
@@ -2923,13 +2955,8 @@ async function rejectApplication(applicationId) {
       rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     await releaseApplicationCoinForApplication(applicationId, 'rejected');
-    
-    // ═══════════════════════════════════════════════════════════════
-    // UPDATE JOB APPLICATION COUNT (decrement for rejected)
-    // ═══════════════════════════════════════════════════════════════
-    await db.collection('jobs').doc(appData.jobId).update({
-      applicationCount: firebase.firestore.FieldValue.increment(-1)
-    });
+
+    await syncJobApplicationCount(appData.jobId);
 
     // Send grouped courtesy closure notification to applicant (6-hour batch window).
     try {
@@ -4307,6 +4334,7 @@ window.getUserProfile = getUserProfile;
 // Applications
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
+window.syncJobApplicationCount = syncJobApplicationCount;
 window.hireWorker = hireWorker;
 window.acceptGigOfferInChat = acceptGigOfferInChat;
 window.rejectGigOfferInChat = rejectGigOfferInChat;

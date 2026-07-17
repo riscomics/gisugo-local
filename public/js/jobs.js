@@ -454,10 +454,11 @@ window.JobsDataService = {
                 // 'hired' = customer hired someone (appears in customer's Hiring tab)
                 // 'accepted' = worker accepted the offer (appears in worker's Working tab)
                 if (typeof getUserJobListings === 'function') {
-                    const jobs = await this._withTimeout(
+                    const rawJobs = await this._withTimeout(
                         getUserJobListings(user.uid, ['hired', 'accepted']),
                         'getAllHiredJobs:getUserJobListings'
                     );
+                    const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
                     console.log(`🔥 Loaded ${jobs.length} hired/accepted jobs from Firebase`);
                     jobsTrace('jobs:data:hired:done', { count: jobs.length });
                     return jobs;
@@ -649,6 +650,7 @@ window.JobsDataService = {
                         
                         // Scheduling
                         scheduledDate: data.scheduledDate,
+                        jobDate: data.jobDate || data.scheduledDate,
                         startTime: data.startTime,
                         endTime: data.endTime,
                         
@@ -1381,7 +1383,7 @@ function generateOfferedJobCard(job) {
     const safeDateOffered = escapeHtml(job.dateOffered || '');
     const safeJobPageUrl = escapeHtml(sanitizeUrl(job.jobPageUrl || `dynamic-job.html?category=${job.category}&jobNumber=${job.jobId}`, '#'));
     const safeTitle = escapeHtml(job.title || 'Untitled Job');
-    const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeDueDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
     const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
@@ -2096,51 +2098,66 @@ function formatTimeAgo(dateInput) {
     }
 }
 
-function formatJobDate(dateInput) {
-    // Handle Firestore Timestamp, Date object, or string
-    let date;
+function parseJobDateInput(dateInput) {
+    if (!dateInput && dateInput !== 0) return null;
     if (dateInput && typeof dateInput.toDate === 'function') {
-        // Firestore Timestamp
-        date = dateInput.toDate();
-    } else if (dateInput instanceof Date) {
-        date = dateInput;
-    } else if (typeof dateInput === 'string') {
-        date = new Date(dateInput);
-    } else {
+        return dateInput.toDate();
+    }
+    if (dateInput instanceof Date) {
+        return dateInput;
+    }
+    if (typeof dateInput === 'string') {
+        return new Date(dateInput);
+    }
+    if (typeof dateInput === 'object') {
+        const seconds = Number(dateInput.seconds ?? dateInput._seconds);
+        const nanos = Number(dateInput.nanoseconds ?? dateInput._nanoseconds ?? 0);
+        if (Number.isFinite(seconds)) {
+            return new Date(seconds * 1000 + Math.floor(nanos / 1e6));
+        }
+    }
+    return null;
+}
+
+function formatJobDate(dateInput, options = {}) {
+    const date = parseJobDateInput(dateInput);
+    if (!date || isNaN(date.getTime())) {
         return 'TBD';
     }
-    
-    // Check for invalid date
-    if (isNaN(date.getTime())) {
-        return 'TBD';
+
+    // Hiring / Working / Offered cards: "August 28, 2026"
+    if (options.style === 'long') {
+        return date.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
     }
-    
+
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
-    // Reset time to compare just dates
+
     const jobDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const tomorrowDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
-    
+
     if (jobDate.getTime() === todayDate.getTime()) {
         return 'Today';
-    } else if (jobDate.getTime() === tomorrowDate.getTime()) {
-        return 'Tomorrow';
-    } else {
-        const diffTime = jobDate - todayDate;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays > 0 && diffDays <= 7) {
-            return `In ${diffDays} days`;
-        } else {
-            return date.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric' 
-            });
-        }
     }
+    if (jobDate.getTime() === tomorrowDate.getTime()) {
+        return 'Tomorrow';
+    }
+
+    const diffTime = jobDate - todayDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays > 0 && diffDays <= 7) {
+        return `In ${diffDays} days`;
+    }
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+    });
 }
 
 function initializeListingCardHandlers() {
@@ -2378,7 +2395,7 @@ function generateHiringCardHTML(job) {
     const safeHiredWorkerId = escapeHtml(job.hiredWorkerId || '');
     const safeHiredWorkerNameData = escapeHtml(job.hiredWorkerName || '');
     const safeTitle = escapeHtml(job.title || 'Untitled Job');
-    const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeDueDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
     const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
@@ -2995,19 +3012,6 @@ async function showGigOfferOptionsOverlay(jobData) {
     overlay.setAttribute('data-category', jobData.category);
     overlay.setAttribute('data-job-page-url', jobData.jobPageUrl || `dynamic-job.html?category=${jobData.category}&jobNumber=${jobData.jobId}`);
 
-    // Pre-fetch the thread ID non-blocking — cached in dataset so the Open Chat handler
-    // can navigate instantly without waiting on a Firestore read at tap time.
-    overlay.dataset.existingThreadId = '';
-    ChatThreadService.findExistingChatThreadId({
-        recipientId: jobData.posterId,
-        jobId: jobData.jobId
-    }).then(function (threadId) {
-        overlay.dataset.existingThreadId = threadId || '';
-        console.log('💬 Thread lookup complete. existingThreadId:', threadId || 'none');
-    }).catch(function () {
-        overlay.dataset.existingThreadId = '';
-    });
-
     // Initialize handlers (idempotent — only runs once per page load)
     initializeGigOfferOverlayHandlers();
     
@@ -3023,7 +3027,6 @@ function initializeGigOfferOverlayHandlers() {
     
     const acceptBtn = document.getElementById('acceptOfferBtn');
     const rejectBtn = document.getElementById('rejectOfferBtn');
-    const openChatBtn = document.getElementById('openChatBtn');
     const viewGigPostBtn = document.getElementById('viewGigPostBtn');
     const closeBtn = document.getElementById('closeOfferOptionsBtn');
     
@@ -3048,32 +3051,6 @@ function initializeGigOfferOverlayHandlers() {
                 hideGigOfferOptionsOverlay();
                 showRejectGigOfferOverlay(jobData);
             }
-        });
-    }
-
-    // Open Chat button — routes directly to the existing thread, no compose flow.
-    // The thread is guaranteed to exist because customers must contact before hiring.
-    // Falls back to a fresh lookup only if the pre-fetch hadn't resolved yet.
-    if (openChatBtn) {
-        openChatBtn.addEventListener('click', async function () {
-            const jobData = extractGigOfferDataFromOverlay();
-            if (!jobData) return;
-
-            let threadId = overlay.dataset.existingThreadId || '';
-            if (!threadId) {
-                threadId = await ChatThreadService.findExistingChatThreadId({
-                    recipientId: jobData.posterId,
-                    jobId: jobData.jobId
-                }) || '';
-            }
-
-            if (!threadId) {
-                showErrorNotification('Chat thread not found. Open Messages to find your conversation.');
-                return;
-            }
-
-            hideGigOfferOptionsOverlay();
-            ChatThreadService.navigateToExistingChatThread(threadId, { role: 'worker' });
         });
     }
 
@@ -4511,15 +4488,10 @@ async function rejectGigOffer(jobId) {
                     await Promise.all(releasePromises);
                 }
                 
-                // Count remaining pending applications and restore applicationCount
-                const pendingApps = await db.collection('applications')
-                    .where('jobId', '==', jobId)
-                    .where('status', '==', 'pending')
-                    .get();
-                await db.collection('jobs').doc(jobId).update({
-                    applicationCount: pendingApps.size
-                });
-                console.log(`✅ Restored applicationCount to ${pendingApps.size} pending application(s)`);
+                if (typeof syncJobApplicationCount === 'function') {
+                    const restored = await syncJobApplicationCount(jobId);
+                    console.log(`✅ Restored applicationCount to ${restored} pending application(s)`);
+                }
             } catch (appError) {
                 console.error('⚠️ Error updating application status:', appError);
                 // Don't throw - job update succeeded, application update is non-critical
@@ -5218,7 +5190,6 @@ function initializeRelistJobConfirmationHandlers() {
                             relistReason: reason,
                             voidedWorker: workerName,
                             voidedWorkerId: hiredWorkerId,
-                            applicationCount: 0, // Reset for consistency (already 0 from hiring, but explicit is safer)
                             lastModified: firebase.firestore.FieldValue.serverTimestamp()
                         });
                         
@@ -5303,6 +5274,10 @@ function initializeRelistJobConfirmationHandlers() {
                                 console.error('⚠️ Error updating worker application:', appError);
                                 // Don't fail the relist operation if this fails
                             }
+                        }
+
+                        if (typeof syncJobApplicationCount === 'function') {
+                            await syncJobApplicationCount(jobId);
                         }
                         
                         // Hide loading animation
@@ -5489,7 +5464,6 @@ function initializeResignJobConfirmationHandlers() {
                         resignReason: reason,
                         resignedWorkerId: currentUserId,
                         resignedWorkerName: currentUser?.displayName || 'Worker',
-                        applicationCount: 0,
                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
@@ -5546,6 +5520,10 @@ function initializeResignJobConfirmationHandlers() {
                         } catch (appError) {
                             console.error('⚠️ Error updating application:', appError);
                         }
+                    }
+
+                    if (typeof syncJobApplicationCount === 'function') {
+                        await syncJobApplicationCount(jobId);
                     }
                     
                     // ═══════════════════════════════════════════════════════════════
@@ -6343,7 +6321,7 @@ function generateCompletedCardHTML(job) {
     const safePosterName = escapeHtml(job.posterName || '');
     const safeHasWorkerFeedback = escapeHtml(job.role === 'worker' && job.workerFeedback ? 'true' : 'false');
     const safeTitle = escapeHtml(job.title || 'Untitled Job');
-    const safeJobDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeJobDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
     const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));

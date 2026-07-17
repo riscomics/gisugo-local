@@ -14,8 +14,10 @@ standalone Alerts + Support pages live; Contact merged into Support Write overla
 from menu (page kept for premium chat); push deep-links → `/alerts.html?role=…`; chat unread
 listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill across Profile,
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
-**Still open on Item 3:** fuller Alerts/Support smoke testing by user; Admin Support queue remains
-blocked on Track C.
+**Item 3 in-app alert smoke (2026-07-17):** primary worker/customer gig-activity cards covered
+(see §E below). **Still open:** customer 5+/auto-pause alerts; Support Write smoke; phone-tray
+session (delivery + tray-tap → Alerts); `messages.html?threadId=` regression. Admin Support queue
+remains blocked on Track C.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -270,16 +272,31 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
-- [~] **Notification deep-linking + tray copy** — **Alert deep-links DONE (Item 3):** critical pushes
-      go to `/alerts.html?role=worker|customer` (+ `data.link` for SW). Still open: shorten tray
-      title/body per type; chat/`threadId` deep-links when premium Messages returns.
+- [~] **Notification deep-linking + tray copy** — Payload targets `/alerts.html?role=worker|customer`
+      (`functions` `data.link` + `fcmOptions.link`; SW click handler in `firebase-messaging-sw.js`).
+      **2026-07-17 smoke FAIL (user):** tapping a phone tray alert only opens/focuses the mobile
+      browser (or existing GISUGO tab) — it does **not** reliably land on Alerts. Likely cause:
+      FCM sends a `notification` payload so the browser auto-displays the tray item; SW
+      `onBackgroundMessage` returns early and never attaches `data.link` to that auto-shown
+      notification, so `notificationclick` often has no link and/or only `focus()`es an open
+      tab without navigating. **Still to fix:** tray tap → open/navigate to `/alerts.html?role=…`.
+      Also still open: shorten tray title/body per type; chat/`threadId` deep-links when premium
+      Messages returns.
 - [ ] **iOS legacy-device issues** — deferred until wiring is done (avoid double test work).
 - [ ] **G-Coins / wallet** — DO NOT remove. UI retained for business-model referencing
       (free-publishing pivot; old "pay to post" concept retired but UI useful as reference).
+      **2026-07-17:** Account Settings wallet block `#gCoinsWalletSection` is **hidden** (not
+      deleted) in `profile.html` until purchase flow is ready. Restore notes:
+      `docs/preserved-ui/account-settings-deferred-ui.md`.
 - [ ] **ID verification** — separate from FVV. Move into the FVV overlay flow as an
       "UPGRADE" button (next to "I Understand" in the Face Verified overlay) that triggers
       the ID verification overlay. Targets higher trust tier: PRO VERIFIED / BUSINESS
       VERIFIED badges. Future work.
+      **2026-07-17:** Account Settings **Upgrade Status** row `#upgradeStatusOption` is
+      **hidden** (not deleted) in `profile.html` until that flow is ready. Same restore doc:
+      `docs/preserved-ui/account-settings-deferred-ui.md`.
+      **Also 2026-07-17:** Face Verification controls moved from Edit Profile into Account
+      Settings → Profile Verification (`#accountFaceVerificationCard`). See same doc.
 - [~] **Firebase persistence deprecation warning** — confirmed it costs NOTHING (one-time console
       log at init, not per read/write). 2026-06-27: muted the console noise with a surgical
       `console.warn` filter in `firebase-config.js` that drops ONLY the
@@ -497,7 +514,8 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
       scroll, lang tabs, `handleNotificationTypeNavigation`, mark-as-read, role switch. Init only
       the alerts path (no chats/support).
 - [x] A3 Auth gate → `login.html?redirect=alerts.html`. Support `?role=worker|customer` for push.
-- [ ] A4 Smoke (user): stream both roles; card tap → jobs/profile; read persists; lang tabs; push tap.
+- [~] A4 Smoke (user): **in-app** stream + card taps for primary gig types done 2026-07-17 (see E).
+      Lang tabs / read-persist light; **push tray tap** still open (own session).
 
 ### B. Support page
 - [x] B1 Scaffold `support.html` — header "Support", unified inbox + Write compose overlay.
@@ -518,17 +536,50 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 ### D. Push deep-links (hosting + functions)
 - [x] D1 `functions/index.js` `buildPushPayloadFromNotification` — alert types → `/alerts.html?role=…`
       (reserve `/support.html` for a future support-reply push type when dashboard ships).
-- [x] D2 `firebase-messaging-sw.js` — default click/fallback → `/alerts.html` (+ `data.link`).
-- [x] D3 Cache-bust + **Deploy hosting + functions** (Item 3 ship + tidy). Done 2026-07-16.
+      **2026-07-17:** also allowlisted `feedback_received`, `worker_feedback_received`,
+      `offer_rejected` for phone tray (in-app already worked).
+- [~] D2 `firebase-messaging-sw.js` — click handler intends `/alerts.html` (+ `data.link`).
+      **Payload wiring shipped; tray-tap navigation NOT verified.** 2026-07-17: user reports
+      tray tap only opens the mobile browser app / focuses GISUGO, does not go to Alerts.
+      Reopen: ensure click path always has a usable link (auto-displayed FCM notifications may
+      omit SW `data`), and navigate (not only focus) to `/alerts.html?role=…`.
+      **Own session later** — do not block closing in-app alert smoke on this.
+- [x] D3 Cache-bust + **Deploy hosting + functions** (Item 3 ship + tidy). Done 2026-07-16;
+      follow-on hosting/functions deploys 2026-07-17 (alerts deep-link fix, push allowlist, Offers
+      Open Chat removed, Account Notifications settings).
 
 ### E. Live test checklist (user — in progress)
-1. [~] Menu shows Alerts + Support; Messages hidden.
-2. [ ] Alerts page loads real notifications; role + lang tabs work; fuller gig-activity coverage.
+
+#### E0. In-app gig-activity alerts (2026-07-17 two-account smoke)
+| Role | Action / type | Status |
+|---|---|---|
+| Worker | Hire offer (`offer_sent`) | ✅ card + counts |
+| Worker | Gig completed (`job_completed`) | ✅ card + counts |
+| Worker | Customer feedback (`feedback_received`) | ✅ card; Profile reviews deep-link fixed |
+| Worker | Contract voided (`contract_voided`) | ✅ (earlier same day) |
+| Worker | Slots reopen (`application_slots_reopened_batch`) | ✅ N/A this pass — both accounts at 10 available, no pending apps/offers; only fires on manual reject or not-selected-after-hire for *other* applicants |
+| Customer | Application received (`application_received`) | ✅ |
+| Customer | Offer accepted (`offer_accepted`) | ✅ card + Hiring deep-link |
+| Customer | Offer rejected (`offer_rejected`) | ✅ card + counts |
+| Customer | Worker resigned (`worker_resigned`) | ✅ (earlier same day) |
+| Customer | Worker feedback (`worker_feedback_received`) | ✅ card; Profile reviews deep-link fixed |
+| Customer | 5+ milestone (`application_milestone`) | ⬜ not tested |
+| Customer | Auto-pause at 10 (`gig_auto_paused`) | ⬜ not tested |
+
+**Fixes from this smoke (deployed):** Profile `?tab=reviews-*` left User Info visible (wrong
+`.tab-content` selector → `.tab-content-wrapper`); Offers overlay **OPEN CHAT** removed; push
+allowlist + Hiring toggle for `offer_rejected`; feedback types on push allowlist.
+
+#### E1–E7. Remaining Item 3 smoke
+1. [~] Menu shows Alerts + Support; Messages hidden. *(in use during smoke — treat as OK)*
+2. [~] Alerts page loads real notifications; role tabs OK. **Pending:** lang-tab sweep; 5+/auto-pause.
 3. [ ] Support page loads (likely empty until admin responder); Write works.
-4. [ ] Push tap opens `alerts.html` (not messages).
+4. [ ] **FAIL 2026-07-17 / own session:** Push tray tap → `alerts.html` (not browser shell only).
+      Device Enable can deliver tray; deep-link navigation still broken.
 5. [ ] Direct `messages.html?threadId=…` still opens chat.
 6. [ ] Support Write / `contacts.html?compose` still creates `support_requests`.
-7. [ ] Regression: jobs/profile navigation from an alert card; back returns to Alerts.
+7. [~] Alert card → jobs/profile deep-links: Hiring + Profile reviews verified; back-to-Alerts
+      light-check still nice-to-have.
 
 ### Guardrails — messages.html must NOT keep "running" in the background
 > User concern (2026-07-15): leaving `messages.html` intact must not mean chat/alerts keep
@@ -551,9 +602,9 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
       unread listener (and chat unread override) so hiding Messages also stops that background read.
       Keep notification-counter listener for the Alerts badge. (`MENU_CHAT_UNREAD_ENABLED` /
       `HOME_CHAT_UNREAD_ENABLED` = false).
-- [x] G3 Confirm Contact + Hire paths still do not call chat-create / `navigateToExistingChatThread`
-      (except an explicit "Open Chat" on legacy offers if that UI still exists — document it).
-      Direct Contact = phone reveal only (`gig-overlays.js`).
+- [x] G3 Confirm Contact + Hire paths still do not call chat-create / `navigateToExistingChatThread`.
+      Direct Contact = phone reveal only (`gig-overlays.js`). **2026-07-17:** Offers overlay
+      **OPEN CHAT** removed (button + thread pre-fetch handler).
 - [x] G4 Do **not** delete `messages.html` code; do **not** wire new features into it during Item 3.
 
 ### Out of scope (do not fold into Item 3)
@@ -571,7 +622,8 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live.
-1. **Finish Item 3 smoke** (Alerts/Support/push/messages deep-link checklist above) — user testing.
+1. **Finish Item 3 smoke leftovers** — customer 5+/auto-pause; Support Write; phone-tray session
+   (delivery + tap→Alerts); `messages.html?threadId=`. In-app primary gig alerts done 2026-07-17.
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
    admin notifications, gig-report moderation, the deferred lockdown, the Support responder/admin
    side, and displays the Direct reveal counter.

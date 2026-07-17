@@ -1756,7 +1756,7 @@ async function useFaceCaptureResult() {
 
   updateBadgeVisibility(window.currentUserProfile);
   updateAccountOverlayVerificationStatus(window.currentUserProfile);
-  updateEditProfileFaceVerificationControls(window.currentUserProfile);
+  updateAccountFaceVerificationControls(window.currentUserProfile);
   populateFacePrestigePreview();
   if (faceCaptureUseBtn) {
     faceCaptureUseBtn.textContent = 'Use This Video';
@@ -1916,7 +1916,7 @@ function handleAccountAction(action) {
       break;
     case 'notification-settings':
       console.log('Notification Settings clicked');
-      // TODO: Open notification settings
+      openNotificationSettingsOverlay();
       break;
     case 'upgrade-explanation':
       console.log('Upgrade Status clicked - opening explanation overlay');
@@ -1935,6 +1935,302 @@ function handleAccountAction(action) {
       console.log('Unknown action:', action);
   }
 }
+
+// ===== NOTIFICATION SETTINGS OVERLAY =====
+const NOTIF_PUSH_TYPE_KEYS = [
+  'application_received',
+  'offer_accepted',
+  'offer_rejected',
+  'worker_resigned',
+  'application_slots_reopened_batch',
+  'offer_sent',
+  'contract_voided',
+  'job_completed',
+  'interview_request'
+];
+
+function getNotificationSettingsOverlay() {
+  return document.getElementById('notificationSettingsOverlay');
+}
+
+function setNotifStatusEl(el, text, tone) {
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('is-ok', 'is-warn', 'is-bad');
+  if (tone) el.classList.add(tone);
+}
+
+function refreshNotificationDeviceStatus() {
+  const permissionEl = document.getElementById('notifDevicePermissionStatus');
+  const tokenEl = document.getElementById('notifDeviceTokenStatus');
+  const hintEl = document.getElementById('notifDeviceHint');
+  const enableBtn = document.getElementById('notifEnableDeviceBtn');
+  const push = window.GisugoPushNotifications;
+  const status = (push && typeof push.getDeviceStatus === 'function')
+    ? push.getDeviceStatus()
+    : { permission: 'unsupported', hasStoredToken: false, supported: false, mode: 'unsupported' };
+
+  if (!status.supported) {
+    setNotifStatusEl(permissionEl, 'Not supported', 'is-bad');
+    setNotifStatusEl(tokenEl, 'Unavailable', 'is-bad');
+    if (hintEl) hintEl.textContent = 'Phone push needs a supported mobile browser on HTTPS.';
+    if (enableBtn) enableBtn.disabled = true;
+    return;
+  }
+
+  if (status.permission === 'granted') {
+    setNotifStatusEl(permissionEl, 'Allow', 'is-ok');
+  } else if (status.permission === 'denied') {
+    setNotifStatusEl(permissionEl, 'Blocked', 'is-bad');
+  } else {
+    setNotifStatusEl(permissionEl, 'Not set', 'is-warn');
+  }
+
+  if (status.permission === 'granted' && status.hasStoredToken) {
+    setNotifStatusEl(tokenEl, 'Ready', 'is-ok');
+    if (hintEl) hintEl.textContent = 'This phone can receive GISUGO tray alerts.';
+    if (enableBtn) {
+      enableBtn.disabled = false;
+      enableBtn.textContent = 'Refresh on this phone';
+    }
+  } else if (status.permission === 'denied') {
+    setNotifStatusEl(tokenEl, 'Blocked', 'is-bad');
+    if (hintEl) {
+      hintEl.textContent = 'This browser blocked notifications for GISUGO. Allow notifications for gisugo.com in your browser site settings, or clear site data, then tap Enable again.';
+    }
+    if (enableBtn) {
+      enableBtn.disabled = false;
+      enableBtn.textContent = 'Enable on this phone';
+    }
+  } else {
+    setNotifStatusEl(tokenEl, 'Not registered', 'is-warn');
+    if (hintEl) hintEl.textContent = 'Tap Enable on this phone, then Allow when your browser asks.';
+    if (enableBtn) {
+      enableBtn.disabled = false;
+      enableBtn.textContent = 'Enable on this phone';
+    }
+  }
+}
+
+function applyNotificationTypeToggleEnabledState() {
+  const master = document.getElementById('notifPushEnabled');
+  const enabled = !!(master && master.checked);
+  document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+    input.disabled = !enabled;
+  });
+}
+
+async function loadNotificationSettingsIntoForm() {
+  const master = document.getElementById('notifPushEnabled');
+  const defaultsOn = true;
+  if (master) master.checked = defaultsOn;
+  document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+    input.checked = defaultsOn;
+  });
+
+  try {
+    const user = firebase?.auth?.()?.currentUser;
+    if (!user) return;
+    const db = typeof getFirestore === 'function' ? getFirestore() : firebase.firestore();
+    const snap = await db.collection('users').doc(user.uid).get();
+    const data = snap.exists ? (snap.data() || {}) : {};
+    const settings = data.notificationSettings || data.notifications || {};
+    const pushEnabled = !(
+      settings.pushEnabled === false ||
+      settings.pushNotifications === false ||
+      settings.notificationsEnabled === false ||
+      settings.allowPush === false
+    );
+    const disabled = Array.isArray(settings.disabledPushTypes)
+      ? settings.disabledPushTypes.map((t) => String(t || '').toLowerCase())
+      : (Array.isArray(settings.pushDisabledTypes)
+        ? settings.pushDisabledTypes.map((t) => String(t || '').toLowerCase())
+        : []);
+
+    if (master) master.checked = pushEnabled;
+    document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+      const type = String(input.getAttribute('data-push-type') || '').toLowerCase();
+      input.checked = pushEnabled && !disabled.includes(type);
+    });
+  } catch (error) {
+    console.warn('⚠️ Could not load notification settings:', error);
+  }
+
+  applyNotificationTypeToggleEnabledState();
+  refreshNotificationDeviceStatus();
+}
+
+async function saveNotificationSettings() {
+  const user = firebase?.auth?.()?.currentUser;
+  if (!user) {
+    alert('You must be logged in to save notification settings.');
+    return;
+  }
+  const master = document.getElementById('notifPushEnabled');
+  const pushEnabled = !!(master && master.checked);
+  const disabledPushTypes = [];
+  if (pushEnabled) {
+    document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+      const type = String(input.getAttribute('data-push-type') || '').trim();
+      if (type && !input.checked) disabledPushTypes.push(type);
+    });
+  } else {
+    NOTIF_PUSH_TYPE_KEYS.forEach((type) => disabledPushTypes.push(type));
+  }
+
+  const saveBtn = document.getElementById('notificationSettingsSaveBtn');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+  }
+
+  try {
+    const db = typeof getFirestore === 'function' ? getFirestore() : firebase.firestore();
+    await db.collection('users').doc(user.uid).set({
+      notificationSettings: {
+        pushEnabled,
+        pushCriticalEnabled: true,
+        disabledPushTypes,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }
+    }, { merge: true });
+
+    if (window.GisugoPushNotifications?.clearPreferenceCache) {
+      window.GisugoPushNotifications.clearPreferenceCache(user.uid);
+    }
+    if (pushEnabled && Notification.permission === 'granted' && window.GisugoPushNotifications?.syncCurrentUserToken) {
+      await window.GisugoPushNotifications.syncCurrentUserToken();
+    }
+
+    if (typeof showLinkModal === 'function') {
+      showLinkModal('success', 'Saved', 'Notification preferences updated.');
+    } else {
+      alert('Notification preferences updated.');
+    }
+    closeNotificationSettingsOverlay();
+  } catch (error) {
+    console.error('❌ Failed saving notification settings:', error);
+    alert('Could not save notification settings. Please try again.');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+  }
+}
+
+async function handleEnableNotificationsOnDevice() {
+  const enableBtn = document.getElementById('notifEnableDeviceBtn');
+  const hintEl = document.getElementById('notifDeviceHint');
+  if (!window.GisugoPushNotifications?.enableFromSettings) {
+    if (hintEl) hintEl.textContent = 'Push module not loaded. Reload the page and try again.';
+    return;
+  }
+  if (enableBtn) {
+    enableBtn.disabled = true;
+    enableBtn.textContent = 'Working…';
+  }
+  try {
+    const result = await window.GisugoPushNotifications.enableFromSettings();
+    refreshNotificationDeviceStatus();
+    if (result?.ok) {
+      if (hintEl) hintEl.textContent = 'Phone delivery ready on this device.';
+      return;
+    }
+    if (result?.reason === 'permission_blocked' || result?.permission === 'denied') {
+      if (hintEl) {
+        hintEl.textContent = 'This browser still has GISUGO notifications blocked. Allow notifications for gisugo.com in site settings, or clear site data, then try again.';
+      }
+      return;
+    }
+    if (result?.reason === 'disabled_by_account_settings') {
+      if (hintEl) hintEl.textContent = 'Turn on Phone push alerts below, Save, then Enable on this phone again.';
+      return;
+    }
+    if (hintEl) hintEl.textContent = 'Could not enable on this phone yet. Try Allow if your browser asks, then tap again.';
+  } catch (error) {
+    console.warn('⚠️ Enable on device failed:', error);
+    if (hintEl) hintEl.textContent = 'Enable failed. Reload and try again.';
+  } finally {
+    refreshNotificationDeviceStatus();
+  }
+}
+
+function openNotificationSettingsOverlay() {
+  const accountOverlay = document.getElementById('accountOverlay');
+  if (accountOverlay) {
+    accountOverlay.classList.remove('active');
+  }
+  document.body.style.overflow = '';
+
+  setTimeout(() => {
+    const overlay = getNotificationSettingsOverlay();
+    if (!overlay) return;
+    loadNotificationSettingsIntoForm();
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }, 150);
+}
+
+function closeNotificationSettingsOverlay() {
+  const overlay = getNotificationSettingsOverlay();
+  if (overlay) {
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+  }
+  document.body.style.overflow = '';
+
+  // Return to Account Settings
+  setTimeout(() => {
+    const accountOverlay = document.getElementById('accountOverlay');
+    if (accountOverlay && typeof openAccountSettingsIfOwner === 'function') {
+      openAccountSettingsIfOwner();
+    } else if (accountOverlay) {
+      accountOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+  }, 120);
+}
+
+function initNotificationSettingsHandlers() {
+  const overlay = getNotificationSettingsOverlay();
+  if (!overlay || overlay.dataset.handlersBound === 'true') return;
+  overlay.dataset.handlersBound = 'true';
+
+  const closeBtn = document.getElementById('notificationSettingsCloseBtn');
+  const cancelBtn = document.getElementById('notificationSettingsCancelBtn');
+  const saveBtn = document.getElementById('notificationSettingsSaveBtn');
+  const enableBtn = document.getElementById('notifEnableDeviceBtn');
+  const master = document.getElementById('notifPushEnabled');
+
+  if (closeBtn) closeBtn.addEventListener('click', closeNotificationSettingsOverlay);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeNotificationSettingsOverlay);
+  if (saveBtn) saveBtn.addEventListener('click', () => { void saveNotificationSettings(); });
+  if (enableBtn) enableBtn.addEventListener('click', () => { void handleEnableNotificationsOnDevice(); });
+  if (master) {
+    master.addEventListener('change', () => {
+      applyNotificationTypeToggleEnabledState();
+      if (!master.checked) {
+        document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+          input.checked = false;
+        });
+      } else {
+        document.querySelectorAll('.notif-type-toggle').forEach((input) => {
+          input.checked = true;
+        });
+      }
+    });
+  }
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeNotificationSettingsOverlay();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initNotificationSettingsHandlers();
+});
 
 // ===== EDIT PROFILE OVERLAY FUNCTIONALITY =====
 function openEditProfileOverlay() {
@@ -2102,7 +2398,6 @@ function populateEditProfileForm() {
     }
   }
 
-  updateEditProfileFaceVerificationControls(profile);
 
   // Social Media usernames (extracted from URLs)
   const facebookInput = document.getElementById('editFacebook');
@@ -2148,9 +2443,9 @@ function populateEditProfileForm() {
   }
 }
 
-function updateEditProfileFaceVerificationControls(profile) {
-  const statusElement = document.getElementById('editFaceVerificationStatus');
-  const actionButton = document.getElementById('editFaceVerificationBtn');
+function updateAccountFaceVerificationControls(profile) {
+  const statusElement = document.getElementById('accountFaceVerificationStatus');
+  const actionButton = document.getElementById('accountFaceVerificationBtn');
   if (!statusElement || !actionButton) return;
 
   const isFaceVerified = !!(profile?.verification?.faceVerified);
@@ -2160,10 +2455,12 @@ function updateEditProfileFaceVerificationControls(profile) {
   actionButton.textContent = isFaceVerified ? 'Re-record Video' : 'Verify Now';
 }
 
-const editFaceVerificationBtn = document.getElementById('editFaceVerificationBtn');
-if (editFaceVerificationBtn) {
-  editFaceVerificationBtn.addEventListener('click', function() {
-    closeEditProfileOverlay();
+const accountFaceVerificationBtn = document.getElementById('accountFaceVerificationBtn');
+if (accountFaceVerificationBtn) {
+  accountFaceVerificationBtn.addEventListener('click', function() {
+    const accountOverlay = document.getElementById('accountOverlay');
+    if (accountOverlay) accountOverlay.classList.remove('active');
+    document.body.style.overflow = '';
     setTimeout(() => openFaceVerificationEntryPoint(), 140);
   });
 }
@@ -3204,6 +3501,7 @@ function updateBadgeVisibility(userProfile) {
   
   // Update account overlay verification status
   updateAccountOverlayVerificationStatus(userProfile);
+  updateAccountFaceVerificationControls(userProfile);
   
   // Update G-Coins display
   updateGCoinsDisplay(userProfile);
@@ -4138,7 +4436,10 @@ function applyRequestedProfileTabFromQuery() {
   document.querySelectorAll('.profile-tabs .tab-btn').forEach((btn) => btn.classList.remove('active'));
   requestedBtn.classList.add('active');
 
-  document.querySelectorAll('.tab-content').forEach((content) => content.classList.remove('active'));
+  // Must match click-handler selector (.tab-content-wrapper). Using .tab-content left
+  // #user-info-content still .active, so Alerts deep-links highlighted the reviews tab
+  // but kept showing User Info until the user tapped the tab again.
+  document.querySelectorAll('.tab-content-wrapper').forEach((content) => content.classList.remove('active'));
   requestedContent.classList.add('active');
 
   handleProfileTabChange(requestedTab);

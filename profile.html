@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.20">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.22">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -680,7 +680,8 @@
         </button>
       </div>
       <div class="account-content">
-        <div class="account-section">
+        <!-- Hidden until G-Coins purchase flow is ready (do not delete) -->
+        <div class="account-section" id="gCoinsWalletSection" hidden style="display: none;">
           <div class="account-section-title">GISUGO Coins Wallet</div>
           <div class="gcoins-balance-card">
         <div class="gcoins-header">
@@ -717,7 +718,18 @@
             </div>
             <div class="account-option-status active" id="verificationStatusBadge">Active</div>
           </div>
-          <div class="account-option verification-upgrade-option clickable pulsating-glow" id="upgradeStatusOption" data-action="upgrade-explanation">
+          <div class="account-face-verify-card" id="accountFaceVerificationCard">
+            <div class="account-face-verify-copy">
+              <div class="account-face-verify-title">Face Verification</div>
+              <div class="account-face-verify-desc">Recommended for higher trust. This does not block account usage.</div>
+            </div>
+            <div class="account-face-verify-actions">
+              <div class="edit-profile-face-status" id="accountFaceVerificationStatus">UNVERIFIED</div>
+              <button type="button" class="edit-profile-face-btn" id="accountFaceVerificationBtn">Verify Now</button>
+            </div>
+          </div>
+          <!-- Hidden until Upgrade Status flow is ready (do not delete) -->
+          <div class="account-option verification-upgrade-option clickable pulsating-glow" id="upgradeStatusOption" data-action="upgrade-explanation" hidden style="display: none;">
             <div class="account-option-icon">⭐</div>
             <div class="account-option-info">
               <div class="account-option-name">Upgrade Status</div>
@@ -747,19 +759,19 @@
             </div>
             <div class="account-option-arrow">›</div>
           </div>
-          <div class="account-option clickable" data-action="privacy-settings">
-            <div class="account-option-icon">🔒</div>
-            <div class="account-option-info">
-              <div class="account-option-name">Privacy Settings</div>
-              <div class="account-option-desc">Control who can see your profile</div>
-            </div>
-            <div class="account-option-arrow">›</div>
-          </div>
           <div class="account-option clickable" data-action="notification-settings">
             <div class="account-option-icon">🔔</div>
             <div class="account-option-info">
               <div class="account-option-name">Notifications</div>
               <div class="account-option-desc">Manage notification preferences</div>
+            </div>
+            <div class="account-option-arrow">›</div>
+          </div>
+          <div class="account-option clickable" data-action="privacy-settings">
+            <div class="account-option-icon">🔒</div>
+            <div class="account-option-info">
+              <div class="account-option-name">Privacy Settings</div>
+              <div class="account-option-desc">Control who can see your profile</div>
             </div>
             <div class="account-option-arrow">›</div>
           </div>
@@ -843,15 +855,6 @@
                 <option value="Masters">Masters</option>
                 <option value="Doctorate">Doctorate</option>
               </select>
-            </div>
-          </div>
-
-          <div class="edit-profile-section">
-            <div class="edit-profile-section-title">Face Verification</div>
-            <div class="edit-profile-section-desc">Recommended for higher trust. This does not block account usage.</div>
-            <div class="edit-profile-face-row">
-              <div class="edit-profile-face-status" id="editFaceVerificationStatus">UNVERIFIED</div>
-              <button type="button" class="edit-profile-face-btn" id="editFaceVerificationBtn">Verify Now</button>
             </div>
           </div>
 
@@ -952,6 +955,134 @@
             <button type="submit" class="edit-profile-save-btn" onclick="saveProfileChanges(); return false;">Save Changes</button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications Settings Overlay -->
+  <div class="edit-profile-overlay" id="notificationSettingsOverlay" aria-hidden="true">
+    <div class="edit-profile-container">
+      <div class="edit-profile-header">
+        <div class="edit-profile-title">Notifications</div>
+        <button type="button" class="edit-profile-close-btn" id="notificationSettingsCloseBtn" aria-label="Close">×</button>
+      </div>
+      <div class="edit-profile-content">
+        <p class="notif-settings-intro">
+          Alerts inside GISUGO always appear. These settings control phone tray push on this device.
+        </p>
+
+        <div class="edit-profile-section">
+          <div class="edit-profile-section-title">This Device</div>
+          <div class="notif-device-card">
+            <div class="notif-device-status-row">
+              <span class="notif-device-label">Browser permission</span>
+              <span class="notif-device-value" id="notifDevicePermissionStatus">Checking…</span>
+            </div>
+            <div class="notif-device-status-row">
+              <span class="notif-device-label">Phone delivery</span>
+              <span class="notif-device-value" id="notifDeviceTokenStatus">Checking…</span>
+            </div>
+            <button type="button" class="notif-enable-device-btn" id="notifEnableDeviceBtn">Enable on this phone</button>
+            <div class="notif-device-hint" id="notifDeviceHint"></div>
+          </div>
+        </div>
+
+        <div class="edit-profile-section">
+          <div class="edit-profile-section-title">Phone Push</div>
+          <label class="notif-toggle-row">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Phone push alerts</div>
+              <div class="notif-toggle-desc">Master switch for tray notifications</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input" id="notifPushEnabled" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <div class="edit-profile-section">
+          <div class="edit-profile-section-title">When You’re Hiring</div>
+          <label class="notif-toggle-row" data-push-type="application_received">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">New applications</div>
+              <div class="notif-toggle-desc">Someone applied to your gig</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="application_received" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="offer_accepted">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Offer accepted</div>
+              <div class="notif-toggle-desc">Worker accepted your hire offer</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="offer_accepted" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="offer_rejected">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Offer rejected</div>
+              <div class="notif-toggle-desc">Worker declined your hire offer</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="offer_rejected" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="worker_resigned">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Worker resigned</div>
+              <div class="notif-toggle-desc">Hired worker left the gig</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="worker_resigned" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="application_slots_reopened_batch">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Slots reopened</div>
+              <div class="notif-toggle-desc">Application slots opened again on your gig</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="application_slots_reopened_batch" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <div class="edit-profile-section">
+          <div class="edit-profile-section-title">When You’re Working</div>
+          <label class="notif-toggle-row" data-push-type="offer_sent">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Gig offers</div>
+              <div class="notif-toggle-desc">A customer sent you an offer</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="offer_sent" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="contract_voided">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Contract voided</div>
+              <div class="notif-toggle-desc">Customer ended the contract</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="contract_voided" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="job_completed">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Gig completed</div>
+              <div class="notif-toggle-desc">Customer marked the gig complete</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="job_completed" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+          <label class="notif-toggle-row" data-push-type="interview_request">
+            <div class="notif-toggle-copy">
+              <div class="notif-toggle-title">Interview requests</div>
+              <div class="notif-toggle-desc">Customer wants to talk first</div>
+            </div>
+            <input type="checkbox" class="notif-toggle-input notif-type-toggle" data-push-type="interview_request" checked>
+            <span class="notif-toggle-slider" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        <div class="edit-profile-actions">
+          <button type="button" class="edit-profile-cancel-btn" id="notificationSettingsCancelBtn">Close</button>
+          <button type="button" class="edit-profile-save-btn" id="notificationSettingsSaveBtn">Save</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1363,7 +1494,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260627a"></script>
   <script src="public/js/firebase-auth.js?v=39"></script>
-  <script src="public/js/push-notifications.js?v=8"></script>
+  <script src="public/js/push-notifications.js?v=9"></script>
   <script src="public/js/firebase-db.js?v=56"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
   
@@ -1372,7 +1503,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.3"></script>
   <script src="public/js/shared-menu.js?v=4.3"></script>
-  <script src="public/js/profile.js?v=92"></script>
+  <script src="public/js/profile.js?v=97"></script>
 
 </body>
 </html> 

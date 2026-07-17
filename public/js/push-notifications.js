@@ -459,37 +459,81 @@
     return String(token || '');
   }
 
-  async function ensurePermissionIfNeeded() {
+  async function ensurePermissionIfNeeded(options = {}) {
     if (Notification.permission === 'granted') return true;
-    if (!shouldPromptForPermission()) return false;
+    if (Notification.permission === 'denied') return false;
+    // Settings / explicit user action: always ask (ignore 24h cooldown).
+    if (!options.force && !shouldPromptForPermission()) return false;
     markPermissionPrompted();
     const permission = await Notification.requestPermission();
     return permission === 'granted';
   }
 
   async function syncUserToken(user, options = {}) {
-    if (!user || !user.uid) return;
+    if (!user || !user.uid) return { synced: false, reason: 'no_user' };
     const prefs = await getUserPushPreference(user.uid);
     if (!prefs.pushEnabled || !prefs.criticalEnabled) {
       console.log('🔕 Push disabled by account settings; skipping token sync');
-      return;
+      return { synced: false, reason: 'disabled_by_account_settings' };
     }
-    const permissionReady = options.prompt === false ? (Notification.permission === 'granted') : await ensurePermissionIfNeeded();
+    const permissionReady = options.prompt === false
+      ? (Notification.permission === 'granted')
+      : await ensurePermissionIfNeeded({ force: !!options.force });
     if (!permissionReady) {
       console.log('🔕 Push permission not granted; skipping token sync');
-      return;
+      return {
+        synced: false,
+        reason: Notification.permission === 'denied' ? 'permission_blocked' : 'permission_not_granted',
+        permission: Notification.permission
+      };
     }
     await ensureServiceWorker();
     const token = await getMessagingToken();
     if (!token) {
       console.warn('⚠️ FCM returned empty token');
-      return;
+      return { synced: false, reason: 'empty_token' };
     }
     await upsertTokenForUser(user.uid, token);
     setStoredPushToken(token);
     setStoredUid(user.uid);
     currentUid = user.uid;
     console.log('✅ Push token synced');
+    return { synced: true, reason: 'synced', permission: 'granted' };
+  }
+
+  async function enableFromSettings() {
+    const authFromWindow = typeof window.getFirebaseAuth === 'function' ? window.getFirebaseAuth() : null;
+    const authFromFirebase = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : null;
+    const auth = authFromWindow || authFromFirebase;
+    const user = auth ? auth.currentUser : null;
+    if (!user || !user.uid) {
+      return { ok: false, reason: 'no_user', permission: 'default', mode: 'unsupported' };
+    }
+    if (!isSupportedEnvironment() || !canUsePushOnOrigin()) {
+      return { ok: false, reason: 'unsupported_environment', permission: Notification.permission || 'default', mode: 'unsupported' };
+    }
+    const mode = getAdaptivePromptMode();
+    if (mode === 'blocked') {
+      return { ok: false, reason: 'permission_blocked', permission: 'denied', mode };
+    }
+    if (mode === 'ios_add_to_home') {
+      // Reuse milestone modal copy for Add to Home Screen guidance.
+      const milestoneResult = await window.GisugoPushNotifications.onEngagementMilestone('apply');
+      return {
+        ok: Notification.permission === 'granted',
+        reason: milestoneResult?.reason || 'ios_add_to_home',
+        permission: Notification.permission,
+        mode
+      };
+    }
+    userPushPrefCache.delete(user.uid);
+    const result = await syncUserToken(user, { force: true });
+    return {
+      ok: !!result?.synced,
+      reason: result?.reason || 'unknown',
+      permission: Notification.permission,
+      mode: getAdaptivePromptMode()
+    };
   }
 
   async function handleLogoutCleanup(previousUid) {
@@ -610,6 +654,23 @@
       if (!user) return false;
       await syncUserToken(user);
       return true;
+    },
+    enableFromSettings,
+    clearPreferenceCache: (uid) => {
+      const safeUid = String(uid || '').trim();
+      if (safeUid) userPushPrefCache.delete(safeUid);
+      else userPushPrefCache.clear();
+    },
+    getDeviceStatus: () => {
+      const permission = (typeof Notification !== 'undefined') ? Notification.permission : 'unsupported';
+      const mode = getAdaptivePromptMode();
+      const hasStoredToken = !!getStoredPushToken();
+      return {
+        permission,
+        mode,
+        hasStoredToken,
+        supported: isSupportedEnvironment() && canUsePushOnOrigin()
+      };
     },
     prepareForLogout: async (uid) => handleLogoutCleanup(uid),
     onEngagementMilestone: async (milestoneType = '') => {

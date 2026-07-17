@@ -35,12 +35,15 @@ const PUSH_SEND_BATCH_SIZE = 500;
 const CRITICAL_PUSH_NOTIFICATION_TYPES = new Set([
   "offer_sent",
   "offer_accepted",
+  "offer_rejected",
   "interview_request",
   "contract_voided",
   "worker_resigned",
   "job_completed",
   "application_received",
-  "application_slots_reopened_batch"
+  "application_slots_reopened_batch",
+  "feedback_received",
+  "worker_feedback_received"
 ]);
 
 function inferNotificationRoleForCounter(notification = {}) {
