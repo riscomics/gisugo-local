@@ -498,10 +498,10 @@ body::-webkit-scrollbar {
   max-width: 1100px; /* Wider to prevent wrapping at 943px+ */
   width: 92%;
   max-height: 85vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
-              0 0 40px rgba(16, 185, 129, 0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   animation: modalSlideUp 0.4s cubic-bezier(.77,0,.18,1);
 }
 
@@ -574,6 +574,11 @@ body::-webkit-scrollbar {
 /* Modal body */
 .jobcat-modal-body {
   padding: 24px;
+  background: #141b24;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Section divider */
@@ -4158,6 +4163,9 @@ body::-webkit-scrollbar {
   width: 100% !important;
   margin: 0 auto !important;
   max-height: 85vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
 }
 
@@ -4192,7 +4200,10 @@ body::-webkit-scrollbar {
 
 .jobcat-modal-body {
   padding: 20px !important;
-  max-height: calc(85vh - 100px) !important;
+  background: #141b24 !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
   overflow-y: auto !important;
   scrollbar-width: none !important; /* Firefox */
   -ms-overflow-style: none !important; /* IE/Edge legacy */
