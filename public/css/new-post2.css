@@ -1362,6 +1362,11 @@ html body.page-post2:has(.uniform-header) {
 .np2-category-grid-modal {
   max-width: 900px !important;
   max-height: 85vh !important;
+  background: #141b24;
+}
+
+.np2-category-grid-modal .np2-dropdown-search {
+  background: #141b24;
 }
 
 .np2-category-grid-body {
