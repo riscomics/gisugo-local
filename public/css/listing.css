@@ -1,6 +1,7 @@
 html {
   overflow-y: auto;
   height: auto;
+  background: #141b24;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   /* Hide scrollbar for all browsers and devices */
@@ -13,7 +14,7 @@ html::-webkit-scrollbar {
 }
 
 body {        
-  background: #242936; /* Solid lighter color - no gradient */
+  background: #141b24 !important; /* Page fill matched to Alerts / Profile */
   margin: 0;
   padding: clamp(70px, 12vh, 96px) 0 0 0; /* Keep stable on legacy iOS tablet viewport math */
   -webkit-text-size-adjust: 100%;
