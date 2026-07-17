@@ -1,13 +1,17 @@
 /* ========================== NEW POST 2 - EXPERIMENTAL REDESIGN ========================== */
 /* Inspired by Admin Dashboard clean, professional aesthetic */
 
-/* BASE STYLES */
+/* BASE STYLES — page fill matches Alerts / Gigs Manager / Profile (#141b24) */
 .page-post2 {
-  background: #242936;
+  background: #141b24;
   min-height: 100vh;
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+html body.page-post2:has(.uniform-header) {
+  background: #141b24 !important;
 }
 
 /* MAIN CONTAINER */
