@@ -30,9 +30,11 @@ html body.page-post2:has(.uniform-header) {
   margin-top: 20px;
   margin-bottom: 30px;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.3);
+  /* Step-strip panel — between near-black and #243041 */
+  background: #1a2330;
+  border: 1px solid rgba(148, 163, 184, 0.12);
   border-radius: 12px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: none;
   gap: 24px;
 }
 
@@ -73,16 +75,18 @@ html body.page-post2:has(.uniform-header) {
 }
 
 .np2-progress-label {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
+  font-size: 13px;
+  color: #ffffff !important;
+  font-weight: 600;
   text-align: center;
+  opacity: 1 !important;
 }
 
-.np2-progress-step.active .np2-progress-label {
-  color: #4CAF50;
+.np2-progress-step.active .np2-progress-label,
+.np2-progress-step:has(.np2-progress-circle.active) .np2-progress-label {
+  color: #ffffff !important;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .np2-progress-line {
@@ -1738,7 +1742,7 @@ html body.page-post2:has(.uniform-header) {
   }
 
   .np2-progress-label {
-    font-size: 10px;
+    font-size: 12px !important; /* was 10px — tiny type looked nearly black on the dark strip */
   }
 
   .np2-card-header {

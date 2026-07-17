@@ -1,7 +1,8 @@
 # GISUGO — "Direct" Contact-Only Listings (Design Study)
 
-> Status: **Core Direct route SHIPPED (2026-07-11)** · Study created 2026-07-03
+> Status: **Core Direct route SHIPPED (2026-07-11)** · Study created 2026-07-03 · Updated 2026-07-17
 > Decision: **Direct is the model.** Contact reveal + HIRE shipped; chat is future premium.
+> Alerts/Support page split (Item 3) also shipped — see V1 tasklist.
 > Companion: `docs/V1_HARDENING_TASKLIST.md`, `FIREBASE_SCHEMA.md`.
 >
 > **Agent rule:** verify `revealApplicantContact`, `user_private.phoneNumber`, and live HIRE/CONTACT
@@ -235,7 +236,8 @@ Under the Direct/premium-chat direction this duplication can collapse (chat mirr
 
 **Bigger strategic threads (major, not toggles):**
 - **Chat as a premium subscription tier** (free = Direct/phone; paid = in-app chat w/ photos + records).
-- **Segregate Alerts / Chats / Support** (currently unified in `messages.html`) to support tiering.
+- **Segregate Alerts / Chats / Support** — ✅ **user-facing split SHIPPED (Item 3, 2026-07):**
+  standalone `alerts.html` + `support.html`; Messages hidden until premium (`messages.html` kept).
 - Both are **repositioning** with liability implications (zero in-app records = zero mediation ability).
   Defensible under an explicit hands-off lead-gen ToS, but must be stated, not implied.
 
@@ -246,7 +248,7 @@ Marketplace). Not treated as a blocker.
 ## 10. Related friction work (separate, already actionable)
 
 Some of the "flow feels clunky" worry is **execution, not concept** and can be fixed without Direct:
-- **Notification deep-linking + punchier tray copy** (root-caused 2026-07-03: pushes hardcode
-  `link: "/messages.html"` instead of a `?threadId=&role=&tab=` deep link that `messages.js` already
-  supports). Tracked separately.
+- **Notification deep-linking + punchier tray copy** — alert pushes now open `/alerts.html?role=…`
+  (Item 3). Still open: shorter tray title/body per type; chat `threadId` deep-links when premium
+  Messages returns. Tracked in V1 tasklist Track E.
 - General **hire-flow tap-count review** for over-engineering (pending trace).

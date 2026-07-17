@@ -1,7 +1,8 @@
 # Application Limit — UX Redesign (Design Spec)
 
-> Status: **BUILT — Phases A–D done; deploy + Phase E verify pending.**
-> Last updated: 2026-06-23 3:14 PM (UTC-4)
+> Status: **SHIPPED** — Phases A–D built + deployed (slot/allowance UX live). Phase E verify was
+> ongoing at write time; treat as done unless a regression is found.
+> Last updated: 2026-07-17 (status sync; original design write-up 2026-06-23)
 > **Agent rule:** "BUILT/DEPLOYED/SIGNED OFF" claims here must be cross-checked against live
 > code (`?v=` bumps), production Firestore slot/coin fields, and user-visible behavior — not
 > repeated from this doc alone. See `AGENTS.md` § "verify production data."

@@ -1,7 +1,8 @@
 # GISUGO — Build Plan: Phone-at-Signup · Direct Route · Alerts/Support Pages
 
-> Status: **Active plan** · Created 2026-07-04 · Last verified against production: 2026-07-15
+> Status: **Active plan** · Created 2026-07-04 · Last updated: 2026-07-17
 > Covers recommended-order items **1, 2, 3** from `docs/V1_HARDENING_TASKLIST.md`.
+> Items **1–3 shipped** (Item 3 smoke testing still open). Next linchpin: Admin Dashboard (Track C).
 > Companion: `docs/DIRECT_CONTACT_LISTINGS_STUDY.md` (full Direct rationale).
 > Norm: **verify in code AND live Firestore before each step and before any status report**
 > (`node scripts/verify-production-data.js`); deploy hosting after mobile-facing changes; bump `?v=`.
@@ -283,44 +284,39 @@ or the dashboard.
 **Goal:** split ALERTS and SUPPORT out of the unified messages view into standalone pages; update
 the menu overlay links.
 
-**Status (2026-07-16):** Code ready (`alerts.html`/`alerts.js`, `support.html`/`support.js`, menu
-swap, G2 chat-listener gate, push → `/alerts.html?role=…`). Smoke + Deploy still open. Micro-tasklist
-in `docs/V1_HARDENING_TASKLIST.md` → “NEXT — Item 3”.
+**Status (2026-07-17): SHIPPED** — `alerts.html`/`alerts.js`, `support.html`/`support.js` +
+`support-compose.js`, menu swap, G2 chat-listener gate, push → `/alerts.html?role=…` (+ `data.link`),
+Contact merged into Support Write (`contacts.html` → `support.html?compose=1`). Hosting + functions
+deployed (`673d1fb`, `8f9d4b5`; chrome polish `d30dff3`). Micro-tasklist /
+smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 
-**Current state (traced):**
-- `messages.html` still has role-scoped tabs: **ALERTS / CHATS / SUPPORT** (left intact for premium).
+**Still open:**
+- User smoke testing (Alerts/Support/push/`messages.html` deep-link checklist).
+- Support **admin responder** (Admin Dashboard / Track C) — user page can stay empty until then.
+
+**Current state:**
 - Standalone pages are the user-facing UX; menu shows **Alerts** + **Support** (Messages hidden).
+- `messages.html` left intact for premium chat (direct URL / `?threadId=` still valid).
 
-**LOCKED (2026-07-05):** **Leave `messages.html` as-is** — it stays intact so "premium" chat is
-already wired when rolled out. Alerts + Support become **separate standalone pages/links** that are
-the only messaging UX the user sees for now. This is a *copy/extract*, not a teardown of messages.
+**LOCKED (2026-07-05):** **Leave `messages.html` as-is** — copy/extract, not a teardown.
 
-**Tasks:**
-1. **Create `alerts.html` + `alerts.js`** — reuse the Alerts tab markup (worker+customer) and the
-   notifications stream/render logic from `messages.js` (copy into a standalone page/module; do not
-   delete from `messages.html`).
-2. **Create `support.html` + `support.js`** — reuse the Support tab markup + the
-   `support_requests` stream/render (`ensureSupportResponsesRealtimeStream`, `mapSupportRecordToUnifiedMessage`).
-3. **`messages.html` untouched** (chat premium waits there).
-4. **`shared-menu.js` `MENU_ITEMS`:** add **Alerts** (`alerts.html`) and **Support** (`support.html`)
-   entries. Remove/hide the "Messages" menu entry from the user-facing menu until premium launches
-   (keep the page reachable). Update `FULL_ROW_MENU_TEXTS` as needed.
-5. **Repoint deep-links:** update the **push deep-link target** for alert-type notifications
-   (currently `/messages.html`) → `alerts.html`; support replies → `support.html`.
-6. **Unread counters/badges:** wire alerts-unread + support-unread to their own pages; keep the
-   shared-menu unread bridge (`gisugo:messages-unread-counter-update`) working.
+**Tasks (all build items done):**
+1. [x] `alerts.html` + `alerts.js`
+2. [x] `support.html` + `support.js` (+ compose / Contact merge)
+3. [x] `messages.html` untouched for premium
+4. [x] Menu: Alerts + Support; Messages hidden; chat unread gated
+5. [x] Push deep-links → `alerts.html` (support-reply push when dashboard ships)
+6. [x] Alerts badge via notification counters
 
-**Risks:** `messages.js` is large and coupled — copy the needed stream fns cleanly so the standalone
-pages don't drag in chat logic.
-**Note:** the Support **responder (admin side)** still comes with the Admin Dashboard (Item 4). This
-item is the **user-facing page split only**.
+**Note:** Support **responder (admin side)** still comes with the Admin Dashboard.
 
 ---
 
 ## Suggested sequencing within 1–3
-1. **Item 1** first (prerequisite; self-contained).
-2. **Item 2** next (needs Item 1; high user-value; small net-new surface).
-3. **Item 3** alongside/after (independent refactor; higher-touch on `messages.js`).
+1. ✅ **Item 1** (prerequisite).
+2. ✅ **Item 2** (Direct contact).
+3. ✅ **Item 3** (Alerts/Support pages) — smoke testing remains.
+4. **Next:** Admin Dashboard architecture + cost study (V1 Track C #8).
 
 ---
 
@@ -371,5 +367,8 @@ item is the **user-facing page split only**.
   look for it. Confirm it exists in Profile settings or build it.
 - **Remove temporary email/password login** — added only for Cursor-browser dev testing;
   strip once OAuth works everywhere post-approval.
-- **Item 3 — Alerts + Support → own pages** — `alerts.html`/`support.html` + menu links;
-  leave `messages.html` intact for premium chat. (See Item 3 section above.)
+- **Item 3 — Alerts + Support → own pages: DONE (2026-07-16/17) + deployed.** Smoke testing +
+  Admin Support responder still open (see Item 3 section / V1 tasklist).
+- **UI theme fill polish (2026-07-16/17)** — `#141b24` page fill + Alerts-style surfaces rolled to
+  Profile, new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49); Alerts/Jobs
+  role chrome shared look (`d30dff3`).
