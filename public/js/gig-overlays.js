@@ -6,6 +6,9 @@
         escapeHandler: null,
         hireController: null,
         hireEscapeHandler: null,
+        rejectController: null,
+        rejectEscapeHandler: null,
+        pendingRejectData: null,
         hireProfileCache: new Map()
     };
 
@@ -79,6 +82,73 @@
         }
     }
 
+    function runRejectCleanup() {
+        if (state.rejectController) {
+            state.rejectController.abort();
+            state.rejectController = null;
+        }
+        if (state.rejectEscapeHandler) {
+            document.removeEventListener('keydown', state.rejectEscapeHandler);
+            state.rejectEscapeHandler = null;
+        }
+    }
+
+    function hideRejectApplicationOverlay() {
+        const overlay = getElement('rejectApplicationOverlay');
+        runRejectCleanup();
+        state.pendingRejectData = null;
+        if (overlay) overlay.classList.remove('show');
+    }
+
+    function showRejectApplicationOverlay(data) {
+        const overlay = getElement('rejectApplicationOverlay');
+        const nameEl = getElement('rejectApplicantName');
+        const subtitleEl = getElement('rejectApplicationSubtitle');
+        const cancelBtn = getElement('rejectApplicationCancelBtn');
+        const confirmBtn = getElement('confirmRejectApplicationBtn');
+        if (!overlay) {
+            console.error('Reject application overlay not found');
+            return;
+        }
+
+        const userName = String((data && data.userName) || '').trim() || 'this applicant';
+        state.pendingRejectData = data || null;
+        if (nameEl) nameEl.textContent = userName;
+        if (subtitleEl) {
+            subtitleEl.textContent = 'Are you sure you want to reject ' + userName + '?';
+        }
+
+        runRejectCleanup();
+        const controller = new AbortController();
+        const signal = controller.signal;
+        state.rejectController = controller;
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function () {
+                hideRejectApplicationOverlay();
+            }, { signal: signal });
+        }
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                const pending = state.pendingRejectData;
+                hideRejectApplicationOverlay();
+                if (pending) void handleReject(pending);
+            }, { signal: signal });
+        }
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) hideRejectApplicationOverlay();
+        }, { signal: signal });
+
+        state.rejectEscapeHandler = function (event) {
+            if (event.key === 'Escape' && overlay.classList.contains('show')) {
+                hideRejectApplicationOverlay();
+            }
+        };
+        document.addEventListener('keydown', state.rejectEscapeHandler);
+
+        overlay.classList.add('show');
+    }
+
     function isOfferAlreadySent(data) {
         const status = String(
             (data && (data.applicationStatus || data.status)) || ''
@@ -137,6 +207,7 @@
     function hideApplicationActionOverlay() {
         const overlay = getElement('applicationActionOverlay');
         if (!overlay) return;
+        hideRejectApplicationOverlay();
         runCleanup();
         overlay.classList.remove('show');
     }
@@ -259,9 +330,8 @@
                 if (!applicationId) return;
 
                 // Direct model: reveal the worker's phone (call/text) via the
-                // ownership-checked callable. Premium in-app chat waits in
-                // messages.html for later; no chat thread is created here.
-                hideApplicationActionOverlay();
+                // ownership-checked callable. Keep this applicant-action modal open
+                // underneath so Done/backdrop dismiss returns here (not View Applications).
                 if (typeof window.startDirectContactReveal === 'function') {
                     window.startDirectContactReveal({ applicationId: applicationId, userName: userName });
                 } else {
@@ -300,7 +370,8 @@
 
         if (rejectBtn) {
             rejectBtn.addEventListener('click', function () {
-                void handleReject(data);
+                // Safety confirm first — keep applicant-action modal underneath.
+                showRejectApplicationOverlay(data);
             }, { signal: signal });
         }
 
@@ -317,9 +388,13 @@
         }, { signal: signal });
 
         state.escapeHandler = function (event) {
-            if (event.key === 'Escape' && overlay.classList.contains('show')) {
-                hideApplicationActionOverlay();
-            }
+            if (event.key !== 'Escape' || !overlay.classList.contains('show')) return;
+            // Overlays above this modal own Escape while open.
+            const contactOverlay = document.getElementById('contactRevealOverlay');
+            if (contactOverlay && contactOverlay.classList.contains('show')) return;
+            const rejectOverlay = document.getElementById('rejectApplicationOverlay');
+            if (rejectOverlay && rejectOverlay.classList.contains('show')) return;
+            hideApplicationActionOverlay();
         };
         document.addEventListener('keydown', state.escapeHandler);
     }

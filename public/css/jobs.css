@@ -3104,6 +3104,11 @@ body:has(.jobs-header) {
   justify-content: center;
 }
 
+/* Sit above the applicant-action modal (z-index 2000) when confirming reject */
+#rejectApplicationOverlay.delete-confirmation-overlay {
+  z-index: 100002;
+}
+
 .delete-confirmation-overlay.show {
   display: flex;
 }

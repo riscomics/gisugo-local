@@ -519,16 +519,46 @@
                 <button class="profile-btn" id="profileBtn" data-action="view_profile" data-user-id="" data-user-name="">
                     <span>VIEW PROFILE</span>
                 </button>
-                <button class="reject-job-btn" id="rejectJobBtn" data-action="reject" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
-                    <span>REJECT APPLICATION</span>
-                </button>
                 <button class="contact-btn" id="contactBtn" data-action="contact_user" data-user-id="" data-user-name="">
                     <span>CONTACT</span>
+                </button>
+                <button class="reject-job-btn" id="rejectJobBtn" data-action="reject" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
+                    <span>REJECT APPLICATION</span>
                 </button>
                 <button class="hire-applicant-btn" id="hireApplicantBtn" data-action="hire" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="" data-price-offer="" data-price-type="">
                     <span>HIRE</span>
                 </button>
                 <button class="application-close-btn" id="applicationActionCloseBtn" data-action="close_application_action" type="button" aria-label="Close application actions">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Application Confirmation Overlay -->
+    <div class="delete-confirmation-overlay" id="rejectApplicationOverlay">
+        <div class="delete-confirmation-container">
+            <div class="delete-confirmation-header">
+                <div class="delete-confirmation-title-row">
+                    <div class="delete-confirmation-icon">❌</div>
+                    <div class="delete-confirmation-title">Reject Application</div>
+                </div>
+                <div class="delete-confirmation-subtitle" id="rejectApplicationSubtitle">Are you sure you want to reject this applicant?</div>
+            </div>
+            <div class="delete-confirmation-warning">
+                <div class="delete-warning-text">
+                    WARNING: Rejecting this application will:<br>
+                    • Remove <span id="rejectApplicantName">this applicant</span> from your list<br>
+                    • Notify them that they were not selected<br>
+                    • This cannot be undone<br><br>
+                    You can still contact or hire other applicants.
+                </div>
+            </div>
+            <div class="delete-confirmation-actions">
+                <button class="delete-confirmation-btn cancel" id="rejectApplicationCancelBtn" type="button">
+                    KEEP APPLICATION
+                </button>
+                <button class="delete-confirmation-btn delete" id="confirmRejectApplicationBtn" type="button">
+                    YES, REJECT
+                </button>
             </div>
         </div>
     </div>
