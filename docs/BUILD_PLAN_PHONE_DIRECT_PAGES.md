@@ -352,6 +352,10 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
   ships a **static** `#hireConfirmationOverlay` that `ensureHireConfirmationOverlay` reuses, while
   `messages.html` builds it dynamically. Unify to one source (delete static markup, let
   gig-overlays build it) so the overlay is only defined once. Re-test HIRE on jobs.html after.
+- **Post-hire / post-accept guide YouTube videos (APPROVED 2026-07-18)** — full locked spec in
+  `docs/V1_HARDENING_TASKLIST.md` Track D. Closable overlay after successful Send Offer (customer)
+  and Accept Offer (worker); separate admin-configured URLs in Firestore; placeholder Shorts
+  `BVCmz9KnwWk` until real videos land. Not part of AD PLACEMENT.
 - **Surface reveal counter on Admin Dashboard** — `metrics/contact_reveals` (total +
   lastRevealAt) written by `revealApplicantContact`. Also per-application
   `contactRevealCount`. Wire into admin-dashboard.

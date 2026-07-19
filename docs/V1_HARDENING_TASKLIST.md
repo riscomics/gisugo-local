@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-17
+> Status: **Active** · Last updated: 2026-07-18
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -265,6 +265,29 @@ See `AGENTS.md` § "verify production data."
       overlay immediately with a spinner in the count slot, then fills the real number (or swaps to
       the capacity overlay at 0 / compose on failure). Continue is disabled until the count lands.
       Added `.apply-flow-count-spinner` (jobpage.css). Live: `dynamic-job.js?v=58`, `jobpage.css?v=43`.
+- [x] **Withdraw vs 2-app limit — re-verified 2026-07-18 (code).** Same policy as 2026-06-28:
+      `withdrawn` is excluded from the per-user-per-gig max-2 count in `applyForJob` and
+      `checkIfUserAlreadyApplied`. Reject / reject-offer / relist-void / resign **do** consume a
+      chance. Apply→withdraw→apply→withdraw does **not** hit LIMIT REACHED.
+- [ ] **Post-hire / post-accept guide YouTube video (APPROVED 2026-07-18 — discuss locked).**
+      After a **successful** customer Send Offer (“I Agree - Offer Gig to Worker”) and after a
+      **successful** worker Accept Offer, show a closable overlay with an embedded YouTube guide
+      video (safety + fulfillment tips), then continue to the flow’s normal next navigation/UI.
+      Locked product rules:
+      • Timing: after success confirm only (not before / not blocking the hire-accept write).
+      • Always closable (power users can dismiss immediately).
+      • Separate videos: customer slot vs worker slot.
+      • Fires every successful Send Offer and every successful Accept Offer (not once-per-user).
+      • Always configured with a video (no blank skip path in product intent).
+      Admin: **own** “Gig Guide Videos” panel (do **not** bolt onto AD PLACEMENT). Two URL fields
+      (customer / worker), stored in **Firestore** (not localStorage). Accept share/shorts/watch
+      URLs; normalize to `https://www.youtube.com/embed/VIDEO_ID`. Temporary placeholder for both
+      until real guides are produced:
+      `https://www.youtube.com/shorts/BVCmz9KnwWk` → embed `…/embed/BVCmz9KnwWk`.
+      Implementation notes: dedicated overlay (reuse iframe/normalize idea only); stop iframe on
+      close (no audio leak); vertical Shorts-friendly layout; Close always works if YouTube blocked.
+      Cost: negligible (tiny config doc + YouTube bandwidth). Touchpoints likely: `gig-overlays.js` /
+      `jobs.js` hire+accept success paths, admin-dashboard section + Firestore settings doc, cache-bust.
 
 ## Track E — Deferred / decided
 - [x] **"Direct" contact route — SHIPPED (Item 2, 2026-07).** Contact reveal (tel:/sms:) + private
@@ -641,7 +664,7 @@ allowlist + Hiring toggle for `offer_rejected`; feedback types on push allowlist
 
 Also live: the **DEFERRED BACKLOG** list at the bottom of `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`
 (reveal counter on dashboard, remaining Firestore cleanup (b)/(c), Privacy/Terms rewrite, in-app
-account deletion, hire-overlay dead-code cleanup).
+account deletion, hire-overlay dead-code cleanup, **post-hire/accept guide YouTube videos**).
 
 ## Key reminders
 - **Auth/login claims → `users-auth` first.** `password` provider ≠ phone+password without `@phone.gisugo.app` email.
