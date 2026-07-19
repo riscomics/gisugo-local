@@ -1200,6 +1200,22 @@ body:has(.jobs-header) {
   background: #059669;
 }
 
+.listing-option-btn.view-profile {
+  background: #8b5cf6;
+}
+
+.listing-option-btn.view-profile:hover {
+  background: #7c3aed;
+}
+
+.listing-option-btn.view-post {
+  background: #10b981;
+}
+
+.listing-option-btn.view-post:hover {
+  background: #059669;
+}
+
 .listing-option-btn.contact {
   background: #3b82f6;
 }
