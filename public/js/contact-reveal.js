@@ -71,10 +71,10 @@
       .contact-reveal-whatsapp { background: linear-gradient(135deg,#25d366 0%,#128c7e 100%); color: #fff; }
       .contact-reveal-viber { background: linear-gradient(135deg,#7360f2 0%,#59267c 100%); color: #fff; }
       .contact-reveal-cancel { display: block; width: auto; min-width: 140px; max-width: 56%;
-        margin: 4px auto 0; background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color: #111827;
-        border: none; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.03em; padding: 13px 28px;
-        box-shadow: 0 6px 18px rgba(245,158,11,0.35); }
-      .contact-reveal-cancel:hover { filter: brightness(1.06); color: #111827; }
+        margin: 4px auto 0; background: linear-gradient(135deg,#9ca3af 0%,#6b7280 100%); color: #fff;
+        border: 1px solid rgba(229,231,235,0.35); font-size: 1.05rem; font-weight: 800;
+        letter-spacing: 0.03em; padding: 13px 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
+      .contact-reveal-cancel:hover { filter: brightness(1.1); color: #fff; }
       .contact-reveal-cancel:active { transform: scale(0.98); }
       .contact-reveal-foot { color: #94a3b8; font-size: 0.75rem; line-height: 1.4; margin-top: 12px; }
     `;
@@ -152,7 +152,7 @@
           </div>
         </div>
         <div id="contactRevealViberHint" style="display:none;color:#fbbf24;font-size:0.82rem;line-height:1.35;text-align:center;margin:2px 0 8px;">If nothing opened, Viber may not be installed on this phone.</div>
-        <button type="button" class="contact-reveal-btn contact-reveal-cancel" id="contactRevealDone">Done</button>
+        <button type="button" class="contact-reveal-btn contact-reveal-cancel" id="contactRevealDone">GO BACK</button>
         <div class="contact-reveal-foot">GISUGO is only a platform and is not part of your arrangement. For your privacy and the worker's, GISUGO does not display or store this number publicly.</div>
       </div>
     `;
