@@ -870,6 +870,81 @@ exports.revealApplicantContact = onCall(
   }
 );
 
+/**
+ * Worker (offered / hired on the gig) reveals the customer's phone from user_private.
+ * Same Direct model as revealApplicantContact: number never stored on readable docs.
+ * Auth: requester must be job.hiredWorkerId; status hired|accepted. Rate-limited per worker.
+ */
+exports.revealPosterContact = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const requesterUid = request.auth?.uid || "";
+    if (!requesterUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const jobId = String(request.data?.jobId || "").trim();
+    if (!jobId) {
+      throw new HttpsError("invalid-argument", "jobId is required.");
+    }
+
+    const jobDoc = await db.collection("jobs").doc(jobId).get();
+    if (!jobDoc.exists) {
+      throw new HttpsError("not-found", "Job not found.");
+    }
+    const job = jobDoc.data() || {};
+    const posterId = String(job.posterId || "").trim();
+    const hiredWorkerId = String(job.hiredWorkerId || "").trim();
+    const status = String(job.status || "").trim();
+
+    if (!posterId) {
+      throw new HttpsError("failed-precondition", "Job is missing poster reference.");
+    }
+    if (hiredWorkerId !== requesterUid) {
+      throw new HttpsError("permission-denied", "Only the offered worker can reveal this customer's contact.");
+    }
+    if (status !== "hired" && status !== "accepted") {
+      throw new HttpsError("failed-precondition", "This gig is not in an offered or active state.");
+    }
+
+    const limitRef = db.collection("contact_reveal_limits").doc(requesterUid);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(limitRef);
+      const now = Date.now();
+      const data = snap.exists ? (snap.data() || {}) : {};
+      const windowStart = typeof data.windowStart === "number" ? data.windowStart : 0;
+      const count = typeof data.count === "number" ? data.count : 0;
+      if (now - windowStart > CONTACT_REVEAL_WINDOW_MS) {
+        tx.set(limitRef, { windowStart: now, count: 1, updatedAt: now });
+        return;
+      }
+      if (count >= CONTACT_REVEAL_MAX_PER_WINDOW) {
+        throw new HttpsError("resource-exhausted", "Too many contact reveals right now. Please wait a bit and try again.");
+      }
+      tx.set(limitRef, { windowStart, count: count + 1, updatedAt: now }, { merge: true });
+    });
+
+    const privateDoc = await db.collection("user_private").doc(posterId).get();
+    const phoneNumber = privateDoc.exists
+      ? String((privateDoc.data() || {}).phoneNumber || "").trim()
+      : "";
+    if (!phoneNumber) {
+      throw new HttpsError("failed-precondition", "This customer has no contact number on file.");
+    }
+
+    try {
+      await db.collection("metrics").doc("contact_reveals").set({
+        total: admin.firestore.FieldValue.increment(1),
+        lastRevealAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      logger.warn("Contact reveal counter update skipped (poster)", { jobId, error: String(error) });
+    }
+
+    return { phoneNumber, posterId };
+  }
+);
+
 exports.auditAndRepairFaceVerification = onCall(
   { region: "asia-southeast1", cors: true },
   async (request) => {

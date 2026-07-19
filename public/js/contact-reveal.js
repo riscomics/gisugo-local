@@ -82,44 +82,77 @@
   }
 
   const TIPS = {
-    english: {
-      title: "What's Important:",
-      items: [
-        'Call first, get to know them.',
-        'Explain the gig clearly.',
-        'Agree on Price and Schedule.',
-        'If hiring, text the agreed details for records.',
-        "Don't forget to click HIRE to Send Gig Offer!"
-      ]
+    customer: {
+      english: {
+        title: "What's Important:",
+        items: [
+          'Call first, get to know them.',
+          'Explain the gig clearly.',
+          'Agree on Price and Schedule.',
+          'If hiring, text the agreed details for records.',
+          "Don't forget to click HIRE to Send Gig Offer!"
+        ]
+      },
+      bisaya: {
+        title: 'Unsa ang Importante:',
+        items: [
+          'Tawga una, pagkilala sa usag usa.',
+          'Ipahayag og klaro ang gig.',
+          'Magkasabot sa Presyo ug Schedule.',
+          'Kung mag-hire, i-text ang gikasabutan para sa records.',
+          'Ayaw kalimot i-click ang HIRE aron ma-Send ang Gig Offer!'
+        ]
+      },
+      tagalog: {
+        title: 'Ano ang Mahalaga:',
+        items: [
+          'Tumawag muna, magkakilala.',
+          'Ipaliwanag nang malinaw ang gig.',
+          'Magkasundo sa Presyo at Schedule.',
+          'Kung magha-hire, i-text ang napagkasunduan para sa records.',
+          'Huwag kalimutang i-click ang HIRE para mag-Send ng Gig Offer!'
+        ]
+      }
     },
-    bisaya: {
-      title: 'Unsa ang Importante:',
-      items: [
-        'Tawga una, pagkilala sa usag usa.',
-        'Ipahayag og klaro ang gig.',
-        'Magkasabot sa Presyo ug Schedule.',
-        'Kung mag-hire, i-text ang gikasabutan para sa records.',
-        'Ayaw kalimot i-click ang HIRE aron ma-Send ang Gig Offer!'
-      ]
-    },
-    tagalog: {
-      title: 'Ano ang Mahalaga:',
-      items: [
-        'Tumawag muna, magkakilala.',
-        'Ipaliwanag nang malinaw ang gig.',
-        'Magkasundo sa Presyo at Schedule.',
-        'Kung magha-hire, i-text ang napagkasunduan para sa records.',
-        'Huwag kalimutang i-click ang HIRE para mag-Send ng Gig Offer!'
-      ]
+    worker: {
+      english: {
+        title: "What's Important:",
+        items: [
+          'Confirm agreement via text message for records.',
+          'Call customer for any concerns or changes.',
+          "Don't forget to click ACCEPT OFFER before starting gig."
+        ]
+      },
+      bisaya: {
+        title: 'Unsa ang Importante:',
+        items: [
+          'I-confirm ang agreement via text para sa records.',
+          'Tawga ang customer kung naay concerns o changes.',
+          'Ayaw kalimot i-click ang ACCEPT OFFER sa dili pa magsugod sa gig.'
+        ]
+      },
+      tagalog: {
+        title: 'Ano ang Mahalaga:',
+        items: [
+          'I-confirm ang agreement via text para sa records.',
+          'Tawagan ang customer para sa kahit anong concerns o changes.',
+          'Huwag kalimutang i-click ang ACCEPT OFFER bago simulan ang gig.'
+        ]
+      }
     }
   };
 
   let currentLang = 'english';
+  let tipsAudience = 'customer'; // 'customer' | 'worker'
+  let revealMode = 'applicant'; // 'applicant' | 'poster'
+  let activeJobId = '';
+  let activeApplicationId = '';
 
-  // Prefilled greeting for chat/SMS launches (editable by the sender). Intentionally
-  // NOT applied to Call (tel:) so dialing is not blocked, nor to Viber (no reliable
-  // prefill param on its deep link).
-  const CONTACT_GREETING = 'Hi! I saw your application on GISUGO and would like to discuss the gig.';
+  // Prefill greetings for chat/SMS (not Call / Viber).
+  const CONTACT_GREETING_CUSTOMER =
+    'Hi! I saw your application on GISUGO and would like to discuss the gig.';
+  const CONTACT_GREETING_WORKER =
+    'Hi! I received your gig offer on GISUGO and have a quick question.';
 
   function build() {
     if (built) return;
@@ -153,7 +186,7 @@
         </div>
         <div id="contactRevealViberHint" style="display:none;color:#fbbf24;font-size:0.82rem;line-height:1.35;text-align:center;margin:2px 0 8px;">If nothing opened, Viber may not be installed on this phone.</div>
         <button type="button" class="contact-reveal-btn contact-reveal-cancel" id="contactRevealDone">GO BACK</button>
-        <div class="contact-reveal-foot">GISUGO is only a platform and is not part of your arrangement. For your privacy and the worker's, GISUGO does not display or store this number publicly.</div>
+        <div class="contact-reveal-foot" id="contactRevealFoot">GISUGO is only a platform and is not part of your arrangement. For your privacy and the worker's, GISUGO does not display or store this number publicly.</div>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -172,7 +205,8 @@
       whatsapp: overlay.querySelector('#contactRevealWhatsapp'),
       viber: overlay.querySelector('#contactRevealViber'),
       viberHint: overlay.querySelector('#contactRevealViberHint'),
-      done: overlay.querySelector('#contactRevealDone')
+      done: overlay.querySelector('#contactRevealDone'),
+      foot: overlay.querySelector('#contactRevealFoot')
     };
 
     // Listeners attached exactly once (overlay reused across calls) — no leaks.
@@ -267,7 +301,8 @@
     Array.from(els.langs.querySelectorAll('.contact-reveal-lang')).forEach((b) => {
       b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
     });
-    const tips = TIPS[currentLang] || TIPS.english;
+    const audienceTips = TIPS[tipsAudience] || TIPS.customer;
+    const tips = audienceTips[currentLang] || audienceTips.english;
     if (els.tipsTitle) els.tipsTitle.textContent = tips.title;
     if (els.tipsList) {
       els.tipsList.innerHTML = tips.items.map((item) => '<li>' + item + '</li>').join('');
@@ -302,25 +337,31 @@
 
   function mapError(err) {
     const code = (err && err.code) ? String(err.code) : '';
+    const counterpart = revealMode === 'poster' ? 'customer' : 'worker';
     if (code.indexOf('failed-precondition') !== -1) {
-      return 'This worker has no contact number on file yet.';
+      return 'This ' + counterpart + ' has no contact number on file yet.';
     }
     if (code.indexOf('resource-exhausted') !== -1) {
       return 'Too many contact reveals right now. Please wait a bit and try again.';
     }
     if (code.indexOf('permission-denied') !== -1) {
-      return 'You can only contact applicants on your own gigs.';
+      return revealMode === 'poster'
+        ? 'You can only contact the customer on an offer you received.'
+        : 'You can only contact applicants on your own gigs.';
     }
     if (code.indexOf('unauthenticated') !== -1) {
-      return 'Please sign in again to contact this worker.';
+      return 'Please sign in again to contact this ' + counterpart + '.';
     }
     return 'Could not get the contact right now. Please try again.';
   }
 
-  // Same work the old CONTINUE button did — fetch phone via callable, then arm links.
-  async function revealContact(applicationId) {
-    if (!applicationId || !els) return;
+  // Fetch phone via callable, then arm links (number never shown on screen).
+  async function revealContact() {
+    if (!els) return;
     const seq = ++revealSeq;
+    const isPosterReveal = revealMode === 'poster';
+    const idOk = isPosterReveal ? !!activeJobId : !!activeApplicationId;
+    if (!idOk) return;
 
     if (typeof firebase === 'undefined' || !firebase.app || !firebase.app().functions) {
       if (seq !== revealSeq) return;
@@ -337,18 +378,25 @@
     resetContactLinks();
 
     try {
-      const callable = firebase.app().functions('asia-southeast1').httpsCallable('revealApplicantContact');
-      const res = await callable({ applicationId: applicationId });
+      const callableName = isPosterReveal ? 'revealPosterContact' : 'revealApplicantContact';
+      const callable = firebase.app().functions('asia-southeast1').httpsCallable(callableName);
+      const payload = isPosterReveal
+        ? { jobId: activeJobId }
+        : { applicationId: activeApplicationId };
+      const res = await callable(payload);
       if (seq !== revealSeq) return;
       const phone = res && res.data && res.data.phoneNumber ? String(res.data.phoneNumber).trim() : '';
       if (!phone) {
         els.status.textContent = '';
-        els.error.textContent = 'This worker has no contact number on file yet.';
+        els.error.textContent = isPosterReveal
+          ? 'This customer has no contact number on file yet.'
+          : 'This worker has no contact number on file yet.';
         return;
       }
-      // Populate launch links without ever rendering the number as text.
       const digits = phone.replace(/[^\d]/g, '');
-      const greeting = encodeURIComponent(CONTACT_GREETING);
+      const greeting = encodeURIComponent(
+        isPosterReveal ? CONTACT_GREETING_WORKER : CONTACT_GREETING_CUSTOMER
+      );
       els.call.setAttribute('href', 'tel:' + phone);
       els.text.setAttribute('href', 'sms:' + phone + '?body=' + greeting);
       els.whatsapp.setAttribute('href', 'https://wa.me/' + digits + '?text=' + greeting);
@@ -359,7 +407,7 @@
       setActionsReady(true);
     } catch (err) {
       if (seq !== revealSeq) return;
-      console.warn('\u26A0\uFE0F revealApplicantContact failed:', (err && err.code) || err);
+      console.warn('\u26A0\uFE0F contact reveal failed:', (err && err.code) || err);
       els.status.textContent = '';
       els.error.textContent = mapError(err);
       setActionsReady(false);
@@ -368,22 +416,48 @@
     }
   }
 
+  /**
+   * @param {Object} opts
+   * @param {string} [opts.applicationId] - customer → worker (revealApplicantContact)
+   * @param {string} [opts.jobId] - worker → customer (revealPosterContact)
+   * @param {string} [opts.userName]
+   * @param {'customer'|'worker'} [opts.audience] - tip pack + labels
+   */
   function startDirectContactReveal(opts) {
     const applicationId = String((opts && opts.applicationId) || '').trim();
+    const jobId = String((opts && opts.jobId) || '').trim();
     const userName = String((opts && opts.userName) || '').trim();
-    if (!applicationId) {
-      console.warn('startDirectContactReveal: missing applicationId');
+    const audience = String((opts && opts.audience) || '').trim() === 'worker' ? 'worker' : 'customer';
+    const isWorkerAudience = audience === 'worker';
+
+    if (isWorkerAudience && !jobId) {
+      console.warn('startDirectContactReveal: missing jobId for worker→customer');
       return;
     }
+    if (!isWorkerAudience && !applicationId) {
+      console.warn('startDirectContactReveal: missing applicationId for customer→worker');
+      return;
+    }
+
     build();
 
-    // Invalidate any in-flight reveal before resetting UI/links (avoids a brief
-    // window where a late response could re-arm the previous applicant's number).
     revealSeq += 1;
     revealInFlight = false;
     clearViberDetect();
 
-    els.title.textContent = userName ? ('Contact ' + userName) : 'Contact Worker';
+    tipsAudience = audience;
+    revealMode = isWorkerAudience ? 'poster' : 'applicant';
+    activeJobId = jobId;
+    activeApplicationId = applicationId;
+
+    els.title.textContent = userName
+      ? ('Contact ' + userName)
+      : (isWorkerAudience ? 'Contact Customer' : 'Contact Worker');
+    if (els.foot) {
+      els.foot.textContent = isWorkerAudience
+        ? "GISUGO is only a platform and is not part of your arrangement. For your privacy and the customer's, GISUGO does not display or store this number publicly."
+        : "GISUGO is only a platform and is not part of your arrangement. For your privacy and the worker's, GISUGO does not display or store this number publicly.";
+    }
     els.error.textContent = '';
     els.status.textContent = '';
     currentLang = 'english';
@@ -391,7 +465,7 @@
     resetContactLinks();
     setActionsReady(false);
     els.overlay.classList.add('show');
-    revealContact(applicationId);
+    revealContact();
   }
 
   window.startDirectContactReveal = startDirectContactReveal;

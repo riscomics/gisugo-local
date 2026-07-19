@@ -3028,16 +3028,17 @@ function initializeGigOfferOverlayHandlers() {
     const acceptBtn = document.getElementById('acceptOfferBtn');
     const rejectBtn = document.getElementById('rejectOfferBtn');
     const viewGigPostBtn = document.getElementById('viewGigPostBtn');
+    const viewProfileBtn = document.getElementById('viewOfferProfileBtn');
+    const contactCustomerBtn = document.getElementById('contactCustomerOfferBtn');
     const closeBtn = document.getElementById('closeOfferOptionsBtn');
     
     console.log('🔧 Initializing gig offer overlay handlers');
     
-    // Accept Offer button
+    // Accept Offer — keep Gig Offer options underneath (Cancel/X returns here).
     if (acceptBtn) {
         acceptBtn.addEventListener('click', function() {
             const jobData = extractGigOfferDataFromOverlay();
             if (jobData) {
-                hideGigOfferOptionsOverlay();
                 showConfirmAcceptGigOverlay(jobData);
             }
         });
@@ -3054,6 +3055,14 @@ function initializeGigOfferOverlayHandlers() {
         });
     }
 
+    if (viewProfileBtn) {
+        viewProfileBtn.addEventListener('click', function() {
+            const posterId = String(overlay.getAttribute('data-poster-id') || '').trim();
+            if (!posterId) return;
+            window.location.href = `profile.html?userId=${encodeURIComponent(posterId)}`;
+        });
+    }
+
     // View Gig Post button
     if (viewGigPostBtn) {
         viewGigPostBtn.addEventListener('click', function() {
@@ -3061,6 +3070,23 @@ function initializeGigOfferOverlayHandlers() {
             if (jobPageUrl) {
                 console.log('📄 Opening gig post:', jobPageUrl);
                 window.location.href = jobPageUrl;
+            }
+        });
+    }
+
+    if (contactCustomerBtn) {
+        contactCustomerBtn.addEventListener('click', function() {
+            const jobId = String(overlay.getAttribute('data-job-id') || '').trim();
+            const posterName = String(overlay.getAttribute('data-poster-name') || '').trim();
+            if (!jobId) return;
+            if (typeof window.startDirectContactReveal === 'function') {
+                window.startDirectContactReveal({
+                    jobId: jobId,
+                    userName: posterName,
+                    audience: 'worker'
+                });
+            } else {
+                console.error('startDirectContactReveal is unavailable.');
             }
         });
     }
@@ -3077,9 +3103,12 @@ function initializeGigOfferOverlayHandlers() {
         }
     });
     
-    // Escape key
+    // Escape key — single page-level listener (handlersInitialized prevents duplicates).
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            // Don't close offer options while accept-confirm is open on top.
+            const acceptOverlay = document.getElementById('confirmAcceptGigOverlay');
+            if (acceptOverlay && acceptOverlay.classList.contains('show')) return;
             hideGigOfferOptionsOverlay();
         }
     });
@@ -3174,12 +3203,20 @@ function applyCustomerStatusDisplay(customerStatus) {
     const statusIcon = document.getElementById('customerStatusFriendlyIcon');
     const statusTitle = document.getElementById('customerStatusInfoTitle');
     const statusContent = document.getElementById('customerStatusInfoContent');
+    const headerEl = statusTitle && statusTitle.closest
+        ? statusTitle.closest('.status-info-header')
+        : null;
     
     if (statusIcon && statusTitle && statusContent) {
         statusIcon.textContent = customerStatus.icon;
         statusTitle.textContent = customerStatus.title;
-        statusContent.textContent = customerStatus.description;
-        statusContent.style.textAlign = customerStatus?.type === 'face' ? 'center' : '';
+        const desc = String(customerStatus.description || '').trim();
+        statusContent.textContent = desc;
+        statusContent.style.display = desc ? '' : 'none';
+        statusContent.style.textAlign = '';
+    }
+    if (headerEl) {
+        headerEl.classList.toggle('is-face-verified', customerStatus?.type === 'face');
     }
 }
 
@@ -3392,8 +3429,8 @@ function buildAccountStatusFromVerification(verification, roleLabel, userId = ''
         return {
             type: 'face',
             icon: '🎥',
-            title: 'Face Verified',
-            description: `Watch this ${role}'s Selfie Video intro!`,
+            title: 'FACE VERIFIED',
+            description: '',
             media
         };
     }
@@ -4034,8 +4071,9 @@ function hideConfirmAcceptGigOverlay() {
 function processAcceptGigConfirmation(jobData) {
     console.log('🎉 Processing accept gig confirmation for:', jobData);
     
-    // Hide confirmation overlay
+    // Hide confirmation + underlying offer options (accept succeeded).
     hideConfirmAcceptGigOverlay();
+    hideGigOfferOptionsOverlay();
     
     // Show success confirmation with celebration animation
     showConfirmationWithCallback(
@@ -8545,12 +8583,22 @@ function updateWorkerStatusDisplay(status) {
     const friendlyIcon = document.getElementById('statusFriendlyIcon');
     const infoTitle = document.getElementById('statusInfoTitle');
     const infoContent = document.getElementById('statusInfoContent');
+    const headerEl = infoTitle && infoTitle.closest
+        ? infoTitle.closest('.status-info-header')
+        : null;
 
     // Support both new status shape and any legacy fields.
     friendlyIcon.textContent = status.icon || status.friendlyIcon || '🌱';
     infoTitle.textContent = status.title || status.infoTitle || 'Unverified';
-    infoContent.textContent = status.description || status.infoContent || 'This member has not completed Face Verification yet.';
-    infoContent.style.textAlign = status?.type === 'face' ? 'center' : '';
+    const desc = String(status.description || status.infoContent || '').trim();
+    const fallbackDesc = 'This member has not completed Face Verification yet.';
+    const showDesc = status?.type === 'face' ? '' : (desc || fallbackDesc);
+    infoContent.textContent = showDesc;
+    infoContent.style.display = showDesc ? '' : 'none';
+    infoContent.style.textAlign = '';
+    if (headerEl) {
+        headerEl.classList.toggle('is-face-verified', status?.type === 'face');
+    }
 
     // Style info section based on type
     if (status.type === 'business') {

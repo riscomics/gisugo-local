@@ -349,11 +349,8 @@
                 const jobId = String(data.jobId || '').trim();
                 if (!applicationId || !jobId) return;
 
-                // Hire is independent of Contact (persistent-overlay decision): the
-                // customer can send an offer whether or not they revealed the phone.
-                // Reuses the existing offer→accept hire overlay/flow unchanged, with
-                // an optional price-verify field prefilled from the offered amount.
-                hideApplicationActionOverlay();
+                // Keep applicant action overlay underneath (same as Contact / Reject).
+                // Cancel/X on hire confirm returns to View Profile / Contact / Reject / Hire.
                 showHireConfirmationOverlay({
                     applicationId: applicationId,
                     jobId: jobId,
@@ -649,8 +646,8 @@
             return {
                 type: 'face',
                 icon: '🪪',
-                title: 'Face Verified',
-                description: 'This worker completed face verification.',
+                title: 'FACE VERIFIED',
+                description: '',
                 posterUrl: media.facePosterUrl || '',
                 videoUrl: media.faceVideoUrl || ''
             };
@@ -677,7 +674,15 @@
 
         if (iconEl) iconEl.textContent = status.icon;
         if (titleEl) titleEl.textContent = status.title;
-        if (contentEl) contentEl.textContent = status.description;
+        if (contentEl) {
+            const desc = String(status.description || '').trim();
+            contentEl.textContent = desc;
+            contentEl.style.display = desc ? '' : 'none';
+        }
+        const headerEl = titleEl && titleEl.closest ? titleEl.closest('.status-info-header') : null;
+        if (headerEl) {
+            headerEl.classList.toggle('is-face-verified', status.type === 'face');
+        }
         if (previewCaption) previewCaption.textContent = `${workerName || 'Worker'} Face Verification`;
 
         if (previewBlock) previewBlock.style.display = 'none';
@@ -1551,6 +1556,7 @@
                 if (result && (result.success || result.alreadySent)) {
                     markApplicationCardOfferSent(applicationId);
                     hideHireConfirmationOverlay();
+                    hideApplicationActionOverlay();
                     if (typeof window.showTemporaryNotification === 'function') {
                         window.showTemporaryNotification(
                             result.alreadySent
