@@ -1557,16 +1557,58 @@
             }
             try {
                 const result = await window.hireWorker(jobId, applicationId, confirmedPrice);
+                if (typeof window.hideLoadingOverlay === 'function') {
+                    window.hideLoadingOverlay();
+                }
                 if (result && (result.success || result.alreadySent)) {
                     markApplicationCardOfferSent(applicationId);
                     hideHireConfirmationOverlay();
                     hideApplicationActionOverlay();
-                    if (typeof window.showTemporaryNotification === 'function') {
+
+                    const finishAfterSuccess = async function () {
+                        if (typeof window.closeAllOverlaysAfterHire === 'function') {
+                            window.closeAllOverlaysAfterHire();
+                        } else {
+                            const applicationsOverlay = getElement('applicationsOverlay');
+                            if (applicationsOverlay) applicationsOverlay.classList.remove('show');
+                            const listingOptionsOverlay = getElement('listingOptionsOverlay');
+                            if (listingOptionsOverlay) listingOptionsOverlay.classList.remove('show');
+                        }
+                        if (!result.alreadySent && typeof window.moveJobListingToHiringWithData === 'function') {
+                            await window.moveJobListingToHiringWithData(jobId, workerName);
+                        }
+                        if (typeof window.updateTabCounts === 'function') {
+                            await window.updateTabCounts();
+                        }
+                    };
+
+                    // Restore celebration success modal (toast-only left View Applications open).
+                    if (typeof window.showConfirmationWithCallback === 'function') {
+                        window.showConfirmationWithCallback(
+                            '🎉',
+                            result.alreadySent ? 'Gig Offer Already Sent' : 'Gig Offer Sent!',
+                            result.alreadySent
+                                ? `<div style="line-height: 1.6;">
+                                    <p style="margin: 0 0 12px 0;">An offer was already sent to <strong>${workerName}</strong>.</p>
+                                    <p style="margin: 0; color: #666;">Check your <strong>Hiring</strong> tab for this gig.</p>
+                                </div>`
+                                : `<div style="line-height: 1.6;">
+                                    <p style="margin: 0 0 12px 0;"><strong>${workerName}</strong> has been sent a job offer.</p>
+                                    <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
+                                    <p style="margin: 0; color: #666;">The job will move to your <strong>Hiring</strong> tab.</p>
+                                </div>`,
+                            finishAfterSuccess,
+                            'celebration'
+                        );
+                    } else if (typeof window.showTemporaryNotification === 'function') {
                         window.showTemporaryNotification(
                             result.alreadySent
                                 ? `Offer already sent to ${workerName}.`
                                 : `Offer sent to ${workerName}.`
                         );
+                        await finishAfterSuccess();
+                    } else {
+                        await finishAfterSuccess();
                     }
                 } else {
                     if (typeof window.showTemporaryNotification === 'function') {
@@ -1577,6 +1619,9 @@
                 }
             } catch (error) {
                 console.error('Failed sending hire offer from shared overlay', error);
+                if (typeof window.hideLoadingOverlay === 'function') {
+                    window.hideLoadingOverlay();
+                }
                 if (typeof window.showTemporaryNotification === 'function') {
                     window.showTemporaryNotification('Failed to send offer. Please try again.');
                 }

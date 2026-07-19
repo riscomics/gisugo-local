@@ -9141,20 +9141,9 @@ function hideHireConfirmationOverlay() {
         status: null
     });
     
-    // Close all parent modals for cleaner UX (no stacking)
-    const applicationsOverlay = document.getElementById('applicationsOverlay');
-    if (applicationsOverlay) {
-        applicationsOverlay.classList.remove('show');
-        delete applicationsOverlay.dataset.handlersInitialized;
-    }
-    
-    const listingOptionsOverlay = document.getElementById('listingOptionsOverlay');
-    if (listingOptionsOverlay) {
-        listingOptionsOverlay.classList.remove('show');
-        delete listingOptionsOverlay.dataset.handlersInitialized;
-    }
-    
-    console.log('🔒 Hire confirmation overlay and parent modals closed');
+    // Keep View Applications / listing options underneath (Cancel/X returns there).
+    // Parents close after successful send via closeAllOverlaysAfterHire().
+    console.log('🔒 Hire confirmation overlay closed');
 }
 
 async function processHireConfirmation(workerData) {
