@@ -29,6 +29,271 @@ function hideLoadingOverlay() {
     }
 }
 
+// ===== FEED-STYLE WARM CACHE (sessionStorage) =====
+// Same efficiency class as listing.js: paint cached tab immediately on return,
+// skip loading spinner, background-refetch, skip rerender when unchanged.
+const JOBS_CACHE_TTL_MS = 2 * 60 * 1000;
+const JOBS_CACHE_PREFIX = 'jobs-mgr-cache-v1:';
+/** @type {{ tab: string, signature: string, scrollY?: number } | null} */
+let JOBS_WARM = null;
+
+function getJobsManagerUserId() {
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+            return String(firebase.auth().currentUser.uid || '');
+        }
+    } catch (_) { /* ignore */ }
+    return '';
+}
+
+function buildJobsManagerCacheKey(uid) {
+    return `${JOBS_CACHE_PREFIX}${String(uid || '')}`;
+}
+
+function serializeJobsForCache(jobs) {
+    try {
+        return JSON.parse(JSON.stringify(jobs || [], (_, value) => {
+            if (value && typeof value.toDate === 'function') {
+                try { return value.toDate().toISOString(); } catch (_) { return null; }
+            }
+            if (value && typeof value === 'object' && typeof value.seconds === 'number') {
+                return new Date(value.seconds * 1000).toISOString();
+            }
+            return value;
+        }));
+    } catch (_) {
+        return Array.isArray(jobs) ? jobs : [];
+    }
+}
+
+function getJobsTabSignature(jobs) {
+    if (!Array.isArray(jobs) || jobs.length === 0) return 'empty';
+    return `${jobs.length}:${jobs.map((job) => {
+        const id = String(job && (job.jobId || job.id) || '');
+        const status = String(job && job.status || '');
+        const apps = String(job && (job.applicationCount != null ? job.applicationCount : ''));
+        const price = String(job && (job.agreedPrice != null ? job.agreedPrice : job.priceOffer != null ? job.priceOffer : ''));
+        return `${id}:${status}:${apps}:${price}`;
+    }).join('|')}`;
+}
+
+function readJobsManagerCache(uid) {
+    if (!uid) return null;
+    try {
+        const raw = sessionStorage.getItem(buildJobsManagerCacheKey(uid));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || !Number.isFinite(parsed.savedAt)) return null;
+        if ((Date.now() - parsed.savedAt) > JOBS_CACHE_TTL_MS) return null;
+        // Sliding TTL while the user keeps returning within the window.
+        parsed.savedAt = Date.now();
+        sessionStorage.setItem(buildJobsManagerCacheKey(uid), JSON.stringify(parsed));
+        return parsed;
+    } catch (_) {
+        return null;
+    }
+}
+
+function writeJobsManagerCache(uid, cache) {
+    if (!uid || !cache) return;
+    try {
+        sessionStorage.setItem(buildJobsManagerCacheKey(uid), JSON.stringify({
+            ...cache,
+            savedAt: Date.now()
+        }));
+    } catch (_) {
+        // Quota / private mode — ignore.
+    }
+}
+
+function mergeJobsManagerCache(uid, patch) {
+    if (!uid) return;
+    const existing = readJobsManagerCache(uid) || { tabs: {}, counts: null, ui: {} };
+    writeJobsManagerCache(uid, {
+        tabs: { ...(existing.tabs || {}), ...(patch.tabs || {}) },
+        counts: patch.counts != null ? patch.counts : existing.counts,
+        ui: { ...(existing.ui || {}), ...(patch.ui || {}) }
+    });
+}
+
+function persistJobsTabCache(tabType, jobs) {
+    const uid = getJobsManagerUserId();
+    if (!uid || !tabType) return;
+    const list = serializeJobsForCache(jobs);
+    const signature = getJobsTabSignature(list);
+    mergeJobsManagerCache(uid, {
+        tabs: {
+            [tabType]: { signature, jobs: list }
+        }
+    });
+}
+
+function applyJobsTabCounts(counts) {
+    if (!counts) return;
+    const map = [
+        ['#listingsTab .notification-count', counts.listings],
+        ['#hiringTab .notification-count', counts.hiring],
+        ['#previousTab .notification-count', counts.previous],
+        ['#offeredTab .notification-count', counts.offered],
+        ['#acceptedTab .notification-count', counts.accepted],
+        ['#workerCompletedTab .notification-count', counts.workerCompleted]
+    ];
+    map.forEach(([selector, value]) => {
+        const el = document.querySelector(selector);
+        if (!el) return;
+        el.classList.remove('loading');
+        el.textContent = value != null ? String(value) : '0';
+    });
+}
+
+function beginJobsTabLoad(tabType, container, loadingHtml) {
+    const warm = !!(JOBS_WARM && JOBS_WARM.tab === tabType);
+    if (!warm && container && loadingHtml) {
+        container.innerHTML = loadingHtml;
+    }
+    return {
+        warm,
+        warmSignature: warm ? String(JOBS_WARM.signature || '') : ''
+    };
+}
+
+function consumeJobsWarmIfMatched(tabType, jobs, warmMeta) {
+    const list = Array.isArray(jobs) ? jobs : [];
+    const signature = getJobsTabSignature(list);
+    persistJobsTabCache(tabType, list);
+    if (warmMeta && warmMeta.warm && warmMeta.warmSignature && warmMeta.warmSignature === signature) {
+        if (JOBS_WARM && JOBS_WARM.tab === tabType) JOBS_WARM = null;
+        console.log(`⚡ Jobs tab "${tabType}" refresh matched cache; skipped rerender`);
+        return true;
+    }
+    if (JOBS_WARM && JOBS_WARM.tab === tabType) JOBS_WARM = null;
+    return false;
+}
+
+async function paintJobsTabFromCache(tabType, jobs) {
+    const list = Array.isArray(jobs) ? jobs : [];
+    if (tabType === 'listings') {
+        const container = document.querySelector('.listings-container');
+        if (!container) return false;
+        if (list.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-title">No active gig listings yet</div>
+                    <div class="empty-state-message">Ready to post your first gig? Create a listing and start finding help!</div>
+                    <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">Post Your First Gig</button>
+                </div>`;
+            return true;
+        }
+        const sorted = [...list].sort((a, b) => new Date(a.jobDate) - new Date(b.jobDate));
+        container.innerHTML = sorted.map((listing) => generateListingCardHTML(listing)).join('');
+        initializeListingCardHandlers();
+        return true;
+    }
+    if (tabType === 'hiring') {
+        const container = document.querySelector('.hiring-container');
+        if (!container) return false;
+        if (list.length === 0) {
+            showEmptyHiringState();
+            return true;
+        }
+        container.innerHTML = await generateMockHiredJobs(list);
+        initializeHiringCardHandlers();
+        return true;
+    }
+    if (tabType === 'previous') {
+        if (list.length === 0) {
+            showEmptyPreviousState();
+            return true;
+        }
+        await generateMockCompletedJobs(list);
+        initializeCompletedCardHandlers();
+        if (typeof checkTruncatedFeedback === 'function') checkTruncatedFeedback();
+        if (typeof createFeedbackExpandedOverlay === 'function') createFeedbackExpandedOverlay();
+        return true;
+    }
+    if (tabType === 'offered') {
+        const container = document.querySelector('.offered-container');
+        if (!container) return false;
+        if (list.length === 0) {
+            showEmptyOfferedState();
+            return true;
+        }
+        container.innerHTML = await generateMockOfferedJobs(list);
+        attachOfferedCardHandlers();
+        return true;
+    }
+    if (tabType === 'accepted') {
+        const container = document.querySelector('.accepted-container');
+        if (!container) return false;
+        if (list.length === 0) {
+            showEmptyAcceptedState();
+            return true;
+        }
+        container.innerHTML = await generateMockAcceptedJobs(list);
+        attachAcceptedCardHandlers();
+        return true;
+    }
+    if (tabType === 'worker-completed') {
+        const container = document.querySelector('.worker-completed-container');
+        if (!container) return false;
+        if (list.length === 0) {
+            showEmptyWorkerCompletedState();
+            return true;
+        }
+        container.innerHTML = await generateMockWorkerCompletedJobs(list);
+        attachWorkerCompletedCardHandlers();
+        return true;
+    }
+    return false;
+}
+
+async function tryWarmRestoreJobsManager(preferredRole, preferredTab) {
+    const uid = getJobsManagerUserId();
+    if (!uid) return false;
+    const cache = readJobsManagerCache(uid);
+    if (!cache || !cache.tabs) return false;
+
+    const role = preferredRole === 'worker' || preferredRole === 'customer'
+        ? preferredRole
+        : (cache.ui && cache.ui.role) || 'customer';
+    const fallbackTab = role === 'worker' ? 'offered' : 'listings';
+    const tab = preferredTab || (cache.ui && cache.ui.tab) || fallbackTab;
+    const tabCache = cache.tabs[tab];
+    if (!tabCache || !Array.isArray(tabCache.jobs)) return false;
+
+    if (cache.counts) applyJobsTabCounts(cache.counts);
+
+    const painted = await paintJobsTabFromCache(tab, tabCache.jobs);
+    if (!painted) return false;
+
+    JOBS_WARM = {
+        tab,
+        signature: tabCache.signature || getJobsTabSignature(tabCache.jobs),
+        scrollY: Number(cache.ui && cache.ui.scrollY) || 0
+    };
+    console.log(`⚡ Warm jobs-manager cache restored (${tab}, ${tabCache.jobs.length} jobs)`);
+    return true;
+}
+
+function persistJobsManagerUiState() {
+    const uid = getJobsManagerUserId();
+    if (!uid) return;
+    const role = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role') || 'customer';
+    const tab = document.querySelector(
+        role === 'worker' ? '.worker-tabs .tab-btn.active' : '.customer-tabs .tab-btn.active'
+    )?.getAttribute('data-tab') || (role === 'worker' ? 'offered' : 'listings');
+    mergeJobsManagerCache(uid, {
+        ui: {
+            role,
+            tab,
+            scrollY: window.scrollY || 0
+        }
+    });
+}
+
+window.addEventListener('pagehide', persistJobsManagerUiState);
+
 // Global utility function for date formatting
 function formatDateTime(date) {
     return date.toISOString();
@@ -955,7 +1220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Check for refresh parameter from MODIFY/RELIST success overlays
         const urlParams = new URLSearchParams(window.location.search);
         const shouldRefresh = urlParams.get('refresh');
-        const preferredTab = urlParams.get('tab') || 'listings';
+        const preferredTabParam = urlParams.get('tab') || '';
         const focusJobId = urlParams.get('jobId') || '';
         const preferredRoleParam = String(urlParams.get('role') || '').toLowerCase();
         
@@ -965,37 +1230,54 @@ document.addEventListener('DOMContentLoaded', async function() {
             const cleanUrl = window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
             console.log('✅ Refresh parameter consumed and URL cleaned');
+            // Force cold load (skip warm session cache) after modify/relist.
+            try {
+                const uid = getJobsManagerUserId();
+                if (uid) sessionStorage.removeItem(buildJobsManagerCacheKey(uid));
+            } catch (_) { /* ignore */ }
         }
         
     initializeMenu();
     initializeRoleTabs();
     initializeTabs();
         
-        // Initialize the default role properly based on HTML state
+        // Role/tab: URL wins; else last session cache; else HTML default.
         const defaultActiveRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role') || 'customer';
-        const preferredRole = preferredRoleParam === 'worker' || preferredRoleParam === 'customer'
+        let preferredRole = preferredRoleParam === 'worker' || preferredRoleParam === 'customer'
             ? preferredRoleParam
-            : defaultActiveRole;
-        console.log(`🎯 Default active role detected: ${defaultActiveRole}`);
+            : '';
+        let preferredTab = preferredTabParam || '';
+        if (!shouldRefresh && (!preferredRole || !preferredTab)) {
+            try {
+                const uid = getJobsManagerUserId();
+                const cache = uid ? readJobsManagerCache(uid) : null;
+                const cachedRole = cache && cache.ui && cache.ui.role;
+                const cachedTab = cache && cache.ui && cache.ui.tab;
+                if (!preferredRole && (cachedRole === 'worker' || cachedRole === 'customer')) {
+                    preferredRole = cachedRole;
+                }
+                if (!preferredTab && cachedTab) preferredTab = String(cachedTab);
+            } catch (_) { /* ignore */ }
+        }
+        if (!preferredRole) preferredRole = defaultActiveRole;
+        if (!preferredTab) preferredTab = preferredRole === 'worker' ? 'offered' : 'listings';
+        console.log(`🎯 Default active role detected: ${defaultActiveRole} → using ${preferredRole}/${preferredTab}`);
 
-        if (preferredRole === 'worker') {
-            await switchToRole('worker');
-            const workerTabs = new Set(['offered', 'accepted', 'worker-completed']);
-            if (workerTabs.has(preferredTab) && preferredTab !== 'offered') {
-                await switchToWorkerTab(preferredTab);
-            }
-        } else {
-            await switchToRole('customer');
-            const customerTabs = new Set(['listings', 'hiring', 'previous']);
-            if (customerTabs.has(preferredTab) && preferredTab !== 'listings') {
-                await switchToCustomerTab(preferredTab);
-            }
+        const warmRestored = !shouldRefresh
+            ? await tryWarmRestoreJobsManager(preferredRole, preferredTab)
+            : false;
+        const warmScrollY = warmRestored && JOBS_WARM ? Number(JOBS_WARM.scrollY) || 0 : 0;
+
+        await switchToRole(preferredRole, { initialTab: preferredTab });
+
+        if (warmScrollY > 0) {
+            requestAnimationFrame(() => window.scrollTo(0, warmScrollY));
         }
 
         await focusListingFromUrlParams(preferredRole, preferredTab, focusJobId);
         
-    // Update tab counts based on actual data
-    await updateTabCounts();
+        // Soft count refresh when warm-painted so badges don't flash empty.
+        await updateTabCounts({ soft: warmRestored });
         } catch (error) {
             console.error('❌ Jobs page initialization failed:', error);
             // Keep shell responsive even when one async loader fails.
@@ -1058,7 +1340,7 @@ function initializeRoleTabs() {
     });
 }
 
-async function switchToRole(roleType) {
+async function switchToRole(roleType, options = {}) {
     closeFaceVerificationViewerIfOpen();
 
     // Track role switch timestamp for contamination detection
@@ -1081,10 +1363,13 @@ async function switchToRole(roleType) {
     
     console.log(`🔄 Switched to ${roleType} role`);
     TAB_RENDER_GUARDS.activeRole = roleType;
+
+    const requestedTab = String(options.initialTab || '').trim();
     
     // Show/hide appropriate tab sets and content
     if (roleType === 'customer') {
-        TAB_RENDER_GUARDS.activeCustomerTab = 'listings';
+        const customerTabs = new Set(['listings', 'hiring', 'previous']);
+        const initialTab = customerTabs.has(requestedTab) ? requestedTab : 'listings';
         // Show customer tabs and content
         document.querySelector('.customer-tabs').style.display = 'flex';
         document.querySelector('.worker-tabs').style.display = 'none';
@@ -1094,25 +1379,14 @@ async function switchToRole(roleType) {
             wrapper.style.display = 'none';
             wrapper.classList.remove('active');
         });
-        
-        // Show customer content (default to listings)
-        const listingsContent = document.getElementById('listings-content');
-        if (listingsContent) {
-            listingsContent.style.display = 'block';
-            listingsContent.classList.add('active');
-        }
-        
-        // Activate listings tab
-        document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('listingsTab')?.classList.add('active');
-        
-        // Initialize the default listings tab content
-        await initializeTabWithTimeout('listings', () => initializeListingsTab());
+
+        await switchToCustomerTab(initialTab);
         
         console.log('✅ Customer role activated - showing Listings/Hiring/Completed tabs');
         
     } else if (roleType === 'worker') {
-        TAB_RENDER_GUARDS.activeWorkerTab = 'offered';
+        const workerTabs = new Set(['offered', 'accepted', 'worker-completed']);
+        const initialTab = workerTabs.has(requestedTab) ? requestedTab : 'offered';
         // Show worker tabs and content
         document.querySelector('.customer-tabs').style.display = 'none';
         document.querySelector('.worker-tabs').style.display = 'flex';
@@ -1122,20 +1396,8 @@ async function switchToRole(roleType) {
             wrapper.style.display = 'none';
             wrapper.classList.remove('active');
         });
-        
-        // Show worker content (default to offered)
-        const offeredContent = document.getElementById('offered-content');
-        if (offeredContent) {
-            offeredContent.style.display = 'block';
-            offeredContent.classList.add('active');
-        }
-        
-        // Activate offered tab
-        document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('offeredTab')?.classList.add('active');
-        
-        // Initialize the default offered tab content
-        await initializeTabWithTimeout('offered', () => initializeOfferedTab());
+
+        await switchToWorkerTab(initialTab);
         
         console.log('✅ Worker role activated - showing Gigs Offered/Gigs Accepted/Gigs Completed tabs');
     }
@@ -1306,15 +1568,13 @@ async function loadOfferedContent() {
     const container = document.querySelector('.offered-container');
     if (!container) return;
     const renderToken = beginTabRender('offered');
-    
-    // Show loading state
-    container.innerHTML = `
+    const warmMeta = beginJobsTabLoad('offered', container, `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
             <div class="loading-text">Loading your gig offers...</div>
         </div>
-    `;
-    jobsTrace('render:tab:loading', { role: 'worker', tab: 'offered' });
+    `);
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'offered', warm: warmMeta.warm });
     
     try {
         // Get all offered jobs for current user (worker perspective)
@@ -1323,6 +1583,10 @@ async function loadOfferedContent() {
         if (!shouldApplyTabRender('offered', renderToken)) return;
         
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
+        if (consumeJobsWarmIfMatched('offered', offeredJobs, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: offeredJobs.length, cacheHit: true });
+            return;
+        }
         
         if (offeredJobs.length === 0) {
             jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: 0 });
@@ -1507,15 +1771,13 @@ async function loadAcceptedContent() {
     const container = document.querySelector('.accepted-container');
     if (!container) return;
     const renderToken = beginTabRender('accepted');
-    
-    // Show loading state
-    container.innerHTML = `
+    const warmMeta = beginJobsTabLoad('accepted', container, `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
             <div class="loading-text">Loading your working jobs...</div>
         </div>
-    `;
-    jobsTrace('render:tab:loading', { role: 'worker', tab: 'accepted' });
+    `);
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'accepted', warm: warmMeta.warm });
     
     try {
         // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
@@ -1527,6 +1789,10 @@ async function loadAcceptedContent() {
         );
         
         console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
+        if (consumeJobsWarmIfMatched('accepted', workerJobs, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: workerJobs.length, cacheHit: true });
+            return;
+        }
         
         if (workerJobs.length === 0) {
             jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: 0 });
@@ -1645,7 +1911,13 @@ async function loadWorkerCompletedContent() {
     const container = document.querySelector('.worker-completed-container');
     if (!container) return;
     const renderToken = beginTabRender('worker-completed');
-    jobsTrace('render:tab:loading', { role: 'worker', tab: 'worker-completed' });
+    const warmMeta = beginJobsTabLoad('worker-completed', container, `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading completed gigs...</div>
+        </div>
+    `);
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'worker-completed', warm: warmMeta.warm });
     
     try {
         // Get all completed jobs and filter for worker perspective (where current user was the worker)
@@ -1654,6 +1926,10 @@ async function loadWorkerCompletedContent() {
         const workerCompletedJobs = allCompletedJobs.filter(job => job.role === 'worker');
         
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
+        if (consumeJobsWarmIfMatched('worker-completed', workerCompletedJobs, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: workerCompletedJobs.length, cacheHit: true });
+            return;
+        }
         
         if (workerCompletedJobs.length === 0) {
             jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: 0 });
@@ -1877,20 +2153,23 @@ async function loadListingsContent() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
     const renderToken = beginTabRender('listings');
-    
-    // Show loading state
-    container.innerHTML = `
+    const warmMeta = beginJobsTabLoad('listings', container, `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
             <div class="loading-text">Loading your gig listings...</div>
         </div>
-    `;
-    jobsTrace('render:tab:loading', { role: 'customer', tab: 'listings' });
+    `);
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'listings', warm: warmMeta.warm });
     
     try {
         // Load listings data from backend service
         const listings = await loadListingsData();
         if (!shouldApplyTabRender('listings', renderToken)) return;
+
+        if (consumeJobsWarmIfMatched('listings', listings, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: listings.length, cacheHit: true });
+            return;
+        }
         
         if (listings.length === 0) {
             jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: 0 });
@@ -1905,6 +2184,7 @@ async function loadListingsContent() {
                     </button>
                 </div>
             `;
+            persistJobsTabCache('listings', []);
             return;
         }
         
@@ -1922,6 +2202,7 @@ async function loadListingsContent() {
         
         // Initialize card click handlers
         initializeListingCardHandlers();
+        persistJobsTabCache('listings', sortedListings);
         jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: sortedListings.length });
     } catch (error) {
         console.error('❌ Error loading listings content:', error);
@@ -2304,15 +2585,13 @@ async function loadHiringContent() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     const renderToken = beginTabRender('hiring');
-    
-    // Show loading state
-    container.innerHTML = `
+    const warmMeta = beginJobsTabLoad('hiring', container, `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
             <div class="loading-text">Loading your hired workers...</div>
         </div>
-    `;
-    jobsTrace('render:tab:loading', { role: 'customer', tab: 'hiring' });
+    `);
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'hiring', warm: warmMeta.warm });
     
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
@@ -2324,10 +2603,15 @@ async function loadHiringContent() {
         );
         
         console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
+        if (consumeJobsWarmIfMatched('hiring', customerJobs, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: customerJobs.length, cacheHit: true });
+            return;
+        }
         
         if (customerJobs.length === 0) {
             jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: 0 });
             if (shouldApplyTabRender('hiring', renderToken)) showEmptyHiringState();
+            persistJobsTabCache('hiring', []);
             return;
         }
         
@@ -2337,6 +2621,7 @@ async function loadHiringContent() {
         
         // Initialize event handlers for hiring cards
         initializeHiringCardHandlers();
+        persistJobsTabCache('hiring', customerJobs);
         
         console.log(`👥 Loaded ${customerJobs.length} customer hired jobs`);
         jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: customerJobs.length });
@@ -3044,12 +3329,11 @@ function initializeGigOfferOverlayHandlers() {
         });
     }
     
-    // Reject Offer button
+    // Reject Offer — keep Gig Offer options underneath (Keep Offer / backdrop returns here).
     if (rejectBtn) {
         rejectBtn.addEventListener('click', function() {
             const jobData = extractGigOfferDataFromOverlay();
             if (jobData) {
-                hideGigOfferOptionsOverlay();
                 showRejectGigOfferOverlay(jobData);
             }
         });
@@ -3106,9 +3390,13 @@ function initializeGigOfferOverlayHandlers() {
     // Escape key — single page-level listener (handlersInitialized prevents duplicates).
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && overlay.classList.contains('show')) {
-            // Don't close offer options while accept-confirm is open on top.
+            // Overlays above this modal own Escape while open.
             const acceptOverlay = document.getElementById('confirmAcceptGigOverlay');
             if (acceptOverlay && acceptOverlay.classList.contains('show')) return;
+            const rejectOverlay = document.getElementById('rejectGigOfferOverlay');
+            if (rejectOverlay && rejectOverlay.classList.contains('show')) return;
+            const contactOverlay = document.getElementById('contactRevealOverlay');
+            if (contactOverlay && contactOverlay.classList.contains('show')) return;
             hideGigOfferOptionsOverlay();
         }
     });
@@ -3153,6 +3441,10 @@ async function showConfirmAcceptGigOverlay(jobData) {
         console.error('❌ Confirm accept gig overlay not found');
         return;
     }
+
+    // Guard against stale async fills when the modal is closed/reopened quickly.
+    const renderToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    overlay.dataset.acceptRenderToken = renderToken;
     
     // Store job data in overlay
     overlay.dataset.jobId = jobData.jobId;
@@ -3162,27 +3454,24 @@ async function showConfirmAcceptGigOverlay(jobData) {
     overlay.dataset.jobTitle = jobData.title;
     overlay.dataset.priceOffer = jobData.priceOffer;
     overlay.dataset.category = jobData.category;
-    
-    // Update customer status using real profile verification when available.
-    const customerStatus = await resolveUserAccountStatus(jobData.posterId, {
-        role: 'customer',
-        fallbackName: jobData.posterName
+
+    // Open immediately — verification/profile loads in the background (same as hire confirm).
+    applyCustomerStatusDisplay({
+        type: 'loading',
+        icon: '⌛',
+        title: 'Checking Verification',
+        description: 'Loading customer verification details...'
     });
-    applyCustomerStatusDisplay(customerStatus);
-    await updateStatusFacePreview({
+    updateStatusFacePreview({
         previewBlockId: 'acceptFacePreviewBlock',
         previewImageId: 'acceptFacePreviewImage',
         previewVideoId: 'acceptFacePreviewVideo',
         previewPlayBtnId: 'acceptFacePreviewPlayBtn',
         previewCaptionId: 'acceptFacePreviewCaption',
-        displayName: jobData.posterName || 'Customer',
-        status: customerStatus,
-        targetUserId: jobData.posterId,
-        jobId: jobData.jobId,
-        scope: 'jobs'
+        status: null
     });
-    overlay.dataset.verificationStatusType = customerStatus?.type || '';
-    updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
+    overlay.dataset.verificationStatusType = '';
+    updateVerificationReminderActions('accept', null, jobData.posterName, jobData.posterId);
     setVerificationDecision('acceptGig', null);
     
     // Initialize handlers
@@ -3191,12 +3480,48 @@ async function showConfirmAcceptGigOverlay(jobData) {
     // Initialize language tabs (resets state each time modal opens)
     initializeDisclaimerLanguageTabs('acceptGig');
     
-    // Show overlay
+    // Show overlay before network work so Accept feels instant.
     overlay.classList.add('show');
     startVerificationReminderTicker('accept');
     attachConfirmAcceptGigEscHandler();
-    
     console.log('🤝 Confirm accept gig overlay shown');
+
+    try {
+        const customerStatus = await resolveUserAccountStatus(jobData.posterId, {
+            role: 'customer',
+            fallbackName: jobData.posterName
+        });
+        if (overlay.dataset.acceptRenderToken !== renderToken || !overlay.classList.contains('show')) {
+            return;
+        }
+        applyCustomerStatusDisplay(customerStatus);
+        await updateStatusFacePreview({
+            previewBlockId: 'acceptFacePreviewBlock',
+            previewImageId: 'acceptFacePreviewImage',
+            previewVideoId: 'acceptFacePreviewVideo',
+            previewPlayBtnId: 'acceptFacePreviewPlayBtn',
+            previewCaptionId: 'acceptFacePreviewCaption',
+            displayName: jobData.posterName || 'Customer',
+            status: customerStatus,
+            targetUserId: jobData.posterId,
+            jobId: jobData.jobId,
+            scope: 'jobs'
+        });
+        if (overlay.dataset.acceptRenderToken !== renderToken || !overlay.classList.contains('show')) {
+            return;
+        }
+        overlay.dataset.verificationStatusType = customerStatus?.type || '';
+        updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
+    } catch (error) {
+        console.warn('⚠️ Accept overlay verification load failed:', error);
+        if (overlay.dataset.acceptRenderToken !== renderToken || !overlay.classList.contains('show')) {
+            return;
+        }
+        const fallback = buildAccountStatusFromVerification(null, 'customer', jobData.posterId);
+        applyCustomerStatusDisplay(fallback);
+        overlay.dataset.verificationStatusType = fallback.type || '';
+        updateVerificationReminderActions('accept', fallback.type, jobData.posterName, jobData.posterId);
+    }
 }
 
 function applyCustomerStatusDisplay(customerStatus) {
@@ -4211,8 +4536,9 @@ function hideRejectGigOfferOverlay() {
 async function processRejectGigConfirmation(jobData) {
     console.log('❌ Processing reject gig confirmation for:', jobData);
     
-    // Hide rejection overlay
+    // Hide rejection + underlying offer options (reject succeeded).
     hideRejectGigOfferOverlay();
+    hideGigOfferOptionsOverlay();
     
     // Show loading while processing
     showLoadingOverlay('Rejecting offer...');
@@ -6248,15 +6574,13 @@ async function loadPreviousContent() {
     const container = document.querySelector('.previous-container');
     if (!container) return;
     const renderToken = beginTabRender('previous');
-    
-    // Show loading state
-    container.innerHTML = `
+    const warmMeta = beginJobsTabLoad('previous', container, `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
             <div class="loading-text">Loading completed jobs...</div>
         </div>
-    `;
-    jobsTrace('render:tab:loading', { role: 'customer', tab: 'previous' });
+    `);
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'previous', warm: warmMeta.warm });
     
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)
@@ -6265,10 +6589,15 @@ async function loadPreviousContent() {
         const customerCompletedJobs = allCompletedJobs.filter(job => job.role === 'customer');
         
         console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
+        if (consumeJobsWarmIfMatched('previous', customerCompletedJobs, warmMeta)) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: customerCompletedJobs.length, cacheHit: true });
+            return;
+        }
         
         if (customerCompletedJobs.length === 0) {
             jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: 0 });
             if (shouldApplyTabRender('previous', renderToken)) showEmptyPreviousState();
+            persistJobsTabCache('previous', []);
         } else {
             await generateMockCompletedJobs(customerCompletedJobs);
             if (!shouldApplyTabRender('previous', renderToken)) return;
@@ -6277,6 +6606,7 @@ async function loadPreviousContent() {
             
             // Create overlay immediately for testing
             createFeedbackExpandedOverlay();
+            persistJobsTabCache('previous', customerCompletedJobs);
             jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: customerCompletedJobs.length });
         }
         
@@ -9487,16 +9817,19 @@ function showEmptyListingsState() {
     }
 }
 
-async function updateTabCounts() {
+async function updateTabCounts(options = {}) {
     // Update notification counts on tabs after job operations
-    console.log('🔢 Updating tab notification counts...');
+    const soft = options && options.soft === true;
+    console.log(`🔢 Updating tab notification counts...${soft ? ' (soft)' : ''}`);
     
-    // Show loading state on all tab counts
-    const tabCountElements = document.querySelectorAll('.notification-count');
-    tabCountElements.forEach(el => {
-        el.classList.add('loading');
-        el.textContent = ''; // Content added via CSS ::before for animation
-    });
+    // Cold path flashes loading dots; warm/soft keeps current numbers until refresh lands.
+    if (!soft) {
+        const tabCountElements = document.querySelectorAll('.notification-count');
+        tabCountElements.forEach(el => {
+            el.classList.add('loading');
+            el.textContent = ''; // Content added via CSS ::before for animation
+        });
+    }
     
     // Debug current data status
     debugDataStatus();
@@ -9566,40 +9899,10 @@ async function updateTabCounts() {
             workerCompleted: workerCompletedJobs.length // Jobs where user worked and completed
         };
         
-        // Update customer tab notification badges
-        const listingsCount = document.querySelector('#listingsTab .notification-count');
-        const hiringCount = document.querySelector('#hiringTab .notification-count');
-        const previousCount = document.querySelector('#previousTab .notification-count');
-        
-        if (listingsCount) {
-            listingsCount.classList.remove('loading');
-            listingsCount.textContent = counts.listings;
-        }
-        if (hiringCount) {
-            hiringCount.classList.remove('loading');
-            hiringCount.textContent = counts.hiring;
-        }
-        if (previousCount) {
-            previousCount.classList.remove('loading');
-            previousCount.textContent = counts.previous;
-        }
-        
-        // Update worker tab notification badges
-        const offeredCount = document.querySelector('#offeredTab .notification-count');
-        const acceptedCount = document.querySelector('#acceptedTab .notification-count');
-        const workerCompletedCount = document.querySelector('#workerCompletedTab .notification-count');
-        
-        if (offeredCount) {
-            offeredCount.classList.remove('loading');
-            offeredCount.textContent = counts.offered;
-        }
-        if (acceptedCount) {
-            acceptedCount.classList.remove('loading');
-            acceptedCount.textContent = counts.accepted;
-        }
-        if (workerCompletedCount) {
-            workerCompletedCount.classList.remove('loading');
-            workerCompletedCount.textContent = counts.workerCompleted;
+        applyJobsTabCounts(counts);
+        const uid = getJobsManagerUserId();
+        if (uid) {
+            mergeJobsManagerCache(uid, { counts });
         }
         
         console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous}), Offered(${counts.offered}), Accepted(${counts.accepted}), WorkerCompleted(${counts.workerCompleted})`);
