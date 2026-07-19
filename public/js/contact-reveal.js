@@ -71,10 +71,10 @@
       .contact-reveal-whatsapp { background: linear-gradient(135deg,#25d366 0%,#128c7e 100%); color: #fff; }
       .contact-reveal-viber { background: linear-gradient(135deg,#7360f2 0%,#59267c 100%); color: #fff; }
       .contact-reveal-cancel { display: block; width: auto; min-width: 140px; max-width: 56%;
-        margin: 4px auto 0; background: linear-gradient(135deg,#9ca3af 0%,#6b7280 100%); color: #fff;
-        border: 1px solid rgba(229,231,235,0.35); font-size: 1.05rem; font-weight: 800;
-        letter-spacing: 0.03em; padding: 13px 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); }
-      .contact-reveal-cancel:hover { filter: brightness(1.1); color: #fff; }
+        margin: 4px auto 0; background: rgba(59,130,246,0.12); color: #93c5fd;
+        border: 1px solid rgba(59,130,246,0.3); font-size: 1.05rem; font-weight: 800;
+        letter-spacing: 0.03em; padding: 13px 28px; box-shadow: none; }
+      .contact-reveal-cancel:hover { background: rgba(59,130,246,0.2); color: #bfdbfe; }
       .contact-reveal-cancel:active { transform: scale(0.98); }
       .contact-reveal-foot { color: #94a3b8; font-size: 0.75rem; line-height: 1.4; margin-top: 12px; }
     `;
