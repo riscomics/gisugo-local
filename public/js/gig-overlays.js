@@ -186,8 +186,8 @@
             hireBtn.removeAttribute('aria-disabled');
             hireBtn.classList.remove('offer-sent');
             delete hireBtn.dataset.offerSent;
-            if (labelEl) labelEl.textContent = 'HIRE';
-            else hireBtn.textContent = 'HIRE';
+            if (labelEl) labelEl.textContent = 'HIRE — Send Gig Offer!';
+            else hireBtn.textContent = 'HIRE — Send Gig Offer!';
         }
     }
 
