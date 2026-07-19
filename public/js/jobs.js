@@ -4406,7 +4406,7 @@ function processAcceptGigConfirmation(jobData) {
     showConfirmationWithCallback(
         '🎉',
         'Gig Offer Accepted!',
-        `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
+        `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab.`,
         async () => {
             showLoadingOverlay('Finalizing acceptance...');
             try {
