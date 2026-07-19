@@ -1,8 +1,8 @@
 # GISUGO — Build Plan: Phone-at-Signup · Direct Route · Alerts/Support Pages
 
-> Status: **Active plan** · Created 2026-07-04 · Last updated: 2026-07-18
+> Status: **Active plan** · Created 2026-07-04 · Last updated: 2026-07-19
 > Covers recommended-order items **1, 2, 3** from `docs/V1_HARDENING_TASKLIST.md`.
-> Items **1–3 shipped** (Item 3 primary alert **cards** done; badge counts + other leftovers in V1 §E). Next linchpin: Admin Dashboard (Track C).
+> Items **1–3 shipped** (Item 3 alert **cards** + unread badge/count smoke COMPLETE 2026-07-19; other leftovers in V1 §E). Next linchpin: Admin Dashboard (Track C).
 > Companion: `docs/DIRECT_CONTACT_LISTINGS_STUDY.md` (full Direct rationale).
 > Norm: **verify in code AND live Firestore before each step and before any status report**
 > (`node scripts/verify-production-data.js`); deploy hosting after mobile-facing changes; bump `?v=`.
@@ -291,12 +291,13 @@ deployed (`673d1fb`, `8f9d4b5`; chrome polish `d30dff3`). Micro-tasklist /
 smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 
 **Still open:**
-- Item 3 smoke leftovers (detail in `docs/V1_HARDENING_TASKLIST.md` Item 3 §E):
-  - ✅ In-app primary worker/customer gig **cards** (2026-07-17 two-account pass).
-  - ✅ Producer audit 2026-07-18: no missing Alerts wiring for intended gig actions.
-  - ⬜ Unread **badge/count** re-test (notification alerts — next flow pass).
+- Item 3 leftovers (detail in `docs/V1_HARDENING_TASKLIST.md` Item 3 §E):
+  - ✅ In-app primary gig **cards** + unread **badge/count** smoke (COMPLETE 2026-07-19).
+  - ✅ Producer audit + badge latency fix deployed (`firebase-db.js` v60).
   - ⏸ `application_milestone` (5+) / `gig_auto_paused` (10) — deferred (needs 3+ accounts).
-  - ⬜ Support Write smoke; phone-tray session (tap→Alerts FAIL); `messages.html?threadId=`.
+  - ⬜ Support Write; phone-tray session (tap→Alerts FAIL); optional `messages.html?threadId=`.
+  - ⏸ Worker **Report Dispute** — UI/mock only; real pipeline with Admin Dashboard (Track C).
+    Keep option after feedback (valid for disputes post-rating).
 - Support **admin responder** (Admin Dashboard / Track C) — user page can stay empty until then.
 
 **Current state:**
@@ -320,7 +321,7 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 ## Suggested sequencing within 1–3
 1. ✅ **Item 1** (prerequisite).
 2. ✅ **Item 2** (Direct contact).
-3. ✅ **Item 3** (Alerts/Support pages) — primary alert cards done; badge counts + leftovers in V1 §E.
+3. ✅ **Item 3** (Alerts/Support pages) — alert/count smoke complete; non-alert leftovers in V1 §E.
 4. **Next:** Admin Dashboard architecture + cost study (V1 Track C #8).
 
 ---
@@ -377,9 +378,9 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
   look for it. Confirm it exists in Profile settings or build it.
 - **Remove temporary email/password login** — added only for Cursor-browser dev testing;
   strip once OAuth works everywhere post-approval.
-- **Item 3 — Alerts + Support → own pages: DONE (2026-07-16/17) + deployed.** Primary alert
-  cards + producer audit done 2026-07-17/18; badge-count re-test + other leftovers + Admin
-  Support responder still open (V1 §E / Track C).
+- **Item 3 — Alerts + Support → own pages: DONE (2026-07-16/17) + deployed.** Alert/count
+  smoke COMPLETE 2026-07-19 (cards + badges; latency fix live). Non-alert leftovers + Admin
+  Support / Report Dispute wiring still open (V1 §E / Track C).
 - **UI theme fill polish (2026-07-16/17)** — `#141b24` page fill + Alerts-style surfaces rolled to
   Profile, new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49); Alerts/Jobs
   role chrome shared look (`d30dff3`).
