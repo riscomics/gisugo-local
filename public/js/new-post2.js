@@ -1827,11 +1827,29 @@ function formatPaymentTypeDisplay(paymentType) {
   return paymentType || 'Per Gig';
 }
 
+// Single owner for #previewPostBtn — edit mode must NOT also fire postJob()
+// (that race wiped gigs with empty np2State defaults after the phone-gate await).
+let previewPostClickHandler = null;
+
+function setPreviewPostClickHandler(handler) {
+  const postBtn = document.getElementById('previewPostBtn');
+  if (!postBtn) return;
+  if (previewPostClickHandler) {
+    postBtn.removeEventListener('click', previewPostClickHandler);
+    previewPostClickHandler = null;
+  }
+  // Clear legacy .onclick bindings from older edit-preview wiring
+  postBtn.onclick = null;
+  if (typeof handler === 'function') {
+    previewPostClickHandler = handler;
+    postBtn.addEventListener('click', previewPostClickHandler);
+  }
+}
+
 function initializePreviewOverlay() {
   const overlay = document.getElementById('previewOverlay');
   const closeBtn = document.getElementById('previewCloseBtn');
   const editBtn = document.getElementById('previewEditBtn');
-  const postBtn = document.getElementById('previewPostBtn');
   
   if (closeBtn) {
     closeBtn.addEventListener('click', function() {
@@ -1847,11 +1865,10 @@ function initializePreviewOverlay() {
     });
   }
   
-  if (postBtn) {
-    postBtn.addEventListener('click', function() {
-      postJob();
-    });
-  }
+  // New / relist confirm — edit mode replaces this via showEditPreview
+  setPreviewPostClickHandler(function() {
+    postJob();
+  });
   
   // Close on overlay click
   overlay.addEventListener('click', function(e) {
@@ -1865,6 +1882,14 @@ function initializePreviewOverlay() {
 // ========================== POST JOB ==========================
 
 async function postJob() {
+  // Edit confirm uses showEditPreview → updateJob with form-collected data.
+  // Never update from np2State here — edit form fields are NOT synced into np2State
+  // (defaults are '', null AM/PM), which previously wiped live gigs.
+  if (np2State.mode === 'edit') {
+    console.warn('⚠️ postJob() ignored in edit mode — use edit preview confirm only');
+    return;
+  }
+
   // Require a phone number on file before posting (backfill for older accounts).
   if (typeof window.ensurePhoneOnFile === 'function') {
     const hasPhone = await window.ensurePhoneOnFile();
@@ -1962,53 +1987,43 @@ async function postJob() {
       
       let result;
       
-      // EDIT MODE: Update existing job
-      if (np2State.mode === 'edit' && np2State.editJobId) {
-        if (typeof updateJob !== 'function') {
-          throw new Error('updateJob function not available');
-        }
-        console.log('✏️ EDIT MODE: Updating existing job:', np2State.editJobId);
-        result = await updateJob(np2State.editJobId, jobData);
-      } 
-      // NEW or RELIST MODE: Create new job
-      else {
-        if (typeof createJob !== 'function') {
-          throw new Error('createJob function not available');
-        }
-        console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
-        result = await createJob(jobData);
+      // NEW or RELIST MODE: Create new job (edit updates go through showEditPreview only)
+      if (typeof createJob !== 'function') {
+        throw new Error('createJob function not available');
+      }
+      console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
+      result = await createJob(jobData);
+      
+      // Now upload photo with the real jobId (ONLY if user selected a new photo file)
+      if (result.success && result.jobId && np2State.photoFile) {
+        const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
         
-        // Now upload photo with the real jobId (ONLY if user selected a new photo file)
-        if (result.success && result.jobId && np2State.photoFile) {
-          const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
+        if (useFirebaseStorage) {
+          console.log('📤 Uploading photo with jobId:', result.jobId);
           
-          if (useFirebaseStorage) {
-            console.log('📤 Uploading photo with jobId:', result.jobId);
+          try {
+            // Upload to Firebase Storage with REAL jobId
+            const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
             
-            try {
-              // Upload to Firebase Storage with REAL jobId
-              const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
+            if (uploadResult.success) {
+              console.log('✅ Photo uploaded:', uploadResult.url);
               
-              if (uploadResult.success) {
-                console.log('✅ Photo uploaded:', uploadResult.url);
-                
-                // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
-                if (typeof getFirestore === 'function') {
-                  const db = getFirestore();
-                  await db.collection('jobs').doc(result.jobId).update({
-                    thumbnail: uploadResult.url,
-                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                  });
-                  console.log('✅ Job updated with photo URL');
-                }
-              } else {
-                console.error('❌ Photo upload failed:', uploadResult.errors);
-                alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
+              // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
+              if (typeof getFirestore === 'function') {
+                const db = getFirestore();
+                await db.collection('jobs').doc(result.jobId).update({
+                  thumbnail: uploadResult.url,
+                  lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('✅ Job updated with photo URL');
               }
-            } catch (photoError) {
-              console.error('❌ Photo upload error:', photoError);
+            } else {
+              console.error('❌ Photo upload failed:', uploadResult.errors);
               alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
             }
+          } catch (photoError) {
+            console.error('❌ Photo upload error:', photoError);
+            alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
           }
         }
       }
@@ -3096,63 +3111,60 @@ function showEditPreview(updatedJob, category, jobId) {
     console.error('❌ Preview overlay element NOT FOUND');
   }
   
-  // Wire up post button to actually update
-  const postJobBtn = document.getElementById('previewPostBtn'); // Correct ID
-  console.log('🔘 Post Job button found:', !!postJobBtn);
-  if (postJobBtn) {
-    postJobBtn.onclick = async () => {
-      console.log('🔵 Preview Post button clicked - updating job...');
-      // Hide preview, show loading
-      document.getElementById('previewOverlay').classList.remove('active');
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      const loadingText = document.getElementById('loadingText');
-      if (loadingText) loadingText.textContent = 'UPDATING GIG...';
-      if (loadingOverlay) loadingOverlay.classList.add('show');
+  // Wire preview confirm ONLY to updateJob (replaces new/relist postJob handler)
+  console.log('🔘 Wiring preview Post button for edit update');
+  setPreviewPostClickHandler(async () => {
+    console.log('🔵 Preview Post button clicked - updating job...');
+    // Hide preview, show loading
+    document.getElementById('previewOverlay').classList.remove('active');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) loadingText.textContent = 'UPDATING GIG...';
+    if (loadingOverlay) loadingOverlay.classList.add('show');
+    
+    // Update job
+    const useFirebase = DataService.useFirebase();
+    console.log('🔥 Using Firebase for update:', useFirebase);
+    console.log('📦 Job data being sent to updateJob:', updatedJob);
+    
+    if (useFirebase && typeof updateJob === 'function') {
+      const result = await updateJob(jobId, updatedJob);
+      console.log('📥 Update result:', result);
+      if (loadingOverlay) loadingOverlay.classList.remove('show');
       
-      // Update job
-      const useFirebase = DataService.useFirebase();
-      console.log('🔥 Using Firebase for update:', useFirebase);
-      console.log('📦 Job data being sent to updateJob:', updatedJob);
-      
-      if (useFirebase && typeof updateJob === 'function') {
-        const result = await updateJob(jobId, updatedJob);
-        console.log('📥 Update result:', result);
-        if (loadingOverlay) loadingOverlay.classList.remove('show');
+      if (result.success) {
+        console.log('✅ Job updated successfully in Firebase');
         
-        if (result.success) {
-          console.log('✅ Job updated successfully in Firebase');
-          
-          // ═══════════════════════════════════════════════════════════════
-          // DELETE OLD PHOTO (LAST - after Firestore update succeeds)
-          // ═══════════════════════════════════════════════════════════════
-          if (np2State.oldGigPhotoUrl && np2State.oldGigPhotoUrl.includes('firebasestorage')) {
-            if (typeof deletePhotoFromStorageUrl === 'function') {
-              console.log('🗑️ Deleting old gig photo...');
-              const deleteResult = await deletePhotoFromStorageUrl(np2State.oldGigPhotoUrl);
-              
-              if (deleteResult.success) {
-                console.log('✅ Old gig photo cleaned up');
-              } else {
-                console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
-                // TODO: Track orphan in Firestore
-              }
+        // ═══════════════════════════════════════════════════════════════
+        // DELETE OLD PHOTO (LAST - after Firestore update succeeds)
+        // ═══════════════════════════════════════════════════════════════
+        if (np2State.oldGigPhotoUrl && np2State.oldGigPhotoUrl.includes('firebasestorage')) {
+          if (typeof deletePhotoFromStorageUrl === 'function') {
+            console.log('🗑️ Deleting old gig photo...');
+            const deleteResult = await deletePhotoFromStorageUrl(np2State.oldGigPhotoUrl);
+            
+            if (deleteResult.success) {
+              console.log('✅ Old gig photo cleaned up');
+            } else {
+              console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
+              // TODO: Track orphan in Firestore
             }
-            // Clear the stored URL
-            np2State.oldGigPhotoUrl = null;
           }
-          
-          showSuccessOverlay();
-        } else {
-          console.error('❌ Job update failed:', result.message);
-          showToast('Failed to update job: ' + result.message, 'error');
-          // TODO: If we uploaded new photo but Firestore failed, track as orphan
+          // Clear the stored URL
+          np2State.oldGigPhotoUrl = null;
         }
+        
+        showSuccessOverlay();
       } else {
-        if (loadingOverlay) loadingOverlay.classList.remove('show');
-        showToast('Failed to update job: backend unavailable', 'error');
+        console.error('❌ Job update failed:', result.message);
+        showToast('Failed to update job: ' + result.message, 'error');
+        // TODO: If we uploaded new photo but Firestore failed, track as orphan
       }
-    };
-  }
+    } else {
+      if (loadingOverlay) loadingOverlay.classList.remove('show');
+      showToast('Failed to update job: backend unavailable', 'error');
+    }
+  });
 }
 
 function populateFormWithJobData(jobData, category, mode) {

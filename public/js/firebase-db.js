@@ -1372,6 +1372,24 @@ async function updateJob(jobId, jobData) {
     // First, get the existing job to preserve fields that shouldn't be changed
     const existingJob = await db.collection('jobs').doc(jobId).get();
     const existingData = existingJob.data();
+
+    // Guard against accidental wipe (empty np2State defaults / "null AM" race)
+    const incomingTitle = String(getSafeValue(jobData, 'title', '') || '').trim();
+    const incomingDescription = String(getSafeValue(jobData, 'description', '') || '').trim();
+    const incomingStart = String(jobData.startTime || '');
+    const looksLikeNullTime = /^null\s/i.test(incomingStart) || incomingStart.includes('null');
+    if (existingData && existingData.title && !incomingTitle) {
+      console.error('❌ updateJob refused: would clear existing title', jobId);
+      return { success: false, message: 'Update blocked: missing title' };
+    }
+    if (existingData && existingData.description && !incomingDescription) {
+      console.error('❌ updateJob refused: would clear existing description', jobId);
+      return { success: false, message: 'Update blocked: missing description' };
+    }
+    if (looksLikeNullTime) {
+      console.error('❌ updateJob refused: invalid startTime', jobId, incomingStart);
+      return { success: false, message: 'Update blocked: invalid start time' };
+    }
     
     // Smart category handling: never save 'unknown' or empty, preserve existing
     let finalCategory = jobData.category;
