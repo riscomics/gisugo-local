@@ -8,16 +8,18 @@ This is the working tasklist for getting GISUGO web production-solid. Resume her
 any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
 disputes, and admin notifications — and it needs an architecture/cost study first.
 
-### Where we are (2026-07-17)
+### Where we are (2026-07-18)
 **Track G (login / auth) is CLOSED.** **Item 3 SHIPPED** (code + hosting/functions deploy):
 standalone Alerts + Support pages live; Contact merged into Support Write overlay; Messages hidden
 from menu (page kept for premium chat); push deep-links → `/alerts.html?role=…`; chat unread
 listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill across Profile,
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
-**Item 3 in-app alert smoke (2026-07-17):** primary worker/customer gig-activity cards covered
-(see §E below). **Still open:** customer 5+/auto-pause alerts; Support Write smoke; phone-tray
-session (delivery + tray-tap → Alerts); `messages.html?threadId=` regression. Admin Support queue
-remains blocked on Track C.
+**Notification alert smoke (2026-07-17/18):** primary worker/customer gig-activity **cards** covered
+(see §E0). Code audit 2026-07-18: no gig action that is *supposed* to create an Alerts card is
+missing a producer. **Still open for notification alerts:** unread **badge/count** re-test on a
+full flow pass (user deferred). **Deferred (needs 3+ accounts):** `application_milestone` (5+),
+`gig_auto_paused` (10). **Separate Item 3 leftovers (not alert-card smoke):** Support Write;
+phone-tray session; `messages.html?threadId=`. Admin Support queue blocked on Track C.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -576,33 +578,39 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 #### E0. In-app gig-activity alerts (2026-07-17 two-account smoke)
 | Role | Action / type | Status |
 |---|---|---|
-| Worker | Hire offer (`offer_sent`) | ✅ card + counts |
-| Worker | Gig completed (`job_completed`) | ✅ card + counts |
+| Worker | Hire offer (`offer_sent`) | ✅ card (counts: re-check later) |
+| Worker | Gig completed (`job_completed`) | ✅ card (counts: re-check later) |
 | Worker | Customer feedback (`feedback_received`) | ✅ card; Profile reviews deep-link fixed |
 | Worker | Contract voided (`contract_voided`) | ✅ (earlier same day) |
-| Worker | Slots reopen (`application_slots_reopened_batch`) | ✅ N/A this pass — both accounts at 10 available, no pending apps/offers; only fires on manual reject or not-selected-after-hire for *other* applicants |
-| Customer | Application received (`application_received`) | ✅ |
+| Worker | Slots reopen (`application_slots_reopened_batch`) | ✅ N/A this pass — accounts clean (10 available, no pending); only fires for *other* applicants on manual reject / not-selected-after-hire |
+| Customer | Application received (`application_received`) | ✅ card |
 | Customer | Offer accepted (`offer_accepted`) | ✅ card + Hiring deep-link |
-| Customer | Offer rejected (`offer_rejected`) | ✅ card + counts |
+| Customer | Offer rejected (`offer_rejected`) | ✅ card |
 | Customer | Worker resigned (`worker_resigned`) | ✅ (earlier same day) |
 | Customer | Worker feedback (`worker_feedback_received`) | ✅ card; Profile reviews deep-link fixed |
-| Customer | 5+ milestone (`application_milestone`) | ⬜ not tested |
-| Customer | Auto-pause at 10 (`gig_auto_paused`) | ⬜ not tested |
+| Customer | 5+ milestone (`application_milestone`) | ⏸ deferred — needs multiple applicant accounts |
+| Customer | Auto-pause at 10 (`gig_auto_paused`) | ⏸ deferred — needs multiple applicant accounts |
+
+**Producer audit (2026-07-18, code):** Every gig action that is *supposed* to create an Alerts
+card has a live `createNotification` / grouped-closure call. Intentionally **no** card:
+worker withdraw, customer delete listing, pause/edit/post, self-action. `interview_request` =
+legacy UI only (no producer). Job delete frees coins but does **not** emit slots-reopen (by design).
+
+**Still open — notification alerts only:** unread **badge/count** numbers (menu Alerts and/or
+WORKER|CUSTOMER tabs) — user will re-run full flow another time.
 
 **Fixes from this smoke (deployed):** Profile `?tab=reviews-*` left User Info visible (wrong
 `.tab-content` selector → `.tab-content-wrapper`); Offers overlay **OPEN CHAT** removed; push
 allowlist + Hiring toggle for `offer_rejected`; feedback types on push allowlist.
 
-#### E1–E7. Remaining Item 3 smoke
-1. [~] Menu shows Alerts + Support; Messages hidden. *(in use during smoke — treat as OK)*
-2. [~] Alerts page loads real notifications; role tabs OK. **Pending:** lang-tab sweep; 5+/auto-pause.
-3. [ ] Support page loads (likely empty until admin responder); Write works.
-4. [ ] **FAIL 2026-07-17 / own session:** Push tray tap → `alerts.html` (not browser shell only).
-      Device Enable can deliver tray; deep-link navigation still broken.
+#### E1–E7. Other Item 3 smoke (not notification-card coverage)
+1. [~] Menu shows Alerts + Support; Messages hidden. *(OK during smoke)*
+2. [~] Alerts cards/stream OK. Badge counts → see E0 “still open”.
+3. [ ] Support Write smoke (separate from gig alerts).
+4. [ ] **FAIL 2026-07-17 / own session:** Push tray tap → `alerts.html`.
 5. [ ] Direct `messages.html?threadId=…` still opens chat.
 6. [ ] Support Write / `contacts.html?compose` still creates `support_requests`.
-7. [~] Alert card → jobs/profile deep-links: Hiring + Profile reviews verified; back-to-Alerts
-      light-check still nice-to-have.
+7. [~] Alert card → jobs/profile deep-links verified; back-to-Alerts nice-to-have.
 
 ### Guardrails — messages.html must NOT keep "running" in the background
 > User concern (2026-07-15): leaving `messages.html` intact must not mean chat/alerts keep
@@ -645,8 +653,8 @@ allowlist + Hiring toggle for `offer_rejected`; feedback types on push allowlist
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live.
-1. **Finish Item 3 smoke leftovers** — customer 5+/auto-pause; Support Write; phone-tray session
-   (delivery + tap→Alerts); `messages.html?threadId=`. In-app primary gig alerts done 2026-07-17.
+1. **Item 3 leftovers** — notification badge/count re-test; Support Write; phone-tray session;
+   `messages.html?threadId=`. Primary alert **cards** done; 5+/auto-pause deferred (multi-account).
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
    admin notifications, gig-report moderation, the deferred lockdown, the Support responder/admin
    side, and displays the Direct reveal counter.

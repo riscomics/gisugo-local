@@ -84,7 +84,8 @@
         'Call first, get to know them.',
         'Explain the gig clearly.',
         'Agree on Price and Schedule.',
-        'If hiring, text the agreed details for records.'
+        'If hiring, text the agreed details for records.',
+        "Don't forget to click HIRE to Send Gig Offer!"
       ]
     },
     bisaya: {
@@ -93,7 +94,8 @@
         'Tawga una, pagkilala sa usag usa.',
         'Ipahayag og klaro ang gig.',
         'Magkasabot sa Presyo ug Schedule.',
-        'Kung mag-hire, i-text ang gikasabutan para sa records.'
+        'Kung mag-hire, i-text ang gikasabutan para sa records.',
+        'Ayaw kalimot i-click ang HIRE aron ma-Send ang Gig Offer!'
       ]
     },
     tagalog: {
@@ -102,7 +104,8 @@
         'Tumawag muna, magkakilala.',
         'Ipaliwanag nang malinaw ang gig.',
         'Magkasundo sa Presyo at Schedule.',
-        'Kung magha-hire, i-text ang napagkasunduan para sa records.'
+        'Kung magha-hire, i-text ang napagkasunduan para sa records.',
+        'Huwag kalimutang i-click ang HIRE para mag-Send ng Gig Offer!'
       ]
     }
   };
