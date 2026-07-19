@@ -70,10 +70,11 @@
       .contact-reveal-text { background: linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color: #fff; }
       .contact-reveal-whatsapp { background: linear-gradient(135deg,#25d366 0%,#128c7e 100%); color: #fff; }
       .contact-reveal-viber { background: linear-gradient(135deg,#7360f2 0%,#59267c 100%); color: #fff; }
-      .contact-reveal-cancel { background: linear-gradient(135deg,#10b981 0%,#059669 100%); color: #fff;
-        border: none; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.03em; padding: 15px;
-        margin-top: 2px; box-shadow: 0 6px 18px rgba(16,185,129,0.4); }
-      .contact-reveal-cancel:hover { filter: brightness(1.08); color: #fff; }
+      .contact-reveal-cancel { display: block; width: auto; min-width: 140px; max-width: 56%;
+        margin: 4px auto 0; background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color: #111827;
+        border: none; font-size: 1.05rem; font-weight: 800; letter-spacing: 0.03em; padding: 13px 28px;
+        box-shadow: 0 6px 18px rgba(245,158,11,0.35); }
+      .contact-reveal-cancel:hover { filter: brightness(1.06); color: #111827; }
       .contact-reveal-cancel:active { transform: scale(0.98); }
       .contact-reveal-foot { color: #94a3b8; font-size: 0.75rem; line-height: 1.4; margin-top: 12px; }
     `;
