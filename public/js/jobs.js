@@ -3208,7 +3208,9 @@ function applyCustomerStatusDisplay(customerStatus) {
         : null;
     
     if (statusIcon && statusTitle && statusContent) {
-        statusIcon.textContent = customerStatus.icon;
+        const isFace = customerStatus?.type === 'face';
+        statusIcon.textContent = customerStatus.icon || '';
+        statusIcon.style.display = isFace || !customerStatus.icon ? 'none' : '';
         statusTitle.textContent = customerStatus.title;
         const desc = String(customerStatus.description || '').trim();
         statusContent.textContent = desc;
@@ -3428,7 +3430,7 @@ function buildAccountStatusFromVerification(verification, roleLabel, userId = ''
     if (verification?.faceVerified || verification?.status === 'face_verified') {
         return {
             type: 'face',
-            icon: '🎥',
+            icon: '',
             title: 'FACE VERIFIED',
             description: '',
             media
@@ -8588,16 +8590,19 @@ function updateWorkerStatusDisplay(status) {
         : null;
 
     // Support both new status shape and any legacy fields.
-    friendlyIcon.textContent = status.icon || status.friendlyIcon || '🌱';
+    const isFace = status?.type === 'face';
+    const iconText = status.icon || status.friendlyIcon || (isFace ? '' : '🌱');
+    friendlyIcon.textContent = iconText;
+    friendlyIcon.style.display = isFace || !iconText ? 'none' : '';
     infoTitle.textContent = status.title || status.infoTitle || 'Unverified';
     const desc = String(status.description || status.infoContent || '').trim();
     const fallbackDesc = 'This member has not completed Face Verification yet.';
-    const showDesc = status?.type === 'face' ? '' : (desc || fallbackDesc);
+    const showDesc = isFace ? '' : (desc || fallbackDesc);
     infoContent.textContent = showDesc;
     infoContent.style.display = showDesc ? '' : 'none';
     infoContent.style.textAlign = '';
     if (headerEl) {
-        headerEl.classList.toggle('is-face-verified', status?.type === 'face');
+        headerEl.classList.toggle('is-face-verified', isFace);
     }
 
     // Style info section based on type

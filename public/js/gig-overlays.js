@@ -645,7 +645,7 @@
         if (faceVerified) {
             return {
                 type: 'face',
-                icon: '🪪',
+                icon: '',
                 title: 'FACE VERIFIED',
                 description: '',
                 posterUrl: media.facePosterUrl || '',
@@ -672,7 +672,11 @@
         const previewPlayBtn = getElement('hireFacePreviewPlayBtn');
         const previewCaption = getElement('hireFacePreviewCaption');
 
-        if (iconEl) iconEl.textContent = status.icon;
+        if (iconEl) {
+            const isFace = status.type === 'face';
+            iconEl.textContent = status.icon || '';
+            iconEl.style.display = isFace || !status.icon ? 'none' : '';
+        }
         if (titleEl) titleEl.textContent = status.title;
         if (contentEl) {
             const desc = String(status.description || '').trim();
