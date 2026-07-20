@@ -1766,6 +1766,22 @@ body:has(.messages-header) {
   to { transform: rotate(360deg); }
 }
 
+/* Inline loader for Alerts list (shown while notification cards fetch, e.g. after tray tap) */
+.alerts-inline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 70px 20px;
+}
+
+.alerts-inline-loading .alerts-loading-clock {
+  display: inline-block;
+  font-size: 2.6rem;
+  line-height: 1;
+  animation: verification-clock-spin 1s linear infinite;
+  transform-origin: center center;
+}
+
 .info-title {
   font-size: clamp(0.9rem, 2.5vw, 1rem);
   font-weight: 600;

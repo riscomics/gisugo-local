@@ -1638,7 +1638,7 @@ async function loadAlertsForRole(role) {
 
     // Avoid double loader on refresh: if full-page overlay is visible, don't also render inline loader.
     if (!isMessagesPageLoadingOverlayVisible()) {
-        container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+        container.innerHTML = '<div class="loading-state alerts-inline-loading"><span class="alerts-loading-clock">⌛</span></div>';
     }
     messagesTrace('route:messages/alerts', { role: config.role });
     messagesTrace('render:alerts:loading', config.role);
