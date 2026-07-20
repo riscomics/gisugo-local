@@ -1014,7 +1014,13 @@ const ALERTS_STREAM_STATE = {
     uid: '',
     notifications: [],
     started: false,
-    hasSnapshot: false
+    hasSnapshot: false,
+    // First snapshot usually comes from the local Firestore cache (stale cards).
+    // We hold the hourglass until a server snapshot arrives so a fresh alert
+    // (e.g. tray-tap landing) renders in one paint. Fallback timer renders the
+    // cache anyway if the server stalls (offline etc.).
+    serverSnapshotSeen: false,
+    cacheRenderFallbackTimerId: null
 };
 
 const SUPPORT_RESPONSES_STREAM_STATE = {
@@ -1033,6 +1039,11 @@ function resetAlertsStreamState() {
     ALERTS_STREAM_STATE.notifications = [];
     ALERTS_STREAM_STATE.started = false;
     ALERTS_STREAM_STATE.hasSnapshot = false;
+    ALERTS_STREAM_STATE.serverSnapshotSeen = false;
+    if (ALERTS_STREAM_STATE.cacheRenderFallbackTimerId) {
+        clearTimeout(ALERTS_STREAM_STATE.cacheRenderFallbackTimerId);
+        ALERTS_STREAM_STATE.cacheRenderFallbackTimerId = null;
+    }
 }
 
 function stopAlertsRealtimeStream(reason = 'unspecified') {
@@ -1565,6 +1576,32 @@ async function ensureAlertsRealtimeStream(currentUser) {
             ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
             ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
         }
+
+        const fromCache = !!(snapshotMeta && snapshotMeta.fromCache);
+        if (!fromCache) {
+            ALERTS_STREAM_STATE.serverSnapshotSeen = true;
+        }
+
+        // Hold the hourglass on the initial cache-only snapshot so fresh alerts
+        // (tray-tap landing) appear in one paint; fallback renders cache if the
+        // server snapshot doesn't arrive in time (e.g. offline).
+        if (fromCache && !ALERTS_STREAM_STATE.serverSnapshotSeen) {
+            if (!ALERTS_STREAM_STATE.cacheRenderFallbackTimerId) {
+                ALERTS_STREAM_STATE.cacheRenderFallbackTimerId = setTimeout(() => {
+                    ALERTS_STREAM_STATE.cacheRenderFallbackTimerId = null;
+                    ALERTS_STREAM_STATE.serverSnapshotSeen = true;
+                    renderAllAlertsViews(getCombinedAlertsNotifications());
+                    messagesTrace('render:alerts:success', { count: ALERTS_STREAM_STATE.notifications.length, source: 'cache-fallback' });
+                    markMessagesServerSnapshotReady(snapshotMeta);
+                }, 3500);
+            }
+            return;
+        }
+
+        if (ALERTS_STREAM_STATE.cacheRenderFallbackTimerId) {
+            clearTimeout(ALERTS_STREAM_STATE.cacheRenderFallbackTimerId);
+            ALERTS_STREAM_STATE.cacheRenderFallbackTimerId = null;
+        }
         renderAllAlertsViews(getCombinedAlertsNotifications());
         messagesTrace('render:alerts:success', { count: ALERTS_STREAM_STATE.notifications.length, source });
         markMessagesServerSnapshotReady(snapshotMeta);
@@ -1685,7 +1722,7 @@ async function loadAlertsForRole(role) {
             messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_subscribe' });
             return;
         }
-        if (ALERTS_STREAM_STATE.hasSnapshot) {
+        if (ALERTS_STREAM_STATE.hasSnapshot && ALERTS_STREAM_STATE.serverSnapshotSeen) {
             renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: config.role });
             messagesTrace('render:alerts:success', { role: config.role, count: ALERTS_STREAM_STATE.notifications.length });
         }
