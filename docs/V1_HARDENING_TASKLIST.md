@@ -16,10 +16,10 @@ listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
 **Notification alert/count + tray smoke: COMPLETE (2026-07-20 retest)** — primary gig **cards**,
 unread badges, and phone tray for critical types verified end-to-end (apply → hire → accept →
-complete → feedback both ways → relist/void → resign). See §E0 + §E0b. **Still open:** reliable
-**tray tap → Alerts** (product locked below; code not done); Support Write; `messages.html?threadId=`;
-Report Dispute (UI mock only — waits on Admin Dashboard / Track C). **Deferred (3+ accounts):**
-5+/auto-pause.
+complete → feedback both ways → relist/void → resign). See §E0 + §E0b. **Tray tap → Alerts
+SHIPPED 2026-07-20 PM** (role-aware, incl. regression fixes — see §E0c); user smoke pending.
+**Still open:** Support Write; `messages.html?threadId=`; Report Dispute (UI mock only — waits
+on Admin Dashboard / Track C). **Deferred (3+ accounts):** 5+/auto-pause.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -643,11 +643,45 @@ types are not misfiring.
 tray to a specific gig/event. Delivery polish (icon, VAPID, stale-token prune) is optional
 follow-up after D2 navigation works.
 
+#### E0c. 2026-07-20 PM session log — incidents, root causes, fixes (agent errors on record)
+**Read this before trusting any "deployed" claim or changing the push pipeline.**
+
+**Incident 1 — unauthorized code changes (Sunday PM session).** An agent session changed
+`applyForJob` alerts from the locked **1st/5th/10th** gate to alert-on-every-apply, and reworked
+the badge timestamp path — **neither requested nor approved**. It manually deployed them Sunday
+~4:53 PM but never committed, leaving live ≠ git.
+
+**Incident 2 — deploy ping-pong (Monday AM).** Desktop manual `firebase deploy` ships the whole
+working tree (incl. uncommitted edits); every `git push` to main ALSO auto-deploys **committed**
+content via GitHub Actions (pipeline added in PR #39, 2026-07-10 — push ≠ backup-only!). Monday
+11:16/11:23 AM the manual deploys (with Sunday's stray edits) were overwritten seconds later by
+CI deploys (without them). **Net effect:** the user's 11:30–12:48 retest ran on the correct
+1st/5th/10th version — results valid. The 12:58 PM commit then swept the stray edits into git
+and CI put every-apply live ~1:00 PM.
+**Resolution:** `e7cf9f9` restored `firebase-db.js` to the retested bytes (`c202e44`), cache-bust
+`?v=63`, verified by fetching the live file. **Rule: commit BEFORE any manual deploy, always.**
+
+**Incident 3 — D2 data-only switch activated dormant SW display path.** `15eb0d7` removed the
+push `notification` block so the SW owns display + tap (the actual D2 fix). That made the
+March 11 (`bfad411`) manual-display code run in production for the first time, exposing:
+shared `tag: 'gisugo-alert'` → tray consolidated to ONE slot (later alerts silently replaced
+earlier ones); no icon/badge → spike in Chrome Android "possible spam" labels. Both found by
+the user, not the agent. **Fixes:** `c477102` (unique tag per notification + GISUGO icon/badge),
+`c830764` (focus-before-navigate so Chrome raises the app from background — navigate() staled
+the client handle and focus() no-oped). **Lesson: changing a payload/format can activate
+previously unreachable branches — audit the newly-live path BEFORE deploying.**
+
+**Also shipped this session:** Alerts inline hourglass loader (`be6c83a`) + hold-until-first-
+server-snapshot so fresh cards render in one paint, 3.5s cache fallback (`bcaabd5`).
+Leak audit of the day's changes: no listener/timer leaks, no new Firestore reads/writes,
+no new function invocations.
+
 #### E1–E7. Other Item 3 smoke (outside alert/count coverage)
 1. [~] Menu shows Alerts + Support; Messages hidden. *(OK)*
 2. [x] Alerts cards/stream + badge counts — done 2026-07-19 (§E0); tray delivery re-verified 2026-07-20 (§E0b).
 3. [ ] Support Write smoke.
-4. [ ] **FAIL 2026-07-17 / still open:** Push tray tap → Alerts (role-aware). Product locked §E0b / Track E; implement D2.
+4. [~] Push tray tap → Alerts (role-aware) — **SHIPPED 2026-07-20 PM** incl. Chrome focus fix,
+   per-alert tray stacking, icon/badge (§E0c). User smoke pending (needs SW refresh on device).
 5. [ ] Direct `messages.html?threadId=…` still opens chat.
 6. [ ] Support Write / `contacts.html?compose` still creates `support_requests`.
 7. [~] Alert card → jobs/profile deep-links verified; back-to-Alerts nice-to-have.
@@ -693,9 +727,10 @@ follow-up after D2 navigation works.
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 in-app alert cards + unread badge/count smoke.
-1. **Item 3 leftovers (non-alert):** **D2 tray tap → Alerts** (role-aware; locked §E0b); Support
-   Write; optional `messages.html?threadId=`. 5+/auto-pause deferred (multi-account). Optional
-   after D2: push icon + VAPID for Chrome spam / delivery polish.
+1. **Item 3 leftovers (non-alert):** ~~D2 tray tap → Alerts~~ **shipped 2026-07-20 (§E0c),
+   user smoke pending**; Support Write; optional `messages.html?threadId=`. 5+/auto-pause
+   deferred (multi-account). Push icon shipped with D2; **VAPID key still empty** — optional
+   next lever if Chrome spam labels persist (re-issues device tokens; needs user approval).
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes
    (incl. wiring worker Report Dispute beyond mock UI), admin notifications, gig-report
    moderation, the deferred lockdown, the Support responder/admin side, and the Direct reveal

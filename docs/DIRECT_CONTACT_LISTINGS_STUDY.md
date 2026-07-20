@@ -248,8 +248,8 @@ Marketplace). Not treated as a blocker.
 ## 10. Related friction work (separate, already actionable)
 
 Some of the "flow feels clunky" worry is **execution, not concept** and can be fixed without Direct:
-- **Phone tray tap → Alerts** — **LOCKED 2026-07-20** in `V1_HARDENING_TASKLIST` Track E / §E0b /
-  Item 3 §D2: tray tap opens Alerts only (prefer `?role=` when known); no job-specific deep-link
-  from tray. Payload link wiring exists; SW click still flaky (2026-07-17 FAIL). Optional later:
-  shorter tray copy; chat `threadId` when premium Messages returns; push icon / VAPID polish.
+- **Phone tray tap → Alerts** — **SHIPPED 2026-07-20 PM** per lock in `V1_HARDENING_TASKLIST`
+  Track E / §E0b / Item 3 §D2 (incident log §E0c): tray tap opens Alerts only (role-aware);
+  no job-specific deep-link. Icon shipped with it. Optional later: shorter tray copy; chat
+  `threadId` when premium Messages returns; VAPID key (still empty — needs user approval).
 - General **hire-flow tap-count review** for over-engineering (pending trace).
