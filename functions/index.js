@@ -152,23 +152,25 @@ function buildPushPayloadFromNotification(notification = {}) {
     ? "/alerts.html?role=customer"
     : "/alerts.html?role=worker";
 
+  // Data-only payload (no top-level `notification`): with a notification payload the FCM SDK
+  // inside the service worker auto-displays the tray entry and its own click handler intercepts
+  // the tap (stopImmediatePropagation), so our notificationclick never controls navigation.
+  // Data-only lets firebase-messaging-sw.js show the notification itself and own the tap →
+  // reliable /alerts.html?role=… landing (tasklist D2).
   return {
-    notification: {
-      title,
-      body: message
-    },
     data: {
+      title,
+      body: message,
       notificationId: String(notification.id || ""),
       type,
       recipientId: String(notification.recipientId || ""),
       jobId: String(notification.jobId || ""),
       role,
-      // SW notificationclick reads data.link (fcmOptions.link alone is not always copied there).
       link: alertsLink
     },
     webpush: {
-      fcmOptions: {
-        link: alertsLink
+      headers: {
+        Urgency: "high"
       }
     }
   };

@@ -15,14 +15,17 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  // If FCM already includes a notification payload, browsers may auto-display it.
-  // Avoid double tray entries by only showing manually for data-only payloads.
+  // Legacy payloads with a `notification` block are auto-displayed by the browser/SDK.
+  // Skip manual display for those to avoid double tray entries. Current pushes are
+  // data-only (see functions buildPushPayloadFromNotification), so we display here
+  // and therefore our own notificationclick handler controls the tap.
   if (payload?.notification) {
     return;
   }
-  const title = payload?.notification?.title || 'GISUGO Alert';
-  const body = payload?.notification?.body || 'You have a new notification.';
-  const link = payload?.fcmOptions?.link || payload?.data?.click_action || '/alerts.html';
+  const data = payload?.data || {};
+  const title = data.title || 'GISUGO Alert';
+  const body = data.body || 'You have a new notification.';
+  const link = data.link || payload?.fcmOptions?.link || data.click_action || '/alerts.html';
 
   self.registration.showNotification(title, {
     body,
@@ -56,11 +59,17 @@ self.addEventListener('notificationclick', (event) => {
     });
 
     if (sameOriginClient) {
-      if (typeof sameOriginClient.navigate === 'function') {
-        await sameOriginClient.navigate(targetUrl);
+      // navigate() can throw on uncontrolled clients (e.g. after a SW update);
+      // fall back to opening a fresh window so the tap always lands on Alerts.
+      try {
+        if (typeof sameOriginClient.navigate === 'function') {
+          await sameOriginClient.navigate(targetUrl);
+          await sameOriginClient.focus();
+          return;
+        }
+      } catch (error) {
+        // fall through to openWindow
       }
-      await sameOriginClient.focus();
-      return;
     }
 
     await clients.openWindow(targetUrl);

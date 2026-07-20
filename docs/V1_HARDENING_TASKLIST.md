@@ -303,7 +303,11 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
-- [~] **Phone tray tap → Alerts (LOCKED 2026-07-20 — implement next).**
+- [~] **Phone tray tap → Alerts (LOCKED 2026-07-20 — CODED + DEPLOYED 2026-07-20, user smoke pending).**
+      **Implementation:** push payload switched to **data-only** (no top-level `notification`)
+      in `buildPushPayloadFromNotification`, so the SW displays the tray entry itself and its
+      `notificationclick` owns the tap → navigates/opens `/alerts.html?role=…` (navigate()
+      wrapped with openWindow fallback). Deployed functions + hosting 2026-07-20 PM.
       **Product (user):** Do **not** chase job-specific deep-links from the tray. Tray tap should
       always open the Alerts page — in-app cards already give enough visual cue. Next level:
       land on the correct role tab when known (`?role=worker|customer`).
@@ -573,10 +577,10 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
       (reserve `/support.html` for a future support-reply push type when dashboard ships).
       **2026-07-17:** also allowlisted `feedback_received`, `worker_feedback_received`,
       `offer_rejected` for phone tray (in-app already worked).
-- [~] D2 `firebase-messaging-sw.js` — tray tap → Alerts (**LOCKED 2026-07-20, not coded yet**).
-      Product: always open Alerts; prefer `?role=` when known; no job-specific deep-link.
-      Implement so tap reliably reaches `/alerts.html` (role-aware), not merely focusing an
-      existing GISUGO tab. See Track E “Phone tray tap → Alerts” + §E0b.
+- [~] D2 `firebase-messaging-sw.js` — tray tap → Alerts (**CODED + DEPLOYED 2026-07-20, user
+      smoke pending**). Data-only push payload (functions) + SW manual display + robust
+      `notificationclick` (navigate→focus, openWindow fallback) → `/alerts.html?role=…`.
+      See Track E “Phone tray tap → Alerts” + §E0b.
 - [x] D3 Cache-bust + **Deploy hosting + functions** (Item 3 ship + tidy). Done 2026-07-16;
       follow-ons through 2026-07-19 (alerts deep-link, push allowlist, Offers Open Chat removed,
       Account Notifications, badge latency fix / `firebase-db.js` v60).
