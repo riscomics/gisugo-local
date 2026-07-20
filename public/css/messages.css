@@ -1742,23 +1742,23 @@ body:has(.messages-header) {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  font-size: clamp(1.6rem, 4.5vw, 2rem);
   line-height: 1;
-  animation: verification-clock-spin 1.1s linear infinite;
+  animation: verification-clock-spin 1s linear infinite;
   transform-origin: center center;
 }
 
+.status-info-header.is-verification-loading-header {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
 .worker-status-info.is-verification-loading {
-  border-color: rgba(96, 165, 250, 0.45);
-  background: rgba(59, 130, 246, 0.1);
-}
-
-.worker-status-info.is-verification-loading .info-title {
-  color: #93c5fd;
-}
-
-.worker-status-info.is-verification-loading .status-info-content {
-  color: #dbeafe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.85rem 1rem;
 }
 
 @keyframes verification-clock-spin {

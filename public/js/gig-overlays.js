@@ -676,19 +676,23 @@
 
         if (iconEl) {
             const isFace = status.type === 'face';
-            iconEl.textContent = isLoading ? '🕐' : (status.icon || '');
+            iconEl.textContent = isLoading ? '⌛' : (status.icon || '');
             iconEl.classList.toggle('is-loading-clock', isLoading);
             iconEl.style.display = isLoading || (!isFace && status.icon) ? '' : 'none';
         }
-        if (titleEl) titleEl.textContent = status.title;
+        if (titleEl) {
+            titleEl.textContent = status.title;
+            titleEl.style.display = isLoading ? 'none' : '';
+        }
         if (contentEl) {
-            const desc = String(status.description || '').trim();
+            const desc = isLoading ? '' : String(status.description || '').trim();
             contentEl.textContent = desc;
             contentEl.style.display = desc ? '' : 'none';
         }
         const headerEl = titleEl && titleEl.closest ? titleEl.closest('.status-info-header') : null;
         if (headerEl) {
             headerEl.classList.toggle('is-face-verified', status.type === 'face');
+            headerEl.classList.toggle('is-verification-loading-header', isLoading);
         }
         if (infoEl) {
             infoEl.classList.toggle('is-verification-loading', isLoading);
@@ -1483,9 +1487,9 @@
         // Keep the overlay responsive while verification data resolves.
         applyHireStatusToOverlay({
             type: 'loading',
-            icon: '🕐',
-            title: 'Loading Face Verification…',
-            description: 'Please wait — Face Verification status and video are loading.',
+            icon: '⌛',
+            title: 'Loading…',
+            description: '',
             posterUrl: '',
             videoUrl: ''
         }, workerName);
