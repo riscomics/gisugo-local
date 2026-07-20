@@ -59,12 +59,19 @@ self.addEventListener('notificationclick', (event) => {
     });
 
     if (sameOriginClient) {
-      // navigate() can throw on uncontrolled clients (e.g. after a SW update);
-      // fall back to opening a fresh window so the tap always lands on Alerts.
+      // Chrome Android: after navigate() the old client handle goes stale and
+      // focus() on it silently no-ops, leaving the browser in the background.
+      // Focus FIRST (raises the app), then navigate, then focus the fresh
+      // handle navigate() returns. Any failure falls back to openWindow.
       try {
-        if (typeof sameOriginClient.navigate === 'function') {
-          await sameOriginClient.navigate(targetUrl);
+        if (typeof sameOriginClient.focus === 'function') {
           await sameOriginClient.focus();
+        }
+        if (typeof sameOriginClient.navigate === 'function') {
+          const navigatedClient = await sameOriginClient.navigate(targetUrl);
+          if (navigatedClient && typeof navigatedClient.focus === 'function') {
+            await navigatedClient.focus();
+          }
           return;
         }
       } catch (error) {
