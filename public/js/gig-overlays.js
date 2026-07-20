@@ -666,16 +666,19 @@
         const iconEl = getElement('statusFriendlyIcon');
         const titleEl = getElement('statusInfoTitle');
         const contentEl = getElement('statusInfoContent');
+        const infoEl = getElement('workerStatusInfo');
         const previewBlock = getElement('hireFacePreviewBlock');
         const previewImage = getElement('hireFacePreviewImage');
         const previewVideo = getElement('hireFacePreviewVideo');
         const previewPlayBtn = getElement('hireFacePreviewPlayBtn');
         const previewCaption = getElement('hireFacePreviewCaption');
+        const isLoading = status.type === 'loading';
 
         if (iconEl) {
             const isFace = status.type === 'face';
-            iconEl.textContent = status.icon || '';
-            iconEl.style.display = isFace || !status.icon ? 'none' : '';
+            iconEl.textContent = isLoading ? '🕐' : (status.icon || '');
+            iconEl.classList.toggle('is-loading-clock', isLoading);
+            iconEl.style.display = isLoading || (!isFace && status.icon) ? '' : 'none';
         }
         if (titleEl) titleEl.textContent = status.title;
         if (contentEl) {
@@ -686,6 +689,9 @@
         const headerEl = titleEl && titleEl.closest ? titleEl.closest('.status-info-header') : null;
         if (headerEl) {
             headerEl.classList.toggle('is-face-verified', status.type === 'face');
+        }
+        if (infoEl) {
+            infoEl.classList.toggle('is-verification-loading', isLoading);
         }
         if (previewCaption) previewCaption.textContent = `${workerName || 'Worker'} Face Verification`;
 
@@ -1476,10 +1482,10 @@
 
         // Keep the overlay responsive while verification data resolves.
         applyHireStatusToOverlay({
-            type: 'new-member',
-            icon: '⌛',
-            title: 'Checking Verification',
-            description: 'Loading worker verification details...',
+            type: 'loading',
+            icon: '🕐',
+            title: 'Loading Face Verification…',
+            description: 'Please wait — Face Verification status and video are loading.',
             posterUrl: '',
             videoUrl: ''
         }, workerName);

@@ -3458,9 +3458,9 @@ async function showConfirmAcceptGigOverlay(jobData) {
     // Open immediately — verification/profile loads in the background (same as hire confirm).
     applyCustomerStatusDisplay({
         type: 'loading',
-        icon: '⌛',
-        title: 'Checking Verification',
-        description: 'Loading customer verification details...'
+        icon: '🕐',
+        title: 'Loading Face Verification…',
+        description: 'Please wait — Face Verification status and video are loading.'
     });
     updateStatusFacePreview({
         previewBlockId: 'acceptFacePreviewBlock',
@@ -3528,14 +3528,17 @@ function applyCustomerStatusDisplay(customerStatus) {
     const statusIcon = document.getElementById('customerStatusFriendlyIcon');
     const statusTitle = document.getElementById('customerStatusInfoTitle');
     const statusContent = document.getElementById('customerStatusInfoContent');
+    const infoEl = document.getElementById('customerStatusInfo');
     const headerEl = statusTitle && statusTitle.closest
         ? statusTitle.closest('.status-info-header')
         : null;
+    const isLoading = customerStatus?.type === 'loading';
     
     if (statusIcon && statusTitle && statusContent) {
         const isFace = customerStatus?.type === 'face';
-        statusIcon.textContent = customerStatus.icon || '';
-        statusIcon.style.display = isFace || !customerStatus.icon ? 'none' : '';
+        statusIcon.textContent = isLoading ? '🕐' : (customerStatus.icon || '');
+        statusIcon.classList.toggle('is-loading-clock', isLoading);
+        statusIcon.style.display = isLoading || (!isFace && customerStatus.icon) ? '' : 'none';
         statusTitle.textContent = customerStatus.title;
         const desc = String(customerStatus.description || '').trim();
         statusContent.textContent = desc;
@@ -3544,6 +3547,9 @@ function applyCustomerStatusDisplay(customerStatus) {
     }
     if (headerEl) {
         headerEl.classList.toggle('is-face-verified', customerStatus?.type === 'face');
+    }
+    if (infoEl) {
+        infoEl.classList.toggle('is-verification-loading', isLoading);
     }
 }
 
@@ -8920,10 +8926,12 @@ function updateWorkerStatusDisplay(status) {
         : null;
 
     // Support both new status shape and any legacy fields.
+    const isLoading = status?.type === 'loading';
     const isFace = status?.type === 'face';
-    const iconText = status.icon || status.friendlyIcon || (isFace ? '' : '🌱');
+    const iconText = isLoading ? '🕐' : (status.icon || status.friendlyIcon || (isFace ? '' : '🌱'));
     friendlyIcon.textContent = iconText;
-    friendlyIcon.style.display = isFace || !iconText ? 'none' : '';
+    friendlyIcon.classList.toggle('is-loading-clock', isLoading);
+    friendlyIcon.style.display = isLoading || (!isFace && iconText) ? '' : 'none';
     infoTitle.textContent = status.title || status.infoTitle || 'Unverified';
     const desc = String(status.description || status.infoContent || '').trim();
     const fallbackDesc = 'This member has not completed Face Verification yet.';
@@ -8934,9 +8942,16 @@ function updateWorkerStatusDisplay(status) {
     if (headerEl) {
         headerEl.classList.toggle('is-face-verified', isFace);
     }
+    if (info) {
+        info.classList.toggle('is-verification-loading', isLoading);
+    }
 
-    // Style info section based on type
-    if (status.type === 'business') {
+    // Style info section based on type (loading uses CSS class; clear inline overrides).
+    if (isLoading) {
+        info.style.background = '';
+        info.style.borderColor = '';
+        infoTitle.style.color = '';
+    } else if (status.type === 'business') {
         info.style.background = 'rgba(251, 191, 36, 0.08)';
         info.style.borderColor = 'rgba(251, 191, 36, 0.2)';
         infoTitle.style.color = '#fbbf24';
