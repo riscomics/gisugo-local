@@ -2138,22 +2138,25 @@ async function applyForJob(jobId, applicationData) {
           .where('jobId', '==', jobId)
           .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
           .get();
-        
-        if (newTotalApplications === 1) {
-          await createNotification(job.posterId, {
-            type: 'application_received',
-            jobId: jobId,
-            jobTitle: job.title || 'Your Gig',
-            message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
-            actionRequired: false
-          });
-        } else if (newTotalApplications === 5) {
+
+        // Every new pending application should alert the customer (not only the first).
+        // Special cases: 5 → milestone card, 10 → auto-pause card.
+        if (newTotalApplications === 5) {
           if (existingNotifSnapshot.size > 0) {
             const notifId = existingNotifSnapshot.docs[0].id;
             await db.collection('notifications').doc(notifId).update({
               type: 'application_milestone',
               message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+              read: false,
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else {
+            await createNotification(job.posterId, {
+              type: 'application_milestone',
+              jobId: jobId,
+              jobTitle: job.title || 'Your Gig',
+              message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+              actionRequired: false
             });
           }
         } else if (newTotalApplications === 10) {
@@ -2170,6 +2173,14 @@ async function applyForJob(jobId, applicationData) {
             jobTitle: job.title || 'Your Gig',
             message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
             actionRequired: true
+          });
+        } else {
+          await createNotification(job.posterId, {
+            type: 'application_received',
+            jobId: jobId,
+            jobTitle: job.title || 'Your Gig',
+            message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
+            actionRequired: false
           });
         }
       } catch (notifError) {
@@ -3588,7 +3599,6 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
       return { success: true, notificationId: activeBatchDoc.id, grouped: true };
     }
 
-    const nowTs = firebase.firestore.Timestamp.now();
     const notification = {
       recipientId: recipientId,
       type: notificationType,
@@ -3596,9 +3606,8 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
       jobId: jobId,
       jobTitle: jobTitle,
       message: buildSlotsReopenedMessage(1),
-      // Client timestamp so orderBy listeners see the doc immediately (serverTimestamp can lag).
-      createdAt: nowTs,
-      updatedAt: nowTs,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       batchWindowEndsAt: firebase.firestore.Timestamp.fromDate(windowEndsAt),
       read: false,
       actionRequired: false,
@@ -3641,10 +3650,7 @@ async function createNotification(recipientId, notificationData) {
       jobId: jobId,
       jobTitle: notificationData.jobTitle || '',
       message: notificationData.message,
-      // Client timestamp so unread-counter / alerts orderBy listeners include the doc
-      // immediately. serverTimestamp() often leaves createdAt null until the server round-trip,
-      // which made menu badges feel instant sometimes and delayed other times.
-      createdAt: firebase.firestore.Timestamp.now(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false,
       actionRequired: notificationData.actionRequired || false,
       dedupeKey: dedupeKey || null
@@ -4036,16 +4042,25 @@ function subscribeToUserNotifications(currentUser, callback) {
     }
     emitIOSDataTrace('messages:alerts', 'fetch:mode', 'SDK_SNAPSHOT');
 
+    const mapNotificationDocs = (docs) => (docs || []).map((doc) => {
+      let data = {};
+      try {
+        // Estimate pending serverTimestamp so orderBy listeners include new docs immediately
+        // (null createdAt is excluded from ordered queries until the server round-trip).
+        data = doc.data({ serverTimestamps: 'estimate' }) || {};
+      } catch (_) {
+        data = doc.data() || {};
+      }
+      return { id: doc.id, ...data };
+    });
+
     const unsubscribe = db.collection('notifications')
       .where('recipientId', '==', currentUser.uid)
       .orderBy('createdAt', 'desc')
       .limit(50)
       .onSnapshot(
         (snapshot) => {
-          const notifications = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+          const notifications = mapNotificationDocs(snapshot.docs);
           emitIOSDataTrace('messages:alerts', 'fetch:done', {
             count: notifications.length,
             mode: 'SDK_SNAPSHOT',
@@ -4086,8 +4101,8 @@ function subscribeToUnreadNotificationCounters(currentUser, callback) {
   }
 
   try {
-    // No orderBy('createdAt'): ordered queries can omit docs while serverTimestamp is still
-    // null, which delayed header/menu badges until navigate/refetch. Counts only need unread set.
+    // Equality-only unread query (no orderBy): avoids omitting docs while createdAt is still
+    // resolving. Counts do not need sort order.
     return db.collection('notifications')
       .where('recipientId', '==', currentUser.uid)
       .where('read', '==', false)
@@ -4095,7 +4110,15 @@ function subscribeToUnreadNotificationCounters(currentUser, callback) {
       .onSnapshot(
       (snap) => {
         const unreadNotifications = snap && Array.isArray(snap.docs)
-          ? snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+          ? snap.docs.map((doc) => {
+            let data = {};
+            try {
+              data = doc.data({ serverTimestamps: 'estimate' }) || {};
+            } catch (_) {
+              data = doc.data() || {};
+            }
+            return { id: doc.id, ...data };
+          })
           : [];
         const counters = sanitizeNotificationCounters(buildUnreadCountersFromNotifications(unreadNotifications));
         if (typeof callback === 'function') callback(counters);

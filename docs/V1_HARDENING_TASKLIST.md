@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-19
+> Status: **Active** · Last updated: 2026-07-20
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -8,17 +8,18 @@ This is the working tasklist for getting GISUGO web production-solid. Resume her
 any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
 disputes, and admin notifications — and it needs an architecture/cost study first.
 
-### Where we are (2026-07-19)
+### Where we are (2026-07-20)
 **Track G (login / auth) is CLOSED.** **Item 3 SHIPPED** (code + hosting/functions deploy):
 standalone Alerts + Support pages live; Contact merged into Support Write overlay; Messages hidden
 from menu (page kept for premium chat); push deep-links → `/alerts.html?role=…`; chat unread
 listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill across Profile,
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
-**Notification alert/count smoke: COMPLETE (2026-07-19)** — primary gig **cards** + unread
-badges (header, shared menu, WORKER|CUSTOMER tabs) verified; badge latency fix deployed
-(`firebase-db.js` counter listener + client `createdAt`). See §E0. **Deferred (3+ accounts):**
-5+/auto-pause. **Not alert smoke:** Support Write; phone-tray tap→Alerts; `messages.html?threadId=`;
-Report Dispute (UI mock only — real wiring waits on Admin Dashboard / Track C).
+**Notification alert/count + tray smoke: COMPLETE (2026-07-20 retest)** — primary gig **cards**,
+unread badges, and phone tray for critical types verified end-to-end (apply → hire → accept →
+complete → feedback both ways → relist/void → resign). See §E0 + §E0b. **Still open:** reliable
+**tray tap → Alerts** (product locked below; code not done); Support Write; `messages.html?threadId=`;
+Report Dispute (UI mock only — waits on Admin Dashboard / Track C). **Deferred (3+ accounts):**
+5+/auto-pause.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -302,16 +303,20 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
-- [~] **Notification deep-linking + tray copy** — Payload targets `/alerts.html?role=worker|customer`
-      (`functions` `data.link` + `fcmOptions.link`; SW click handler in `firebase-messaging-sw.js`).
-      **2026-07-17 smoke FAIL (user):** tapping a phone tray alert only opens/focuses the mobile
-      browser (or existing GISUGO tab) — it does **not** reliably land on Alerts. Likely cause:
-      FCM sends a `notification` payload so the browser auto-displays the tray item; SW
-      `onBackgroundMessage` returns early and never attaches `data.link` to that auto-shown
-      notification, so `notificationclick` often has no link and/or only `focus()`es an open
-      tab without navigating. **Still to fix:** tray tap → open/navigate to `/alerts.html?role=…`.
-      Also still open: shorten tray title/body per type; chat/`threadId` deep-links when premium
-      Messages returns.
+- [~] **Phone tray tap → Alerts (LOCKED 2026-07-20 — implement next).**
+      **Product (user):** Do **not** chase job-specific deep-links from the tray. Tray tap should
+      always open the Alerts page — in-app cards already give enough visual cue. Next level:
+      land on the correct role tab when known (`?role=worker|customer`).
+      **Target behavior:** open `/alerts.html?role=worker|customer` when payload has role;
+      else `/alerts.html`. Prefer a reliable open/navigate (do not only `focus()` a random
+      existing GISUGO tab). No gig/`jobId` deep-link from tray.
+      **Code facts (study 2026-07-20):** payload already builds role-aware `data.link` +
+      `webpush.fcmOptions.link` in `buildPushPayloadFromNotification`; SW
+      `onBackgroundMessage` returns early for `notification` payloads (browser auto-display),
+      so click `data.link` is often missing; current click handler prefers existing same-origin
+      tab + `navigate()` which is flaky on mobile Chrome (2026-07-17 FAIL still stands).
+      **Also still open (separate):** shorten tray title/body; chat/`threadId` deep-links when
+      premium Messages returns; optional delivery polish (push icon, VAPID) — see §E0b.
 - [ ] **iOS legacy-device issues** — deferred until wiring is done (avoid double test work).
 - [ ] **G-Coins / wallet** — DO NOT remove. UI retained for business-model referencing
       (free-publishing pivot; old "pay to post" concept retired but UI useful as reference).
@@ -568,12 +573,10 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
       (reserve `/support.html` for a future support-reply push type when dashboard ships).
       **2026-07-17:** also allowlisted `feedback_received`, `worker_feedback_received`,
       `offer_rejected` for phone tray (in-app already worked).
-- [~] D2 `firebase-messaging-sw.js` — click handler intends `/alerts.html` (+ `data.link`).
-      **Payload wiring shipped; tray-tap navigation NOT verified.** 2026-07-17: user reports
-      tray tap only opens the mobile browser app / focuses GISUGO, does not go to Alerts.
-      Reopen: ensure click path always has a usable link (auto-displayed FCM notifications may
-      omit SW `data`), and navigate (not only focus) to `/alerts.html?role=…`.
-      **Own session later** — do not block closing in-app alert smoke on this.
+- [~] D2 `firebase-messaging-sw.js` — tray tap → Alerts (**LOCKED 2026-07-20, not coded yet**).
+      Product: always open Alerts; prefer `?role=` when known; no job-specific deep-link.
+      Implement so tap reliably reaches `/alerts.html` (role-aware), not merely focusing an
+      existing GISUGO tab. See Track E “Phone tray tap → Alerts” + §E0b.
 - [x] D3 Cache-bust + **Deploy hosting + functions** (Item 3 ship + tidy). Done 2026-07-16;
       follow-ons through 2026-07-19 (alerts deep-link, push allowlist, Offers Open Chat removed,
       Account Notifications, badge latency fix / `firebase-db.js` v60).
@@ -601,9 +604,12 @@ card has a live `createNotification` / grouped-closure call. Intentionally **no*
 worker withdraw, customer delete listing, pause/edit/post, self-action. `interview_request` =
 legacy UI only (no producer). Job delete frees coins but does **not** emit slots-reopen (by design).
 
-**Badge latency fix (2026-07-19, deployed hosting):** unread counter listener no longer
-`orderBy(createdAt)`; `createNotification` / new slots-batch docs use client `Timestamp.now()` +
-inferred `role`. Spot-check only if desired — full re-smoke of E0 not required.
+**Badge / live-alert fix (2026-07-19, redeployed):** unread counter stays equality-only (no
+`orderBy`); alerts snapshots use `serverTimestamps: 'estimate'`; `createNotification` keeps
+`serverTimestamp` (client `Timestamp.now()` reverted — caused confusion). **Also fixed:** apply
+only created `application_received` when pending count went **0→1** (2nd+ applies silent — no
+card/push until refresh of an older card). Now every apply alerts; 5→milestone, 10→auto-pause.
+**Retest apply → customer Alerts + tray** after hard-refresh (`firebase-db.js?v=61`).
 **Gigs Manager tab pills** (Offered/Hiring/…) are job-list counts (refresh on action/tab load),
 not the Alerts unread stream.
 
@@ -615,11 +621,29 @@ outcomes). Real dispute pipeline waits on Admin Dashboard / Track C — do not s
 removed; push allowlist for feedback + `offer_rejected`; Account Notifications settings;
 application-count sync; local debug pages removed (`firestore-diagnostic.html`, etc.).
 
+#### E0b. Cross-device tray delivery study (2026-07-20) — docs only, no code yet
+**Retest (user):** New application, offer sent, accept, complete, feedback both ways, relist/void,
+resign — **alert card + unread count + phone tray** all received. Producers for those critical
+types are not misfiring.
+
+**Intermittent desktop→phone tray (theory vs code):**
+| Observation | Verdict |
+|---|---|
+| Tray works most of the time for critical types | Confirmed — path is client `createNotification` → CF `sendPushOnNotificationCreate` → all non-revoked tokens |
+| Chrome Android “Possible Spam” sometimes | Likely — push payload has **no icon/badge** (`buildPushPayloadFromNotification`) |
+| Sometimes no tray on phone | Likely mix: recipient GISUGO **foreground** (Web FCM suppresses tray), stale token until next visit/sync, Chrome spam suppression; empty `GISUGO_PUSH_VAPID_KEY` may contribute |
+| Tray tap opens browser / focuses GISUGO, not Alerts | Confirmed open bug — SW auto-display + flaky `navigate()` on existing tab (D2) |
+| Edge “Tracking Prevention” on gstatic firebase-functions | Unrelated to phone tray delivery |
+
+**Product lock for tap:** Alerts only (`/alerts.html` + optional `?role=`). Do not deep-link
+tray to a specific gig/event. Delivery polish (icon, VAPID, stale-token prune) is optional
+follow-up after D2 navigation works.
+
 #### E1–E7. Other Item 3 smoke (outside alert/count coverage)
 1. [~] Menu shows Alerts + Support; Messages hidden. *(OK)*
-2. [x] Alerts cards/stream + badge counts — done 2026-07-19 (§E0).
+2. [x] Alerts cards/stream + badge counts — done 2026-07-19 (§E0); tray delivery re-verified 2026-07-20 (§E0b).
 3. [ ] Support Write smoke.
-4. [ ] **FAIL 2026-07-17 / own session:** Push tray tap → `alerts.html`.
+4. [ ] **FAIL 2026-07-17 / still open:** Push tray tap → Alerts (role-aware). Product locked §E0b / Track E; implement D2.
 5. [ ] Direct `messages.html?threadId=…` still opens chat.
 6. [ ] Support Write / `contacts.html?compose` still creates `support_requests`.
 7. [~] Alert card → jobs/profile deep-links verified; back-to-Alerts nice-to-have.
@@ -665,8 +689,9 @@ application-count sync; local debug pages removed (`firestore-diagnostic.html`, 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 in-app alert cards + unread badge/count smoke.
-1. **Item 3 leftovers (non-alert):** Support Write; phone-tray session (tap→Alerts); optional
-   `messages.html?threadId=`. 5+/auto-pause deferred (multi-account).
+1. **Item 3 leftovers (non-alert):** **D2 tray tap → Alerts** (role-aware; locked §E0b); Support
+   Write; optional `messages.html?threadId=`. 5+/auto-pause deferred (multi-account). Optional
+   after D2: push icon + VAPID for Chrome spam / delivery polish.
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes
    (incl. wiring worker Report Dispute beyond mock UI), admin notifications, gig-report
    moderation, the deferred lockdown, the Support responder/admin side, and the Direct reveal

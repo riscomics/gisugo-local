@@ -291,11 +291,13 @@ deployed (`673d1fb`, `8f9d4b5`; chrome polish `d30dff3`). Micro-tasklist /
 smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 
 **Still open:**
-- Item 3 leftovers (detail in `docs/V1_HARDENING_TASKLIST.md` Item 3 §E):
+- Item 3 leftovers (detail in `docs/V1_HARDENING_TASKLIST.md` Item 3 §E / §E0b):
   - ✅ In-app primary gig **cards** + unread **badge/count** smoke (COMPLETE 2026-07-19).
-  - ✅ Producer audit + badge latency fix deployed (`firebase-db.js` v60).
+  - ✅ Tray delivery for critical gig types re-verified 2026-07-20 (card + count + tray).
+  - ✅ Producer audit + badge latency fix deployed.
   - ⏸ `application_milestone` (5+) / `gig_auto_paused` (10) — deferred (needs 3+ accounts).
-  - ⬜ Support Write; phone-tray session (tap→Alerts FAIL); optional `messages.html?threadId=`.
+  - ⬜ **D2 tray tap → Alerts** — LOCKED 2026-07-20: always open Alerts; prefer `?role=`; no
+    job-specific deep-link from tray. Code not done. Support Write; optional `messages.html?threadId=`.
   - ⏸ Worker **Report Dispute** — UI/mock only; real pipeline with Admin Dashboard (Track C).
     Keep option after feedback (valid for disputes post-rating).
 - Support **admin responder** (Admin Dashboard / Track C) — user page can stay empty until then.
