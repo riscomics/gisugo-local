@@ -26,12 +26,20 @@ messaging.onBackgroundMessage((payload) => {
   const title = data.title || 'GISUGO Alert';
   const body = data.body || 'You have a new notification.';
   const link = data.link || payload?.fcmOptions?.link || data.click_action || '/alerts.html';
+  // Unique tag per notification so tray entries stack instead of replacing
+  // each other (a shared tag = one slot, later alerts silently overwrite).
+  const tag = data.notificationId
+    ? `gisugo-alert-${data.notificationId}`
+    : `gisugo-alert-${Date.now()}`;
 
   self.registration.showNotification(title, {
     body,
     data: { link },
-    tag: 'gisugo-alert',
-    renotify: true
+    tag,
+    // Icon/badge identify the sender; their absence is a known trigger for
+    // Chrome Android's "possible spam" labeling of web push notifications.
+    icon: '/public/images/Gisugo-icon.png',
+    badge: '/public/images/Gisugo-icon.png'
   });
 });
 
