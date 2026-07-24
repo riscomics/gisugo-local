@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-20
+> Status: **Active** · Last updated: 2026-07-24
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -14,10 +14,10 @@ standalone Alerts + Support pages live; Contact merged into Support Write overla
 from menu (page kept for premium chat); push deep-links → `/alerts.html?role=…`; chat unread
 listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill across Profile,
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
-**Notification alert/count + tray smoke: COMPLETE (2026-07-20 retest)** — primary gig **cards**,
-unread badges, and phone tray for critical types verified end-to-end (apply → hire → accept →
-complete → feedback both ways → relist/void → resign). See §E0 + §E0b. **Tray tap → Alerts
-SHIPPED 2026-07-20 PM** (role-aware, incl. regression fixes — see §E0c); user smoke pending.
+**Notification alert/count smoke: COMPLETE** — 2026-07-19/20 (cards + counts + tray) and
+**phone retest 2026-07-24** (alert + unread count for all 8 critical types — see §E0d).
+**Tray tap → Alerts SHIPPED 2026-07-20 PM** (role-aware; §E0c); tray-tap user smoke still
+optional to mark closed.
 **Still open:** Support Write; `messages.html?threadId=`; Report Dispute (UI mock only — waits
 on Admin Dashboard / Track C). **Deferred (3+ accounts):** 5+/auto-pause.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
@@ -587,19 +587,19 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 
 ### E. Live test checklist
 
-#### E0. In-app gig-activity alerts + counts — COMPLETE (2026-07-19)
+#### E0. In-app gig-activity alerts + counts — COMPLETE (2026-07-19; phone retest §E0d 2026-07-24)
 | Role | Action / type | Status |
 |---|---|---|
-| Worker | Hire offer (`offer_sent`) | ✅ card + counts |
-| Worker | Gig completed (`job_completed`) | ✅ card + counts |
-| Worker | Customer feedback (`feedback_received`) | ✅ card + counts; Profile reviews deep-link fixed |
-| Worker | Contract voided / customer relist (`contract_voided`) | ✅ card + counts |
+| Worker | Hire offer (`offer_sent`) | ✅ card + counts (phone 2026-07-24) |
+| Worker | Gig completed (`job_completed`) | ✅ card + counts (phone 2026-07-24) |
+| Worker | Customer feedback (`feedback_received`) | ✅ card + counts (phone 2026-07-24); Profile reviews deep-link fixed |
+| Worker | Contract voided / customer relist (`contract_voided`) | ✅ card + counts (phone 2026-07-24) |
 | Worker | Slots reopen (`application_slots_reopened_batch`) | ✅ N/A this pass — accounts clean; only for *other* applicants on reject / not-selected-after-hire |
-| Customer | Application received (`application_received`) | ✅ card + counts |
-| Customer | Offer accepted (`offer_accepted`) | ✅ card + counts + Hiring deep-link |
+| Customer | Application received (`application_received`) | ✅ card + counts (phone 2026-07-24); **1st/5th/10th gate** live (every-apply reverted) |
+| Customer | Offer accepted (`offer_accepted`) | ✅ card + counts (phone 2026-07-24) + Hiring deep-link |
 | Customer | Offer rejected (`offer_rejected`) | ✅ card (+ counts earlier pass) |
-| Customer | Worker resigned (`worker_resigned`) | ✅ card + counts |
-| Customer | Worker feedback (`worker_feedback_received`) | ✅ card + counts; Profile reviews deep-link fixed |
+| Customer | Worker resigned (`worker_resigned`) | ✅ card + counts (phone 2026-07-24) |
+| Customer | Worker feedback (`worker_feedback_received`) | ✅ card + counts (phone 2026-07-24); Profile reviews deep-link fixed |
 | Customer | 5+ milestone (`application_milestone`) | ⏸ deferred — needs multiple applicant accounts |
 | Customer | Auto-pause at 10 (`gig_auto_paused`) | ⏸ deferred — needs multiple applicant accounts |
 
@@ -608,14 +608,10 @@ card has a live `createNotification` / grouped-closure call. Intentionally **no*
 worker withdraw, customer delete listing, pause/edit/post, self-action. `interview_request` =
 legacy UI only (no producer). Job delete frees coins but does **not** emit slots-reopen (by design).
 
-**Badge / live-alert fix (2026-07-19, redeployed):** unread counter stays equality-only (no
-`orderBy`); alerts snapshots use `serverTimestamps: 'estimate'`; `createNotification` keeps
-`serverTimestamp` (client `Timestamp.now()` reverted — caused confusion). **Also fixed:** apply
-only created `application_received` when pending count went **0→1** (2nd+ applies silent — no
-card/push until refresh of an older card). Now every apply alerts; 5→milestone, 10→auto-pause.
-**Retest apply → customer Alerts + tray** after hard-refresh (`firebase-db.js?v=61`).
-**Gigs Manager tab pills** (Offered/Hiring/…) are job-list counts (refresh on action/tab load),
-not the Alerts unread stream.
+**Badge / apply-alert history:** unread counter stays equality-only (no `orderBy`). An unauthorized
+every-apply + timestamp experiment (2026-07-19/20) was **reverted** (`e7cf9f9`) — live gate is
+again **1st / 5th / 10th** application alerts (+ auto-pause at 10). See §E0c. **Gigs Manager tab
+pills** (Offered/Hiring/…) are job-list counts, not the Alerts unread stream.
 
 **Report Dispute (worker Completed options):** UI + mock submit only (`submitDispute` Firestore
 write still commented out). Keep **REPORT DISPUTE** after feedback (legitimate for negative
@@ -676,9 +672,25 @@ server-snapshot so fresh cards render in one paint, 3.5s cache fallback (`bcaabd
 Leak audit of the day's changes: no listener/timer leaks, no new Firestore reads/writes,
 no new function invocations.
 
+#### E0d. Phone alert/count retest — COMPLETE (2026-07-24, user)
+User confirmed on phone — **alert card + unread count** received for each critical type
+(tray not re-listed this pass; prior tray OK on 2026-07-20 §E0b):
+
+| # | Action | Recipient |
+|---|---|---|
+| 1 | Customer marks gig completed | Worker |
+| 2 | Customer leaves feedback | Worker |
+| 3 | Worker leaves feedback | Customer |
+| 4 | Gig offer sent | Worker |
+| 5 | Worker accepts offer | Customer |
+| 6 | Customer RELIST (voids hire) | Worker |
+| 7 | New application | Customer |
+| 8 | Worker resigns | Customer |
+
 #### E1–E7. Other Item 3 smoke (outside alert/count coverage)
 1. [~] Menu shows Alerts + Support; Messages hidden. *(OK)*
-2. [x] Alerts cards/stream + badge counts — done 2026-07-19 (§E0); tray delivery re-verified 2026-07-20 (§E0b).
+2. [x] Alerts cards/stream + badge counts — done 2026-07-19 (§E0); tray 2026-07-20 (§E0b);
+   phone alert/count retest 2026-07-24 (§E0d).
 3. [ ] Support Write smoke.
 4. [~] Push tray tap → Alerts (role-aware) — **SHIPPED 2026-07-20 PM** incl. Chrome focus fix,
    per-alert tray stacking, icon/badge (§E0c). User smoke pending (needs SW refresh on device).
@@ -720,13 +732,14 @@ no new function invocations.
 
 ---
 
-## Recommended order (re-synced 2026-07-19)
-> Items 1–3 SHIPPED. **Alert/count smoke COMPLETE.** **Track G auth CLOSED.** Meta FB app Live.
+## Recommended order (re-synced 2026-07-24)
+> Items 1–3 SHIPPED. **Alert/count smoke COMPLETE** (incl. phone §E0d 2026-07-24).
+> **Track G auth CLOSED.** Meta FB app Live.
 > **Next linchpin = Admin Dashboard study/build (Track C #8).**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
-   ✅ Meta FB app Live. ✅ Item 3 in-app alert cards + unread badge/count smoke.
+   ✅ Meta FB app Live. ✅ Item 3 in-app alert cards + unread badge/count (§E0 / §E0d).
 1. **Item 3 leftovers (non-alert):** ~~D2 tray tap → Alerts~~ **shipped 2026-07-20 (§E0c),
    user smoke pending**; Support Write; optional `messages.html?threadId=`. 5+/auto-pause
    deferred (multi-account). Push icon shipped with D2; **VAPID key still empty** — optional

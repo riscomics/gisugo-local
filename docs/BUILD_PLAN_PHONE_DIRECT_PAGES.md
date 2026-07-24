@@ -1,8 +1,9 @@
 # GISUGO — Build Plan: Phone-at-Signup · Direct Route · Alerts/Support Pages
 
-> Status: **Active plan** · Created 2026-07-04 · Last updated: 2026-07-19
+> Status: **Active plan** · Created 2026-07-04 · Last updated: 2026-07-24
 > Covers recommended-order items **1, 2, 3** from `docs/V1_HARDENING_TASKLIST.md`.
-> Items **1–3 shipped** (Item 3 alert **cards** + unread badge/count smoke COMPLETE 2026-07-19; other leftovers in V1 §E). Next linchpin: Admin Dashboard (Track C).
+> Items **1–3 shipped** (Item 3 alert/count smoke COMPLETE — phone retest 2026-07-24 §E0d;
+> other leftovers in V1 §E). Next linchpin: Admin Dashboard (Track C).
 > Companion: `docs/DIRECT_CONTACT_LISTINGS_STUDY.md` (full Direct rationale).
 > Norm: **verify in code AND live Firestore before each step and before any status report**
 > (`node scripts/verify-production-data.js`); deploy hosting after mobile-facing changes; bump `?v=`.
@@ -292,9 +293,11 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 
 **Still open:**
 - Item 3 leftovers (detail in `docs/V1_HARDENING_TASKLIST.md` Item 3 §E / §E0b):
-  - ✅ In-app primary gig **cards** + unread **badge/count** smoke (COMPLETE 2026-07-19).
+  - ✅ In-app primary gig **cards** + unread **badge/count** smoke (COMPLETE 2026-07-19;
+    phone alert/count retest COMPLETE 2026-07-24 — V1 §E0d: complete, feedback both ways,
+    offer sent/accepted, relist/void, new application, resign).
   - ✅ Tray delivery for critical gig types re-verified 2026-07-20 (card + count + tray).
-  - ✅ Producer audit + badge latency fix deployed.
+  - ✅ Producer audit; apply-alert gate restored to 1st/5th/10th (every-apply reverted).
   - ⏸ `application_milestone` (5+) / `gig_auto_paused` (10) — deferred (needs 3+ accounts).
   - ✅ **D2 tray tap → Alerts** — SHIPPED 2026-07-20 PM (data-only payload, SW-owned display/tap,
     Chrome focus fix, per-alert stacking, icon/badge — see V1_HARDENING_TASKLIST §E0c incl.
@@ -382,8 +385,9 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 - **Remove temporary email/password login** — added only for Cursor-browser dev testing;
   strip once OAuth works everywhere post-approval.
 - **Item 3 — Alerts + Support → own pages: DONE (2026-07-16/17) + deployed.** Alert/count
-  smoke COMPLETE 2026-07-19 (cards + badges; latency fix live). Non-alert leftovers + Admin
-  Support / Report Dispute wiring still open (V1 §E / Track C).
+  smoke COMPLETE (2026-07-19 cards/badges; 2026-07-20 tray; phone alert/count retest
+  2026-07-24 §E0d). Non-alert leftovers + Admin Support / Report Dispute wiring still open
+  (V1 §E / Track C).
 - **UI theme fill polish (2026-07-16/17)** — `#141b24` page fill + Alerts-style surfaces rolled to
   Profile, new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49); Alerts/Jobs
   role chrome shared look (`d30dff3`).
