@@ -1270,7 +1270,7 @@ body:has(.jobs-header) {
 
 @keyframes listing-option-label-pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
+  50% { transform: scale(1.28); }
 }
 
 @media (prefers-reduced-motion: reduce) {
