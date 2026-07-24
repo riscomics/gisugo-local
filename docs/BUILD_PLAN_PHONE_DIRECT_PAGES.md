@@ -299,9 +299,8 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
   - ✅ Tray delivery for critical gig types (2026-07-20 and again 2026-07-24 with §E0d).
   - ✅ Producer audit; apply-alert gate restored to 1st/5th/10th (every-apply reverted).
   - ⏸ `application_milestone` (5+) / `gig_auto_paused` (10) — deferred (needs 3+ accounts).
-  - ✅ **D2 tray tap → Alerts** — SHIPPED 2026-07-20 PM (data-only payload, SW-owned display/tap,
-    Chrome focus fix, per-alert stacking, icon/badge — see V1_HARDENING_TASKLIST §E0c incl.
-    incident log). User smoke pending. Still open: Support Write; optional `messages.html?threadId=`.
+  - ✅ **D2 tray tap → Alerts** — SHIPPED 2026-07-20 PM + user-confirmed in phone retests
+    (see V1_HARDENING_TASKLIST §E0c / §E0d). Real next linchpin: Admin Dashboard (Track C).
   - ⏸ Worker **Report Dispute** — UI/mock only; real pipeline with Admin Dashboard (Track C).
     Keep option after feedback (valid for disputes post-rating).
 - Support **admin responder** (Admin Dashboard / Track C) — user page can stay empty until then.

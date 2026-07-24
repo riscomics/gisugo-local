@@ -16,10 +16,13 @@ listeners gated. Theme polish rolled to Alerts/Jobs chrome + `#141b24` page fill
 new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
 **Notification alert/count + tray smoke: COMPLETE** — 2026-07-19/20 and **phone retest
 2026-07-24** (alert card + unread count + phone tray for all 8 critical types — see §E0d).
-**Tray tap → Alerts SHIPPED 2026-07-20 PM** (role-aware; §E0c); tray-tap user smoke still
-optional to mark closed.
-**Still open:** Support Write; `messages.html?threadId=`; Report Dispute (UI mock only — waits
-on Admin Dashboard / Track C). **Deferred (3+ accounts):** 5+/auto-pause.
+**Tray tap → Alerts:** shipped 2026-07-20 PM + **user-confirmed in phone retests** (opens Alerts,
+role-aware; §E0c / §E0d).
+**Still open (real next work):** Admin Dashboard (Track C) — unblocks Support *admin reply*,
+Report Dispute beyond mock UI, moderation, etc. **Deferred (3+ accounts):** 5+/auto-pause.
+**Not blocking / not next:** user-side Support Write already ships tickets to `support_requests`
+(admin reply is the dashboard piece); optional legacy `messages.html?threadId=` deep-link check
+(hidden Messages page kept for future premium chat — not a product priority).
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -303,7 +306,7 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
-- [~] **Phone tray tap → Alerts (LOCKED 2026-07-20 — CODED + DEPLOYED 2026-07-20, user smoke pending).**
+- [x] **Phone tray tap → Alerts (LOCKED 2026-07-20 — shipped + user-confirmed in phone retests).**
       **Implementation:** push payload switched to **data-only** (no top-level `notification`)
       in `buildPushPayloadFromNotification`, so the SW displays the tray entry itself and its
       `notificationclick` owns the tap → navigates/opens `/alerts.html?role=…` (navigate()
@@ -577,10 +580,9 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
       (reserve `/support.html` for a future support-reply push type when dashboard ships).
       **2026-07-17:** also allowlisted `feedback_received`, `worker_feedback_received`,
       `offer_rejected` for phone tray (in-app already worked).
-- [~] D2 `firebase-messaging-sw.js` — tray tap → Alerts (**CODED + DEPLOYED 2026-07-20, user
-      smoke pending**). Data-only push payload (functions) + SW manual display + robust
-      `notificationclick` (navigate→focus, openWindow fallback) → `/alerts.html?role=…`.
-      See Track E “Phone tray tap → Alerts” + §E0b.
+- [x] D2 `firebase-messaging-sw.js` — tray tap → Alerts (**shipped 2026-07-20 + user-confirmed
+      in phone retests**). Data-only push payload + SW display/click → `/alerts.html?role=…`.
+      See Track E “Phone tray tap → Alerts” + §E0b / §E0c / §E0d.
 - [x] D3 Cache-bust + **Deploy hosting + functions** (Item 3 ship + tidy). Done 2026-07-16;
       follow-ons through 2026-07-19 (alerts deep-link, push allowlist, Offers Open Chat removed,
       Account Notifications, badge latency fix / `firebase-db.js` v60).
@@ -690,12 +692,11 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 1. [~] Menu shows Alerts + Support; Messages hidden. *(OK)*
 2. [x] Alerts cards/stream + badge counts + tray — done 2026-07-19/20 (§E0/§E0b);
    phone retest (card + count + tray) 2026-07-24 (§E0d).
-3. [ ] Support Write smoke.
-4. [~] Push tray tap → Alerts (role-aware) — **SHIPPED 2026-07-20 PM** incl. Chrome focus fix,
-   per-alert tray stacking, icon/badge (§E0c). User smoke pending (needs SW refresh on device).
-5. [ ] Direct `messages.html?threadId=…` still opens chat.
-6. [ ] Support Write / `contacts.html?compose` still creates `support_requests`.
-7. [~] Alert card → jobs/profile deep-links verified; back-to-Alerts nice-to-have.
+3. [~] Support Write (user submit) — code already writes `support_requests`; admin *reply* waits
+   on Dashboard (Track C). Not a near-term user smoke priority.
+4. [x] Push tray tap → Alerts (role-aware) — shipped + **user-confirmed** in phone retests (§E0d).
+5. [~] Legacy `messages.html?threadId=…` — optional regression only (Messages hidden; future premium).
+6. [~] Alert card → jobs/profile deep-links verified; back-to-Alerts nice-to-have.
 
 ### Guardrails — messages.html must NOT keep "running" in the background
 > User concern (2026-07-15): leaving `messages.html` intact must not mean chat/alerts keep
@@ -739,14 +740,13 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
-1. **Item 3 leftovers (non-alert):** ~~D2 tray tap → Alerts~~ **shipped 2026-07-20 (§E0c),
-   user smoke pending**; Support Write; optional `messages.html?threadId=`. 5+/auto-pause
-   deferred (multi-account). Push icon shipped with D2; **VAPID key still empty** — optional
-   next lever if Chrome spam labels persist (re-issues device tokens; needs user approval).
-2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes
+1. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes
    (incl. wiring worker Report Dispute beyond mock UI), admin notifications, gig-report
-   moderation, the deferred lockdown, the Support responder/admin side, and the Direct reveal
-   counter.
+   moderation, the deferred lockdown, the Support *admin reply* side, and the Direct reveal
+   counter. **This is the real next linchpin.**
+2. ~~Item 3 D2 tray tap~~ done (user-confirmed). User Support Write submit already works; not
+   gated on dashboard. Optional later: VAPID if Chrome spam labels persist; legacy
+   `messages.html?threadId=` check; 5+/auto-pause (needs 3+ accounts).
 3. **Phone VERIFICATION fast-follow (Semaphore OTP, ~$0.02/send vs Firebase's ~$0.15)** — plan +
    research in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 1 APPENDIX. Gated on business
    registration (PH telco sender-ID approval), NOT on code. Also the durable fix for the
