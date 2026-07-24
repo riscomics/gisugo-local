@@ -46,9 +46,18 @@
         line-height: 1.45; }
       .contact-reveal-tips-list li { margin-bottom: 4px; }
       .contact-reveal-tips-list li:last-child { margin-bottom: 0; }
-      .contact-reveal-status { color: #93c5fd; font-size: 0.85rem; margin: 0 0 10px; }
+      .contact-reveal-status { color: #93c5fd; font-size: 0.85rem; margin: 0 0 10px;
+        display: flex; align-items: center; justify-content: center; min-height: 0; }
+      .contact-reveal-status.is-loading { min-height: 2.4rem; margin: 4px 0 12px; }
+      .contact-reveal-status .contact-reveal-loading-clock {
+        display: inline-block; font-size: 2rem; line-height: 1;
+        animation: contact-reveal-clock-spin 1s linear infinite;
+        transform-origin: center center; }
+      @keyframes contact-reveal-clock-spin {
+        from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       .contact-reveal-error { color: #fca5a5; font-size: 0.85rem; margin: 0 0 10px; }
       .contact-reveal-status:empty, .contact-reveal-error:empty { display: none; margin: 0; }
+      .contact-reveal-status:empty { min-height: 0; }
       .contact-reveal-btn { display: block; width: 100%; border: none; border-radius: 10px; padding: 13px;
         font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.2s ease; text-decoration: none;
         box-sizing: border-box; }
@@ -314,6 +323,18 @@
     els.actions.classList.toggle('is-loading', !ready);
   }
 
+  function setStatusLoading(isLoading) {
+    if (!els || !els.status) return;
+    els.status.classList.toggle('is-loading', !!isLoading);
+    if (isLoading) {
+      els.status.innerHTML = '<span class="contact-reveal-loading-clock" aria-hidden="true">⌛</span>';
+      els.status.setAttribute('aria-label', 'Loading contact options');
+    } else {
+      els.status.innerHTML = '';
+      els.status.removeAttribute('aria-label');
+    }
+  }
+
   function resetContactLinks() {
     els.call.setAttribute('href', '#');
     els.text.setAttribute('href', '#');
@@ -329,7 +350,7 @@
     revealInFlight = false;
     clearViberDetect();
     resetContactLinks();
-    els.status.textContent = '';
+    setStatusLoading(false);
     els.error.textContent = '';
     setActionsReady(false);
     els.overlay.classList.remove('show');
@@ -365,7 +386,7 @@
 
     if (typeof firebase === 'undefined' || !firebase.app || !firebase.app().functions) {
       if (seq !== revealSeq) return;
-      els.status.textContent = '';
+      setStatusLoading(false);
       els.error.textContent = 'Contact service is unavailable. Please refresh and try again.';
       setActionsReady(false);
       return;
@@ -374,7 +395,7 @@
     revealInFlight = true;
     setActionsReady(false);
     els.error.textContent = '';
-    els.status.textContent = 'PLEASE WAIT...';
+    setStatusLoading(true);
     resetContactLinks();
 
     try {
@@ -387,7 +408,7 @@
       if (seq !== revealSeq) return;
       const phone = res && res.data && res.data.phoneNumber ? String(res.data.phoneNumber).trim() : '';
       if (!phone) {
-        els.status.textContent = '';
+        setStatusLoading(false);
         els.error.textContent = isPosterReveal
           ? 'This customer has no contact number on file yet.'
           : 'This worker has no contact number on file yet.';
@@ -402,13 +423,13 @@
       els.whatsapp.setAttribute('href', 'https://wa.me/' + digits + '?text=' + greeting);
       els.viber.setAttribute('href', 'viber://chat?number=' + encodeURIComponent(phone));
       if (els.viberHint) els.viberHint.style.display = 'none';
-      els.status.textContent = '';
+      setStatusLoading(false);
       els.error.textContent = '';
       setActionsReady(true);
     } catch (err) {
       if (seq !== revealSeq) return;
       console.warn('\u26A0\uFE0F contact reveal failed:', (err && err.code) || err);
-      els.status.textContent = '';
+      setStatusLoading(false);
       els.error.textContent = mapError(err);
       setActionsReady(false);
     } finally {
@@ -459,11 +480,11 @@
         : "GISUGO is only a platform and is not part of your arrangement. For your privacy and the worker's, GISUGO does not display or store this number publicly.";
     }
     els.error.textContent = '';
-    els.status.textContent = '';
     currentLang = 'english';
     renderLang();
     resetContactLinks();
     setActionsReady(false);
+    setStatusLoading(true);
     els.overlay.classList.add('show');
     revealContact();
   }
