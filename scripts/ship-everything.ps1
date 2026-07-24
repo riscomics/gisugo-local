@@ -42,7 +42,10 @@ $IgnorePrefixes = @(
 )
 
 function Test-IgnoredPath([string]$path) {
-  $norm = ($path -replace "\\", "/").TrimStart("./")
+  # Normalize slashes only. Do NOT TrimStart('./') — in PowerShell that strips
+  # every leading '.' char, turning ".firebase/..." into "firebase/...".
+  $norm = ($path -replace "\\", "/")
+  while ($norm.StartsWith("./")) { $norm = $norm.Substring(2) }
   foreach ($e in $IgnoreExact) {
     if ($norm -eq $e) { return $true }
   }

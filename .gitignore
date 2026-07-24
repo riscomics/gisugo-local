@@ -23,6 +23,9 @@ Thumbs.db
 dist/
 build/
 
+# Firebase local deploy cache (must never affect git / CI sync)
+.firebase/
+
 # Firebase Admin service-account keys — NEVER commit these (full project access)
 *serviceAccount*.json
 *service-account*.json
