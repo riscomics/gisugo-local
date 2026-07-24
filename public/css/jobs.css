@@ -1256,19 +1256,21 @@ body:has(.jobs-header) {
   background: #7c3aed;
 }
 
-/* Manage Gig: draw attention to View Applications vs other actions */
-.listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications {
-  animation: view-applications-emphasis 1.4s ease-in-out infinite;
+/* Manage Gig / Gig Offer: size-pulse emphasis on primary action */
+.listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications,
+#gigOfferOptionsOverlay.show #acceptOfferBtn.listing-option-btn.accept {
+  animation: listing-option-size-pulse 1.4s ease-in-out infinite;
   will-change: transform;
 }
 
-@keyframes view-applications-emphasis {
+@keyframes listing-option-size-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications {
+  .listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications,
+  #gigOfferOptionsOverlay.show #acceptOfferBtn.listing-option-btn.accept {
     animation: none;
   }
 }
