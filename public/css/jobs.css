@@ -1256,22 +1256,26 @@ body:has(.jobs-header) {
   background: #7c3aed;
 }
 
-/* Manage Gig / Gig Offer: size-pulse emphasis on primary action (5 times, then stop).
-   Pure CSS — no JS timers/listeners. Restarts when the overlay .show class is toggled.
-   No will-change: avoids keeping a promoted layer after the short run ends. */
-.listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications,
-#gigOfferOptionsOverlay.show #acceptOfferBtn.listing-option-btn.accept {
-  animation: listing-option-size-pulse 1.4s ease-in-out 5;
+/* Manage Gig / Gig Offer: pulse the label text only (5 times, then stop).
+   Button chrome stays put so neighbors don't shift; transform on the span is
+   compositor-friendly. Pure CSS — restarts when overlay .show is toggled. */
+.listing-option-emphasis-label {
+  display: inline-block;
 }
 
-@keyframes listing-option-size-pulse {
+.listing-options-overlay.show #viewApplicationsBtn .listing-option-emphasis-label,
+#gigOfferOptionsOverlay.show #acceptOfferBtn .listing-option-emphasis-label {
+  animation: listing-option-label-pulse 1.4s ease-in-out 5;
+}
+
+@keyframes listing-option-label-pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
+  50% { transform: scale(1.12); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .listing-options-overlay.show #viewApplicationsBtn.listing-option-btn.applications,
-  #gigOfferOptionsOverlay.show #acceptOfferBtn.listing-option-btn.accept {
+  .listing-options-overlay.show #viewApplicationsBtn .listing-option-emphasis-label,
+  #gigOfferOptionsOverlay.show #acceptOfferBtn .listing-option-emphasis-label {
     animation: none;
   }
 }
