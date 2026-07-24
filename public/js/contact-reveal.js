@@ -157,11 +157,9 @@
   let activeJobId = '';
   let activeApplicationId = '';
 
-  // Prefill greetings for chat/SMS (not Call / Viber).
-  const CONTACT_GREETING_CUSTOMER =
-    'Hi! I saw your application on GISUGO and would like to discuss the gig.';
-  const CONTACT_GREETING_WORKER =
-    'Hi! I received your gig offer on GISUGO and have a quick question.';
+  // Prefill for Text / WhatsApp (not Call / Viber). Same copy both directions.
+  const CONTACT_GREETING_CUSTOMER = 'Contacting about GISUGO gig: ';
+  const CONTACT_GREETING_WORKER = 'Contacting about GISUGO gig: ';
 
   function build() {
     if (built) return;
