@@ -157,8 +157,9 @@
   let activeJobId = '';
   let activeApplicationId = '';
 
-  // Prefill for Text / WhatsApp (not Call / Viber). Same copy both directions.
-  const CONTACT_GREETING_CUSTOMER = 'Contacting about GISUGO gig: ';
+  // Prefill for Text / WhatsApp (not Call / Viber).
+  // CUSTOMER = Contact Worker (customer→applicant). WORKER = Contact Customer (worker→poster).
+  const CONTACT_GREETING_CUSTOMER = 'Regarding your GISUGO Gig application: ';
   const CONTACT_GREETING_WORKER = 'Contacting about GISUGO gig: ';
 
   function build() {
