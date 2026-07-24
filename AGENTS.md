@@ -74,33 +74,44 @@ node --check functions/index.js
 >
 > **DESKTOP never opens a PR to go live. CLOUD never runs `firebase deploy`.** Pick ONLY the matching section.
 
-**Language (user-facing):** use **Deploy** only. Do not say "ship it" / "Ship" for go-live.
-
-**Git on DESKTOP (2026-07-15):** the user commits and pushes from **VS Code**. Agents must **not**
-`git commit` or `git push` unless the user explicitly asks. Saving tokens: leave staging/commit/push
-to the user; when they say **Deploy**, run `firebase deploy` only.
+**Language (user-facing):** use **Deploy** only for go-live.
 
 ---
 
-#### 🖥️ DESKTOP / LOCAL — deploy procedure (DEFAULT on the user's machine)
+#### 🖥️ DESKTOP / LOCAL — **Deploy = SHIP EVERYTHING** (DEFAULT)
 
-**Deploy / go live** means: run the matching local deploy (assume the user already committed/pushed
-in VS Code, or will — do not commit/push yourself unless asked):
+**Hard rule (2026-07-24):** When the user says **Deploy** / **ship** / **go live** / **ship everything**, that means **all three layers in one command** — not “firebase only”, not “commit only”, not “push only”:
 
-```bash
-firebase deploy --only hosting                                   # frontend (HTML/CSS/JS)
-firebase deploy --only functions                                # functions/**
-firebase deploy --only firestore:rules,firestore:indexes,storage # rules / indexes / storage rules
+1. **Commit** any shippable uncommitted work  
+2. **Push** so `HEAD` == `origin/main`  
+3. **Firebase deploy** so live matches that same commit  
+
+**Why:** Push to `main` auto-deploys **committed** files via GitHub Actions. Manual `firebase deploy` ships **disk**. If those differ, live and GitHub ping-pong (incident 2026-07-20). Never deploy while shippable files are uncommitted.
+
+**Mandatory command** (do not improvise a partial flow):
+
+```powershell
+# Dirty tree — message required:
+powershell -ExecutionPolicy Bypass -File scripts/ship-everything.ps1 -Message "concise commit message"
+
+# Already clean — push if needed + deploy:
+powershell -ExecutionPolicy Bypass -File scripts/ship-everything.ps1
 ```
 
-Frontend-only = `--only hosting`. Functions/rules as needed for what changed.
+Optional: `-Only hosting` / `-Only hosting,functions` to override auto target detection.
 
-**Do NOT** open a PR, do NOT squash-and-merge, do NOT tell the user to tap anything. That flow is CLOUD-only.
+**Forbidden on DESKTOP Deploy:**
+- Bare `firebase deploy` while shippable files are still dirty  
+- Saying “Deployed” after only commit or only push  
+- Leaving uncommitted HTML/CSS/JS/functions on disk after a push  
 
-Tell the user (one line): *"Deployed — live on https://gisugo.com now."*
+**Do NOT** open a PR for DESKTOP go-live.
 
-**Code changes only** (no deploy language): finish the work, tell the user it's ready — they can
-commit/push in VS Code, then say **Deploy** when they want it live. Do not deploy yet.
+Tell the user (one line): *"Deployed — live on https://gisugo.com now."* (git + Firebase synced)
+
+**Code changes only** (no deploy language): finish the work and say it's ready — wait for the user to say **Deploy**. Do not ship until then.
+
+Also see always-on rule: `.cursor/rules/deploy-means-ship.mdc`
 
 ---
 
@@ -122,9 +133,8 @@ If merge fails (permissions, checks), say so in one line and give the PR link �
 
 1. **One line first** — deployed, or ready/PR link.
 2. **Never** explain workflows, path filters, or GitHub Actions unless a deploy **failed**.
-3. On DESKTOP, the user commits/pushes in VS Code; agent only deploys when asked.
 
-**Agent reference only** — on merge/push to `main`, GitHub Actions also deploys automatically based on what changed (secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1`):
+**Agent reference only** — on merge/push to `main`, GitHub Actions also deploys automatically based on what changed (secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1`). That is why git must match disk before any manual Firebase deploy:
 
 | What changed | Workflow | Result |
 |---|---|---|

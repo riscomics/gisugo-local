@@ -1,0 +1,43 @@
+---
+description: Deploy means SHIP EVERYTHING — commit, push GitHub, Firebase deploy, verify sync
+alwaysApply: true
+---
+
+# Deploy = SHIP EVERYTHING
+
+When the user says **Deploy**, **ship**, **go live**, or **ship everything** on DESKTOP:
+
+## Mandatory command
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/ship-everything.ps1 -Message "concise commit message"
+```
+
+- If the working tree already has **no shippable uncommitted changes**, omit `-Message`:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File scripts/ship-everything.ps1
+  ```
+- Do **not** run bare `firebase deploy` alone for a user "Deploy" request.
+- Do **not** `git push` without ensuring a commit happened first for any pending code.
+- Do **not** leave uncommitted HTML/CSS/JS/functions on disk while pushing or deploying — that caused the 2026-07-20 ping-pong (live ≠ GitHub).
+
+## What the script guarantees
+
+1. Commit all shippable dirty files (ignores `.firebase/` cache and secret key files)
+2. `git push` so `HEAD` == `origin/main`
+3. `firebase deploy` for detected targets (hosting / functions / rules)
+4. Abort if local is behind remote, or if git drifts after push
+
+## Forbidden
+
+- Saying "Deployed" after only `git commit` or only `git push`
+- Manual `firebase deploy` while shippable files are still uncommitted
+- Assuming GitHub Actions will "catch up" uncommitted disk edits (it will not — CI deploys **committed** files only)
+
+## After success
+
+One line to user: **Deployed — live on https://gisugo.com now.** (git + Firebase synced)
+
+## Cloud Agent exception
+
+If `firebase --version` is unavailable: PR → squash-merge (CI deploys). Never claim desktop Firebase deploy from Cloud.
