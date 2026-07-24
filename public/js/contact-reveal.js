@@ -160,7 +160,7 @@
   // Prefill for Text / WhatsApp (not Call / Viber).
   // CUSTOMER = Contact Worker (customer→applicant). WORKER = Contact Customer (worker→poster).
   const CONTACT_GREETING_CUSTOMER = 'Regarding your GISUGO Gig application: ';
-  const CONTACT_GREETING_WORKER = 'Contacting about GISUGO gig: ';
+  const CONTACT_GREETING_WORKER = '';
 
   function build() {
     if (built) return;
@@ -414,12 +414,14 @@
         return;
       }
       const digits = phone.replace(/[^\d]/g, '');
-      const greeting = encodeURIComponent(
-        isPosterReveal ? CONTACT_GREETING_WORKER : CONTACT_GREETING_CUSTOMER
-      );
+      const greetingRaw = isPosterReveal ? CONTACT_GREETING_WORKER : CONTACT_GREETING_CUSTOMER;
+      const greeting = greetingRaw ? encodeURIComponent(greetingRaw) : '';
       els.call.setAttribute('href', 'tel:' + phone);
-      els.text.setAttribute('href', 'sms:' + phone + '?body=' + greeting);
-      els.whatsapp.setAttribute('href', 'https://wa.me/' + digits + '?text=' + greeting);
+      els.text.setAttribute('href', greeting ? ('sms:' + phone + '?body=' + greeting) : ('sms:' + phone));
+      els.whatsapp.setAttribute(
+        'href',
+        greeting ? ('https://wa.me/' + digits + '?text=' + greeting) : ('https://wa.me/' + digits)
+      );
       els.viber.setAttribute('href', 'viber://chat?number=' + encodeURIComponent(phone));
       if (els.viberHint) els.viberHint.style.display = 'none';
       setStatusLoading(false);
