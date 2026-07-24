@@ -618,7 +618,7 @@
                     </div>
                     <div class="hire-price-verify" style="margin-top:16px;padding:12px 14px;background:rgba(31,41,55,0.6);border:1px solid rgba(246,173,85,0.35);border-radius:12px;text-align:center;">
                         <label for="confirmHirePrice" style="display:block;color:#f6ad55;font-weight:700;font-size:0.9rem;margin-bottom:8px;">💰 Confirm or Change Agreed Price (₱)</label>
-                        <input type="number" id="confirmHirePrice" inputmode="numeric" min="1" step="1" placeholder="Amount" style="width:160px;max-width:100%;box-sizing:border-box;padding:11px 12px;background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;">
+                        <input type="number" id="confirmHirePrice" inputmode="numeric" enterkeyhint="done" min="1" step="1" placeholder="Amount" style="width:160px;max-width:100%;box-sizing:border-box;padding:11px 12px;background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;">
                     </div>
                 </div>
 
@@ -1456,18 +1456,25 @@
 
         if (!overlay || !confirmBtn || !cancelBtn || !tabsContainer) return;
 
-        // Prefill the agreed price with the offered amount (counter-offer or job price).
-        // Blank is allowed — hireWorker falls back to the job's price server-side.
-        if (priceInput) {
-            const prefill = String(workerData.priceOffer || '').replace(/[^\d.]/g, '');
-            priceInput.value = prefill;
-        }
-
         // Abort prior hire listeners + Escape handler (prevents stacked keydown leaks).
         runHireCleanup();
         const hireController = new AbortController();
         const signal = hireController.signal;
         state.hireController = hireController;
+
+        // Prefill the agreed price with the offered amount (counter-offer or job price).
+        // Blank is allowed — hireWorker falls back to the job's price server-side.
+        if (priceInput) {
+            const prefill = String(workerData.priceOffer || '').replace(/[^\d.]/g, '');
+            priceInput.value = prefill;
+            // Phone number pad: Enter / → / Done dismisses the keyboard (blur).
+            priceInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    e.preventDefault();
+                    priceInput.blur();
+                }
+            }, { signal: signal });
+        }
 
         const workerName = String(workerData.userName || 'Worker').trim() || 'Worker';
 
