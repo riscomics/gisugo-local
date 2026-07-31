@@ -9528,11 +9528,16 @@ function initializeAdminDropdown() {
     });
     
     // Handle logout
-    logoutBtn.addEventListener('click', function() {
+    logoutBtn.addEventListener('click', async function() {
         console.log('🚪 Logging out...');
-        // TODO: FIREBASE - Implement Firebase signOut()
-        // For now, redirect to landing page
-        window.location.href = 'landing.html';
+        try {
+            if (typeof window.logout === 'function') {
+                await window.logout();
+            }
+        } catch (error) {
+            console.warn('⚠️ Logout error (continuing to redirect):', error);
+        }
+        window.location.href = 'login.html';
     });
     
     console.log('✅ Admin dropdown initialized');

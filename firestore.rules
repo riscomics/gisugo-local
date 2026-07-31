@@ -28,13 +28,22 @@ service cloud.firestore {
       return value is number ? value : 0;
     }
     
-    // Check if user is admin
-    // ADMIN FEATURE DISABLED FOR CLEAN TESTING
-    // To enable: Uncomment the email below when admin dashboard is ready
+    // Check if user is admin.
+    // Membership lives in the `admins` collection (doc ID = uid), not a
+    // hardcoded email list — accounts can sign in with multiple providers
+    // (Google/Facebook/phone+password) and the "primary" email on the auth
+    // token can vary between them, so uid is the only stable identifier.
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.email in [
-        // 'riscomics@gmail.com'  // Commented out for testing as regular user
-      ];
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Full admin powers (e.g. Settings, granting/revoking other admins),
+    // as opposed to a future limited "support" role (gig/user moderation +
+    // support replies only).
+    function isSuperAdmin() {
+      return isAdmin()
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin';
     }
     
     // Validate profile data structure
@@ -167,6 +176,23 @@ service cloud.firestore {
         ]);
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // ADMINS COLLECTION (Dashboard access control)
+    // Doc ID = uid. Presence in this collection = admin access; the `role`
+    // field distinguishes full ("super_admin") vs a future limited role.
+    // Bootstrapping the very first admin(s) happens via the Admin SDK
+    // (scripts/), which bypasses these rules entirely — everything below
+    // only governs client-side access after that.
+    // ═══════════════════════════════════════════════════════════════
+    match /admins/{adminId} {
+      // Any admin can see who else has access (e.g. a future admin list UI).
+      allow read: if isAdmin();
+
+      // Only an existing super admin can grant/revoke admin access —
+      // never a client granting itself, and never a non-super admin.
+      allow write: if isSuperAdmin();
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // USERS COLLECTION
     // ═══════════════════════════════════════════════════════════════

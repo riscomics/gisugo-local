@@ -6,8 +6,54 @@
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <link rel="stylesheet" href="public/css/admin-dashboard.css">
+    <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
+         confirms the signed-in account is on the admins list. Prevents a
+         flash of real dashboard content for logged-out/non-admin visitors. -->
+    <style>
+        body.admin-auth-pending .admin-header,
+        body.admin-auth-pending .admin-layout {
+            display: none !important;
+        }
+        #adminAuthGateOverlay {
+            position: fixed;
+            inset: 0;
+            background: #0b1220;
+            color: #e8edf5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            z-index: 99999;
+        }
+        body:not(.admin-auth-pending) #adminAuthGateOverlay {
+            display: none;
+        }
+        #adminAuthGateOverlay .gate-box { max-width: 360px; padding: 24px; }
+        #adminAuthGateOverlay h2 { margin: 0 0 8px; font-size: 20px; }
+        #adminAuthGateOverlay p { margin: 0 0 16px; opacity: 0.75; font-size: 14px; }
+        #adminAuthGateAction {
+            display: none;
+            color: #6cb6ff;
+            font-size: 14px;
+            text-decoration: none;
+            border: 1px solid #6cb6ff;
+            border-radius: 6px;
+            padding: 8px 16px;
+        }
+        #adminAuthGateAction:hover { background: rgba(108, 182, 255, 0.12); }
+    </style>
 </head>
-<body class="admin-dashboard">
+<body class="admin-dashboard admin-auth-pending">
+    <!-- Shown while access is being verified, or if access is denied -->
+    <div id="adminAuthGateOverlay">
+        <div class="gate-box">
+            <h2 id="adminAuthGateTitle">Checking access&hellip;</h2>
+            <p id="adminAuthGateMessage">Please wait.</p>
+            <a id="adminAuthGateAction" href="index.html">Return to GISUGO</a>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="admin-header">
         <div class="admin-header-container">
@@ -4025,6 +4071,10 @@
     
     <!-- App Config (Dev/Production Mode) -->
     <script src="public/js/app-config.js"></script>
+
+    <!-- Access gate: must run and confirm admin access before the dashboard
+         below is allowed to become visible/interactive. -->
+    <script src="public/js/admin-auth-gate.js"></script>
     
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>

@@ -101,8 +101,13 @@ See `AGENTS.md` § "verify production data."
       backend (a callable function; negligible cost — same reads/writes + ~1 free function
       call each), THEN lock reads/updates/deletes to the recipient only. **Test for blocked
       notifications after.**
-- [ ] **Re-enable admin identity** in `firestore.rules` (`isAdmin()` email allowlist is
-      currently commented out → all admin powers disabled). Prerequisite for Track C.
+- [x] **Re-enable admin identity — COMPLETE (2026-07-31).** Replaced the disabled email
+      allowlist with a proper `admins/{uid}` Firestore collection (uid-keyed, not email —
+      accounts sign in via multiple providers whose "primary" email can vary). `isAdmin()` /
+      `isSuperAdmin()` in `firestore.rules` check membership + `role` there. Bootstrapped via
+      `scripts/bootstrap-primary-admins.js` (Admin SDK, bypasses rules — the only way to create
+      the first admin(s)); both primary accounts (Peter J. Ang, GISUGO Operations) are
+      `super_admin`. Prerequisite for Track C.
 
 ## Track C — Admin Dashboard (linchpin)
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
@@ -125,8 +130,16 @@ See `AGENTS.md` § "verify production data."
       safe/cheap and unrelated to Alerts counts). Settings + Ad Placement already scoped from
       earlier tasklist work. Chats/Financial/sidebar-Analytics-page stay **cut/deferred** (no real
       backend to wire against yet, or need tools Firestore can't provide — e.g. self-reporting
-      Firebase cost). **Next: lock build order, then build.** Unblocks: Support tab responses,
-      dispute submissions, admin notifications, gig-report moderation.
+      Firebase cost). Unblocks: Support tab responses, dispute submissions, admin notifications,
+      gig-report moderation.
+- [x] **Step 0: Admin dashboard access gate — COMPLETE (2026-07-31).** `admin-dashboard.html`
+      now stays fully hidden behind an overlay (`public/js/admin-auth-gate.js`) until the signed-in
+      account is confirmed present in the `admins` collection: logged-out → sent to login; logged
+      in but not an admin → blocked with "Access denied"; admin → dashboard reveals, real name/role
+      replaces the old hardcoded "Peter J. Ang" mock, `window.currentAdmin.role` available for
+      future role-based section hiding (e.g. a limited support-only admin). Logout button now
+      actually calls Firebase `signOut()` (previously a no-op redirect). **Next: lock build order,
+      then build.**
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)
