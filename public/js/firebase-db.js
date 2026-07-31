@@ -2675,7 +2675,7 @@ async function resignGigFromChat(jobId, reason) {
       return { success: false, message: 'Only the hired worker can resign this gig' };
     }
 
-    const workerName = currentUser.displayName || 'Worker';
+    const workerName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Worker');
     const customerId = String(jobData.posterId || '').trim();
     const customerName = String(jobData.posterName || 'Customer');
 
@@ -3059,6 +3059,7 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
     }
     
     // Create new thread
+    const myThreadName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Anonymous');
     const threadData = {
       jobId: jobId,
       jobTitle: String(otherUserInfo?.jobTitle || '').trim(),
@@ -3066,7 +3067,7 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
       participantIds: [currentUser.uid, otherUserId],
       participant1: {
         userId: currentUser.uid,
-        userName: currentUser.displayName || 'Anonymous',
+        userName: myThreadName,
         userThumbnail: currentUser.photoURL || ''
       },
       participant2: {
@@ -3126,10 +3127,11 @@ async function sendMessage(threadId, content, recipientId = '') {
   
   try {
     // Create message
+    const senderName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Anonymous');
     const message = {
       threadId: threadId,
       senderId: currentUser.uid,
-      senderName: currentUser.displayName || 'Anonymous',
+      senderName: senderName,
       senderAvatar: currentUser.photoURL || '',
       content: content,
       messageType: 'text',
@@ -3208,10 +3210,11 @@ async function sendImageMessage(threadId, imagePayload, recipientId = '') {
   }
 
   try {
+    const senderName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Anonymous');
     const message = {
       threadId: threadId,
       senderId: currentUser.uid,
-      senderName: currentUser.displayName || 'Anonymous',
+      senderName: senderName,
       senderAvatar: currentUser.photoURL || '',
       content: '[image]',
       messageType: 'image',
@@ -3724,6 +3727,7 @@ async function submitGigReportToAdmin(jobId, reportData = {}) {
 
   const reportId = buildGigReportDocumentId(safeJobId, currentUser.uid);
   const reportRef = db.collection('gig_reports').doc(reportId);
+  const reporterName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Anonymous');
   const payload = {
     reportId: reportId,
     jobId: safeJobId,
@@ -3731,7 +3735,7 @@ async function submitGigReportToAdmin(jobId, reportData = {}) {
     jobCategory: String(reportData.jobCategory || '').trim(),
     posterId: String(reportData.posterId || '').trim(),
     reporterId: currentUser.uid,
-    reporterName: currentUser.displayName || 'Anonymous',
+    reporterName: reporterName,
     reporterAvatar: currentUser.photoURL || '',
     reasonKey: String(reportData.reasonKey || '').trim(),
     subject: subject,

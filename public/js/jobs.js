@@ -4561,7 +4561,9 @@ async function processRejectGigConfirmation(jobData) {
         try {
             if (typeof sendOfferRejectedNotification === 'function') {
                 const currentUser = firebase.auth ? firebase.auth().currentUser : null;
-                const workerName = currentUser?.displayName || 'A worker';
+                const workerName = currentUser
+                    ? await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'A worker')
+                    : 'A worker';
                 
                 const notifResult = await sendOfferRejectedNotification(
                     jobData.posterId,
@@ -5824,6 +5826,9 @@ function initializeResignJobConfirmationHandlers() {
                     const jobDoc = await db.collection('jobs').doc(jobId).get();
                     const jobData = jobDoc.data();
                     const customerId = jobData.posterId;
+                    const resignedWorkerName = currentUser
+                        ? await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Worker')
+                        : 'Worker';
                     
                     // Update job: remove hired worker info, set status back to active
                     await db.collection('jobs').doc(jobId).update({
@@ -5837,7 +5842,7 @@ function initializeResignJobConfirmationHandlers() {
                         resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
                         resignReason: reason,
                         resignedWorkerId: currentUserId,
-                        resignedWorkerName: currentUser?.displayName || 'Worker',
+                        resignedWorkerName: resignedWorkerName,
                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     
@@ -5905,7 +5910,7 @@ function initializeResignJobConfirmationHandlers() {
                     // ═══════════════════════════════════════════════════════════════
                     try {
                         if (typeof sendWorkerResignedNotification === 'function') {
-                            const workerName = currentUser?.displayName || 'A worker';
+                            const workerName = resignedWorkerName;
                             await sendWorkerResignedNotification(
                                 customerId,
                                 customerName,

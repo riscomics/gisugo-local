@@ -105,10 +105,28 @@ See `AGENTS.md` § "verify production data."
       currently commented out → all admin powers disabled). Prerequisite for Track C.
 
 ## Track C — Admin Dashboard (linchpin)
-- [ ] **#8 Architecture + cost study (TBD — discuss first).** Current design reports many
-      real-time metrics that would blow up read/write costs without a strategic counter
-      design. MUST plan before wiring. Unblocks: Support tab responses, dispute submissions,
-      admin notifications, gig-report moderation.
+- [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
+      `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
+      collections for a number/feed — small counter docs (Cloud Function–maintained) feed
+      headline stats, workflow queues (Reported/Suspended/Support) stay small paginated lists,
+      "browse everything" lists get a no-guarantee "glance" treatment (refresh + optional Load
+      More, no live listener, no gap-guarantee) instead of real-time population.
+      **Resolved:** Gig Moderation (Posted = glance, Reported/Suspended = queues, search by title
+      + status badges, ban cascade incl. new customer-facing "worker revoked, gig reopened"
+      notification), User Management (New = glance, Suspended = queue, Pending/Verified hidden
+      until ID verification ships), Overview (Total Users/Gigs Reported/Gigs Analytics wired with
+      counters incl. Age Groups off `dateOfBirth` made required + Regional Distribution off a
+      one-time signup-only GPS capture bucketed into the 17 official PH regions, no province
+      carve-outs for now; Verification Submissions + Total Revenue hidden until their backing
+      features exist; Storage/User Activity/Traffic-Costs kept as manual-refresh snapshot cards
+      sourced from the *correct* external tool instead of self-reported Firestore), and Support
+      (paged queue on `support_requests`, in-platform-only replies — no email/push, topic filter
+      reads the real shared taxonomy in `support-taxonomy.js`, Public Message broadcast confirmed
+      safe/cheap and unrelated to Alerts counts). Settings + Ad Placement already scoped from
+      earlier tasklist work. Chats/Financial/sidebar-Analytics-page stay **cut/deferred** (no real
+      backend to wire against yet, or need tools Firestore can't provide — e.g. self-reporting
+      Firebase cost). **Next: lock build order, then build.** Unblocks: Support tab responses,
+      dispute submissions, admin notifications, gig-report moderation.
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)

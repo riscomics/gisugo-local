@@ -1755,6 +1755,49 @@ async function getUserProfile(userId) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// OWN DISPLAY NAME CACHE
+// Firebase Auth's `displayName` is set once at signup and is never
+// resynced afterward (e.g. when an admin manually approves a name
+// change directly in Firestore). Any code that denormalizes "my name"
+// into a new document (chat, reports, resignations, etc.) should pull
+// from here instead of trusting `currentUser.displayName` directly, so
+// it reflects the current Firestore `fullName`. Short TTL avoids adding
+// a Firestore read on every single call (e.g. every chat message).
+// ═══════════════════════════════════════════════════════════════
+const OWN_NAME_CACHE_TTL_MS = 5 * 60 * 1000;
+const ownNameCache = new Map();
+
+/**
+ * Resolve the current user's up-to-date display name.
+ * Prefers Firestore `users/{uid}.fullName`, cached briefly; falls back to
+ * the provided fallback (normally `currentUser.displayName`) if Firestore
+ * has no name yet or the lookup fails, so behavior never regresses.
+ * @param {Object} currentUser - Firebase Auth user object
+ * @param {string} [fallback] - Value to use if Firestore has no name
+ * @returns {Promise<string>}
+ */
+async function getFreshOwnDisplayName(currentUser, fallback) {
+  const safeFallback = fallback || (currentUser && currentUser.displayName) || 'Anonymous';
+  const uid = currentUser && currentUser.uid;
+  if (!uid) return safeFallback;
+
+  const cached = ownNameCache.get(uid);
+  if (cached && (Date.now() - cached.cachedAt) < OWN_NAME_CACHE_TTL_MS) {
+    return cached.name || safeFallback;
+  }
+
+  try {
+    const profile = await getUserProfile(uid);
+    const name = (profile && profile.fullName) ? String(profile.fullName).trim() : '';
+    ownNameCache.set(uid, { name: name || null, cachedAt: Date.now() });
+    return name || safeFallback;
+  } catch (error) {
+    console.warn('⚠️ Could not refresh display name from Firestore, using fallback:', error);
+    return safeFallback;
+  }
+}
+
 /**
  * Update user profile in Firestore
  * @param {string} userId - User's UID

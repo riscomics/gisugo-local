@@ -1,0 +1,41 @@
+---
+description: Verify code is actually reachable/live before fixing it, and say so
+alwaysApply: true
+---
+
+# Check Reachability BEFORE Fixing, Not After
+
+When you find and fix a bug that appears at multiple call sites of a shared
+function (or any multi-location fix), grep for every actual caller of each
+affected function **before** editing it — as part of the investigation, not
+as a follow-up check afterward.
+
+For each site you're about to touch, answer: is this function actually
+called by anything in a live code path, or is it dead/orphaned code that
+nothing currently invokes?
+
+This changes:
+- **Risk assessment** — a fix to dead code is zero-risk and can be
+  deprioritized or mentioned as "inert until something calls it."
+- **What you tell the user** — "this fixes 6 call sites" is a different,
+  weaker claim than "this fixes 4 live call sites; 2 aren't reachable by
+  anything today." Say the second, more precise version.
+
+## Bad (discovered reachability only after being asked to double-check)
+
+Map every place a value gets *written*, fix all of them, tell the user
+"all fixed" — then only check whether each site is actually called by
+anything when the user later asks "are you sure this is safe?"
+
+## Good
+
+While mapping the fix sites, also grep for callers of each function
+(`functionName\(` across the codebase). Note in the plan/summary which
+sites are live vs. orphaned *before* asking the user to approve the fix,
+not after.
+
+## Why
+
+Skipping this step means confidently claiming safety/coverage without
+having actually verified it — the exact gap that erodes trust even when
+the underlying fix is fine.
