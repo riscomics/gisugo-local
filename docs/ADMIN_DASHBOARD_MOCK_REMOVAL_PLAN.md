@@ -242,3 +242,8 @@ succeeded (`users`, `jobs` — both have `allow read: if true`).
   stat cards are still visibly present in the HTML — the earlier decision to hide them (2026-07-27
   discussion) was apparently never implemented at the HTML/CSS level. Flagging so it isn't lost;
   not fixed in this pass since it wasn't part of what broke or what was asked.
+- **Known follow-up, noted by user 2026-08-02:** the Total Users stat *card* on Overview now shows
+  the real count (3), but clicking into its overlay ("Total Users Analytics") still shows 0 — the
+  overlay's breakdown sections (age groups, regional distribution, account types, growth rate, etc.)
+  have no backing data source yet, only the top-level card was wired in Fix 3 above. Expected to be
+  resolved as part of the full Total Users overlay wiring, not a new bug.
