@@ -140,6 +140,15 @@ See `AGENTS.md` § "verify production data."
       future role-based section hiding (e.g. a limited support-only admin). Logout button now
       actually calls Firebase `signOut()` (previously a no-op redirect). **Next: lock build order,
       then build.**
+- [ ] **Step 0.5: Strip all mock/simulated data from the dashboard before wiring real data —
+      PLANNED, NOT STARTED.** Full surgical step-by-step in
+      `docs/ADMIN_DASHBOARD_MOCK_REMOVAL_PLAN.md` (rollback tag `pre-mock-removal-2026-08-01` +
+      local file snapshots already in place). Covers: 15 `setInterval` timers driving fake Overview
+      stat cards, `generateMock*` functions for gigs/users/chats/admin-messages, 18
+      `admin_mock_*` localStorage keys, the "Reset Analytics Data" dev-tools button, and a small
+      dead-comment cleanup in `messages.js`. Real operational localStorage (Settings, Ad Placement,
+      sidebar state) is explicitly out of scope / left alone. **Do this before any Firestore wiring**
+      so nothing real collides with a leftover fake timer.
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)

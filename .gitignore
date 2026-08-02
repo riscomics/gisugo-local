@@ -33,3 +33,7 @@ build/
 scripts/github-action-gisugo1-key.json
 secrets/
 admin-keys/
+
+# Local pre-surgery file snapshots (rollback safety nets) — local-only, never pushed.
+# See docs/ADMIN_DASHBOARD_MOCK_REMOVAL_PLAN.md for what each backup is for.
+backups/
