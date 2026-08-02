@@ -140,15 +140,27 @@ See `AGENTS.md` § "verify production data."
       future role-based section hiding (e.g. a limited support-only admin). Logout button now
       actually calls Firebase `signOut()` (previously a no-op redirect). **Next: lock build order,
       then build.**
-- [ ] **Step 0.5: Strip all mock/simulated data from the dashboard before wiring real data —
-      PLANNED, NOT STARTED.** Full surgical step-by-step in
+- [x] **Step 0.5: Strip all mock/simulated data from the dashboard before wiring real data —
+      COMPLETE (2026-08-02).** Full surgical step-by-step + post-plan fixes in
       `docs/ADMIN_DASHBOARD_MOCK_REMOVAL_PLAN.md` (rollback tag `pre-mock-removal-2026-08-01` +
-      local file snapshots already in place). Covers: 15 `setInterval` timers driving fake Overview
+      local file snapshots still in place). Removed: 15 `setInterval` timers driving fake Overview
       stat cards, `generateMock*` functions for gigs/users/chats/admin-messages, 18
-      `admin_mock_*` localStorage keys, the "Reset Analytics Data" dev-tools button, and a small
-      dead-comment cleanup in `messages.js`. Real operational localStorage (Settings, Ad Placement,
-      sidebar state) is explicitly out of scope / left alone. **Do this before any Firestore wiring**
-      so nothing real collides with a leftover fake timer.
+      `admin_mock_*` localStorage keys, the "Reset Analytics Data" dev-tools button, ~150 hardcoded
+      mock numbers baked into `admin-dashboard.html`'s overlays/cards (now honest `0`/`0%`/etc.
+      placeholders), and a small dead-comment cleanup in `messages.js`. Real operational localStorage
+      (Settings, Ad Placement, sidebar state) explicitly left alone.
+      **Bonus fix, same pass:** found and fixed a pre-existing (non-mock) bug in
+      `getAdminAnalytics()` (`firebase-db.js`) — it queried two Firestore collections with no
+      security-rules entry (`verification_requests`, `transactions`), which silently failed the
+      whole batch and zeroed out two *other* reads (`users`, `jobs`) that were already valid and
+      permitted. Fixed to fetch independently; **Total Users and Gigs Reported stat cards now show
+      real live Firestore counts** (verified: 3 total users). Verifications/Revenue stay at 0 (no
+      backend yet, matches the 2026-07-27 decision to hide them — though that hide was never
+      actually implemented in the HTML; still flagged as open, see Overview section below).
+      **Manual click-through still outstanding** (not done this pass): Gig Moderation, User
+      Management, Messages/Support, Settings, Ad Placement — only Overview was interactively tested.
+      **Next: lock build order, then build** (Overview is the shortest remaining lift, since
+      `getAdminAnalytics()` now has 2 of 4 metrics already real).
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)

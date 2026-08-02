@@ -4234,39 +4234,29 @@ async function getAdminAnalytics() {
     };
   }
   
-  try {
-    // Get real-time counts from Firestore
-    const [usersSnapshot, verificationsSnapshot, jobsSnapshot] = await Promise.all([
-      db.collection('users').get(),
-      db.collection('verification_requests').where('status', '==', 'pending').get(),
-      db.collection('jobs').where('status', '==', 'reported').get()
-    ]);
-    
-    // Calculate revenue from transactions
-    const transactionsSnapshot = await db.collection('transactions')
-      .where('timestamp', '>=', getMonthStartTimestamp())
-      .get();
-    
-    const monthlyRevenue = transactionsSnapshot.docs.reduce((sum, doc) => {
-      return sum + (doc.data().amount || 0);
-    }, 0);
-    
-    return {
-      totalUsers: usersSnapshot.size,
-      verificationSubmissions: verificationsSnapshot.size,
-      monthlyRevenue: monthlyRevenue,
-      reportedGigs: jobsSnapshot.size
-    };
-    
-  } catch (error) {
-    console.error('❌ Error getting admin analytics:', error);
-    return {
-      totalUsers: 0,
-      verificationSubmissions: 0,
-      monthlyRevenue: 0,
-      reportedGigs: 0
-    };
+  // Verification submissions and revenue have no live data source yet
+  // (no verification-review pipeline, no payments/transactions collection),
+  // so they're not fetched here. Total users and reported gigs are real,
+  // permitted Firestore reads and are fetched independently of each other
+  // so a problem with one can never zero out the other.
+  const [usersResult, jobsResult] = await Promise.allSettled([
+    db.collection('users').get(),
+    db.collection('jobs').where('status', '==', 'reported').get()
+  ]);
+
+  if (usersResult.status === 'rejected') {
+    console.error('❌ Error getting total users count:', usersResult.reason);
   }
+  if (jobsResult.status === 'rejected') {
+    console.error('❌ Error getting reported gigs count:', jobsResult.reason);
+  }
+
+  return {
+    totalUsers: usersResult.status === 'fulfilled' ? usersResult.value.size : 0,
+    verificationSubmissions: 0,
+    monthlyRevenue: 0,
+    reportedGigs: jobsResult.status === 'fulfilled' ? jobsResult.value.size : 0
+  };
 }
 
 // Get start of current month timestamp

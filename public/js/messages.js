@@ -1,140 +1,5 @@
 // GISUGO Messages Page JavaScript
 
-/*
-=== FIREBASE INTEGRATION SUMMARY ===
-
-✅ FIRESTORE-OPTIMIZED DATA STRUCTURES:
-- Document IDs: Firebase auto-generated format (e.g., 'notif_xKj9mL2pQ8vR4sW7nC1e')
-- User IDs: Firebase UID format (28-character strings)
-- Timestamps: Date objects ready for firebase.firestore.Timestamp conversion
-- Collections: /notifications, /applications, /jobs, /contracts, /users, /analytics
-- Denormalized data for faster reads (user profiles embedded in applications)
-- Flat document structure for better indexing and security rules
-
-✅ FIREBASE AUTHENTICATION READY:
-- currentUser.uid integration points mapped
-- Custom claims support for roles (employer, worker, admin)
-- Security rules compatible data access patterns
-
-✅ FIRESTORE BATCH OPERATIONS:
-- Multi-document updates in single transaction
-- Atomic hire/reject operations with contract creation
-- Real-time listener update paths documented
-- Error handling and rollback strategies planned
-
-✅ FIREBASE CLOUD FUNCTIONS TRIGGERS:
-- Push notification sending via FCM
-- Email notifications with templates
-- Analytics event tracking
-- Recommendation engine updates
-- Automatic status synchronization
-
-✅ FIREBASE STORAGE INTEGRATION:
-- User photos: gs://gisugo-storage/users/{uid}/profile.jpg
-- Job images: gs://gisugo-storage/jobs/{jobId}/images/
-- Automatic URL transformation for display
-
-✅ REAL-TIME LISTENERS MAPPED:
-- /notifications/{recipientUid} - Live notification updates
-- /applications/{applicationId} - REMOVED (applications moved to jobs.html)
-- /jobs/{jobId} - Job status and assignment updates
-- /contracts/{contractId} - Contract creation and updates
-
-✅ ANALYTICS & PERFORMANCE:
-- Daily analytics aggregation with FieldValue.increment()
-- Compound indexes planned for complex queries
-- Pagination with startAfter/limit for large datasets
-- Optimized for mobile offline capabilities
-
-🔧 IMPLEMENTATION READY FOR:
-- Firebase SDK v9+ modular syntax
-- Firestore security rules
-- Cloud Functions deployment
-- FCM push notifications
-- Firebase Storage file handling
-- Real-time synchronization
-*/
-
-/*
-=== BACKEND INTEGRATION DOCUMENTATION ===
-
-This modular tab system provides comprehensive data structures for backend integration:
-
-1. NOTIFICATIONS TAB:
-   - Data: notifications data store (line ~1200)
-   - Structure: notification objects with full metadata
-   - Actions: mark_read, reply_message, view_application, review_applications
-   - Required Endpoints: GET /notifications, PUT /notifications/{id}/read, POST /notifications/action
-
-2. MESSAGES TAB:
-   - Data: messages data store (line ~1550)
-   - Structure: threaded conversations with full message history
-   - Actions: send_message, expand_thread, keyboard_handling
-   - Required Endpoints: GET /messages, POST /messages, PUT /messages/{threadId}/read
-
-3. MESSAGES TAB (formerly Applications):
-   - Data: Static HTML for admin communications
-   - Structure: Inbox/details layout for admin messages and broadcasts
-   - Actions: read_message, reply_to_admin, mark_read
-   - Required Endpoints: GET /admin-messages, POST /admin-messages/reply
-
-4. BACKEND DATA PAYLOADS:
-   - All action handlers prepare complete backend payload objects
-   - Includes user IDs, timestamps, notification data, analytics
-   - Check console.log outputs for exact data structures needed
-
-5. MODULAR LOADING:
-   - Only active tab loads content (eliminates 67% initial load)
-   - Each tab has independent scroll containers
-   - No shared state or background resource consumption
-
-6. DATA ATTRIBUTES:
-   - All UI elements include comprehensive data-* attributes
-   - Enables easy data extraction for API calls
-   - Maintains referential integrity between related objects
-*/
-
-/*
-=== FIREBASE INTEGRATION DOCUMENTATION ===
-
-This modular tab system is optimized for Firebase (Firestore + Authentication):
-
-1. FIRESTORE COLLECTIONS STRUCTURE:
-   /notifications/{notificationId} - Individual notification documents
-   /messages/{threadId} - Message thread documents with subcollection
-   /messages/{threadId}/messages/{messageId} - Individual messages
-   /jobs/{jobId} - Job documents
-   /applications/{applicationId} - REMOVED (applications moved to jobs.html)
-   /users/{uid} - User profile documents
-
-2. FIREBASE AUTHENTICATION:
-   - Uses Firebase UID format (28-character strings)
-   - currentUser.uid for authenticated user
-   - Custom claims for roles (employer, worker, admin)
-
-3. FIRESTORE TIMESTAMP FORMAT:
-   - firebase.firestore.Timestamp.now() for server timestamps
-   - firebase.firestore.FieldValue.serverTimestamp() for auto timestamps
-   - Properly indexed timestamp fields for queries
-
-4. FIRESTORE QUERIES READY:
-   - Compound indexes for complex filtering
-   - Pagination with startAfter/limit
-   - Real-time listeners for live updates
-   - Security rules compatible structure
-
-5. FIREBASE CLOUD FUNCTIONS:
-   - Notification triggers on document changes
-   - Application status change handlers
-   - Email/SMS notification workflows
-   - Data validation and sanitization
-
-6. FIREBASE STORAGE:
-   - User photos in /users/{uid}/profile.jpg
-   - Job images in /jobs/{jobId}/images/
-   - Message attachments in /messages/{threadId}/attachments/
-*/
-
 // ===== MEMORY LEAK PREVENTION SYSTEM =====
 
 // Global registry for tracking all event listeners and cleanup functions
@@ -326,7 +191,7 @@ async function hasAcknowledgedGigTips(threadId, userId) {
                 return true;
             }
         } catch (error) {
-            console.warn('⚠️ Gig Tips acknowledgement check failed:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Gig Tips acknowledgement check failed:', error);
         }
     }
 
@@ -348,7 +213,7 @@ async function setAcknowledgedGigTips(threadId, userId) {
                 return false;
             }
         } catch (error) {
-            console.warn('⚠️ Gig Tips acknowledgement save failed:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Gig Tips acknowledgement save failed:', error);
             setGigTipsAckCacheValue(safeThreadId, safeUserId, false);
             return false;
         }
@@ -377,7 +242,7 @@ async function resolveGigTipsCategory(jobId, seedCategory = '') {
         const job = await getJobById(safeJobId);
         return String(job?.category || '').trim().toLowerCase();
     } catch (error) {
-        console.warn('⚠️ Unable to resolve category for Gig Tips:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Unable to resolve category for Gig Tips:', error);
         return '';
     }
 }
@@ -425,7 +290,7 @@ function openGigTipsModal({
                     <div class="gig-tips-heading">READ GIG TIPS</div>
                     <div class="gig-tips-job-title">${safeJobTitle}</div>
                 </div>
-                ${requireAcknowledge ? '' : '<button class="gig-tips-close-btn" type="button" aria-label="Close gig tips">✕</button>'}
+                ${requireAcknowledge ? '' : '<button class="gig-tips-close-btn" type="button" aria-label="Close gig tips">Ã¢Å“â€¢</button>'}
             </div>
             <div class="gig-tips-lang-tabs" role="tablist" aria-label="Gig tips language">
                 <button class="gig-tips-lang-tab active" type="button" data-lang="en">English</button>
@@ -493,7 +358,7 @@ function openGigTipsModal({
                 ackBtn.textContent = `${originalLabel}...`;
                 const saved = await setAcknowledgedGigTips(safeThreadId, getCurrentUserId());
                 if (!saved) {
-                    console.warn('⚠️ Gig tips acknowledgement could not be persisted; closing gate to avoid trapping chat.');
+                    console.warn('Ã¢Å¡Â Ã¯Â¸Â Gig tips acknowledgement could not be persisted; closing gate to avoid trapping chat.');
                     showToast('Confirmation saved locally. You can continue chatting.');
                 }
                 cleanup(true);
@@ -543,29 +408,29 @@ function registerCleanup(type, key, cleanupFn) {
     } else if (type === 'interval') {
         CLEANUP_REGISTRY.intervals.add(cleanupFn);
     }
-    console.log(`🧹 Registered cleanup for ${type}: ${key || 'anonymous'}`);
+    console.log(`Ã°Å¸Â§Â¹ Registered cleanup for ${type}: ${key || 'anonymous'}`);
 }
 
 // MEMORY LEAK FIX: Execute all registered cleanup functions
 function executeAllCleanups() {
-    console.log('🧹 EXECUTING COMPREHENSIVE CLEANUP...');
+    console.log('Ã°Å¸Â§Â¹ EXECUTING COMPREHENSIVE CLEANUP...');
     
     // Clean up Firebase real-time listeners
     if (ACTIVE_LISTENERS.notifications) {
-        console.log('🧹 Cleaning up notifications listener');
+        console.log('Ã°Å¸Â§Â¹ Cleaning up notifications listener');
         stopAlertsRealtimeStream('execute_all_cleanups');
     }
     if (ACTIVE_LISTENERS.threads) {
-        console.log('🧹 Cleaning up threads listener');
+        console.log('Ã°Å¸Â§Â¹ Cleaning up threads listener');
         stopChatsRealtimeStream('execute_all_cleanups');
     }
     if (ACTIVE_LISTENERS.activeThreadMessages) {
-        console.log('🧹 Cleaning up active thread messages listener');
+        console.log('Ã°Å¸Â§Â¹ Cleaning up active thread messages listener');
         ACTIVE_LISTENERS.activeThreadMessages();
         ACTIVE_LISTENERS.activeThreadMessages = null;
     }
     if (ACTIVE_LISTENERS.supportResponses) {
-        console.log('🧹 Cleaning up support responses listener');
+        console.log('Ã°Å¸Â§Â¹ Cleaning up support responses listener');
         stopSupportResponsesRealtimeStream('execute_all_cleanups');
     }
     
@@ -573,7 +438,7 @@ function executeAllCleanups() {
     CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
         const [event, handler, options] = listener;
         document.removeEventListener(event, handler, options);
-        console.log(`🧹 Removed document listener: ${key}`);
+        console.log(`Ã°Å¸Â§Â¹ Removed document listener: ${key}`);
     });
     CLEANUP_REGISTRY.documentListeners.clear();
     
@@ -602,7 +467,7 @@ function executeAllCleanups() {
     });
     CLEANUP_REGISTRY.cleanupFunctions.clear();
     
-    console.log('✅ COMPREHENSIVE CLEANUP COMPLETED');
+    console.log('Ã¢Å“â€¦ COMPREHENSIVE CLEANUP COMPLETED');
 }
 
 // MEMORY LEAK FIX: Safe document event listener with automatic tracking
@@ -620,7 +485,7 @@ function removeDocumentListener(key) {
         const [event, handler, options] = listener;
         document.removeEventListener(event, handler, options);
         CLEANUP_REGISTRY.documentListeners.delete(key);
-        console.log(`🧹 Removed tracked document listener: ${key}`);
+        console.log(`Ã°Å¸Â§Â¹ Removed tracked document listener: ${key}`);
     }
 }
 
@@ -656,8 +521,8 @@ function clearTrackedInterval(intervalId) {
 function isAllowedTextCharacter(char) {
     if (!char) return true;
     if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
-    if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
-    if (/[’‘]/.test(char)) return true;
+    if (/[.,!?'"()\/$&@Ã¢â€šÂ±%+=-]/.test(char)) return true;
+    if (/[Ã¢â‚¬â„¢Ã¢â‚¬Ëœ]/.test(char)) return true;
     if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
     return false;
 }
@@ -701,7 +566,7 @@ function showInputGuideHint(message) {
 
     hint.innerHTML = `
         <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
-            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">Ã°Å¸Å¡Â¨</div>
             <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
             <div style="font-size:14px; font-weight:600; line-height:1.38;">${message}</div>
         </div>
@@ -761,19 +626,19 @@ function isAllowedImageFile(file) {
 
 // Role-specific tab initialization functions
 async function initializeWorkerAlertsTab() {
-    console.log('📋 Initializing worker alerts tab');
+    console.log('Ã°Å¸â€œâ€¹ Initializing worker alerts tab');
     // Load worker-specific notifications
     await loadWorkerNotifications();
 }
 
 async function initializeWorkerChatsTab() {
-    console.log('💬 Initializing worker chats tab');
+    console.log('Ã°Å¸â€™Â¬ Initializing worker chats tab');
     // Load worker-specific chats
     loadWorkerChats();
 }
 
 async function initializeWorkerMessagesTab() {
-    console.log('📧 Initializing worker messages tab');
+    console.log('Ã°Å¸â€œÂ§ Initializing worker messages tab');
     // Initialize worker admin messages functionality
     loadWorkerMessages();
     setupMessageFiltering('worker');
@@ -787,19 +652,19 @@ async function initializeWorkerMessagesTab() {
 }
 
 async function initializeCustomerAlertsTab() {
-    console.log('📋 Initializing customer alerts tab');
+    console.log('Ã°Å¸â€œâ€¹ Initializing customer alerts tab');
     // Load customer-specific notifications
     await loadCustomerNotifications();
 }
 
 async function initializeCustomerInterviewsTab() {
-    console.log('🎯 Initializing customer interviews tab');
+    console.log('Ã°Å¸Å½Â¯ Initializing customer interviews tab');
     // Load customer interview chats
     loadCustomerInterviews();
 }
 
 async function initializeUnifiedMessagesTab() {
-    console.log('📧 Initializing unified messages tab');
+    console.log('Ã°Å¸â€œÂ§ Initializing unified messages tab');
     await ensureSupportResponsesRealtimeStream();
     // Initialize unified admin messages functionality using customer data
     loadUnifiedMessages();
@@ -813,7 +678,7 @@ async function initializeUnifiedMessagesTab() {
 }
 
 async function initializeCustomerMessagesTab() {
-    console.log('📧 Initializing customer messages tab');
+    console.log('Ã°Å¸â€œÂ§ Initializing customer messages tab');
     // Initialize customer admin messages functionality
     loadCustomerMessages();
     setupMessageFiltering('customer');
@@ -866,14 +731,14 @@ function getLocalizedAlertMessage(notif, type) {
     // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
     // the two legacy ones still in the DB) render this same abundance message.
     const slotsEn = closureCount === 1
-        ? '1 application slot just opened — find your next gig!'
-        : `${closureCount} application slots just opened — find your next gigs!`;
+        ? '1 application slot just opened Ã¢â‚¬â€ find your next gig!'
+        : `${closureCount} application slots just opened Ã¢â‚¬â€ find your next gigs!`;
     const slotsBi = closureCount === 1
-        ? 'Naabli na usab ang 1 ka application slot — pangitaa ang imong sunod nga gig!'
-        : `Naabli na usab ang ${closureCount} ka application slots — pangitaa ang sunod nimo nga mga gig!`;
+        ? 'Naabli na usab ang 1 ka application slot Ã¢â‚¬â€ pangitaa ang imong sunod nga gig!'
+        : `Naabli na usab ang ${closureCount} ka application slots Ã¢â‚¬â€ pangitaa ang sunod nimo nga mga gig!`;
     const slotsTl = closureCount === 1
-        ? 'May 1 application slot nang bukas ulit — hanapin ang susunod mong gig!'
-        : `May ${closureCount} application slots nang bukas ulit — maghanap pa ng mga gig!`;
+        ? 'May 1 application slot nang bukas ulit Ã¢â‚¬â€ hanapin ang susunod mong gig!'
+        : `May ${closureCount} application slots nang bukas ulit Ã¢â‚¬â€ maghanap pa ng mga gig!`;
     const localeMap = {
         english: {
             offer_sent: `You've been offered the gig "${jobTitle}"! Check Gigs Manager > Offered tab to accept or decline.`,
@@ -972,7 +837,7 @@ function traceUnmappedAlertTypes(notifications) {
             return;
         }
         LOGGED_UNMAPPED_ALERT_TYPES.add(type);
-        console.warn(`⚠️ Unmapped alert type received: ${type}`);
+        console.warn(`Ã¢Å¡Â Ã¯Â¸Â Unmapped alert type received: ${type}`);
         messagesTrace('alerts:unmapped_type', type);
     });
 }
@@ -1028,7 +893,7 @@ function stopAlertsRealtimeStream(reason = 'unspecified') {
         try {
             ACTIVE_LISTENERS.notifications();
         } catch (error) {
-            console.warn('⚠️ Failed to unsubscribe alerts listener:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to unsubscribe alerts listener:', error);
         }
         ACTIVE_LISTENERS.notifications = null;
     }
@@ -1049,7 +914,7 @@ function stopSupportResponsesRealtimeStream(reason = 'unspecified') {
         try {
             ACTIVE_LISTENERS.supportResponses();
         } catch (error) {
-            console.warn('⚠️ Failed to unsubscribe support responses listener:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to unsubscribe support responses listener:', error);
         }
         ACTIVE_LISTENERS.supportResponses = null;
     }
@@ -1225,7 +1090,7 @@ function clearThreadDeepLinkFromUrl() {
         const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
         window.history.replaceState({}, '', nextUrl);
     } catch (error) {
-        console.warn('⚠️ Could not clear thread deep-link params:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Could not clear thread deep-link params:', error);
     }
 }
 
@@ -1244,7 +1109,7 @@ async function applyThreadDeepLinkFromUrl() {
         }
         navigateToMessageThread(threadId, { preserveContextTab: true });
     } catch (error) {
-        console.warn('⚠️ Failed to apply thread deep-link, falling back to default tab:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to apply thread deep-link, falling back to default tab:', error);
         navigateToMessageThread(threadId, { preserveContextTab: true });
     } finally {
         clearThreadDeepLinkFromUrl();
@@ -1268,7 +1133,7 @@ async function resolveWorkerOfferRouteByCurrentStatus(jobId) {
         // Includes "hired" and unknown transitional states.
         return fallback;
     } catch (error) {
-        console.warn('⚠️ Offer route status lookup failed, using fallback:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Offer route status lookup failed, using fallback:', error);
         return fallback;
     }
 }
@@ -1280,7 +1145,7 @@ async function getCurrentJobStatus(jobId) {
         const job = await getJobById(safeJobId);
         return String(job?.status || '').toLowerCase();
     } catch (error) {
-        console.warn('⚠️ Job status lookup failed:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Job status lookup failed:', error);
         return '';
     }
 }
@@ -1387,7 +1252,7 @@ function renderWorkerAlertsUI(container, notifications) {
     if (uniqueNotifications.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">Ã°Å¸Å½Â¯</div>
                 <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
                 <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
                     Interview requests will appear here when<br>customers want to chat about your applications.
@@ -1408,7 +1273,7 @@ function renderCustomerAlertsUI(container, notifications) {
     if (uniqueNotifications.length === 0) {
         container.innerHTML = `
             <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">Ã¢Å“Â¨</div>
                 <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
                 <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
                     Alerts about applications, hires, and completions<br>will show up here when they arrive.
@@ -1470,7 +1335,7 @@ async function loadMoreAlertsIfNeeded() {
 
         renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: activeRole });
     } catch (error) {
-        console.warn('⚠️ Failed loading more alerts:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed loading more alerts:', error);
     } finally {
         ALERTS_PAGINATION_STATE.loading = false;
     }
@@ -1603,13 +1468,13 @@ function waitForAuthStateWithTimeout(timeoutMs = 7000) {
                 settle(user);
             });
         } catch (error) {
-            console.warn('⚠️ Auth listener setup failed:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Auth listener setup failed:', error);
             settle(null);
             return;
         }
 
         timeoutId = setTimeout(() => {
-            console.warn(`⚠️ Auth state wait timed out after ${timeoutMs}ms`);
+            console.warn(`Ã¢Å¡Â Ã¯Â¸Â Auth state wait timed out after ${timeoutMs}ms`);
             settle(firebase.auth().currentUser || null);
         }, timeoutMs);
     });
@@ -1653,7 +1518,7 @@ async function loadAlertsForRole(role) {
             messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'backend_unavailable' });
             return;
         }
-        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Alerts backend unavailable</div>';
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã¢Å¡Â Ã¯Â¸Â<br><br>Alerts backend unavailable</div>';
         messagesTrace('render:alerts:error', { role: config.role, reason: 'backend_unavailable' });
         updateAlertTabBadgeCounts([]);
         hideMessagesPageLoadingOverlay();
@@ -1671,13 +1536,13 @@ async function loadAlertsForRole(role) {
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
             stopAlertsRealtimeStream(config.authTraceReason);
-            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã°Å¸â€œÂ­<br><br>Please log in to view alerts</div>';
             messagesTrace('render:alerts:error', config.authTraceReason);
             updateAlertTabBadgeCounts([]);
             return;
         }
 
-        console.log(`✅ ${config.role} alerts: User authenticated as`, currentUser.uid);
+        console.log(`Ã¢Å“â€¦ ${config.role} alerts: User authenticated as`, currentUser.uid);
 
         await ensureAlertsRealtimeStream(currentUser);
         if (isAlertsLoadRequestStale(requestId, config.role)) {
@@ -1694,7 +1559,7 @@ async function loadAlertsForRole(role) {
             messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'error_path' });
             return;
         }
-        console.error(`❌ Error loading ${config.role} alerts:`, error);
+        console.error(`Ã¢ÂÅ’ Error loading ${config.role} alerts:`, error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
         messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
     }
@@ -1745,7 +1610,7 @@ function stopChatsRealtimeStream(reason = 'unspecified') {
         try {
             ACTIVE_LISTENERS.threads();
         } catch (error) {
-            console.warn('⚠️ Failed to unsubscribe threads listener:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to unsubscribe threads listener:', error);
         }
         ACTIVE_LISTENERS.threads = null;
     }
@@ -2085,7 +1950,7 @@ function markThreadAsRead(threadId) {
 
     if (unreadBefore > 0 && typeof markChatThreadRead === 'function') {
         void markChatThreadRead(threadId).catch((error) => {
-            console.warn('⚠️ Failed to persist thread read state:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to persist thread read state:', error);
         });
     }
 }
@@ -2110,7 +1975,7 @@ function requestThreadReadSync(threadId, options = {}) {
     CHATS_READ_SYNC_STATE.inFlight.add(threadId);
     void markChatThreadRead(threadId)
         .catch((error) => {
-            console.warn('⚠️ Failed to sync active-thread read state:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to sync active-thread read state:', error);
         })
         .finally(() => {
             CHATS_READ_SYNC_STATE.inFlight.delete(threadId);
@@ -2138,14 +2003,14 @@ async function loadRoleChats(role) {
         && isFirebaseOnline();
 
     if (!canUseFirebaseChats) {
-        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã°Å¸â€™Â¬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
         if (isWorkerRole) {
             setTabNotificationCount('#workerChatsTab', 0);
         } else {
             setTabNotificationCount('#customerInterviewsTab', 0);
         }
         updateMainMessagesTabCount();
-        console.warn(`⚠️ ${roleName} chats unavailable: Firebase chat path not ready`);
+        console.warn(`Ã¢Å¡Â Ã¯Â¸Â ${roleName} chats unavailable: Firebase chat path not ready`);
         return;
     }
 
@@ -2158,7 +2023,7 @@ async function loadRoleChats(role) {
 
         if (!currentUser) {
             stopChatsRealtimeStream(`${roleName}_not_authenticated`);
-            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view chats</div>';
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã°Å¸â€œÂ­<br><br>Please log in to view chats</div>';
             return;
         }
 
@@ -2171,7 +2036,7 @@ async function loadRoleChats(role) {
         // Render immediately from current stream cache for snappy tab switches.
         renderChatsViewsFromStream();
     } catch (error) {
-        console.error(`❌ Error loading ${roleName} chats:`, error);
+        console.error(`Ã¢ÂÅ’ Error loading ${roleName} chats:`, error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
     }
 }
@@ -2209,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    console.log('🚀 Role-based messages system initializing...');
+    console.log('Ã°Å¸Å¡â‚¬ Role-based messages system initializing...');
     
     // Initialize core systems
     initializeRoles();
@@ -2230,7 +2095,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     cleanupMobileInputVisibility();
     
     // MEMORY LEAK FIX: Register page unload cleanup. Skip when only launching an
-    // external app (tel:/sms:/WhatsApp/Viber from contact-reveal) — that fires
+    // external app (tel:/sms:/WhatsApp/Viber from contact-reveal) Ã¢â‚¬â€ that fires
     // unload events without the page actually unloading.
     window.addEventListener('beforeunload', guardedExecuteAllCleanups);
     window.addEventListener('unload', guardedExecuteAllCleanups);
@@ -2272,7 +2137,7 @@ window.addEventListener('pageshow', (event) => {
     requestMessagesPageLoadingOverlay(2200);
     initializeWorkerAlertsTab()
         .catch((error) => {
-            console.warn('⚠️ pageshow alerts refresh failed:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â pageshow alerts refresh failed:', error);
         })
         .finally(() => {
             hideMessagesPageLoadingOverlay();
@@ -2335,7 +2200,7 @@ function initializeRoles() {
 }
 
 async function switchToRole(roleType) {
-    console.log(`🔄 Switching to role: ${roleType}`);
+    console.log(`Ã°Å¸â€â€ž Switching to role: ${roleType}`);
     const normalizedRole = roleType === 'customer' ? 'customer' : 'worker';
     const activeRoleBtn = document.querySelector('.role-tab-btn.active');
     const activeRole = String(activeRoleBtn?.dataset?.role || '').trim().toLowerCase();
@@ -2434,7 +2299,7 @@ function initializeTabs() {
 }
 
 async function switchToUnifiedMessages() {
-    console.log('🔄 Switching to unified Messages tab');
+    console.log('Ã°Å¸â€â€ž Switching to unified Messages tab');
     stopChatsRealtimeStream('switch_to_unified_messages');
     document.body.classList.remove('alerts-lang-visible');
     const alertsLangTabs = document.getElementById('alertsLangTabs');
@@ -2517,7 +2382,7 @@ async function switchToCustomerTab(tabType) {
         activeWrapper.classList.add('active');
     }
     
-    console.log(`🔄 Switched to customer tab: ${tabType}`);
+    console.log(`Ã°Å¸â€â€ž Switched to customer tab: ${tabType}`);
     if (tabType !== 'customer-interviews') {
         stopChatsRealtimeStream('switch_away_from_customer_interviews');
     }
@@ -2577,7 +2442,7 @@ async function switchToWorkerTab(tabType) {
         activeWrapper.classList.add('active');
     }
     
-    console.log(`🔄 Switched to worker tab: ${tabType}`);
+    console.log(`Ã°Å¸â€â€ž Switched to worker tab: ${tabType}`);
     if (tabType !== 'worker-chats') {
         stopChatsRealtimeStream('switch_away_from_worker_chats');
     }
@@ -2608,7 +2473,7 @@ function cleanupJobListingListeners() {
         }
     });
     
-    console.log('🧹 Cleaned up job listing event listeners');
+    console.log('Ã°Å¸Â§Â¹ Cleaned up job listing event listeners');
 }
 
 // Job Listings Management
@@ -2632,7 +2497,7 @@ function initializeJobListings() {
                     // Collapse current listing
                     jobListing.classList.remove('expanded');
                     applicationsList.style.display = 'none';
-                    expandIcon.textContent = '▼';
+                    expandIcon.textContent = 'Ã¢â€“Â¼';
                 } else {
                     // First, close all other expanded listings
                     closeAllJobListings();
@@ -2640,7 +2505,7 @@ function initializeJobListings() {
                     // Then expand the current listing
                     jobListing.classList.add('expanded');
                     applicationsList.style.display = 'block';
-                    expandIcon.textContent = '▲';
+                    expandIcon.textContent = 'Ã¢â€“Â²';
                     
                     // Smooth scroll to center the expanded job listing
                     setTimeout(() => {
@@ -2668,7 +2533,7 @@ function closeAllJobListings() {
                 applicationsList.style.display = 'none';
             }
             if (expandIcon) {
-                expandIcon.textContent = '▼';
+                expandIcon.textContent = 'Ã¢â€“Â¼';
             }
         }
     });
@@ -2755,10 +2620,10 @@ function showConfirmationOverlay(type, title, message) {
         
         // Set icon and styling based on type
         if (type === 'success') {
-            icon.textContent = '✓';
+            icon.textContent = 'Ã¢Å“â€œ';
             icon.className = 'confirmation-icon success';
         } else if (type === 'reject') {
-            icon.textContent = '✗';
+            icon.textContent = 'Ã¢Å“â€”';
             icon.className = 'confirmation-icon reject';
         }
         
@@ -3060,7 +2925,7 @@ function getPendingNotificationReadIds() {
         const parsed = JSON.parse(localStorage.getItem(PENDING_NOTIFICATION_READS_KEY) || '[]');
         return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
     } catch (error) {
-        console.warn('⚠️ Could not parse pending notification reads:', error);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Could not parse pending notification reads:', error);
         return [];
     }
 }
@@ -3095,7 +2960,7 @@ async function flushPendingNotificationReads() {
             await markNotificationRead(notificationId);
             dequeuePendingNotificationRead(notificationId);
         } catch (error) {
-            console.warn('⚠️ Pending notification read flush failed:', notificationId, error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Pending notification read flush failed:', notificationId, error);
         }
     }
 }
@@ -3115,7 +2980,7 @@ async function markNotificationAsRead(notificationItem, options = {}) {
         if (!readIndicator) {
             readIndicator = document.createElement('div');
             readIndicator.className = 'read-indicator';
-            readIndicator.innerHTML = '✓ Read';
+            readIndicator.innerHTML = 'Ã¢Å“â€œ Read';
             notificationItem.appendChild(readIndicator);
         }
         
@@ -3126,10 +2991,10 @@ async function markNotificationAsRead(notificationItem, options = {}) {
             const persistPromise = markNotificationRead(notificationId).then(() => {
                 dequeuePendingNotificationRead(notificationId);
                 notificationItem.dataset.read = 'true';
-                console.log('✅ Notification marked as read in Firebase:', notificationId);
+                console.log('Ã¢Å“â€¦ Notification marked as read in Firebase:', notificationId);
                 return true;
             }).catch((error) => {
-                console.error('❌ Error marking notification as read:', error);
+                console.error('Ã¢ÂÅ’ Error marking notification as read:', error);
                 return false;
             });
             try {
@@ -3435,7 +3300,7 @@ async function deleteSelectedNotifications() {
     }
 
     if (typeof deleteNotification !== 'function') {
-        console.warn('⚠️ Notification delete API unavailable');
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Notification delete API unavailable');
         showToast('Delete is unavailable right now. Please refresh and try again.');
         deletionInProgress = false;
         return;
@@ -3454,10 +3319,10 @@ async function deleteSelectedNotifications() {
             if (result && result.success === true) {
                 persistedIds.push(notificationId);
             } else {
-                console.warn('⚠️ Failed to persist notification delete:', notificationId, result);
+                console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to persist notification delete:', notificationId, result);
             }
         } catch (error) {
-            console.warn('⚠️ Notification delete request failed:', notificationId, error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Notification delete request failed:', notificationId, error);
         }
     }
 
@@ -3593,7 +3458,7 @@ function generateNotificationHTML(notification) {
                 </div>
                 ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
             </div>
-            ${isRead ? '<div class="read-indicator">✓ Read</div>' : ''}
+            ${isRead ? '<div class="read-indicator">Ã¢Å“â€œ Read</div>' : ''}
         </div>
     `;
 }
@@ -3601,76 +3466,76 @@ function generateNotificationHTML(notification) {
 // Transform Firebase notification into display format with icon, title, timestamps
 function transformFirebaseNotification(notif) {
     const type = notif.type || '';
-    let icon = '🔔';
+    let icon = 'Ã°Å¸â€â€';
     let iconClass = 'system-icon';
     let title = 'Notification';
     
     // Map notification types to icons and titles
     switch(type) {
         case 'offer_sent':
-            icon = '💼';
+            icon = 'Ã°Å¸â€™Â¼';
             iconClass = 'job-icon';
             title = 'Gig Offer Received';
             break;
         case 'offer_accepted':
-            icon = '🎉';
+            icon = 'Ã°Å¸Å½â€°';
             iconClass = 'success-icon';
             title = tAlertLang('offerAccepted');
             break;
         case 'interview_request':
-            icon = '💬';
+            icon = 'Ã°Å¸â€™Â¬';
             iconClass = 'message-icon';
             title = 'Interview Request';
             break;
         case 'job_completed':
-            icon = '✅';
+            icon = 'Ã¢Å“â€¦';
             iconClass = 'success-icon';
             title = 'Gig Completed';
             break;
         case 'feedback_received':
-            icon = '⭐';
+            icon = 'Ã¢Â­Â';
             iconClass = 'rating-icon';
             title = 'Feedback Received';
             break;
         case 'contract_voided':
-            icon = '🔄';
+            icon = 'Ã°Å¸â€â€ž';
             iconClass = 'warning-icon';
             title = 'Contract Voided - Gig Relisted';
             break;
         case 'application_received':
-            icon = '📝';
+            icon = 'Ã°Å¸â€œÂ';
             iconClass = 'application-icon';
             title = 'New Application';
             break;
         case 'application_milestone':
-            icon = '📊';
+            icon = 'Ã°Å¸â€œÅ ';
             iconClass = 'milestone-icon';
             title = 'Applications Update';
             break;
         case 'gig_auto_paused':
-            icon = '🛑';
+            icon = 'Ã°Å¸â€ºâ€˜';
             iconClass = 'alert-icon';
             title = 'Gig Auto-Paused';
             break;
         case 'offer_rejected':
-            icon = '❌';
+            icon = 'Ã¢ÂÅ’';
             iconClass = 'reject-icon';
             title = tAlertLang('offerDeclined');
             break;
         case 'worker_resigned':
-            icon = '🚪';
+            icon = 'Ã°Å¸Å¡Âª';
             iconClass = 'resign-icon';
             title = 'Worker Resigned';
             break;
         case 'worker_feedback_received':
-            icon = '⭐';
+            icon = 'Ã¢Â­Â';
             iconClass = 'rating-icon';
             title = 'Worker Feedback Received';
             break;
         case 'application_slots_reopened_batch':
         case 'application_not_selected_batch':
         case 'application_rejected_batch':
-            icon = '🔓';
+            icon = 'Ã°Å¸â€â€œ';
             iconClass = 'success-icon';
             title = tAlertLang('slotsOpen');
             break;
@@ -3741,7 +3606,7 @@ function loadNotificationsTab() {
     if (container) {
         const notificationsMarkup = generateNotificationsContent();
         if (!notificationsMarkup) {
-            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">🔔<br><br>No alerts yet.</div>';
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã°Å¸â€â€<br><br>No alerts yet.</div>';
         } else {
             container.innerHTML = notificationsMarkup;
             // Reinitialize event handlers for the dynamically loaded content
@@ -3799,184 +3664,6 @@ function fixFirstNotificationSelection() {
         console.log('First item selection fix applied');
     }
 }
-
-// ===== FIREBASE DATA MAPPING DOCUMENTATION =====
-/*
-COMPREHENSIVE MESSAGE SYSTEM FIREBASE INTEGRATION MAPPING
-
-This legacy data structure is designed for direct Firebase Firestore integration.
-All fields and relationships are mapped for production backend implementation.
-
-COLLECTIONS STRUCTURE:
-1. conversations/ - Main conversation threads
-2. conversations/{conversationId}/messages/ - Individual messages
-3. users/{userId}/conversations/ - User conversation indexes
-4. applications/{applicationId} - Referenced applications
-5. jobs/{jobId} - Referenced job posts
-
-CONVERSATION DOCUMENT SCHEMA:
-{
-  conversationId: string (auto-generated or threadId),
-  participants: [userId1, userId2], // Array for easy querying
-  participantDetails: {
-    userId1: { name: string, avatar: string, role: 'customer'|'worker' },
-    userId2: { name: string, avatar: string, role: 'customer'|'worker' }
-  },
-  jobId: string, // Reference to jobs collection
-  jobTitle: string, // Denormalized for performance
-  threadOrigin: 'application'|'job', // How the conversation started
-  applicationId: string|null, // Reference to applications collection if origin is 'application'
-  currentUserRole: { // Per-user role mapping
-    userId1: 'customer'|'worker',
-    userId2: 'customer'|'worker'
-  },
-  status: 'active'|'archived'|'deleted',
-  isNew: { // Per-user new status
-    userId1: boolean,
-    userId2: boolean
-  },
-  lastMessage: {
-    content: string,
-    senderId: string,
-    timestamp: timestamp,
-    messageId: string
-  },
-  lastActivity: timestamp,
-  createdAt: timestamp,
-  updatedAt: timestamp,
-  // Privacy and moderation
-  blockedBy: { userId: blockedUserId }, // If conversation is blocked by user
-  hiddenFor: { userId: boolean }, // If conversation is hidden for user
-  deletedFor: { userId: timestamp }, // Soft delete per user
-  reportedBy: [userId], // Moderation flags
-  // Firebase security rules support
-  readPermissions: [userId1, userId2],
-  writePermissions: [userId1, userId2]
-}
-
-MESSAGE DOCUMENT SCHEMA:
-{
-  messageId: string (auto-generated),
-  conversationId: string, // Parent conversation reference
-  senderId: string, // Reference to users collection
-  senderName: string, // Denormalized for performance
-  senderType: 'customer'|'worker', // Role in this conversation
-  recipientId: string, // Other participant
-  content: string,
-  timestamp: timestamp,
-  read: boolean,
-  readAt: timestamp|null,
-  direction: 'incoming'|'outgoing', // Relative to current user
-  messageType: 'text'|'image'|'file'|'system', // Future extensibility
-  // Moderation and privacy
-  deletedFor: { userId: timestamp }, // Soft delete per user
-  hiddenFor: { userId: boolean },
-  edited: boolean,
-  editedAt: timestamp|null,
-  reportedBy: [userId],
-  // Firebase security
-  readPermissions: [senderId, recipientId],
-  writePermissions: [senderId] // Only sender can edit/delete
-}
-
-CONVERSATION CREATION RULES:
-1. APPLICATION-BASED THREADS (threadOrigin: 'application'):
-   - Created when customer contacts worker's application via "Contact" button
-   - applicationId must be provided and valid
-   - currentUserRole determines user permissions  
-   - Customer and Worker roles have different overlay options
-   - "View Application" button removed since applications moved to jobs.html
-
-2. JOB-BASED THREADS (threadOrigin: 'job'):
-   - Created when worker contacts customer's job post via "Contact" button
-   - applicationId is null
-   - All participants can view job post via "View Job Post" button
-   - Essential for workers to reference original job requirements
-
-AVATAR OVERLAY PERMISSIONS:
-- Current user's own avatars: NO overlay (prevents self-actions)
-- Other participants' avatars: Full overlay with context-aware buttons
-- View Application: Only for customers in application threads
-- View Job Post: Available for all participants in all threads
-- Profile/Block/Delete: Available for all other participants
-
-FIREBASE SECURITY RULES LOGIC:
-- Users can only read/write conversations they participate in
-- Messages inherit parent conversation permissions
-- Soft deletes preserve data for the other participant
-- Block functionality hides conversations without deleting
-- All user actions are logged with timestamps for moderation
-
-INDEXING REQUIREMENTS:
-- conversations: participants array, lastActivity desc
-- messages: conversationId, timestamp desc
-- users conversations: userId, lastActivity desc
-- applications: applicantUid, jobId
-- jobs: customerId, createdAt desc
-
-REAL-TIME LISTENERS:
-- Conversation list: Listen to user's active conversations
-- Message thread: Listen to specific conversation messages
-- Notification system: Listen to new messages and conversation updates
-- Online status: Track participant availability (future feature)
-
-WORKER PERSPECTIVE EXAMPLES (Threads 4 & 5):
-Thread 4 - Peter as Worker receiving Interview Request:
-- Janice (customer) contacted Peter's application
-- Peter sees "Application Interview with Janice Legaspi"
-- "View Application" button removed (applications moved to jobs.html)
-- "View Job Post" button available to reference original job
-- Critical for Peter to understand what job Janice is hiring for
-
-Thread 5 - Peter as Worker inquiring about Job:
-- Peter (worker) contacted Chris's job post
-- Peter sees "Direct Message with Chris Vicente"
-- No response yet from Chris (realistic scenario)
-- "View Job Post" button essential for Peter to reference job details
-- Helps Peter follow up appropriately when Chris eventually responds
-
-BACKEND INTEGRATION POINTS:
-1. Authentication: getCurrentUserId() → Firebase Auth
-2. Real-time: Firestore listeners for live updates
-3. Notifications: Cloud Functions for push notifications
-4. Moderation: Automated content filtering + manual review
-5. Analytics: Conversation success rates, response times
-6. Search: Full-text search on conversation content (future)
-
-DETAILED THREAD AVATAR OVERLAY MAPPING:
-
-Thread 1 (Miguel Torres - Plumber):
-- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
-- Miguel's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
-- Peter's Avatar: NO overlay (current user)
-
-Thread 2 (Ana Rodriguez - Cleaner):
-- threadOrigin: 'application', currentUserRole: 'customer', applicationId: 'app_kT3nH7mR8qX2bS9jL6'
-- Ana's Avatar Overlay: View Profile, View Job Post, VIEW APPLICATION, Block, Delete, Close
-- Peter's Avatar: NO overlay (current user)
-
-Thread 3 (Carlos Mendoza - Gardener):
-- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
-- Carlos's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
-- Peter's Avatar: NO overlay (current user)
-
-Thread 4 (Janice Legaspi - Customer seeking Programmer):
-- threadOrigin: 'application', currentUserRole: 'worker', applicationId: 'app_nK5jT7mR8pL3wQ2xF6'
-- Janice's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
-- NO "View Application" (worker perspective - can't view own application)
-- Peter's Avatar: NO overlay (current user)
-
-Thread 5 (Chris Vicente - Customer needing App Development):
-- threadOrigin: 'job', currentUserRole: 'worker', applicationId: null
-- Chris's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
-- CRITICAL: View Job Post essential for Peter to reference original requirements
-- Peter's Avatar: NO overlay (current user)
-
-NAVIGATION IMPORTANCE:
-- Thread 4: Peter needs "View Job Post" to understand what position Janice is hiring for
-- Thread 5: Peter needs "View Job Post" to reference his inquiry and follow up appropriately
-- All worker perspective threads benefit from easy job post access for context
-*/
 
 // Generate Message Card HTML
 function generateMessageHTML(message) {
@@ -4158,7 +3845,7 @@ async function resolveChatJobOverlayState(jobId, currentUserId) {
         try {
             job = await getJobById(safeJobId);
         } catch (error) {
-            console.warn('⚠️ Failed to resolve gig status visibility:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to resolve gig status visibility:', error);
         }
 
         if (!job || typeof job !== 'object') {
@@ -4481,7 +4168,7 @@ async function bindRealtimeThreadMessages(modalOverlay, threadId) {
                 incomingSenderName
             });
         } catch (error) {
-            console.warn('⚠️ Failed to load thread messages:', error);
+            console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to load thread messages:', error);
         }
     }
 }
@@ -4536,7 +4223,7 @@ function generateMessageThreadHTML(thread) {
                 </div>
                 <div class="thread-status">
                     ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
-                    <div class="expand-icon">▼</div>
+                    <div class="expand-icon">Ã¢â€“Â¼</div>
                 </div>
             </div>
             <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
@@ -4548,7 +4235,7 @@ function generateMessageThreadHTML(thread) {
                             <div class="modal-job-title">${thread.jobTitle}</div>
                             <div class="modal-participant">${generateParticipantText(thread)}</div>
                         </div>
-                        <button class="modal-close-btn">×</button>
+                        <button class="modal-close-btn">Ãƒâ€”</button>
                     </div>
                     
                     <!-- Modal Body -->
@@ -4583,21 +4270,21 @@ async function loadMessagesTab() {
         
         if (typeof getUserChatThreads === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
             try {
-                console.log('🔥 Loading chat threads from Firebase...');
+                console.log('Ã°Å¸â€Â¥ Loading chat threads from Firebase...');
                 const threads = await getUserChatThreads();
                 
                 if (threads && threads.length > 0) {
-                    console.log(`✅ Firebase: Found ${threads.length} chat threads`);
+                    console.log(`Ã¢Å“â€¦ Firebase: Found ${threads.length} chat threads`);
                     messagesContent = threads.map(thread => generateMessageThreadHTMLFromFirebase(thread)).join('');
                 } else {
-                    messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>No chats yet.</div>';
+                    messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã°Å¸â€™Â¬<br><br>No chats yet.</div>';
                 }
             } catch (error) {
-                console.error('❌ Firebase error while loading chats:', error);
+                console.error('Ã¢ÂÅ’ Firebase error while loading chats:', error);
                 messagesContent = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
             }
         } else {
-            messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Chats backend unavailable.</div>';
+            messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">Ã¢Å¡Â Ã¯Â¸Â<br><br>Chats backend unavailable.</div>';
         }
         
         container.innerHTML = messagesContent;
@@ -4620,7 +4307,7 @@ function generateMessageThreadHTMLFromFirebase(thread) {
     const currentUserId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : 'current_user';
     const otherParticipant = thread.participantIds?.find(id => id !== currentUserId);
     
-    const mockThread = {
+    const threadForRenderer = {
         threadId: thread.id || thread.threadId,
         jobId: thread.jobId || '',
         jobCategory: thread.jobCategory || '',
@@ -4646,7 +4333,7 @@ function generateMessageThreadHTMLFromFirebase(thread) {
         lastMessagePreview: thread.lastMessagePreview || 'Start a conversation...'
     };
     
-    return generateMessageThreadHTML(mockThread);
+    return generateMessageThreadHTML(threadForRenderer);
 }
 
 // ===== END PHASE 1 TEMPLATES =====
@@ -4682,7 +4369,7 @@ function initializeMessages(container = document) {
                         // Collapse current thread
                         messageThread.classList.remove('expanded', 'show');
                         threadContent.style.display = 'none';
-                        expandIcon.textContent = '▼';
+                        expandIcon.textContent = 'Ã¢â€“Â¼';
                         
                         // Remove thread-active class and overlay from container
                         messagesContainer.classList.remove('thread-active', 'show-overlay');
@@ -4707,7 +4394,7 @@ function initializeMessages(container = document) {
                             lastActivity: new Date().toISOString()
                         };
                         
-                        console.log('🔍 Thread header clicked (expanded), opening overlay:', userData);
+                        console.log('Ã°Å¸â€Â Thread header clicked (expanded), opening overlay:', userData);
                         showAvatarOverlay(e, userData);
                     }
                     return;
@@ -4717,7 +4404,7 @@ function initializeMessages(container = document) {
                     
                     // Create and show the chat modal overlay
                     showChatModal(messageThread, threadContent);
-                    expandIcon.textContent = '✕';
+                    expandIcon.textContent = 'Ã¢Å“â€¢';
                     
                     // Mark thread as active (for styling purposes)
                     messagesContainer.classList.add('thread-active');
@@ -4772,7 +4459,7 @@ function closeAllMessageThreads() {
             threadContent.style.display = 'none';
         }
         if (expandIcon) {
-            expandIcon.textContent = '▼';
+            expandIcon.textContent = 'Ã¢â€“Â¼';
         }
         
         // CRITICAL: Reset thread appearance - remove greyed out state
@@ -4794,7 +4481,7 @@ function closeAllMessageThreads() {
     hideAvatarOverlay();
     cleanupMobileInputVisibility();
     
-    messagesDebug('✅ All message threads closed and cleaned up');
+    messagesDebug('Ã¢Å“â€¦ All message threads closed and cleaned up');
 }
 
 function scrollToThreadTop() {
@@ -4928,7 +4615,7 @@ let scrollTimeouts = [];
 function initializeMobileInputVisibility(messageThread) {
     // DISABLED: Reverting to simpler UI restructure approach
     // Input will be moved to top of thread to avoid keyboard entirely
-    console.log('✓ Mobile input visibility - using top-input layout approach');
+    console.log('Ã¢Å“â€œ Mobile input visibility - using top-input layout approach');
     return;
 }
 
@@ -4945,7 +4632,7 @@ function cleanupMobileInputVisibility() {
     });
     mobileInputListeners = [];
     
-    messagesDebug('🧹 Mobile input visibility cleanup completed');
+    messagesDebug('Ã°Å¸Â§Â¹ Mobile input visibility cleanup completed');
 }
 
 function initializeContactMessageOverlay() {
@@ -5046,1401 +4733,6 @@ function initializeContactMessageOverlay() {
 window.cancelSelection = cancelSelection;
 window.deleteSelectedNotifications = deleteSelectedNotifications;
 
-// Removed: legacy applications array - Applications data moved to jobs.html overlay system
-// The Messages tab (3rd tab) now contains admin communications, not application cards
-// const LEGACY_APPLICATIONS = [
-    /*{
-        jobId: 'job_gT5nM8xK2jS6wF3eA9', // Firebase document ID format
-        jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
-        employerUid: 'user_currentUserUid', // Job owner
-        applicationCount: 2,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-18T10:00:00Z'),
-        updatedAt: new Date('2025-12-22T14:45:00Z'),
-        
-        // Denormalized for better Firestore performance
-        applications: [
-            {
-                applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
-                applicantUid: 'user_mR8nT4kX2qJ5wP9sC7',
-                jobId: 'job_gT5nM8xK2jS6wF3eA9',
-                status: 'pending',
-                
-                // Firestore timestamp format
-                appliedAt: new Date('2025-12-20T14:45:00Z'),
-                updatedAt: new Date('2025-12-20T14:45:00Z'),
-                
-                // Denormalized user data for faster reads
-                applicantProfile: {
-                    displayName: 'Mario Santos',
-                    photoURL: 'public/users/User-02.jpg', // Fixed local path
-                    averageRating: 5.0,
-                    totalReviews: 50,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T12:00:00Z')
-                },
-                
-                // Application-specific data
-                pricing: {
-                    offeredAmount: 550,
-                    originalAmount: 600,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won\'t let you down!',
-                
-                // Worker qualifications (denormalized for quick access)
-                qualifications: {
-                    experience: '10 years',
-                    specializations: ['professional cleaning', 'offices', 'hotels'],
-                    availability: 'immediate',
-                    equipment: 'own equipment',
-                    languages: ['English', 'Filipino']
-                },
-                
-                // For display formatting
-                displayData: {
-                    appliedDate: '2025-12-20',
-                    appliedTime: '2:45 PM',
-                    formattedPrice: '₱550 Per Job'
-                },
-                
-                // Firestore metadata
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_kT3nH7mR8qX2bS9jL6',
-                applicantUid: 'user_qX5nK8mT3jR7wS2nC9',
-                jobId: 'job_gT5nM8xK2jS6wF3eA9',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T10:15:00Z'),
-                updatedAt: new Date('2025-12-21T10:15:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Ana Rodriguez',
-                    photoURL: 'public/users/User-03.jpg', // Fixed local path - matches message thread
-                    averageRating: 4.0,
-                    totalReviews: 32,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T09:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 600,
-                    originalAmount: 600,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good day! I\'m available for your cleaning job. I specialize in deep cleaning and have excellent references.',
-                
-                qualifications: {
-                    experience: '5 years',
-                    specializations: ['deep cleaning', 'residential'],
-                    availability: 'flexible',
-                    references: 'available upon request',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '10:15 AM',
-                    formattedPrice: '₱600 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_wR4nM7xT9qK2jP5sL8',
-        jobTitle: 'Plumbing repair - kitchen sink leak',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 2, // Reduced for Firebase demo
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-19T08:00:00Z'),
-        updatedAt: new Date('2025-12-22T11:00:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_nR6mK3qT8jX2wS7nL9',
-                applicantUid: 'user_bM9nR4kX8qT2jW5sP3',
-                jobId: 'job_wR4nM7xT9qK2jP5sL8',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T08:30:00Z'),
-                updatedAt: new Date('2025-12-22T08:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Miguel Torres',
-                    photoURL: 'public/users/User-06.jpg', // Fixed local path
-                    averageRating: 5.0,
-                    totalReviews: 67,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T08:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 800,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'I can fix your sink today! 8 years experience in plumbing repairs. I have all necessary tools and parts.',
-                
-                qualifications: {
-                    experience: '8 years',
-                    specializations: ['plumbing repairs', 'sink', 'pipes'],
-                    availability: 'today',
-                    equipment: 'complete plumbing toolkit',
-                    certifications: ['licensed plumber'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '8:30 AM',
-                    formattedPrice: '₱800 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_lP4nX7mR9qK2jT8sW5',
-                applicantUid: 'user_sW6nM3rT8qJ2kX9nL4',
-                jobId: 'job_wR4nM7xT9qK2jP5sL8',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T11:00:00Z'),
-                updatedAt: new Date('2025-12-22T11:00:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Carlos Mendoza',
-                    photoURL: 'public/users/User-07.jpg', // Fixed local path
-                    averageRating: 4.0,
-                    totalReviews: 28,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T10:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 750,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Licensed plumber available today. Quick and reliable service with 1-year warranty on repairs.',
-                
-                qualifications: {
-                    experience: '6 years',
-                    specializations: ['licensed plumbing', 'repairs'],
-                    availability: 'today',
-                    warranty: '1-year warranty',
-                    certifications: ['government licensed'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '11:00 AM',
-                    formattedPrice: '₱750 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
-        jobTitle: 'Grocery shopping and delivery - weekly service',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 3,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-19T08:30:00Z'),
-        updatedAt: new Date('2025-12-22T16:20:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_nK7jM3xQ9rT6wL4sB8',
-                applicantUid: 'user_wL9kR5mT8qX3jN6sP2',
-                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T09:20:00Z'),
-                updatedAt: new Date('2025-12-21T09:20:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Miguel Cruz',
-                    photoURL: 'public/users/User-04.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 23,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T15:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 150,
-                    originalAmount: 180,
-                    currency: 'PHP',
-                    paymentType: 'per_trip',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hello! I can do your weekly grocery shopping. I have my own vehicle and know all the best markets for fresh produce.',
-                
-                qualifications: {
-                    experience: '3 years',
-                    specializations: ['grocery shopping', 'delivery'],
-                    availability: 'weekends',
-                    transportation: 'own vehicle',
-                    languages: ['English', 'Filipino', 'Cebuano']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '9:20 AM',
-                    formattedPrice: '₱150 Per Trip'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_rT8kN4xM7qW9jL3sC6',
-                applicantUid: 'user_jL3kN7mR9qT5wX8sB4',
-                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T11:45:00Z'),
-                updatedAt: new Date('2025-12-21T11:45:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Ana Reyes',
-                    photoURL: 'public/users/User-05.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 41,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T14:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 180,
-                    originalAmount: 180,
-                    currency: 'PHP',
-                    paymentType: 'per_trip',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good day! I\'m very experienced with grocery shopping and always choose the freshest items. I can start immediately.',
-                
-                qualifications: {
-                    experience: '6 years',
-                    specializations: ['grocery shopping', 'fresh produce selection'],
-                    availability: 'flexible schedule',
-                    references: 'excellent customer feedback',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '11:45 AM',
-                    formattedPrice: '₱180 Per Trip'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_xW5kL8mQ2rT7jN9sK3',
-                applicantUid: 'user_qT6kW9mL3rX7jN4sC8',
-                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T07:15:00Z'),
-                updatedAt: new Date('2025-12-22T07:15:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Roberto Silva',
-                    photoURL: 'public/users/User-06.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 18,
-                    verified: false,
-                    lastActive: new Date('2025-12-22T16:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 120,
-                    originalAmount: 180,
-                    currency: 'PHP',
-                    paymentType: 'per_trip',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'I can help with your grocery needs. I\'m new to the platform but very reliable and hardworking.',
-                
-                qualifications: {
-                    experience: '1 year',
-                    specializations: ['delivery', 'shopping assistance'],
-                    availability: 'morning hours',
-                    transportation: 'motorcycle',
-                    languages: ['Filipino', 'English']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '7:15 AM',
-                    formattedPrice: '₱120 Per Trip'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_sH2kM6xT4qR9wN7jL3',
-        jobTitle: 'Garden maintenance - lawn mowing and plant care',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 3,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-20T13:15:00Z'),
-        updatedAt: new Date('2025-12-22T17:30:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_mQ4kT7xN2rW8jL5sH9',
-                applicantUid: 'user_rW8kQ4mT7xN2jL5sH9',
-                jobId: 'job_sH2kM6xT4qR9wN7jL3',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T14:30:00Z'),
-                updatedAt: new Date('2025-12-21T14:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Juan Flores',
-                    photoURL: 'public/users/User-07.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 37,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T13:20:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 400,
-                    originalAmount: 450,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'I have 8 years experience in landscaping and garden maintenance. I bring my own tools and equipment.',
-                
-                qualifications: {
-                    experience: '8 years',
-                    specializations: ['landscaping', 'lawn care', 'plant maintenance'],
-                    availability: 'weekdays',
-                    equipment: 'professional tools included',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '2:30 PM',
-                    formattedPrice: '₱400 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_tL9kX3mR6qW2jN8sK4',
-                applicantUid: 'user_xN8kL9mR6qW2jT3sK4',
-                jobId: 'job_sH2kM6xT4qR9wN7jL3',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T16:10:00Z'),
-                updatedAt: new Date('2025-12-21T16:10:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Elena Morales',
-                    photoURL: 'public/users/User-08.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 29,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T11:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 450,
-                    originalAmount: 450,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'I specialize in organic gardening and plant care. Your garden will be in excellent hands with me!',
-                
-                qualifications: {
-                    experience: '5 years',
-                    specializations: ['organic gardening', 'plant care', 'lawn maintenance'],
-                    availability: 'flexible',
-                    certifications: 'organic gardening certified',
-                    languages: ['English', 'Filipino', 'Spanish']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '4:10 PM',
-                    formattedPrice: '₱450 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_wK6kR9mT3xQ7jL2sN5',
-                applicantUid: 'user_mT3kW6rQ9xL7jN2sK5',
-                jobId: 'job_sH2kM6xT4qR9wN7jL3',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T08:45:00Z'),
-                updatedAt: new Date('2025-12-22T08:45:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Carlos Mendoza',
-                    photoURL: 'public/users/User-09.jpg',
-                    averageRating: 3.5,
-                    totalReviews: 14,
-                    verified: false,
-                    lastActive: new Date('2025-12-22T17:15:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 350,
-                    originalAmount: 450,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'I can take care of your garden at a good price. I\'m starting out but very motivated to do excellent work.',
-                
-                qualifications: {
-                    experience: '2 years',
-                    specializations: ['basic lawn care', 'weeding'],
-                    availability: 'weekends',
-                    transportation: 'bicycle',
-                    languages: ['Filipino', 'English']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '8:45 AM',
-                    formattedPrice: '₱350 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_xP8kL9mR2qT5wN3jH6',
-        jobTitle: 'Babysitting - weekend childcare for 2 kids',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 3,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-21T10:00:00Z'),
-        updatedAt: new Date('2025-12-23T09:30:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_bN7mK4xR8qT2wL9sP5',
-                applicantUid: 'user_sP6nK3mR7qX8jL2wT9',
-                jobId: 'job_xP8kL9mR2qT5wN3jH6',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T13:20:00Z'),
-                updatedAt: new Date('2025-12-22T13:20:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Maria Santos',
-                    photoURL: 'public/users/User-08.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 89,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T08:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 200,
-                    originalAmount: 250,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hello! I have 12 years experience taking care of children. I am a licensed teacher and first aid certified. Your kids will be safe with me!',
-                
-                qualifications: {
-                    experience: '12 years',
-                    specializations: ['childcare', 'education'],
-                    availability: 'weekends',
-                    certifications: ['licensed teacher', 'first aid'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '1:20 PM',
-                    formattedPrice: '₱200 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_rT6kN9mX4qL7wS3jP8',
-                applicantUid: 'user_jL8kT5mR9qW3nX6sB2',
-                jobId: 'job_xP8kL9mR2qT5wN3jH6',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T16:45:00Z'),
-                updatedAt: new Date('2025-12-22T16:45:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Elena Rodriguez',
-                    photoURL: 'public/users/User-09.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 34,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T07:20:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 250,
-                    originalAmount: 250,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good afternoon! I love working with children and have experience with ages 3-10. I can help with homework and activities.',
-                
-                qualifications: {
-                    experience: '5 years',
-                    specializations: ['homework help', 'activities'],
-                    availability: 'flexible weekends',
-                    references: 'available',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '4:45 PM',
-                    formattedPrice: '₱250 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_wS5kJ7mQ9rT3xN8lP4',
-                applicantUid: 'user_nP9kS6mT4qL8wR3jX7',
-                jobId: 'job_xP8kL9mR2qT5wN3jH6',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T08:15:00Z'),
-                updatedAt: new Date('2025-12-23T08:15:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Grace Lim',
-                    photoURL: 'public/users/User-10.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 15,
-                    verified: false,
-                    lastActive: new Date('2025-12-23T09:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 180,
-                    originalAmount: 250,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hi! I\'m new to the platform but very responsible. I have younger siblings so I understand children well.',
-                
-                qualifications: {
-                    experience: '2 years',
-                    specializations: ['sibling care', 'playtime'],
-                    availability: 'Saturday mornings',
-                    references: 'family references',
-                    languages: ['English', 'Filipino', 'Chinese']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '8:15 AM',
-                    formattedPrice: '₱180 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_qH4nL7mX9rK2jT8sW6',
-        jobTitle: 'Car washing and detailing - monthly service',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 2,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-20T16:30:00Z'),
-        updatedAt: new Date('2025-12-23T11:15:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_mK8jL4xN9qR5wT2sH7',
-                applicantUid: 'user_wT9nK6mL4qR8jX3sP5',
-                jobId: 'job_qH4nL7mX9rK2jT8sW6',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T09:30:00Z'),
-                updatedAt: new Date('2025-12-22T09:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Rico Fernandez',
-                    photoURL: 'public/users/User-11.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 78,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T10:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 400,
-                    originalAmount: 500,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Professional car detailing service! I have my own equipment and premium cleaning products. Your car will look brand new!',
-                
-                qualifications: {
-                    experience: '8 years',
-                    specializations: ['car detailing', 'premium service'],
-                    availability: 'flexible schedule',
-                    equipment: 'professional grade',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '9:30 AM',
-                    formattedPrice: '₱400 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_xL5nK8mR2qT7jW4sP9',
-                applicantUid: 'user_sP7kL4mT9qR6wX8nJ3',
-                jobId: 'job_qH4nL7mX9rK2jT8sW6',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T07:45:00Z'),
-                updatedAt: new Date('2025-12-23T07:45:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'John Martinez',
-                    photoURL: 'public/users/User-02.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 22,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T11:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 500,
-                    originalAmount: 500,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good morning! I can wash and detail your car monthly. I\'m very thorough and always on time.',
-                
-                qualifications: {
-                    experience: '4 years',
-                    specializations: ['car washing', 'interior cleaning'],
-                    availability: 'monthly schedule',
-                    equipment: 'basic tools',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '7:45 AM',
-                    formattedPrice: '₱500 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_tN9kR3mX6qL8wS2jP7',
-        jobTitle: 'Tutoring - high school math and science',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 3,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-21T14:20:00Z'),
-        updatedAt: new Date('2025-12-23T12:45:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_bL7nK5mR9qX4wT8sJ2',
-                applicantUid: 'user_jT6nL9mK4qR8wX3sP7',
-                jobId: 'job_tN9kR3mX6qL8wS2jP7',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T11:30:00Z'),
-                updatedAt: new Date('2025-12-22T11:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Prof. Anna Cruz',
-                    photoURL: 'public/users/User-03.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 156,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T12:20:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 300,
-                    originalAmount: 350,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hello! I\'m a licensed Math teacher with 15 years experience. I specialize in making difficult concepts easy to understand.',
-                
-                qualifications: {
-                    experience: '15 years',
-                    specializations: ['mathematics', 'physics', 'chemistry'],
-                    availability: 'afternoons and weekends',
-                    certifications: ['licensed teacher', 'masters degree'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '11:30 AM',
-                    formattedPrice: '₱300 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_rW8kN3mL7qT5jX9sK4',
-                applicantUid: 'user_kX8nW5mT2qL9jR6sP3',
-                jobId: 'job_tN9kR3mX6qL8wS2jP7',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T15:15:00Z'),
-                updatedAt: new Date('2025-12-22T15:15:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Mark Gonzales',
-                    photoURL: 'public/users/User-04.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 67,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T11:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 350,
-                    originalAmount: 350,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Hi! I\'m an engineering student and have been tutoring high school students for 3 years. Great with math and science!',
-                
-                qualifications: {
-                    experience: '3 years',
-                    specializations: ['algebra', 'calculus', 'physics'],
-                    availability: 'evenings',
-                    education: 'engineering student',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '3:15 PM',
-                    formattedPrice: '₱350 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_sJ6nM9mK3qR7wL5tX8',
-                applicantUid: 'user_wL4nJ8mR6qT9kX2sP5',
-                jobId: 'job_tN9kR3mX6qL8wS2jP7',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T09:20:00Z'),
-                updatedAt: new Date('2025-12-23T09:20:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Sarah Valdez',
-                    photoURL: 'public/users/User-05.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 29,
-                    verified: false,
-                    lastActive: new Date('2025-12-23T12:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 250,
-                    originalAmount: 350,
-                    currency: 'PHP',
-                    paymentType: 'per_hour',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hello! I just graduated with a science degree and love helping students understand math and science concepts.',
-                
-                qualifications: {
-                    experience: '1 year',
-                    specializations: ['basic math', 'general science'],
-                    availability: 'flexible',
-                    education: 'science graduate',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '9:20 AM',
-                    formattedPrice: '₱250 Per Hour'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_wK7nL2mX9qR5jT8sP3',
-        jobTitle: 'House painting - living room and kitchen',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 2,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-22T08:45:00Z'),
-        updatedAt: new Date('2025-12-23T13:30:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_nT5kW8mL3qR7jX2sK9',
-                applicantUid: 'user_jX9nT4mW8qL5kR2sP6',
-                jobId: 'job_wK7nL2mX9qR5jT8sP3',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T14:10:00Z'),
-                updatedAt: new Date('2025-12-22T14:10:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Pablo Ramirez',
-                    photoURL: 'public/users/User-06.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 94,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T13:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 2500,
-                    originalAmount: 3000,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Professional painter with 10+ years experience. I use high-quality paints and guarantee perfect finish. Free color consultation!',
-                
-                qualifications: {
-                    experience: '10+ years',
-                    specializations: ['interior painting', 'color consultation'],
-                    availability: 'this week',
-                    equipment: 'professional tools and paints',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '2:10 PM',
-                    formattedPrice: '₱2500 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_kR6nS9mL4qT8wX3jP7',
-                applicantUid: 'user_sP3nK7mR9qL4wT8jX6',
-                jobId: 'job_wK7nL2mX9qR5jT8sP3',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T10:25:00Z'),
-                updatedAt: new Date('2025-12-23T10:25:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Dante Silva',
-                    photoURL: 'public/users/User-07.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 38,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T13:15:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 3000,
-                    originalAmount: 3000,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good day! I can paint your living room and kitchen. I\'m very careful with furniture and clean up after work.',
-                
-                qualifications: {
-                    experience: '5 years',
-                    specializations: ['residential painting', 'clean work'],
-                    availability: 'next week',
-                    equipment: 'own brushes and rollers',
-                    languages: ['Filipino', 'English']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '10:25 AM',
-                    formattedPrice: '₱3000 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_rS8nK5mX2qT9wL6jP4',
-        jobTitle: 'Computer repair - laptop not starting up',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 3,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-22T11:30:00Z'),
-        updatedAt: new Date('2025-12-23T14:20:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_mX7kR4nL9qT6wS3jP8',
-                applicantUid: 'user_wS6nX9mR4qL7kT3jP5',
-                jobId: 'job_rS8nK5mX2qT9wL6jP4',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T16:20:00Z'),
-                updatedAt: new Date('2025-12-22T16:20:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Tech Mike Santos',
-                    photoURL: 'public/users/User-08.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 112,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T14:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 500,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Computer technician with 12 years experience. I can diagnose and fix your laptop today. Free diagnosis if I can\'t fix it!',
-                
-                qualifications: {
-                    experience: '12 years',
-                    specializations: ['laptop repair', 'hardware troubleshooting'],
-                    availability: 'same day service',
-                    certifications: ['A+ certified', 'authorized technician'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '4:20 PM',
-                    formattedPrice: '₱500 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_lK9nT6mS3qR8wX4jL7',
-                applicantUid: 'user_jL4nK8mT6qS9wR3xP7',
-                jobId: 'job_rS8nK5mX2qT9wL6jP4',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T08:45:00Z'),
-                updatedAt: new Date('2025-12-23T08:45:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Ryan Tech',
-                    photoURL: 'public/users/User-09.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 56,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T13:50:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 800,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Hello! I\'m an IT professional and can fix laptop issues. I have diagnostic tools and replacement parts if needed.',
-                
-                qualifications: {
-                    experience: '7 years',
-                    specializations: ['IT support', 'hardware repair'],
-                    availability: 'today or tomorrow',
-                    equipment: 'diagnostic tools',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '8:45 AM',
-                    formattedPrice: '₱800 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_wP5nL8mK4qR7jT9sX3',
-                applicantUid: 'user_sX7nP3mL9qK4wR8jT6',
-                jobId: 'job_rS8nK5mX2qT9wL6jP4',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T12:10:00Z'),
-                updatedAt: new Date('2025-12-23T12:10:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Carl Mendoza',
-                    photoURL: 'public/users/User-10.jpg',
-                    averageRating: 4.0,
-                    totalReviews: 21,
-                    verified: false,
-                    lastActive: new Date('2025-12-23T14:05:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 600,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hi! I study computer science and repair laptops as part-time work. I can check your laptop this afternoon.',
-                
-                qualifications: {
-                    experience: '2 years',
-                    specializations: ['basic repairs', 'software troubleshooting'],
-                    availability: 'afternoon',
-                    education: 'computer science student',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '12:10 PM',
-                    formattedPrice: '₱600 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_nL6kT4mR9qX8wS5jP2',
-        jobTitle: 'Dog walking - daily walks for 2 small dogs',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 2,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-22T15:15:00Z'),
-        updatedAt: new Date('2025-12-23T15:45:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_kS9nL5mT8qR4wX7jP3',
-                applicantUid: 'user_wX4nS8mL9qT5kR7jP6',
-                jobId: 'job_nL6kT4mR9qX8wS5jP2',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T07:30:00Z'),
-                updatedAt: new Date('2025-12-23T07:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Luna Pet Care',
-                    photoURL: 'public/users/User-11.jpg',
-                    averageRating: 5.0,
-                    totalReviews: 73,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T15:20:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 100,
-                    originalAmount: 150,
-                    currency: 'PHP',
-                    paymentType: 'per_walk',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hello! I absolutely love dogs and have been walking pets for 6 years. Your dogs will get exercise and lots of love!',
-                
-                qualifications: {
-                    experience: '6 years',
-                    specializations: ['dog walking', 'pet care'],
-                    availability: 'daily morning and evening',
-                    insurance: 'pet care insured',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '7:30 AM',
-                    formattedPrice: '₱100 Per Walk'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_rT7nK3mS9qL6wX8jP4',
-                applicantUid: 'user_jP8nT5mK9qS6wL3rX7',
-                jobId: 'job_nL6kT4mR9qX8wS5jP2',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-23T13:55:00Z'),
-                updatedAt: new Date('2025-12-23T13:55:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Jose Animal Lover',
-                    photoURL: 'public/users/User-02.jpg',
-                    averageRating: 4.5,
-                    totalReviews: 42,
-                    verified: true,
-                    lastActive: new Date('2025-12-23T15:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 150,
-                    originalAmount: 150,
-                    currency: 'PHP',
-                    paymentType: 'per_walk',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good afternoon! I have 2 dogs myself and understand how important daily exercise is. I can walk your dogs every day!',
-                
-                qualifications: {
-                    experience: '4 years',
-                    specializations: ['small dogs', 'daily routine'],
-                    availability: 'morning preferred',
-                    equipment: 'own leashes and poop bags',
-                    languages: ['Filipino', 'English']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-23',
-                    appliedTime: '1:55 PM',
-                    formattedPrice: '₱150 Per Walk'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    }*/
-// ]; // End of removed legacy applications array
-
-// REMOVED: Generate Application Card HTML - FIREBASE DATA-DRIVEN
-// REMOVED: generateApplicationCardHTML() function - obsolete since applications moved to jobs.html
-
-// REMOVED: generateJobListingHTML() function - obsolete since applications moved to jobs.html
-
-/*
-🔥 FIREBASE MIGRATION INSTRUCTIONS - CRITICAL REFACTOR NEEDED 🔥
-
-CURRENT STATE: Legacy full DOM regeneration
-TARGET STATE: Real-time Firebase with granular updates
-
-🚨 BEFORE IMPLEMENTING FIREBASE, REFACTOR THIS ARCHITECTURE:
-
-1. **REPLACE FULL REGENERATION WITH GRANULAR UPDATES:**
-   Current: container.innerHTML = generateApplicationsContent() // Destroys all state
-   Needed: Individual card add/remove functions that preserve user state
-
-2. **IMPLEMENT REAL-TIME LISTENER PATTERN:**
-   onSnapshot(collection('applications'), (snapshot) => {
-     snapshot.docChanges().forEach((change) => {
-       if (change.type === 'added') addApplicationCard(change.doc.data());
-       if (change.type === 'removed') removeApplicationCard(change.doc.id);
-       if (change.type === 'modified') updateApplicationCard(change.doc.data());
-     });
-     updatePlaceholderVisibility(); // Check if placeholder should show
-   });
-
-3. **PRESERVE USER STATE DURING UPDATES:**
-   - Save scroll position before updates
-   - Maintain expanded job states
-   - Preserve selection states
-   - Restore after granular updates
-
-4. **IMPLEMENT OPTIMISTIC UI:**
-   - Update UI immediately on user actions (HIRE/REJECT)
-   - Show loading states during Firebase operations
-   - Rollback on Firebase errors with user feedback
-
-5. **CRITICAL PLACEHOLDER CONSIDERATIONS:**
-   - Placeholder must persist through real-time updates
-   - Only show/hide based on actual application count
-   - Handle race conditions between user actions and incoming data
-
-6. **PERFORMANCE OPTIMIZATIONS:**
-   - Implement virtual scrolling for large datasets
-   - Use document references instead of full data transfer
-   - Batch multiple Firebase operations
-   - Add proper cleanup for real-time listeners
-
-7. **ERROR HANDLING & OFFLINE SUPPORT:**
-   - Handle network failures gracefully
-   - Implement retry mechanisms
-   - Show appropriate offline indicators
-   - Cache data for offline viewing
-
-🎯 START HERE: Replace generateApplicationsContent() with granular functions
-📋 MAINTAIN: Current placeholder logic but adapt for real-time updates
-⚡ PRIORITY: State preservation and optimistic UI patterns
-
-DO NOT proceed with Firebase integration until this architecture is refactored!
-*/
 
 // Applications Content Generation - NOW DATA-DRIVEN
 function generateApplicationsContent() {
@@ -6448,7 +4740,7 @@ function generateApplicationsContent() {
     const placeholderHTML = `
         <!-- Applications Placeholder - Shows when no applications present -->
         <div class="content-placeholder" id="applications-placeholder" style="display: none;">
-            📋<br>
+            Ã°Å¸â€œâ€¹<br>
             No job applications yet<br>
             <span style="font-size: 0.9em; color: #8a92a5; margin-top: 8px; display: block;">Applications from job seekers will appear here when you post job listings</span>
         </div>
@@ -6459,7 +4751,7 @@ function generateApplicationsContent() {
 function loadApplicationsTab() {
     // UPDATED: This tab now shows the new Messages UI (inbox/details layout)
     // The content is now static HTML, so no dynamic loading needed
-    console.log('📧 Messages tab loaded - using static HTML content');
+    console.log('Ã°Å¸â€œÂ§ Messages tab loaded - using static HTML content');
     
     // The new Messages UI is already in the HTML, so we don't need to generate content
     // Future: This is where we'll add JavaScript for message functionality
@@ -6508,9 +4800,9 @@ function initializeInputFocusElegance(messageThread) {
 }
 
 // ===== DYNAMIC MESSAGE ENTRY FUNCTIONALITY =====
-// (Removed 2026-06-18) The old mock inline-thread sender — initializeDynamicMessageSending,
+// (Removed 2026-06-18) The old mock inline-thread sender Ã¢â‚¬â€ initializeDynamicMessageSending,
 // sendDynamicMessage, createMockMessage, createMockResponse, getCurrentUserAvatar, and
-// addMessageToThread — was dead code from the pre-Firebase prototype and had no callers.
+// addMessageToThread Ã¢â‚¬â€ was dead code from the pre-Firebase prototype and had no callers.
 // Live chat sends real messages via the chat modal (sendMessage() -> Firestore).
 
 /**
@@ -6582,7 +4874,7 @@ function initializeAvatarForOverlay(avatar) {
         // Skip overlay initialization for current user's own avatar
         // Convert both to strings for comparison since DOM attributes are strings
         if (String(senderId) === String(currentUserId) || senderId === '1') {
-            messagesDebug(`🚫 Skipping avatar overlay for current user (ID: ${senderId})`);
+            messagesDebug(`Ã°Å¸Å¡Â« Skipping avatar overlay for current user (ID: ${senderId})`);
             return;
         }
     }
@@ -6671,7 +4963,7 @@ function initializeAvatarOverlays(messageThread) {
         initializeAvatarForOverlay(avatar);
     });
     
-    messagesDebug(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
+    messagesDebug(`Ã°Å¸Å½Â¯ Initialized avatar overlays for ${avatars.length} avatars in thread`);
 }
 
 // Create and show chat modal overlay - TRUE MODAL SYSTEM
@@ -6704,7 +4996,7 @@ function showChatModal(messageThread, threadContent) {
                     <div class="chat-modal-title">${jobTitle}</div>
                 </div>
                 <button class="chat-modal-menu uniform-header-btn menu" type="button" aria-label="Menu">
-                    <span class="btn-emoji">📋</span>
+                    <span class="btn-emoji">Ã°Å¸â€œâ€¹</span>
                     <span>Menu</span>
                 </button>
             </div>
@@ -6748,7 +5040,7 @@ function showChatModal(messageThread, threadContent) {
         }
     }, 10);
     
-    messagesDebug(`✅ Chat modal created for thread ${threadId}`);
+    messagesDebug(`Ã¢Å“â€¦ Chat modal created for thread ${threadId}`);
 }
 
 // Initialize chat modal functionality
@@ -6784,9 +5076,9 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         window.visualViewport.addEventListener('resize', viewportHandler);
         window.visualViewport.addEventListener('scroll', viewportHandler);
         
-        messagesDebug('📱 Visual Viewport API initialized for keyboard handling');
+        messagesDebug('Ã°Å¸â€œÂ± Visual Viewport API initialized for keyboard handling');
     } else {
-        console.log('⚠️ Visual Viewport API not available - using fallback');
+        console.log('Ã¢Å¡Â Ã¯Â¸Â Visual Viewport API not available - using fallback');
     }
     // ===== END VISUAL VIEWPORT API =====
     
@@ -6795,8 +5087,8 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         e.stopPropagation();
         e.preventDefault();
         
-        messagesDebug('🔍 Menu button clicked, event target:', e.target);
-        messagesDebug('🔍 Menu button position:', e.target.getBoundingClientRect());
+        messagesDebug('Ã°Å¸â€Â Menu button clicked, event target:', e.target);
+        messagesDebug('Ã°Å¸â€Â Menu button position:', e.target.getBoundingClientRect());
         
         // Get thread data for avatar overlay - extract participant name properly
         const senderName = String(messageThread.getAttribute('data-participant-name') || '').trim()
@@ -6823,13 +5115,13 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
             lastActivity: new Date().toISOString()
         };
         
-        messagesDebug('🔍 Opening chat options for:', threadData);
+        messagesDebug('Ã°Å¸â€Â Opening chat options for:', threadData);
         
         // Ensure showAvatarOverlay function exists before calling
         if (typeof showAvatarOverlay === 'function') {
             showAvatarOverlay(e, threadData);
         } else {
-            console.error('❌ showAvatarOverlay function not found');
+            console.error('Ã¢ÂÅ’ showAvatarOverlay function not found');
         }
     };
     
@@ -6874,7 +5166,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         if (window.visualViewport && viewportHandler) {
             window.visualViewport.removeEventListener('resize', viewportHandler);
             window.visualViewport.removeEventListener('scroll', viewportHandler);
-            messagesDebug('🧹 Visual Viewport listeners cleaned up');
+            messagesDebug('Ã°Å¸Â§Â¹ Visual Viewport listeners cleaned up');
         }
 
         if (ACTIVE_LISTENERS.activeThreadMessages) {
@@ -6897,7 +5189,7 @@ function initializeChatInputFunctionality(modalOverlay) {
     const inputContainer = modalOverlay.querySelector('.chat-input-container');
     
     if (!inputField || !sendBtn || !photoBtn || !photoInput) {
-        console.error('❌ Chat input elements not found');
+        console.error('Ã¢ÂÅ’ Chat input elements not found');
         return;
     }
 
@@ -6943,7 +5235,7 @@ function initializeChatInputFunctionality(modalOverlay) {
         listeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
-        messagesDebug('🧹 Chat input listeners cleaned up');
+        messagesDebug('Ã°Å¸Â§Â¹ Chat input listeners cleaned up');
     };
     
     // Send message functionality
@@ -6993,7 +5285,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                     return;
                 }
             } catch (error) {
-                console.error('❌ Failed to send chat message:', error);
+                console.error('Ã¢ÂÅ’ Failed to send chat message:', error);
                 showToast('Failed to send message. Please try again.');
                 inputField.value = rawMessage;
                 inputField.classList.add('expanded');
@@ -7036,7 +5328,7 @@ function initializeChatInputFunctionality(modalOverlay) {
         photoInput.value = '';
     });
     
-    messagesDebug('✅ Chat input functionality initialized');
+    messagesDebug('Ã¢Å“â€¦ Chat input functionality initialized');
 }
 
 /**
@@ -7096,7 +5388,7 @@ async function handlePhotoUpload(file, modalOverlay) {
 
     photoBtn.classList.add('loading');
     
-    console.log('📸 Processing photo for chat...');
+    console.log('Ã°Å¸â€œÂ¸ Processing photo for chat...');
 
     try {
         const processedImage = await processChatImageAsync(file);
@@ -7138,14 +5430,14 @@ async function handlePhotoUpload(file, modalOverlay) {
         const fullSizeSizeKB = Math.round(processedImage.fullSizeSize / 1024); // KB
         const bandwidthSavings = Math.round(((fullSizeSizeKB - thumbnailSizeKB) / fullSizeSizeKB) * 100);
         
-        console.log('📸 Photo Upload Performance:');
+        console.log('Ã°Å¸â€œÂ¸ Photo Upload Performance:');
         console.log(`   Original: ${originalSize} KB`);
         console.log(`   Full-size: ${fullSizeSizeKB} KB`);
         console.log(`   Thumbnail: ${thumbnailSizeKB} KB`);
-        console.log(`   💰 Bandwidth savings: ${bandwidthSavings}% (${fullSizeSizeKB - thumbnailSizeKB} KB saved)`);
-        console.log('✅ Photo message sent:', photoMessageData);
+        console.log(`   Ã°Å¸â€™Â° Bandwidth savings: ${bandwidthSavings}% (${fullSizeSizeKB - thumbnailSizeKB} KB saved)`);
+        console.log('Ã¢Å“â€¦ Photo message sent:', photoMessageData);
     } catch (error) {
-        console.error('❌ Photo processing failed in handlePhotoUpload:', error);
+        console.error('Ã¢ÂÅ’ Photo processing failed in handlePhotoUpload:', error);
         showToast('Failed to send photo. Please try again.');
     } finally {
         photoBtn.classList.remove('loading');
@@ -7214,7 +5506,7 @@ function closeChatModal(modalOverlay) {
             
             // Reset expand icon to downarrow
             if (expandIcon) {
-                expandIcon.textContent = '▼';
+                expandIcon.textContent = 'Ã¢â€“Â¼';
             }
             
             // Remove expanded state
@@ -7238,7 +5530,7 @@ function closeChatModal(modalOverlay) {
             unlockBodyScrollForChatModal();
         }, 300);
         
-        messagesDebug('✅ Chat modal closed with aggressive cleanup');
+        messagesDebug('Ã¢Å“â€¦ Chat modal closed with aggressive cleanup');
     }
 }
 
@@ -7268,7 +5560,7 @@ function cleanupAvatarOverlays(container) {
     });
     
     if (avatars.length > 0) {
-        messagesDebug(`🧹 Cleaned up avatar overlays for ${avatars.length} avatars`);
+        messagesDebug(`Ã°Å¸Â§Â¹ Cleaned up avatar overlays for ${avatars.length} avatars`);
     }
 }
 
@@ -7299,10 +5591,10 @@ async function showAvatarOverlay(event, userData) {
     overlay.id = 'avatarOverlay';
     
     // Debug traces kept behind runtime flag to avoid production console noise.
-    messagesDebug(`🔍 DEBUG: Avatar overlay userData:`, userData);
-    messagesDebug(`🔍 DEBUG: threadOrigin = "${userData.threadOrigin}"`);
-    messagesDebug(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
-    messagesDebug(`🔍 DEBUG: jobId = "${userData.jobId}"`);
+    messagesDebug(`Ã°Å¸â€Â DEBUG: Avatar overlay userData:`, userData);
+    messagesDebug(`Ã°Å¸â€Â DEBUG: threadOrigin = "${userData.threadOrigin}"`);
+    messagesDebug(`Ã°Å¸â€Â DEBUG: applicationId = "${userData.applicationId}"`);
+    messagesDebug(`Ã°Å¸â€Â DEBUG: jobId = "${userData.jobId}"`);
     
     // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
     const viewApplicationButton = ''; // Always empty now
@@ -7319,24 +5611,24 @@ async function showAvatarOverlay(event, userData) {
                 </button>
             </div>
             <button class="avatar-action-btn tips" data-thread-id="${userData.threadId || ''}" data-job-id="${userData.jobId || ''}" data-job-title="${escapeHtml(String(userData.jobTitle || 'Gig'))}" data-job-category="${escapeHtml(String(userData.jobCategory || ''))}">
-                <span>📘</span>
+                <span>Ã°Å¸â€œËœ</span>
                 <span>READ GIG TIPS</span>
             </button>
             ${viewApplicationButton}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
-                <span>🚫</span>
+                <span>Ã°Å¸Å¡Â«</span>
                 <span>BLOCK USER</span>
             </button>
             <button class="avatar-action-btn delete" data-thread-id="${userData.threadId || 'unknown'}" data-user-name="${userData.senderName}">
-                <span>🗑️</span>
+                <span>Ã°Å¸â€”â€˜Ã¯Â¸Â</span>
                 <span>DELETE CONVERSATION</span>
             </button>
             <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
                 <span>EXIT CHAT</span>
-                <span>🚪</span>
+                <span>Ã°Å¸Å¡Âª</span>
             </button>
         </div>
-        <button class="avatar-options-close-x outside" type="button" aria-label="Close options">✕</button>
+        <button class="avatar-options-close-x outside" type="button" aria-label="Close options">Ã¢Å“â€¢</button>
     `;
     
     // Create backdrop for subtle shadow and click-to-close functionality
@@ -7382,7 +5674,7 @@ async function showAvatarOverlay(event, userData) {
         document.addEventListener('click', window.avatarOverlayClickHandler, true);
         window.avatarOverlayListenerCount++;
         
-        messagesDebug(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
+        messagesDebug(`Ã°Å¸â€œÅ’ Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
     }, 150); // Increased delay to ensure overlay is fully positioned
     } finally {
         showAvatarOverlay._pending = false;
@@ -7401,7 +5693,7 @@ function renderAvatarOverlayGigActions(userData, overlayState) {
                 data-job-id="${safeJobId}"
                 data-job-category="${escapeHtml(resolvedJobCategory)}"
                 data-current-user-role="${safeRole}">
-                <span>📊</span>
+                <span>Ã°Å¸â€œÅ </span>
                 <span>GIG STATUS</span>
             </button>
         `);
@@ -7413,7 +5705,7 @@ function renderAvatarOverlayGigActions(userData, overlayState) {
                 data-job-id="${safeJobId}"
                 data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
                 data-state="ready">
-                <span>💼</span>
+                <span>Ã°Å¸â€™Â¼</span>
                 <span>OPEN HIRE CHECKLIST</span>
             </button>
         `);
@@ -7612,7 +5904,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
                 // Fallback keeps previous behavior if category lookup is unavailable.
                 window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
             } catch (error) {
-                console.warn('⚠️ Failed to resolve gig category for chat action:', error);
+                console.warn('Ã¢Å¡Â Ã¯Â¸Â Failed to resolve gig category for chat action:', error);
                 window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
             }
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
@@ -7621,16 +5913,16 @@ function initializeAvatarOverlayActions(overlay, userData) {
     // VIEW APPLICATION button (only for application-based threads)
     const applicationBtn = overlay.querySelector('.avatar-action-btn.application');
     if (applicationBtn) {
-        messagesDebug(`🔍 DEBUG: View Application button found:`, applicationBtn);
-        messagesDebug(`🔍 DEBUG: Button data attributes:`, {
+        messagesDebug(`Ã°Å¸â€Â DEBUG: View Application button found:`, applicationBtn);
+        messagesDebug(`Ã°Å¸â€Â DEBUG: Button data attributes:`, {
             applicationId: applicationBtn.getAttribute('data-application-id'),
             jobId: applicationBtn.getAttribute('data-job-id')
         });
         
         // REMOVED: View Application button click handler - no longer needed
-        messagesDebug(`🔍 DEBUG: View Application button functionality removed`);
+        messagesDebug(`Ã°Å¸â€Â DEBUG: View Application button functionality removed`);
     } else {
-        messagesDebug(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
+        messagesDebug(`Ã°Å¸â€Â DEBUG: No View Application button found in overlay (expected - removed)`);
     }
 
     // READ GIG TIPS button
@@ -7672,7 +5964,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
             
-            console.log(`🚫 Blocking user: ${userName} (ID: ${userId})`);
+            console.log(`Ã°Å¸Å¡Â« Blocking user: ${userName} (ID: ${userId})`);
             
             // Show custom confirmation dialog
             showCustomConfirmation(
@@ -7682,7 +5974,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
                 'Cancel',
                 async () => {
                     // Confirmed - block the user with Firebase integration
-                    console.log(`🚫 Initiating block for user: ${userName} (ID: ${userId})`);
+                    console.log(`Ã°Å¸Å¡Â« Initiating block for user: ${userName} (ID: ${userId})`);
                     
                     try {
                         // Get current user ID for Firebase operations
@@ -7696,7 +5988,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
                         
                         if (result.success) {
                             // Success - update UI
-                            console.log(`✅ Firebase: User ${userName} successfully blocked`);
+                            console.log(`Ã¢Å“â€¦ Firebase: User ${userName} successfully blocked`);
                             showTemporaryNotification(`${userName} has been blocked`);
                             
                             // Hide overlay
@@ -7710,19 +6002,19 @@ function initializeAvatarOverlayActions(overlay, userData) {
                             
                         } else {
                             // Firebase operation failed
-                            console.error(`❌ Firebase: Failed to block ${userName}:`, result.error);
+                            console.error(`Ã¢ÂÅ’ Firebase: Failed to block ${userName}:`, result.error);
                             showTemporaryNotification(`Failed to block ${userName}. Please try again.`);
                         }
                         
                     } catch (error) {
                         // Network or unexpected error
-                        console.error(`❌ Block user error:`, error);
+                        console.error(`Ã¢ÂÅ’ Block user error:`, error);
                         showTemporaryNotification(`Network error. Please check your connection and try again.`);
                     }
                 },
                 () => {
                     // Cancelled - do nothing
-                    console.log(`❌ Block cancelled for ${userName}`);
+                    console.log(`Ã¢ÂÅ’ Block cancelled for ${userName}`);
                 }
             );
         }, { signal });
@@ -7735,7 +6027,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
             const threadId = this.getAttribute('data-thread-id');
             const userName = this.getAttribute('data-user-name');
             
-            console.log(`🗑️ Deleting conversation with: ${userName} (Thread ID: ${threadId})`);
+            console.log(`Ã°Å¸â€”â€˜Ã¯Â¸Â Deleting conversation with: ${userName} (Thread ID: ${threadId})`);
             
             // Show custom confirmation dialog
             showCustomConfirmation(
@@ -7745,7 +6037,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
                 'Cancel',
                 async () => {
                     // Confirmed - delete the conversation with Firebase integration
-                    console.log(`🗑️ Initiating delete for conversation: ${threadId} with ${userName}`);
+                    console.log(`Ã°Å¸â€”â€˜Ã¯Â¸Â Initiating delete for conversation: ${threadId} with ${userName}`);
                     
                     try {
                         // Get current user ID for Firebase operations
@@ -7759,7 +6051,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
                         
                         if (result.success) {
                             // Success - update UI
-                            console.log(`✅ Firebase: Conversation with ${userName} successfully deleted`);
+                            console.log(`Ã¢Å“â€¦ Firebase: Conversation with ${userName} successfully deleted`);
                             showTemporaryNotification(`Conversation with ${userName} deleted`);
                             
                             // Hide overlay
@@ -7794,19 +6086,19 @@ function initializeAvatarOverlayActions(overlay, userData) {
                             
                         } else {
                             // Firebase operation failed
-                            console.error(`❌ Firebase: Failed to delete conversation with ${userName}:`, result.error);
+                            console.error(`Ã¢ÂÅ’ Firebase: Failed to delete conversation with ${userName}:`, result.error);
                             showTemporaryNotification(`Failed to delete conversation. Please try again.`);
                         }
                         
                     } catch (error) {
                         // Network or unexpected error
-                        console.error(`❌ Delete conversation error:`, error);
+                        console.error(`Ã¢ÂÅ’ Delete conversation error:`, error);
                         showTemporaryNotification(`Network error. Please check your connection and try again.`);
                     }
                 },
                 () => {
                     // Cancelled - do nothing
-                    console.log(`❌ Delete cancelled for conversation with ${userName}`);
+                    console.log(`Ã¢ÂÅ’ Delete cancelled for conversation with ${userName}`);
                 }
             );
         }, { signal });
@@ -7817,7 +6109,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
             const threadId = this.getAttribute('data-thread-id');
-            messagesDebug(`✕ Closing chat (Thread ID: ${threadId})`);
+            messagesDebug(`Ã¢Å“â€¢ Closing chat (Thread ID: ${threadId})`);
             hideAvatarOverlay();
             closeAllMessageThreads();
         }, { signal });
@@ -7888,7 +6180,7 @@ function hideAvatarOverlay() {
         window.avatarOverlayListenerCount = 0;
     }
     
-    messagesDebug('🧹 Avatar overlay cleanup completed');
+    messagesDebug('Ã°Å¸Â§Â¹ Avatar overlay cleanup completed');
 }
 
 function setAvatarOverlaySuspended(suspended) {
@@ -7917,7 +6209,7 @@ function hideAvatarOverlayOnOutsideClick(event) {
         
         // Don't close if clicking on an avatar (new overlay will replace) or action button
         if (!isAvatarClick && !isOverlayAction) {
-            console.log('🎯 Outside click detected, hiding avatar overlay');
+            console.log('Ã°Å¸Å½Â¯ Outside click detected, hiding avatar overlay');
             hideAvatarOverlay();
         }
     }
@@ -8002,7 +6294,7 @@ function getCurrentUserId() {
             }
         }
     } catch (e) {
-        console.warn('⚠️ Unable to resolve current user ID from Firebase auth:', e);
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Unable to resolve current user ID from Firebase auth:', e);
     }
     return '';
 }
@@ -8010,19 +6302,19 @@ function getCurrentUserId() {
 function checkFirebaseConnection() {
     // Check if Firebase is available and properly initialized
     if (typeof firebase === 'undefined') {
-        console.warn('⚠️ Firebase not loaded');
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Firebase not loaded');
         return { connected: false, error: 'Firebase not loaded' };
     }
     
     if (typeof db === 'undefined') {
-        console.warn('⚠️ Firestore not initialized');
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Firestore not initialized');
         return { connected: false, error: 'Firestore not initialized' };
     }
     
     // Check authentication
     const currentUser = getCurrentUserId();
     if (!currentUser || currentUser === 'current_user_id') {
-        console.warn('⚠️ User not authenticated');
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â User not authenticated');
         return { connected: false, error: 'User not authenticated' };
     }
     
@@ -8031,7 +6323,7 @@ function checkFirebaseConnection() {
 
 async function blockUserInFirebase(currentUserId, blockedUserId, blockedUserName) {
     try {
-        console.log(`🔥 Firebase: Blocking user ${blockedUserName} (${blockedUserId})`);
+        console.log(`Ã°Å¸â€Â¥ Firebase: Blocking user ${blockedUserName} (${blockedUserId})`);
         
         // Check Firebase connection first
         const connectionCheck = checkFirebaseConnection();
@@ -8083,18 +6375,18 @@ async function blockUserInFirebase(currentUserId, blockedUserId, blockedUserName
         // 4. Commit all changes atomically
         await batch.commit();
         
-        console.log(`✅ Firebase: Successfully blocked user ${blockedUserName}`);
+        console.log(`Ã¢Å“â€¦ Firebase: Successfully blocked user ${blockedUserName}`);
         return { success: true };
         
     } catch (error) {
-        console.error('❌ Firebase: Block user failed:', error);
+        console.error('Ã¢ÂÅ’ Firebase: Block user failed:', error);
         return { success: false, error: error.message };
     }
 }
 
 async function deleteConversationInFirebase(currentUserId, threadId, participantName) {
     try {
-        console.log(`🔥 Firebase: Deleting conversation ${threadId} for user ${currentUserId}`);
+        console.log(`Ã°Å¸â€Â¥ Firebase: Deleting conversation ${threadId} for user ${currentUserId}`);
         if (typeof deleteChatThreadForCurrentUser !== 'function') {
             throw new Error('Delete conversation backend is unavailable');
         }
@@ -8104,17 +6396,17 @@ async function deleteConversationInFirebase(currentUserId, threadId, participant
             throw new Error(result?.message || 'Delete conversation failed');
         }
 
-        console.log(`✅ Firebase: Successfully deleted conversation with ${participantName}`);
+        console.log(`Ã¢Å“â€¦ Firebase: Successfully deleted conversation with ${participantName}`);
         return { success: true };
     } catch (error) {
-        console.error('❌ Firebase: Delete conversation failed:', error);
+        console.error('Ã¢ÂÅ’ Firebase: Delete conversation failed:', error);
         return { success: false, error: error.message };
     }
 }
 
 async function refreshConversationsList() {
     try {
-        console.log('🔄 Firebase: Refreshing conversations list...');
+        console.log('Ã°Å¸â€â€ž Firebase: Refreshing conversations list...');
         
         // Re-load the messages tab to reflect changes
         const messagesTab = document.querySelector('.tab-btn[data-tab="messages"]');
@@ -8125,10 +6417,10 @@ async function refreshConversationsList() {
         // Update message count
         updateMessageCount();
         
-        console.log('✅ Firebase: Conversations list refreshed');
+        console.log('Ã¢Å“â€¦ Firebase: Conversations list refreshed');
         
     } catch (error) {
-        console.error('❌ Firebase: Failed to refresh conversations:', error);
+        console.error('Ã¢ÂÅ’ Firebase: Failed to refresh conversations:', error);
     }
 }
 
@@ -8213,46 +6505,46 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
 // This can be called manually or triggered by specific events
 // REMOVED: navigateToApplicationCard() function - no longer needed since applications moved to jobs.html
 // function navigateToApplicationCard(applicationId, jobId) {
-    /*console.log(`🎯 Navigating to application: ${applicationId} in job: ${jobId}`);
+    /*console.log(`Ã°Å¸Å½Â¯ Navigating to application: ${applicationId} in job: ${jobId}`);
     
     // 1. Switch to Applications tab
     const applicationsTab = document.querySelector('.tab-btn[data-tab="applications"]');
-    console.log(`📱 Applications tab found:`, applicationsTab);
-    console.log(`📱 Applications tab active:`, applicationsTab?.classList.contains('active'));
+    console.log(`Ã°Å¸â€œÂ± Applications tab found:`, applicationsTab);
+    console.log(`Ã°Å¸â€œÂ± Applications tab active:`, applicationsTab?.classList.contains('active'));
     
     if (applicationsTab && !applicationsTab.classList.contains('active')) {
-        console.log(`🔄 Switching to applications tab...`);
+        console.log(`Ã°Å¸â€â€ž Switching to applications tab...`);
         applicationsTab.click(); // This will load the applications content
         
         // 2. Wait for content to load, then find and expand the specific application
         setTimeout(() => {
-            console.log(`🔍 Looking for job listing with data-job-id="${jobId}"`);
+            console.log(`Ã°Å¸â€Â Looking for job listing with data-job-id="${jobId}"`);
             
             // SCOPED SELECTOR: Only search within applications container for job listings
             const applicationsContainer = document.querySelector('#applications-content .applications-container');
-            console.log(`📦 Applications container found:`, applicationsContainer);
+            console.log(`Ã°Å¸â€œÂ¦ Applications container found:`, applicationsContainer);
             
             if (!applicationsContainer) {
-                console.error(`❌ Applications container not found!`);
+                console.error(`Ã¢ÂÅ’ Applications container not found!`);
                 return;
             }
             
             // Debug: Show all job listings in the applications container only
             const allJobListings = applicationsContainer.querySelectorAll('.job-listing[data-job-id]');
-            console.log(`📊 Found ${allJobListings.length} job listings in applications container:`, 
+            console.log(`Ã°Å¸â€œÅ  Found ${allJobListings.length} job listings in applications container:`, 
                 Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
             
             // Find the job listing that contains this application (scoped to applications container)
             const targetJobListing = applicationsContainer.querySelector(`.job-listing[data-job-id="${jobId}"]`);
-            console.log(`🎯 Target job listing found:`, targetJobListing);
+            console.log(`Ã°Å¸Å½Â¯ Target job listing found:`, targetJobListing);
             
             if (targetJobListing) {
-                console.log(`📂 Job listing found, checking if expanded...`);
-                console.log(`📂 Is expanded:`, targetJobListing.classList.contains('expanded'));
+                console.log(`Ã°Å¸â€œâ€š Job listing found, checking if expanded...`);
+                console.log(`Ã°Å¸â€œâ€š Is expanded:`, targetJobListing.classList.contains('expanded'));
                 
                 // Expand the job listing if not already expanded
                 if (!targetJobListing.classList.contains('expanded')) {
-                    console.log(`🔽 Manually expanding job listing...`);
+                    console.log(`Ã°Å¸â€Â½ Manually expanding job listing...`);
                     
                     // First, close all other expanded listings (same as job click handler)
                     const allJobListings = document.querySelectorAll('.job-listing');
@@ -8268,7 +6560,7 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
                                 applicationsList.style.display = 'none';
                             }
                             if (expandIcon) {
-                                expandIcon.textContent = '▼';
+                                expandIcon.textContent = 'Ã¢â€“Â¼';
                             }
                         }
                     });
@@ -8277,43 +6569,43 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
                     const applicationsList = document.getElementById('applications-' + jobId);
                     const expandIcon = targetJobListing.querySelector('.expand-icon');
                     
-                    console.log(`📋 Applications list found:`, applicationsList);
-                    console.log(`🔽 Expand icon found:`, expandIcon);
+                    console.log(`Ã°Å¸â€œâ€¹ Applications list found:`, applicationsList);
+                    console.log(`Ã°Å¸â€Â½ Expand icon found:`, expandIcon);
                     
                     if (applicationsList && expandIcon) {
                         targetJobListing.classList.add('expanded');
                         applicationsList.style.display = 'block';
-                        expandIcon.textContent = '▲';
-                        console.log(`✅ Job listing expanded successfully`);
+                        expandIcon.textContent = 'Ã¢â€“Â²';
+                        console.log(`Ã¢Å“â€¦ Job listing expanded successfully`);
                     } else {
-                        console.warn(`⚠️ Could not expand - missing applicationsList or expandIcon`);
+                        console.warn(`Ã¢Å¡Â Ã¯Â¸Â Could not expand - missing applicationsList or expandIcon`);
                     }
                 } else {
-                    console.log(`📂 Job listing already expanded`);
+                    console.log(`Ã°Å¸â€œâ€š Job listing already expanded`);
                 }
                 
                 // Wait for expansion animation, then find specific application card
                 setTimeout(() => {
-                    console.log(`🔍 Looking for application card with data-application-id="${applicationId}"`);
+                    console.log(`Ã°Å¸â€Â Looking for application card with data-application-id="${applicationId}"`);
                     
                     // SCOPED SELECTOR: Only search within applications container to avoid message threads
                     const applicationsContainer = document.querySelector('#applications-content .applications-container');
-                    console.log(`📦 Applications container found:`, applicationsContainer);
+                    console.log(`Ã°Å¸â€œÂ¦ Applications container found:`, applicationsContainer);
                     
                     if (!applicationsContainer) {
-                        console.error(`❌ Applications container not found!`);
+                        console.error(`Ã¢ÂÅ’ Applications container not found!`);
                         return;
                     }
                     
                     // Debug: Show all application cards in the applications container only
                     const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
-                    console.log(`📊 Found ${allApplicationCards.length} application cards in applications container:`, 
+                    console.log(`Ã°Å¸â€œÅ  Found ${allApplicationCards.length} application cards in applications container:`, 
                         Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
                     
                     const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
                     
                     if (targetApplicationCard) {
-                        console.log(`✨ Scrolling to and highlighting application card...`);
+                        console.log(`Ã¢Å“Â¨ Scrolling to and highlighting application card...`);
                         
                         // Scroll to the application card and center it
                         targetApplicationCard.scrollIntoView({ 
@@ -8358,38 +6650,38 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
                             }, 2500);
                         }, 600); // Wait for scroll to complete
                         
-                        console.log(`✅ Successfully navigated to application: ${applicationId}`);
+                        console.log(`Ã¢Å“â€¦ Successfully navigated to application: ${applicationId}`);
                     } else {
-                        console.warn(`⚠️ Application card not found: ${applicationId}`);
+                        console.warn(`Ã¢Å¡Â Ã¯Â¸Â Application card not found: ${applicationId}`);
                         console.warn(`Available application IDs:`, 
                             Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
                     }
                 }, 500); // Increased wait time for expansion
             } else {
-                console.warn(`⚠️ Job listing not found: ${jobId}`);
+                console.warn(`Ã¢Å¡Â Ã¯Â¸Â Job listing not found: ${jobId}`);
                 console.warn(`Available job IDs:`, 
                     Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
             }
         }, 300); // Increased wait time for tab content to load
     } else {
-        console.log(`📱 Already on applications tab, searching directly...`);
+        console.log(`Ã°Å¸â€œÂ± Already on applications tab, searching directly...`);
         
         // Already on applications tab, just find the application with scoped selector
         const applicationsContainer = document.querySelector('#applications-content .applications-container');
-        console.log(`📦 Applications container found for direct search:`, applicationsContainer);
+        console.log(`Ã°Å¸â€œÂ¦ Applications container found for direct search:`, applicationsContainer);
         
         if (!applicationsContainer) {
-            console.error(`❌ Applications container not found for direct search!`);
+            console.error(`Ã¢ÂÅ’ Applications container not found for direct search!`);
             return;
         }
         
         // Debug: Show all application cards in the applications container only
         const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
-        console.log(`📊 Found ${allApplicationCards.length} application cards in applications container (direct):`, 
+        console.log(`Ã°Å¸â€œÅ  Found ${allApplicationCards.length} application cards in applications container (direct):`, 
             Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
         
         const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
-        console.log(`🎯 Target application card found directly:`, targetApplicationCard);
+        console.log(`Ã°Å¸Å½Â¯ Target application card found directly:`, targetApplicationCard);
         
         if (targetApplicationCard) {
             // Enhanced scroll and highlight for direct navigation
@@ -8435,9 +6727,9 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
                 }, 2500);
             }, 300); // Shorter wait since no tab switching
             
-            console.log(`✅ Scrolled to and highlighted application: ${applicationId}`);
+            console.log(`Ã¢Å“â€¦ Scrolled to and highlighted application: ${applicationId}`);
         } else {
-            console.warn(`⚠️ Application card not found: ${applicationId}`);
+            console.warn(`Ã¢Å¡Â Ã¯Â¸Â Application card not found: ${applicationId}`);
             const allCards = document.querySelectorAll('[data-application-id]');
             console.warn(`Available application IDs:`, 
                 Array.from(allCards).map(el => el.getAttribute('data-application-id')));
@@ -8448,7 +6740,7 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
 // NUCLEAR OPTION: Global reset function for stuck overlays
 // This can be called manually or triggered by specific events
 window.forceResetAvatarOverlay = function() {
-    console.log('🚨 FORCE RESET: Cleaning up any stuck avatar overlays');
+    console.log('Ã°Å¸Å¡Â¨ FORCE RESET: Cleaning up any stuck avatar overlays');
     
     // MEMORY LEAK FIX: Clean up all avatar listeners globally
     const allAvatars = document.querySelectorAll('.message-avatar[data-overlay-initialized="true"]');
@@ -8491,7 +6783,7 @@ window.forceResetAvatarOverlay = function() {
         document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
     }
     
-    console.log(`✅ Force reset completed - cleaned up ${allAvatars.length} avatar listeners and all overlays`);
+    console.log(`Ã¢Å“â€¦ Force reset completed - cleaned up ${allAvatars.length} avatar listeners and all overlays`);
 };
 
 // ===== PHOTO UPLOAD FUNCTIONALITY =====
@@ -8504,7 +6796,7 @@ window.forceResetAvatarOverlay = function() {
  */
 function processChatImage(file, callback, errorCallback) {
     if (!isAllowedImageFile(file)) {
-        console.error('❌ Invalid file type for chat image');
+        console.error('Ã¢ÂÅ’ Invalid file type for chat image');
         if (errorCallback) errorCallback('Invalid file type');
         return;
     }
@@ -8512,19 +6804,19 @@ function processChatImage(file, callback, errorCallback) {
     // Validate file size (max 10MB to prevent memory issues)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-        console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
+        console.error('Ã¢ÂÅ’ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
         alert('Image is too large. Please select an image under 10MB.');
         if (errorCallback) errorCallback('File too large');
         return;
     }
     
-    console.log('📸 Processing image:', file.name, 'Type:', file.type, 'Size:', Math.round(file.size / 1024) + 'KB');
+    console.log('Ã°Å¸â€œÂ¸ Processing image:', file.name, 'Type:', file.type, 'Size:', Math.round(file.size / 1024) + 'KB');
 
     const reader = new FileReader();
     
     // Add error handler for FileReader
     reader.onerror = function(error) {
-        console.error('❌ FileReader error:', error);
+        console.error('Ã¢ÂÅ’ FileReader error:', error);
         alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
         reader.onload = null;
         reader.onerror = null;
@@ -8536,7 +6828,7 @@ function processChatImage(file, callback, errorCallback) {
         
         // Add timeout to detect hung image loading (3 seconds)
         const imageTimeout = setTimeout(() => {
-            console.error('❌ Image loading timeout - may be corrupted or unsupported format');
+            console.error('Ã¢ÂÅ’ Image loading timeout - may be corrupted or unsupported format');
             alert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
             img.src = '';
             img.onload = null;
@@ -8549,7 +6841,7 @@ function processChatImage(file, callback, errorCallback) {
         // Add error handler for Image loading
         img.onerror = function() {
             clearTimeout(imageTimeout);
-            console.error('❌ Image load error - file may be corrupted or unsupported format');
+            console.error('Ã¢ÂÅ’ Image load error - file may be corrupted or unsupported format');
             alert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
             img.src = '';
             img.onload = null;
@@ -8561,13 +6853,13 @@ function processChatImage(file, callback, errorCallback) {
         
         img.onload = function() {
             clearTimeout(imageTimeout);
-            console.log('✅ Image loaded successfully:', img.width + 'x' + img.height);
+            console.log('Ã¢Å“â€¦ Image loaded successfully:', img.width + 'x' + img.height);
             
             let thumbnailComplete = false;
             let fullSizeComplete = false;
             const result = {
                 originalFile: file,
-                dimensions: `${img.width}×${img.height}`,
+                dimensions: `${img.width}Ãƒâ€”${img.height}`,
                 aspectRatio: img.width / img.height
             };
 
@@ -8588,7 +6880,7 @@ function processChatImage(file, callback, errorCallback) {
                 }
             }, function(error) {
                 // Thumbnail generation error
-                console.error('❌ Thumbnail generation failed');
+                console.error('Ã¢ÂÅ’ Thumbnail generation failed');
                 alert('Failed to process this image. It may be in an unsupported format.');
                 img.src = '';
                 img.onload = null;
@@ -8615,7 +6907,7 @@ function processChatImage(file, callback, errorCallback) {
                 }
             }, function(error) {
                 // Full-size generation error
-                console.error('❌ Full-size generation failed');
+                console.error('Ã¢ÂÅ’ Full-size generation failed');
                 alert('Failed to process this image. It may be in an unsupported format.');
                 img.src = '';
                 img.onload = null;
@@ -8676,7 +6968,7 @@ function createCompressedChatImage(img, callback, errorCallback) {
         
         callback(compressedDataURL);
     } catch (error) {
-        console.error('❌ Canvas operation error in createCompressedChatImage:', error);
+        console.error('Ã¢ÂÅ’ Canvas operation error in createCompressedChatImage:', error);
         if (errorCallback) errorCallback(error);
     }
 }
@@ -8732,7 +7024,7 @@ function createChatThumbnail(img, callback, errorCallback) {
         
         callback(thumbnailDataURL);
     } catch (error) {
-        console.error('❌ Canvas operation error in createChatThumbnail:', error);
+        console.error('Ã¢ÂÅ’ Canvas operation error in createChatThumbnail:', error);
         if (errorCallback) errorCallback(error);
     }
 }
@@ -8803,14 +7095,14 @@ function showPhotoLightbox(imageUrl) {
     
     // Only create arrows if there are multiple photos
     const arrowsHTML = hasMultiplePhotos ? `
-        <button class="nav-arrow nav-prev" type="button">‹</button>
-        <button class="nav-arrow nav-next" type="button">›</button>
+        <button class="nav-arrow nav-prev" type="button">Ã¢â‚¬Â¹</button>
+        <button class="nav-arrow nav-next" type="button">Ã¢â‚¬Âº</button>
     ` : '';
     
     lightboxOverlay.innerHTML = `
         <div class="photo-lightbox">
             <img src="${imageUrl}" alt="Full size photo" class="lightbox-image">
-            <button class="close-lightbox" type="button">×</button>
+            <button class="close-lightbox" type="button">Ãƒâ€”</button>
             ${arrowsHTML}
         </div>
     `;
@@ -8904,7 +7196,7 @@ function initializePhotoGallery(lightboxOverlay) {
     
     // Safety check - if no buttons exist, don't initialize gallery
     if (!prevBtn || !nextBtn) {
-        console.log('📸 No navigation buttons found - skipping gallery initialization');
+        console.log('Ã°Å¸â€œÂ¸ No navigation buttons found - skipping gallery initialization');
         return;
     }
     
@@ -9036,7 +7328,7 @@ function initializePhotoGallery(lightboxOverlay) {
                 }
             } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 80) {
                 // Vertical swipe - close lightbox (80px minimum for intentional gesture)
-                console.log('📸 Vertical swipe detected - closing lightbox');
+                console.log('Ã°Å¸â€œÂ¸ Vertical swipe detected - closing lightbox');
                 
                 // Find and trigger close function
                 const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
@@ -9067,7 +7359,7 @@ function initializePhotoGallery(lightboxOverlay) {
         lightboxImage.removeEventListener('touchend', handleTouchEnd);
     };
     
-    console.log(`📸 Photo gallery initialized: ${gallery.photos.length} photos, starting at ${currentIndex + 1}`);
+    console.log(`Ã°Å¸â€œÂ¸ Photo gallery initialized: ${gallery.photos.length} photos, starting at ${currentIndex + 1}`);
 }
 
 /**
@@ -9108,7 +7400,7 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
         
         // Only close if user actually moved their finger AND it's a significant swipe
         if (hasMoved && Math.abs(deltaY) > 80) {
-            console.log('📸 Vertical swipe detected on single photo - closing lightbox');
+            console.log('Ã°Å¸â€œÂ¸ Vertical swipe detected on single photo - closing lightbox');
             
             const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
             if (closeBtn) {
@@ -9133,7 +7425,7 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
         lightboxImage.removeEventListener('touchend', handleTouchEnd);
     };
     
-    console.log('📸 Single photo gestures initialized');
+    console.log('Ã°Å¸â€œÂ¸ Single photo gestures initialized');
 }
 
 
@@ -9177,872 +7469,6 @@ function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName
     `;
 }
 
-// ===== MOCK MESSAGE DATA FOR ADMIN COMMUNICATIONS =====
-
-/*
-=== FIREBASE/FIRESTORE INTEGRATION STRUCTURE ===
-
-Collection: "adminMessages"
-
-Message Types:
-1. PUBLIC BROADCAST ("public") - Sent to ALL users via Compose Public Message
-2. DIRECT MESSAGE ("direct") - Sent to specific user via Contact User form
-
-Data Structure:
-{
-  messageId: "msg_12345",
-  messageType: "public" | "direct",  // KEY DIFFERENTIATOR
-  
-  // Common fields (both types)
-  from: {
-    adminId: "admin_001",
-    adminName: "Peter J. Ang",
-    adminEmail: "admin@gisugo.com",
-    role: "admin"
-  },
-  subject: "Message subject",
-  content: "Message body text...",
-  timestamp: Firestore.Timestamp,
-  attachments: [],
-  isRead: false,
-  readAt: null,
-  
-  // PUBLIC message specific fields
-  category: "important-notices" | "platform-updates" | "system-updates" | "promotions",
-  targetAudience: "all" | "customers" | "workers" | "verified-only",
-  
-  // DIRECT message specific fields
-  to: {
-    userId: "user_12345",
-    userName: "John Doe",
-    userEmail: "john@example.com"
-  },
-  topic: "account-verification" | "account-suspension" | "policy-violation" | "payment-issue" | 
-         "gig-inquiry" | "verification-request" | "general-inquiry" | "security-alert" | 
-         "important-notice" | "other",
-  priority: "normal" | "high" | "urgent",
-  
-  // Metadata
-  replies: [],
-  repliedAt: null
-}
-
-Firestore Queries:
-- User's public messages: adminMessages.where('messageType', '==', 'public')
-- User's direct messages: adminMessages.where('messageType', '==', 'direct').where('to.userId', '==', userId)
-- Combined inbox: Use composite query or client-side merge
-
-Security Rules:
-- Public messages: readable by all authenticated users
-- Direct messages: readable only by intended recipient (to.userId)
-
-UI Display:
-- 📢 icon + blue badge for PUBLIC broadcasts
-- 📨 icon + green badge for DIRECT messages
-- Filter by type or show unified inbox
-*/
-
-/*
-    customer: [
-        {
-            id: 'msg_cust_001',
-            messageType: 'direct', // DIRECT MESSAGE (admin → specific user)
-            topic: 'account-verification',
-            subject: 'Account Verification Complete',
-            excerpt: 'Your GISUGO account has been successfully verified. You can now post jobs and hire workers.',
-            content: `Dear Valued Customer,
-
-We're pleased to inform you that your GISUGO account verification has been completed successfully! 
-
-Your account is now fully activated and you have access to all customer features:
-• Post unlimited job listings
-• Browse verified worker profiles
-• Use our secure G-Coins payment system
-• Access 24/7 customer support
-
-Welcome to the GISUGO community! We're excited to help you find the perfect workers for your needs.
-
-Best regards,
-The GISUGO Team`,
-            sender: {
-                name: 'GISUGO Support',
-                email: 'support@gisugo.com',
-                avatar: 'public/users/User-02.jpg'
-            },
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-            isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_cust_002',
-            messageType: 'direct', // DIRECT MESSAGE
-            topic: 'payment-issue',
-            subject: 'G-Coins Wallet Issue Resolution',
-            excerpt: 'We have resolved the wallet connectivity issue you reported. Your G-Coins balance is now accessible.',
-            content: `Dear Customer,
-
-Thank you for reporting the G-Coins wallet connectivity issue. Our technical team has successfully resolved the problem.
-
-ISSUE RESOLVED:
-The temporary server maintenance that was causing wallet timeouts has been completed. All G-Coins transactions are now processing normally.
-
-YOUR ACCOUNT STATUS:
-• Current G-Coins Balance: ₱2,450 (confirmed secure)
-• All pending transactions have been processed
-• Wallet access fully restored
-
-We apologize for any inconvenience this may have caused. As compensation for the disruption, we've added a 5% bonus (₱122.50) to your wallet.
-
-If you experience any further issues, please don't hesitate to contact us.
-
-Best regards,
-GISUGO Technical Support Team
-support@gisugo.com`,
-            sender: {
-                name: 'GISUGO Technical Support',
-                email: 'tech-support@gisugo.com', 
-                avatar: 'public/users/User-03.jpg'
-            },
-            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-            isRead: false,
-            hasAttachment: true,
-            attachmentName: 'wallet-resolution-receipt.pdf'
-        },
-        {
-            id: 'msg_cust_003',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'important-notices',
-            subject: 'Important: Updated Terms of Service',
-            excerpt: 'Please review our updated Terms of Service, effective November 1st, 2025.',
-            content: `Important Notice: Updated Terms of Service
-
-Dear GISUGO Customer,
-
-We are updating our Terms of Service to better serve you and comply with new regulations. The updated terms will take effect on November 1st, 2025.
-
-KEY CHANGES:
-• Enhanced user privacy protections
-• Clearer dispute resolution procedures  
-• Updated payment processing terms
-• Improved worker verification standards
-
-WHAT YOU NEED TO DO:
-Please review the updated Terms of Service in your account dashboard. Continued use of GISUGO after November 1st constitutes acceptance of the new terms.
-
-QUESTIONS?
-If you have any questions about these changes, please contact our legal team at legal@gisugo.com or visit our FAQ section.
-
-The updated terms are designed to provide better protection for both customers and workers while maintaining the quality service you expect from GISUGO.
-
-Thank you for your attention to this important matter.
-
-GISUGO Legal Team
-legal@gisugo.com`,
-            sender: {
-                name: 'GISUGO Legal Team',
-                email: 'legal@gisugo.com',
-                avatar: 'public/users/User-06.jpg'
-            },
-            timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-            isRead: false,
-            hasAttachment: true,
-            attachmentName: 'updated-terms-of-service.pdf'
-        },
-        {
-            id: 'msg_cust_004',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'platform-updates',
-            subject: 'New Feature: Advanced Job Matching',
-            excerpt: 'Introducing AI-powered job matching to help you find the perfect workers faster.',
-            content: `Exciting News: Advanced Job Matching is Here!
-
-Dear Customer,
-
-We're thrilled to introduce our new AI-powered job matching feature that will revolutionize how you find workers on GISUGO!
-
-NEW FEATURES:
-🤖 AI-Powered Matching: Our algorithm analyzes job requirements and worker skills for perfect matches
-📊 Compatibility Scores: See percentage match ratings for each worker
-⚡ Instant Recommendations: Get worker suggestions as soon as you post a job
-🎯 Smart Filters: Advanced filtering based on experience, ratings, and availability
-
-HOW IT WORKS:
-1. Post your job with detailed requirements
-2. Our AI analyzes your needs
-3. Receive ranked worker recommendations
-4. Review compatibility scores and profiles
-5. Contact top matches directly
-
-BENEFITS FOR YOU:
-• 60% faster hiring process
-• Higher quality matches
-• Reduced time screening candidates
-• Better project outcomes
-
-The feature is automatically enabled for all job postings. Try it out with your next job post!
-
-Happy hiring,
-GISUGO Product Team`,
-            sender: {
-                name: 'GISUGO Product Team',
-                email: 'product@gisugo.com',
-                avatar: 'public/users/User-08.jpg'
-            },
-            timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
-            isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_cust_005',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'promotions',
-            subject: 'Limited Time: 20% Bonus on G-Coins Purchase',
-            excerpt: 'Get 20% extra G-Coins when you top up ₱500 or more. Offer valid until October 31st.',
-            content: `🎉 Special Promotion: 20% Bonus G-Coins!
-
-Dear Valued Customer,
-
-For a limited time, get 20% extra G-Coins when you top up your wallet!
-
-PROMOTION DETAILS:
-💰 Minimum purchase: ₱500
-🎁 Bonus: 20% extra G-Coins
-⏰ Valid until: October 31st, 2025
-🎯 Maximum bonus: ₱1,000 extra G-Coins
-
-EXAMPLES:
-• Top up ₱500 → Get ₱600 G-Coins (₱100 bonus)
-• Top up ₱1,000 → Get ₱1,200 G-Coins (₱200 bonus)
-• Top up ₱2,500 → Get ₱3,000 G-Coins (₱500 bonus)
-
-HOW TO CLAIM:
-1. Go to your G-Coins wallet
-2. Select "Top Up"
-3. Choose ₱500 or higher amount
-4. Complete payment
-5. Bonus G-Coins added automatically!
-
-This is perfect timing to stock up for your upcoming projects. More G-Coins means more flexibility in hiring the best workers!
-
-Don't miss out - offer ends October 31st!
-
-GISUGO Promotions Team`,
-            sender: {
-                name: 'GISUGO Promotions',
-                email: 'promotions@gisugo.com',
-                avatar: 'public/users/User-10.jpg'
-            },
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-            isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_cust_006',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'promotions',
-            subject: 'Refer Friends and Earn G-Coins',
-            excerpt: 'Invite friends to GISUGO and earn ₱100 G-Coins for each successful referral.',
-            content: `💸 Earn G-Coins by Referring Friends!
-
-Dear Customer,
-
-Share the GISUGO experience with friends and family while earning G-Coins!
-
-REFERRAL PROGRAM:
-🎁 Earn ₱100 G-Coins per successful referral
-👥 No limit on referrals
-⚡ G-Coins credited within 24 hours
-🏆 Bonus rewards for top referrers
-
-HOW IT WORKS:
-1. Share your unique referral code: CUST-REF-2025
-2. Friends sign up using your code
-3. They complete their first job transaction
-4. You both earn ₱100 G-Coins!
-
-YOUR FRIEND GETS:
-• ₱100 welcome G-Coins
-• Priority customer support for 30 days
-• Access to exclusive new user promotions
-
-SHARE YOUR CODE:
-Use your referral code CUST-REF-2025 or share this link:
-https://gisugo.com/signup?ref=CUST-REF-2025
-
-LEADERBOARD PRIZES:
-Top 3 referrers each month win:
-🥇 1st place: ₱5,000 G-Coins
-🥈 2nd place: ₱3,000 G-Coins  
-🥉 3rd place: ₱2,000 G-Coins
-
-Start referring today and watch your G-Coins grow!
-
-GISUGO Referral Team`,
-            sender: {
-                name: 'GISUGO Referral Team',
-                email: 'referrals@gisugo.com',
-                avatar: 'public/users/User-11.jpg'
-            },
-            timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
-            isRead: true,
-            hasAttachment: false
-        }
-    ],
-    worker: [
-        {
-            id: 'msg_work_001',
-            messageType: 'direct', // DIRECT MESSAGE
-            topic: 'account-verification',
-            subject: 'Profile Verification Approved',
-            excerpt: 'Congratulations! Your worker profile has been verified and you can now accept job applications.',
-            content: `Congratulations! Profile Verification Complete
-
-Dear Worker,
-
-We're excited to inform you that your GISUGO worker profile has been successfully verified!
-
-VERIFICATION COMPLETED:
-✅ Identity verification
-✅ Skills assessment
-✅ Background check
-✅ Portfolio review
-
-YOU CAN NOW:
-• Accept job applications from customers
-• Set your own rates and availability
-• Receive direct messages from potential clients
-• Access premium worker features
-
-NEXT STEPS:
-1. Complete your profile with recent work samples
-2. Set your availability calendar
-3. Upload additional skill certifications
-4. Start browsing and applying for jobs!
-
-Your verified badge will appear on your profile within 24 hours, making you more attractive to potential customers.
-
-Welcome to the verified GISUGO worker community!
-
-Best regards,
-GISUGO Verification Team`,
-            sender: {
-                name: 'GISUGO Verification Team',
-                email: 'verification@gisugo.com',
-                avatar: 'public/users/User-02.jpg'
-            },
-            timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-            isRead: false,
-            hasAttachment: true,
-            attachmentName: 'verification-certificate.pdf'
-        },
-        {
-            id: 'msg_work_002',
-            messageType: 'direct', // DIRECT MESSAGE
-            topic: 'payment-issue',
-            subject: 'Payment Issue Resolved',
-            excerpt: 'The delayed payment for Job #JOB-2025-1234 has been processed and credited to your account.',
-            content: `Payment Issue Resolution - Job #JOB-2025-1234
-
-Dear Worker,
-
-We have successfully resolved the payment delay issue for your completed job.
-
-JOB DETAILS:
-• Job ID: JOB-2025-1234
-• Customer: Maria Santos
-• Service: House Cleaning (3-bedroom)
-• Amount: ₱800 G-Coins
-
-ISSUE RESOLVED:
-The payment delay was caused by a temporary system glitch during our recent maintenance. The issue has been fixed and your payment has been processed.
-
-PAYMENT STATUS:
-✅ ₱800 G-Coins credited to your wallet
-✅ Transaction completed successfully
-✅ Customer rating and review recorded
-
-We sincerely apologize for the inconvenience. As compensation for the delay, we've added a ₱50 bonus to your account.
-
-If you experience any future payment issues, please contact us immediately at payments@gisugo.com.
-
-Thank you for your patience and continued service excellence.
-
-GISUGO Payments Team`,
-            sender: {
-                name: 'GISUGO Payments Team',
-                email: 'payments@gisugo.com',
-                avatar: 'public/users/User-03.jpg'
-            },
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-            isRead: false,
-            hasAttachment: true,
-            attachmentName: 'payment-receipt-JOB-2025-1234.pdf'
-        },
-        {
-            id: 'msg_work_003',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'important-notices',
-            subject: 'New Worker Safety Guidelines',
-            excerpt: 'Updated safety protocols and guidelines for all GISUGO workers, effective immediately.',
-            content: `Important: Updated Worker Safety Guidelines
-
-Dear GISUGO Worker,
-
-Your safety is our top priority. Please review these updated safety guidelines that are now in effect.
-
-NEW SAFETY PROTOCOLS:
-
-🏠 ON-SITE SAFETY:
-• Always verify customer identity before starting work
-• Take photos of work area before and after
-• Report any unsafe working conditions immediately
-• Keep emergency contact information accessible
-
-💬 COMMUNICATION SAFETY:
-• Use GISUGO messaging for all job-related communication
-• Never share personal contact information
-• Report inappropriate customer behavior
-• Document all agreements in writing
-
-💰 PAYMENT SAFETY:
-• Only accept payments through G-Coins system
-• Never accept cash or external payments
-• Report payment pressure or unusual requests
-• Verify job completion before leaving site
-
-🚨 EMERGENCY PROCEDURES:
-• Emergency hotline: +63-917-GISUGO-911
-• Local emergency: 911 or 117
-• GISUGO safety team: safety@gisugo.com
-
-MANDATORY TRAINING:
-All workers must complete the updated safety training module in their dashboard within 7 days.
-
-Your safety enables you to provide excellent service. Thank you for following these guidelines.
-
-GISUGO Safety Team`,
-            sender: {
-                name: 'GISUGO Safety Team',
-                email: 'safety@gisugo.com',
-                avatar: 'public/users/User-04.jpg'
-            },
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-            isRead: true,
-            hasAttachment: true,
-            attachmentName: 'worker-safety-guidelines-2025.pdf'
-        },
-        {
-            id: 'msg_work_004',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'system-updates',
-            subject: 'Worker App Performance Improvements',
-            excerpt: 'Recent updates to improve app performance and reduce job notification delays.',
-            content: `Worker App Performance Update
-
-Dear Worker,
-
-We've implemented several improvements to enhance your GISUGO app experience:
-
-PERFORMANCE IMPROVEMENTS:
-⚡ 40% faster job loading times
-📱 Reduced app memory usage
-🔔 Improved notification reliability
-📷 Better photo upload speeds
-🗺️ More accurate GPS location tracking
-
-NOTIFICATION ENHANCEMENTS:
-• Instant job alerts (previously up to 5 minutes delay)
-• Priority notifications for high-paying jobs
-• Custom notification sounds for different job types
-• Offline notification queuing
-
-BUG FIXES:
-• Fixed app crashes during photo uploads
-• Resolved GPS accuracy issues
-• Fixed calendar sync problems
-• Improved chat message delivery
-
-WHAT YOU'LL NOTICE:
-• Faster response times when browsing jobs
-• More reliable job notifications
-• Smoother photo and document uploads
-• Better overall app stability
-
-These improvements are automatically applied - no action needed from you. If you experience any issues, please report them through the app's feedback feature.
-
-Thank you for your patience as we continue improving your GISUGO experience!
-
-GISUGO Technical Team`,
-            sender: {
-                name: 'GISUGO Technical Team',
-                email: 'tech@gisugo.com',
-                avatar: 'public/users/User-05.jpg'
-            },
-            timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-            isRead: true,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_work_005',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'important-notices',
-            subject: 'Tax Information for 2025',
-            excerpt: 'Important tax information for GISUGO workers and year-end documentation requirements.',
-            content: `Important: 2025 Tax Information for Workers
-
-Dear GISUGO Worker,
-
-As we approach the end of 2025, here's important tax information for your GISUGO earnings:
-
-TAX DOCUMENTATION:
-📄 BIR Form 2307 (Certificate of Creditable Tax Withheld at Source)
-📊 Annual earnings summary
-📋 Monthly transaction reports
-🧾 Detailed payment receipts
-
-WHAT GISUGO PROVIDES:
-• Comprehensive earnings report for 2025
-• Tax withholding certificates (if applicable)
-• Monthly transaction summaries
-• Support for tax filing questions
-
-TAX OBLIGATIONS:
-As an independent contractor, you are responsible for:
-• Declaring GISUGO earnings in your tax return
-• Paying appropriate income taxes
-• Keeping records of business expenses
-• Consulting with a tax professional if needed
-
-ACCESSING YOUR TAX DOCUMENTS:
-1. Go to your Worker Dashboard
-2. Click "Financial Reports"
-3. Select "Tax Documents"
-4. Download your 2025 earnings summary
-
-IMPORTANT DATES:
-• December 31, 2025: Tax year ends
-• January 15, 2026: Tax documents available
-• April 15, 2026: Tax filing deadline
-
-For tax-related questions, contact our finance team at finance@gisugo.com.
-
-GISUGO Finance Team`,
-            sender: {
-                name: 'GISUGO Finance Team',
-                email: 'finance@gisugo.com',
-                avatar: 'public/users/User-06.jpg'
-            },
-            timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
-            isRead: false,
-            hasAttachment: true,
-            attachmentName: 'worker-tax-guide-2025.pdf'
-        },
-        {
-            id: 'msg_work_006',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'promotions',
-            subject: 'Worker Recognition Program Launch',
-            excerpt: 'Introducing the GISUGO Excellence Awards - monthly recognition and rewards for top-performing workers.',
-            content: `🏆 Introducing GISUGO Excellence Awards!
-
-Dear Outstanding Worker,
-
-We're launching a new program to recognize and reward exceptional workers like you!
-
-MONTHLY AWARDS CATEGORIES:
-
-🌟 Customer Favorite Award
-• Highest customer ratings (minimum 10 jobs)
-• Prize: ₱2,000 G-Coins + Featured profile
-
-⚡ Speed Demon Award  
-• Fastest job completion times
-• Prize: ₱1,500 G-Coins + Priority job alerts
-
-💎 Quality Champion Award
-• Highest quality work ratings
-• Prize: ₱2,500 G-Coins + Verified Pro badge
-
-🤝 Reliability Star Award
-• Perfect attendance and punctuality
-• Prize: ₱1,000 G-Coins + Reliability badge
-
-📈 Growth Leader Award
-• Most improved worker of the month
-• Prize: ₱1,500 G-Coins + Mentorship opportunity
-
-ANNUAL GRAND PRIZES:
-🥇 Worker of the Year: ₱25,000 G-Coins
-🥈 Runner-up: ₱15,000 G-Coins
-🥉 Third Place: ₱10,000 G-Coins
-
-HOW TO PARTICIPATE:
-Simply continue providing excellent service! All active workers are automatically eligible.
-
-Winners announced monthly via email and featured on our social media channels.
-
-Keep up the excellent work - you could be our next award winner!
-
-GISUGO Recognition Team`,
-            sender: {
-                name: 'GISUGO Recognition Team',
-                email: 'recognition@gisugo.com',
-                avatar: 'public/users/User-07.jpg'
-            },
-            timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
-            isRead: true,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_work_007',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'platform-updates',
-            subject: 'New Skill Categories Available',
-            excerpt: 'Expand your opportunities with newly added skill categories: Tech Support, Event Planning, and Pet Training.',
-            content: `🚀 New Skill Categories Now Available!
-
-Dear Worker,
-
-Exciting news! We've added new skill categories to help you expand your service offerings and reach more customers.
-
-NEW CATEGORIES:
-
-💻 TECH SUPPORT
-• Computer troubleshooting
-• Software installation
-• Network setup
-• Device repair
-• Data recovery
-
-🎉 EVENT PLANNING
-• Party organization
-• Wedding coordination
-• Corporate events
-• Catering coordination
-• Venue decoration
-
-🐕 PET TRAINING
-• Dog obedience training
-• Puppy socialization
-• Behavioral correction
-• Pet sitting with training
-• Agility training
-
-📱 DIGITAL SERVICES
-• Social media management
-• Basic web design
-• Online tutoring
-• Virtual assistance
-• Content creation
-
-HOW TO ADD NEW SKILLS:
-1. Go to your Worker Profile
-2. Click "Edit Skills & Services"
-3. Select new categories
-4. Add relevant experience/certifications
-5. Set your rates for new services
-
-BENEFITS:
-• Access to new customer segments
-• Higher earning potential
-• Diversified income streams
-• Reduced competition in new categories
-
-Start adding these skills today and watch your job opportunities grow!
-
-GISUGO Skills Team`,
-            sender: {
-                name: 'GISUGO Skills Team',
-                email: 'skills@gisugo.com',
-                avatar: 'public/users/User-08.jpg'
-            },
-            timestamp: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 9 days ago
-            isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_work_008',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'platform-updates',
-            subject: 'Enhanced Worker Dashboard Features',
-            excerpt: 'New dashboard features including earnings analytics, job history search, and customer feedback insights.',
-            content: `📊 Enhanced Worker Dashboard is Here!
-
-Dear Worker,
-
-Your worker dashboard just got a major upgrade with powerful new features to help you manage your GISUGO business better!
-
-NEW DASHBOARD FEATURES:
-
-📈 EARNINGS ANALYTICS
-• Monthly and yearly earnings charts
-• Income trends and projections
-• Peak earning hours analysis
-• Service category performance
-• Goal setting and tracking
-
-🔍 ADVANCED JOB HISTORY
-• Search jobs by date, customer, or service
-• Filter by earnings, ratings, or location
-• Export job history to spreadsheet
-• Detailed job performance metrics
-
-💬 CUSTOMER FEEDBACK INSIGHTS
-• Detailed rating breakdowns
-• Common feedback themes
-• Improvement suggestions
-• Response templates for reviews
-
-📅 SMART SCHEDULING
-• Calendar integration
-• Automatic availability updates
-• Job conflict detection
-• Travel time calculations
-
-📱 MOBILE OPTIMIZATION
-• Faster loading on mobile devices
-• Touch-friendly interface
-• Offline data viewing
-• Push notification settings
-
-🎯 PERFORMANCE TRACKING
-• Customer satisfaction scores
-• Response time metrics
-• Job completion rates
-• Earnings per hour calculations
-
-ACCESS YOUR NEW DASHBOARD:
-Log in to your worker account to explore all the new features. We've also added helpful tooltips to guide you through the updates.
-
-These improvements will help you work smarter, not harder!
-
-GISUGO Product Team`,
-            sender: {
-                name: 'GISUGO Product Team',
-                email: 'product@gisugo.com',
-                avatar: 'public/users/User-09.jpg'
-            },
-            timestamp: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000), // 11 days ago
-            isRead: true,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_work_009',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'promotions',
-            subject: 'Double G-Coins Weekend Special',
-            excerpt: 'Earn double G-Coins on all completed jobs this weekend! October 21-22, 2025.',
-            content: `💰 DOUBLE G-COINS WEEKEND SPECIAL! 💰
-
-Dear Hardworking GISUGO Worker,
-
-This weekend only, earn DOUBLE G-Coins on every completed job!
-
-PROMOTION DETAILS:
-📅 Dates: October 21-22, 2025 (Saturday & Sunday)
-⏰ Time: 12:01 AM Saturday to 11:59 PM Sunday
-💎 Bonus: 100% extra G-Coins on completed jobs
-🎯 No minimum job value required
-
-HOW IT WORKS:
-• Complete any job during the weekend
-• Earn your normal rate PLUS 100% bonus
-• Bonus G-Coins credited within 24 hours
-• No limit on number of jobs
-
-EXAMPLES:
-• ₱500 job → Earn ₱1,000 G-Coins total
-• ₱1,200 job → Earn ₱2,400 G-Coins total
-• ₱300 job → Earn ₱600 G-Coins total
-
-MAXIMIZE YOUR EARNINGS:
-🚀 Accept multiple jobs this weekend
-📱 Keep your availability status updated
-⚡ Respond quickly to job requests
-🏆 Deliver exceptional service for great reviews
-
-BONUS TIPS:
-• Popular weekend services: cleaning, gardening, event setup
-• Update your profile to highlight weekend availability
-• Consider offering package deals for multiple services
-
-This is your chance to supercharge your earnings! Don't miss out on this limited-time opportunity.
-
-Happy earning!
-GISUGO Promotions Team`,
-            sender: {
-                name: 'GISUGO Promotions Team',
-                email: 'promotions@gisugo.com',
-                avatar: 'public/users/User-10.jpg'
-            },
-            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-            isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_work_010',
-            messageType: 'public', // PUBLIC BROADCAST
-            category: 'promotions',
-            subject: 'Worker Referral Bonus Program',
-            excerpt: 'Refer skilled workers to GISUGO and earn ₱200 for each successful referral who completes 5 jobs.',
-            content: `👥 Worker Referral Bonus Program!
-
-Dear GISUGO Worker,
-
-Know other skilled workers? Invite them to GISUGO and earn generous referral bonuses!
-
-REFERRAL REWARDS:
-💰 Earn ₱200 for each successful referral
-🎁 Your referral gets ₱100 welcome bonus
-🏆 Monthly bonus for top referrers: ₱2,000
-📈 No limit on referrals
-
-QUALIFICATION CRITERIA:
-✅ Referral must complete profile verification
-✅ Complete at least 5 jobs within 60 days
-✅ Maintain 4.0+ star rating
-✅ Use your referral code during signup
-
-YOUR REFERRAL CODE: WORK-REF-2025
-
-HOW TO REFER:
-1. Share your code: WORK-REF-2025
-2. Send this link: https://gisugo.com/worker-signup?ref=WORK-REF-2025
-3. Help them through the verification process
-4. Earn ₱200 when they complete 5 jobs!
-
-IDEAL REFERRALS:
-• Skilled tradespeople (electricians, plumbers, carpenters)
-• Service professionals (cleaners, gardeners, drivers)
-• Creative professionals (photographers, designers)
-• Technical experts (IT support, tutors)
-
-MONTHLY LEADERBOARD:
-🥇 Most referrals: ₱2,000 bonus
-🥈 Second place: ₱1,200 bonus
-🥉 Third place: ₱800 bonus
-
-TRACKING YOUR REFERRALS:
-Check your dashboard's "Referrals" section to track:
-• Number of people who used your code
-• Their verification status
-• Jobs completed
-• Bonuses earned
-
-Start referring today and build your passive income stream!
-
-GISUGO Referral Team`,
-            sender: {
-                name: 'GISUGO Referral Team',
-                email: 'referrals@gisugo.com',
-                avatar: 'public/users/User-11.jpg'
-            },
-            timestamp: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), // 13 days ago
-            isRead: true,
-            hasAttachment: false
-        }
-    ]
-*/
 
 function getMessagesByRole(role) {
     if (role === 'unified') {
@@ -10127,7 +7553,7 @@ async function ensureSupportResponsesRealtimeStream() {
 
     const db = typeof getFirestore === 'function' ? getFirestore() : null;
     if (!db) {
-        console.warn('⚠️ Firestore unavailable: support stream disabled');
+        console.warn('Ã¢Å¡Â Ã¯Â¸Â Firestore unavailable: support stream disabled');
         return;
     }
 
@@ -10156,7 +7582,7 @@ async function ensureSupportResponsesRealtimeStream() {
             updateMainMessagesTabCount();
             updateInboxTabCounts('unified');
         }, (error) => {
-            console.error('❌ Support responses stream error:', error);
+            console.error('Ã¢ÂÅ’ Support responses stream error:', error);
             stopSupportResponsesRealtimeStream('snapshot_error');
             loadUnifiedMessages();
         });
@@ -10234,7 +7660,7 @@ function generateAdminMessageHTML(message, role) {
     // Determine if this is a public broadcast or direct message
     const isPublic = message.messageType === 'public';
     const messageTypeClass = isPublic ? 'message-type-public' : 'message-type-direct';
-    const messageTypeIcon = isPublic ? '📢' : '📨';
+    const messageTypeIcon = isPublic ? 'Ã°Å¸â€œÂ¢' : 'Ã°Å¸â€œÂ¨';
     const messageTypeBadge = isPublic ? 'PUBLIC' : 'DIRECT';
     const messageTypeBadgeClass = isPublic ? 'badge-public' : 'badge-direct';
     
@@ -10265,7 +7691,7 @@ function generateAdminMessageHTML(message, role) {
                     </div>
                     <div class="message-meta">
                         <div class="message-time">${timeAgo}</div>
-                        ${message.hasAttachment ? '<div class="message-attachment" title="Has attachment">🖼️</div>' : ''}
+                        ${message.hasAttachment ? '<div class="message-attachment" title="Has attachment">Ã°Å¸â€“Â¼Ã¯Â¸Â</div>' : ''}
                     </div>
                 </div>
                 <div class="message-preview">
@@ -10281,10 +7707,10 @@ function generateAdminMessageHTML(message, role) {
 function getTopicLabel(topicOrCategory, isPublic = false) {
     // Labels for PUBLIC broadcast categories
     const publicLabels = {
-        'important-notices': '🔴 Important Notices',
-        'platform-updates': '🔵 Platform Updates',
-        'system-updates': '⚙️ System Updates',
-        'promotions': '🎁 Promotions'
+        'important-notices': 'Ã°Å¸â€Â´ Important Notices',
+        'platform-updates': 'Ã°Å¸â€Âµ Platform Updates',
+        'system-updates': 'Ã¢Å¡â„¢Ã¯Â¸Â System Updates',
+        'promotions': 'Ã°Å¸Å½Â Promotions'
     };
     
     // Labels for DIRECT message topics
@@ -10407,7 +7833,7 @@ function showMessageWindow(message, role) {
         overlay.innerHTML = `
             <div class="overlay-content">
                 <div class="overlay-header">
-                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">✕</button>
+                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">Ã¢Å“â€¢</button>
                     <h3>Message Details</h3>
                 </div>
                 <div class="overlay-body">
@@ -10662,7 +8088,7 @@ function isSupportResponseMessage(message) {
 function getSupportEmptyStateHTML(messageText, detailText) {
     return `
         <div class="messages-placeholder">
-            <div class="placeholder-icon">📧</div>
+            <div class="placeholder-icon">Ã°Å¸â€œÂ§</div>
             <h3>${messageText}</h3>
             <p>${detailText}</p>
             <small>Check back later for updates.</small>
@@ -10721,7 +8147,7 @@ function closeMessage(messageId, role) {
         // Get current tab BEFORE making any changes
         const filteringSystem = window[`${role}FilteringSystem`];
         const currentTab = filteringSystem ? filteringSystem.getCurrentTab() : 'new';
-        console.log(`🔄 Closing message from ${currentTab} tab`);
+        console.log(`Ã°Å¸â€â€ž Closing message from ${currentTab} tab`);
         
         // Initialize message state if it doesn't exist
         if (!messageStates[messageId]) {
@@ -10767,7 +8193,7 @@ function closeMessage(messageId, role) {
         
         // Use filtering system to reload messages (preserves current tab)
         if (filteringSystem && filteringSystem.reloadFilteredMessages) {
-            console.log(`🔄 Reloading ${currentTab} tab messages after close`);
+            console.log(`Ã°Å¸â€â€ž Reloading ${currentTab} tab messages after close`);
             filteringSystem.reloadFilteredMessages();
             
             // Update notification counts AFTER the message list is reloaded
@@ -10800,9 +8226,9 @@ function closeMessage(messageId, role) {
         // Show toast notification only if message was actually moved from New to Old
         if (!wasAlreadyClosed) {
             showToast(`Moved to Old Messages`);
-            console.log('📧 Message moved from New to Old - showing toast');
+            console.log('Ã°Å¸â€œÂ§ Message moved from New to Old - showing toast');
         } else {
-            console.log('📧 Message was already in Old - no toast shown');
+            console.log('Ã°Å¸â€œÂ§ Message was already in Old - no toast shown');
         }
         
         // Clear currently open message tracking if this message was closed
@@ -10871,7 +8297,7 @@ function updateMainMessagesTabCount() {
             workerMessagesTabBadge.style.display = nextDisplay;
         }
     }
-    messagesDebug(`📊 Unified badge update: ${unifiedCount} messages`);
+    messagesDebug(`Ã°Å¸â€œÅ  Unified badge update: ${unifiedCount} messages`);
 }
 
 const MESSAGE_FILTER_CLEANUPS = new Map();
@@ -10918,10 +8344,10 @@ const MESSAGE_FILTER_CLEANUPS = new Map();
             
             if (tab === 'new') {
                 newTabBtn.classList.add('active');
-                console.log(`✅ Set New tab as active for ${role}`);
+                console.log(`Ã¢Å“â€¦ Set New tab as active for ${role}`);
             } else {
                 oldTabBtn.classList.add('active');
-                console.log(`✅ Set Old tab as active for ${role}`);
+                console.log(`Ã¢Å“â€¦ Set Old tab as active for ${role}`);
             }
             
             // Reload messages with current filters
@@ -11093,7 +8519,7 @@ function setupMessageDetailHandlers(role) {
                 if (currentlyOpenMessage && currentlyOpenRole && currentlyOpenMessage.id !== messageId) {
                     const previousMessageState = messageStates[currentlyOpenMessage.id];
                     if (previousMessageState && !previousMessageState.isClosed) {
-                        console.log(`🔄 Auto-closing previously viewed message: ${currentlyOpenMessage.id}`);
+                        console.log(`Ã°Å¸â€â€ž Auto-closing previously viewed message: ${currentlyOpenMessage.id}`);
                         closeMessage(currentlyOpenMessage.id, currentlyOpenRole);
                     }
                 }
@@ -11242,7 +8668,7 @@ function sendReply() {
     if (replyPhotoData) {
         replyData.hasPhoto = true;
         replyData.photoData = replyPhotoData;
-        console.log('📷 Adding photo to reply:', replyPhotoData);
+        console.log('Ã°Å¸â€œÂ· Adding photo to reply:', replyPhotoData);
     }
     
     messageStates[currentReplyMessage.id].replies.push(replyData);
@@ -11349,14 +8775,14 @@ function updateInboxTabCounts(role) {
         oldBadge.style.display = oldCount > 0 ? 'inline-block' : 'none';
     }
     
-    console.log(`📊 Updated inbox counters: New=${newCount}, Old=${oldCount}`);
+    console.log(`Ã°Å¸â€œÅ  Updated inbox counters: New=${newCount}, Old=${oldCount}`);
 }
 
 // Refresh currently open message display to show new replies
 function refreshCurrentMessageDisplay(message, role) {
     if (!message || !role) return;
     
-    console.log('🔄 Refreshing message display for:', message.id, 'role:', role);
+    console.log('Ã°Å¸â€â€ž Refreshing message display for:', message.id, 'role:', role);
     
     // Handle unified messages - use correct IDs
     const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
@@ -11379,7 +8805,7 @@ function refreshCurrentMessageDisplay(message, role) {
             replyBtn.addEventListener('click', () => showReplyModal(message, role));
         }
         
-        console.log('✅ Refreshed desktop message window with new replies');
+        console.log('Ã¢Å“â€¦ Refreshed desktop message window with new replies');
     }
     
     // Check if message is currently displayed in mobile overlay
@@ -11415,7 +8841,7 @@ function refreshCurrentMessageDisplay(message, role) {
             });
         }
         
-        console.log('✅ Refreshed mobile overlay with new replies');
+        console.log('Ã¢Å“â€¦ Refreshed mobile overlay with new replies');
     }
 }
 
@@ -11504,7 +8930,7 @@ function handleReplyPhotoUpload(event) {
         return;
     }
     
-    console.log('📷 Processing reply photo...');
+    console.log('Ã°Å¸â€œÂ· Processing reply photo...');
     
     // Process image using the same compression as chat
     processChatImage(file, (processedImage) => {
@@ -11520,11 +8946,11 @@ function handleReplyPhotoUpload(event) {
         // Show preview
         showReplyPhotoPreview(processedImage.thumbnailURL);
         
-        console.log('✅ Reply photo processed and ready');
+        console.log('Ã¢Å“â€¦ Reply photo processed and ready');
     }, (error) => {
         // Error callback - clear file input on error
         event.target.value = '';
-        console.error('❌ Reply photo processing failed:', error);
+        console.error('Ã¢ÂÅ’ Reply photo processing failed:', error);
     });
 }
 
@@ -11553,7 +8979,7 @@ window.removeReplyPhoto = function() {
     }
     
     replyPhotoData = null;
-    console.log('🗑️ Reply photo removed');
+    console.log('Ã°Å¸â€”â€˜Ã¯Â¸Â Reply photo removed');
 }
 
 // Initialize when DOM is loaded
