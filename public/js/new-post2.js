@@ -868,6 +868,10 @@ function validateCurrentStep() {
         showToast('Job date and time cannot be in the past', 'error');
         return false;
       }
+      if (!np2State.photoFile) {
+        showToast('Please add a gig photo', 'error');
+        return false;
+      }
       if (!np2State.jobDescription.trim()) {
         showToast('Please enter a job description', 'error');
         return false;

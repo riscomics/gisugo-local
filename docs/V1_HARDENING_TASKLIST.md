@@ -298,6 +298,58 @@ See `AGENTS.md` § "verify production data."
       duplicate background read still happens either way — this only decides which of the two
       answers wins on screen). A related cost optimization (skip the background re-check entirely
       when the cache is very fresh) was discussed and intentionally **deferred** — see Track E.
+- [ ] **Nationwide Region/City expansion + kill the barangay dropdown for free-text location
+      details — PLAN LOCKED (2026-08-03), NOT YET BUILT.** Triggered by the Region picker
+      (`hatod.html` screenshot) only offering 9 hand-picked regions (Cebu/Bohol/Leyte/Masbate/
+      Negros/Panay/Samar/Davao/Manila) with hand-typed city lists, duplicated across exactly 2
+      files (`public/js/listing.js` + `public/js/new-post2.js` — **not** duplicated across the 56+
+      category HTML files themselves, which only hold an empty placeholder div populated by
+      `listing.js` at runtime). Locked scope:
+      1. **Region → City reference file, all 17 official PH regions (~1,634 cities/municipalities),
+         sourced from the official PSGC (Philippine Standard Geographic Code) dataset** — not
+         hand-typed from memory (accuracy risk at this scale). One shared file replacing the
+         duplicated 9-region data in both `listing.js` and `new-post2.js`. Load eagerly (no lazy
+         loading) — measured the current 9-region block at 5,866 bytes for ~385 cities; scaling to
+         all 1,634 lands ~25-30KB uncompressed / ~6-10KB gzipped, a rounding error next to the
+         Firestore SDK (~250-300KB) already loaded on every page. City dropdown stays filtered by
+         the already-selected region (same 2-step UX as today), so this is not a "1,634-item
+         dropdown" usability problem either.
+      2. **Barangay-level granularity dropped entirely — replaced with free text.** Originally
+         planned as a 3rd tier (region→city→barangay) for `new-post2.js`'s "location detail" fields
+         (Pickup at:/Deliver to: for `hatod`, Load at:/Unload at: for `hakot`, Shop at:/Deliver to:
+         for `kompra`, and a generic "Location:" field used by ~35 other categories — see
+         `extrasConfig` in `new-post2.js`). Rejected: full nationwide barangay coverage is ~42,046
+         barangays (several MB, real lazy-load architecture needed) vs. the actual product need
+         (a human-readable landmark/area hint for gauging travel distance) — free text serves that
+         better and more accurately than a rigid official-name dropdown anyway. Also **not a new
+         behavior** — the current code already silently falls back to free text for any city
+         without hand-curated barangay data (i.e. everywhere except ~10 major cities), so this
+         change actually makes an already-inconsistent UX (10 cities dropdown, everywhere else
+         text) into one universal, consistent behavior. Delete `barangaysByCity` +
+         `getBarangaysForCurrentCity`/`cityHasBarangayData` dropdown-vs-fallback logic entirely.
+      3. **Input UX for the free-text fields:** category-specific placeholder hint (e.g. `hatod`
+         Pickup at: → "barangay name or general area"), `maxlength` (starting point ~40 chars,
+         tunable), **and a live character counter** (e.g. "24/40") — explicitly NOT relying on the
+         card's existing CSS `text-overflow: ellipsis` (`listing.css` `.extra-value`) to communicate
+         the limit, since a typist can't see where an ellipsis will cut until after the fact.
+      4. **Listing-page filters unaffected** — confirmed they only ever need region + city, never
+         barangay, so this doesn't touch `listing.js`'s filter-by-region behavior beyond swapping in
+         the bigger reference file.
+      **Known trade-off, accepted:** free text means no structured barangay data for any future
+      admin analytic or filter that might want it (e.g. "gig activity by barangay") — nothing today
+      needs that and nothing is roadmapped to, so deemed acceptable; reversible later if it ever is.
+      **Bundled-in fix — COMPLETE (2026-08-03), shipped ahead of the region/city work above since
+      it was small/isolated with no dependency on it.** Gig Photo was labeled "(Optional)"
+      (`new-post2.html`) and `validateCurrentStep()` case 3 (`new-post2.js`) checked
+      title/date/times/description but never checked `np2State.photoFile` — a gig could be posted
+      with zero photos. Fixed: label now carries the same red `np2-required` asterisk as every
+      other required field in that step, and case 3 now rejects the step (`showToast('Please add a
+      gig photo', 'error')`) if no photo was selected. Deliberately did NOT touch the photo
+      resize/crop pipeline (`processedJobPhoto`, the 720px-width/16:9 auto-processing) — pure
+      validation-gate addition only. Confirmed this only affects the **new-gig** step wizard: Edit
+      and Relist both route through the separate single-page `showEditForm` path
+      (`populateFormWithJobData` exits early for `mode === 'edit'/'relist'`), so an existing gig's
+      already-uploaded photo is never re-blocked by this check.
 - [~] **Rework Application-limit UX.** Design + build tracked in
       `docs/APPLICATION_LIMIT_UX_REDESIGN.md`. Phases **A–D BUILT + DEPLOYED 2026-06-23** (coin art
       archived; trilingual copy reworded; header + compose de-coined; Confirm/Capacity overlays
