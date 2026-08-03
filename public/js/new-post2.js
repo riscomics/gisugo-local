@@ -1731,6 +1731,16 @@ function initializeNavigation() {
       console.log('Selected category:', np2State.selectedCategory);
       console.log('Full state:', JSON.stringify(np2State, null, 2));
       
+      // Continue is "locked" (grayed out) on step 1 until a disclaimer language
+      // tab has been read. It's a real clickable button (not the native `disabled`
+      // attribute) specifically so this click can still be caught here and used to
+      // draw attention to the disclaimer instead of doing nothing.
+      if (nextBtn.classList.contains('np2-btn-locked')) {
+        console.log('🔒 Continue is locked — disclaimer not read yet, shaking for attention');
+        shakeBeforeContinueDisclaimer();
+        return;
+      }
+      
       const validationResult = validateCurrentStep();
       console.log('Validation result:', validationResult);
       
@@ -1758,6 +1768,37 @@ function initializeNavigation() {
       }
     });
   }
+}
+
+// Nudges the "Before You Continue" disclaimer box with a brief shake so a click on
+// the (visually locked) Continue button has a visible response instead of doing
+// nothing. Re-triggers cleanly even on repeated clicks by removing the animation
+// class first and re-adding it on the next frame.
+let _np2ShakeEndHandler = null; // tracks the one active listener so rapid clicks can't stack them
+
+function shakeBeforeContinueDisclaimer() {
+  const disclaimerSection = document.querySelector('.np2-disclaimer-section');
+  if (!disclaimerSection) return;
+
+  // If a previous shake's listener is still pending (interrupted before it fired),
+  // remove it before attaching a new one so repeated clicks can't accumulate listeners.
+  if (_np2ShakeEndHandler) {
+    disclaimerSection.removeEventListener('animationend', _np2ShakeEndHandler);
+    _np2ShakeEndHandler = null;
+  }
+
+  disclaimerSection.classList.remove('np2-attention-shake');
+  // Force a reflow so the class removal actually takes effect before we re-add it,
+  // otherwise the browser may not replay the animation on rapid repeat clicks.
+  void disclaimerSection.offsetWidth;
+  disclaimerSection.classList.add('np2-attention-shake');
+
+  _np2ShakeEndHandler = function handleShakeEnd() {
+    disclaimerSection.classList.remove('np2-attention-shake');
+    disclaimerSection.removeEventListener('animationend', _np2ShakeEndHandler);
+    _np2ShakeEndHandler = null;
+  };
+  disclaimerSection.addEventListener('animationend', _np2ShakeEndHandler, { once: true });
 }
 
 // ========================== PREVIEW OVERLAY ==========================
@@ -3357,7 +3398,7 @@ function initializeDisclaimerLangTabs() {
       // Enable Continue button (only on step 1)
       disclaimerRead = true;
       if (nextBtn && np2State.currentStep === 1) {
-        nextBtn.disabled = false;
+        nextBtn.classList.remove('np2-btn-locked');
       }
       
       console.log(`📖 Disclaimer language selected: ${lang}`);

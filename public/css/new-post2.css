@@ -805,6 +805,33 @@ html body.page-post2:has(.uniform-header) {
   box-shadow: none;
 }
 
+/* "Locked" button state — looks/behaves like :disabled visually, but stays a real
+   clickable button (not the native disabled attribute) so a click can still be caught
+   and used to draw attention to what's blocking it (e.g. shake the disclaimer box). */
+.np2-btn-primary.np2-btn-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #4a5568 !important;
+}
+
+.np2-btn-primary.np2-btn-locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Attention shake — nudges the disclaimer box when Continue is clicked while locked */
+@keyframes np2AttentionShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.np2-disclaimer-section.np2-attention-shake {
+  animation: np2AttentionShake 0.4s ease-in-out;
+}
+
 /* SUN RAYS GLOWING ANIMATION FOR ACTIVE STEP */
 @keyframes stepGlow {
   0%, 100% {

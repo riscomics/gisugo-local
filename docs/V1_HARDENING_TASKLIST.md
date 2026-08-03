@@ -470,6 +470,44 @@ See `AGENTS.md` § "verify production data."
       re-verify anything older). Needs `readListingCache()` to expose the cache entry's age
       (currently only returns the jobs array) before implementing. Revisit only once real Firestore
       read costs from this page are actually a concern.
+- [ ] **Dead code cleanup (deferred 2026-08-03) — none of this is reachable/live, purely tidiness:**
+      - **`public/js/support.js` — ~1,400-line dead comment block (~lines 5027–6418).** A whole
+        `LEGACY_APPLICATIONS` mock-data array (fake negotiation/counter-offer entries, still using
+        old `paymentType: 'per_job'/'per_hour'` terms) sitting inside `/* ... */`, preceded by
+        `// Removed: legacy applications array - Applications data moved to jobs.html overlay
+        system`. Confirmed 2026-08-03 it's fully commented out, not executable — same dead-comment
+        pattern as what was cleaned out of `messages.js` in the 2026-08-02 mock-removal pass, just
+        never caught because that pass was scoped only to `admin-dashboard.js`/`messages.js`, not
+        `support.js` (a different, already-shipped file backing the live `support.html` page).
+      - **`public/js/jobpage.js`** — confirmed unreferenced by any `.html` file (dead file), still
+        has old `Per Job`/payment-rate mock text.
+      - **`temp2.html`** — looks like a stray/corrupted scratch file (garbled markup, references
+        old `../../css/jobpage.css` paths), not linked from anywhere. Worth confirming truly unused
+        before deleting.
+      - Bundle with the already-known **`new-post.html`/`new-post.js` deletion + `new-post2` →
+        `new-post` rename** (confirmed dead 2026-08-03, deferred by user) as one cleanup pass.
+      - **Admin Dashboard Gig Moderation detail card** (`admin-dashboard.html` ~line 2758,
+        `admin-dashboard.js` ~line 3660, `id="gigPayRate"`) still hardcodes `PAY RATE: Per Hour`.
+        Not a live bug — Gig Moderation isn't wired to real Firestore data yet at all — but flag
+        for update to `GIG TYPE: Personal/Business` whenever that admin feature actually gets built.
+- [ ] **Firestore SDK 10.7.0 `INTERNAL ASSERTION FAILED: Unexpected state` after browser
+      back/forward-cache (bfcache) restore (observed 2026-08-03, pre-existing, not caused by any
+      recent edit).** Repro: browse a listing page (e.g. `hatod.html`), open a gig, use the browser
+      Back button to return. If IndexedDB persistence also failed to enable this session (separate,
+      harmless "newer version of the Firestore SDK was previously used" warning — a stale-cache
+      artifact of this browser profile, not a code bug), the page restoring from bfcache can corrupt
+      the Firestore client's internal async queue, throwing repeated uncaught
+      `FIRESTORE INTERNAL ASSERTION FAILED: Unexpected state` errors. **Impact confirmed safe:**
+      `subscribeToUnreadNotificationCounters()` (`public/js/firebase-db.js`) is already wrapped in
+      try/catch + an `onSnapshot` error callback, so the only visible symptom is the unread
+      notification badge silently resetting to 0 / stopping live updates until a hard refresh — no
+      crash, no bad data, no effect on gig listing/posting/viewing (those use one-off `.get()`
+      reads, not live listeners). `shared-menu.js` already does the right thing structurally
+      (unsubscribes listeners on `pagehide`, re-subscribes on `pageshow` when `event.persisted`) —
+      this is a known unresolved Firestore JS SDK limitation with bfcache, not a missing
+      teardown/re-init bug in our code. **Decision: ship as-is.** Revisit only if a future SDK
+      upgrade is being done anyway, or if the notification-badge-goes-stale symptom becomes a real
+      user complaint.
 
 ## Track G — Authentication / mobile OAuth login
 - [x] **Facebook Login taken live + made to work across mobile browsers** (2026-07-12/13, deployed).
