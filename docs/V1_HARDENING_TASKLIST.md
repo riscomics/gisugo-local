@@ -161,6 +161,10 @@ See `AGENTS.md` § "verify production data."
       Management, Messages/Support, Settings, Ad Placement — only Overview was interactively tested.
       **Next: lock build order, then build** (Overview is the shortest remaining lift, since
       `getAdminAnalytics()` now has 2 of 4 metrics already real).
+      **Note added 2026-08-03:** when Gigs Analytics is built, also break it down by **Gig Use
+      Type (Personal vs Business)**, not just category — full detail added to the "Gigs Analytics"
+      bullet in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Didn't exist when that study was
+      originally written (Gig Use Type shipped 2026-08-03, see Track D).
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)

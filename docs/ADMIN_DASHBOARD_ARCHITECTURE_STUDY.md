@@ -52,6 +52,12 @@ overlays. Verdict per card:
 - **Gigs Analytics** — total gigs, total applications, avg per gig, gigs-by-category,
   applications-by-category. Category breakdown = one small counter map per collection,
   incremented on post/apply. Genuinely useful (what's popular), not vanity.
+  **Note added 2026-08-03 (not yet built):** also break down by **Gig Use Type — Personal vs
+  Business** (the field that replaced Payment Type, see `V1_HARDENING_TASKLIST.md` Track D). Same
+  cheap counter-map pattern as the category breakdown, just keyed on `gigUseType` instead of
+  category — increment both maps on the same post/apply write. Useful platform-usage signal (are
+  gigs skewing personal-household or small-business?) and was missing from the original design
+  since Gig Use Type didn't exist yet when this study was written.
 - **Age Groups** (sub-breakdown under Total Users) — **confirmed buildable.** `dateOfBirth` is
   already collected at signup (`sign-up.js`, plus an existing `calculateAge()` helper) — bucket
   existing accounts by stored birthdate into a cheap counter map. No new data collection needed.
