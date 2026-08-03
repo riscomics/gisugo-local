@@ -127,7 +127,7 @@ const np2State = {
   photoFile: null,
   photoDataUrl: null,
   jobDescription: '',
-  paymentType: 'Per Job',
+  gigUseType: 'Personal',
   paymentAmount: '',
   // Edit/Relist mode tracking
   mode: 'new', // 'new', 'edit', or 'relist'
@@ -1662,22 +1662,22 @@ function initializePayment() {
   const perHourOption = document.getElementById('paymentPerHour');
   const amountInput = document.getElementById('paymentAmountInput');
   
-  // Payment type graphic selector
+  // Gig use type graphic selector
   if (perJobOption) {
     perJobOption.addEventListener('click', function() {
-      np2State.paymentType = 'Per Job';
+      np2State.gigUseType = 'Personal';
       perJobOption.classList.add('active');
       if (perHourOption) perHourOption.classList.remove('active');
-      console.log('💼 Payment type: Per Job');
+      console.log('🙋 Gig use type: Personal');
     });
   }
   
   if (perHourOption) {
     perHourOption.addEventListener('click', function() {
-      np2State.paymentType = 'Per Hour';
+      np2State.gigUseType = 'Business';
       perHourOption.classList.add('active');
       if (perJobOption) perJobOption.classList.remove('active');
-      console.log('⏱️ Payment type: Per Hour');
+      console.log('🏢 Gig use type: Business');
     });
   }
   
@@ -1814,17 +1814,14 @@ function showPreview() {
   
   // Payment
   document.getElementById('previewPaymentAmount').textContent = `₱${np2State.paymentAmount}`;
-  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(np2State.paymentType);
+  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(np2State.gigUseType);
   
   // Show overlay
   overlay.classList.add('show');
 }
 
-function formatPaymentTypeDisplay(paymentType) {
-  if (paymentType === 'Per Job') {
-    return 'Per Gig';
-  }
-  return paymentType || 'Per Gig';
+function formatPaymentTypeDisplay(gigUseType) {
+  return gigUseType || 'Personal';
 }
 
 // Single owner for #previewPostBtn — edit mode must NOT also fire postJob()
@@ -1944,7 +1941,7 @@ async function postJob() {
     endTime: `${np2State.endHour} ${np2State.endPeriod}`,
     priceOffer: np2State.paymentAmount,
     paymentAmount: np2State.paymentAmount,
-    paymentType: np2State.paymentType, // Keep "Per Job" or "Per Hour" format
+    gigUseType: np2State.gigUseType, // "Personal" or "Business"
     region: np2State.selectedRegion,
     city: np2State.selectedCity,
     extras: extras, // Now with labels: "Location: Marigondon"
@@ -2215,7 +2212,7 @@ function resetForm() {
   np2State.photoFile = null;
   np2State.photoDataUrl = null;
   np2State.jobDescription = '';
-  np2State.paymentType = 'Per Job';
+  np2State.gigUseType = 'Personal';
   np2State.paymentAmount = '';
   
   // Reset UI
@@ -2340,7 +2337,7 @@ async function handleEditMode(jobId, category) {
             endTime: firebaseJob.endTime,
             priceOffer: firebaseJob.priceOffer,
             paymentAmount: firebaseJob.priceOffer,
-            paymentType: firebaseJob.paymentType,
+            gigUseType: firebaseJob.gigUseType,
             extras: firebaseJob.extras || [],
             description: firebaseJob.description,
             thumbnail: firebaseJob.thumbnail
@@ -2425,7 +2422,7 @@ async function handleRelistMode(jobId, category) {
             startTime: firebaseJob.startTime,
             endTime: firebaseJob.endTime,
             priceOffer: firebaseJob.priceOffer,
-            paymentType: firebaseJob.paymentType === 'per_hour' ? 'Per Hour' : (firebaseJob.paymentType === 'per_job' ? 'Per Job' : firebaseJob.paymentType || 'Per Job'),
+            gigUseType: firebaseJob.gigUseType || 'Personal',
             paymentAmount: firebaseJob.priceOffer,
             region: firebaseJob.region,
             city: firebaseJob.city,
@@ -2645,10 +2642,10 @@ function showEditForm(jobData, category) {
   
   // Populate payment (custom dropdown)
   const paymentTypeDisplay = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display');
-  const paymentType = jobData.paymentType || 'Per Job';
+  const gigUseType = jobData.gigUseType || 'Personal';
   if (paymentTypeDisplay) {
-    paymentTypeDisplay.setAttribute('data-value', paymentType);
-    paymentTypeDisplay.textContent = formatPaymentTypeDisplay(paymentType);
+    paymentTypeDisplay.setAttribute('data-value', gigUseType);
+    paymentTypeDisplay.textContent = formatPaymentTypeDisplay(gigUseType);
   }
   document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
   
@@ -2709,7 +2706,7 @@ function initializeEditDropdowns() {
       options: ['AM', 'PM']
     },
     editPaymentTypeDropdown: {
-      options: ['Per Job', 'Per Hour']
+      options: ['Personal', 'Business']
     }
   };
   
@@ -2913,7 +2910,7 @@ function syncEditFormToState(category) {
   np2State.startPeriod = document.querySelector('#editStartPeriodDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'PM';
   np2State.endHour = document.querySelector('#editEndHourDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || '12';
   np2State.endPeriod = document.querySelector('#editEndPeriodDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'PM';
-  np2State.paymentType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'Per Job';
+  np2State.gigUseType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'Personal';
   np2State.paymentAmount = document.getElementById('editPaymentAmountInput').value;
   const extras1 = document.getElementById('editExtras1Input')?.value?.trim();
   const extras2 = document.getElementById('editExtras2Input')?.value?.trim();
@@ -2954,13 +2951,13 @@ async function handleEditFormSubmit(jobId, category) {
   const endHour = document.querySelector('#editEndHourDropdown .np2-edit-dropdown-display').getAttribute('data-value');
   const endPeriod = document.querySelector('#editEndPeriodDropdown .np2-edit-dropdown-display').getAttribute('data-value');
   const description = document.getElementById('editDescriptionInput').value.trim();
-  const paymentType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const gigUseType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display').getAttribute('data-value');
   const paymentAmount = document.getElementById('editPaymentAmountInput').value;
   
   console.log('📋 Form data collected:', {
     title, date, startHour, startPeriod, endHour, endPeriod,
     description: description.substring(0, 50) + '...',
-    paymentType, paymentAmount
+    gigUseType, paymentAmount
   });
   
   // Validate required fields
@@ -2987,7 +2984,7 @@ async function handleEditFormSubmit(jobId, category) {
     startTime: `${startHour} ${startPeriod}`,
     endTime: `${endHour} ${endPeriod}`,
     description,
-    paymentType,
+    gigUseType,
     paymentAmount: parseInt(paymentAmount),
     priceOffer: parseInt(paymentAmount),
     lastModified: new Date().toISOString()
@@ -3088,7 +3085,7 @@ function showEditPreview(updatedJob, category, jobId) {
   document.getElementById('previewTime').textContent = `${updatedJob.startTime} - ${updatedJob.endTime}`;
   document.getElementById('previewDescription').textContent = updatedJob.description;
   document.getElementById('previewPaymentAmount').textContent = `₱${updatedJob.paymentAmount}`;
-  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(updatedJob.paymentType);
+  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(updatedJob.gigUseType);
   
   // Photo
   if (updatedJob.thumbnail) {
@@ -3265,7 +3262,7 @@ function populateFormWithJobData(jobData, category, mode) {
   }
   
   // Set payment data
-  if (jobData.paymentType) np2State.paymentType = jobData.paymentType;
+  if (jobData.gigUseType) np2State.gigUseType = jobData.gigUseType;
   if (jobData.paymentAmount || jobData.priceOffer) {
     np2State.paymentAmount = jobData.paymentAmount || jobData.priceOffer;
     const amountInput = document.getElementById('paymentAmountInput');

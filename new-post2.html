@@ -89,7 +89,7 @@
         <div class="np2-disclaimer-content np2-lang-content" id="beforeContinueEnglish" style="display: none;">
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
-            <span>GISUGO connects you with workers in your area and facilitates job postings.</span>
+            <span>GISUGO connects you with workers in your area and facilitates gig postings.</span>
           </div>
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
@@ -109,7 +109,7 @@
         <div class="np2-disclaimer-content np2-lang-content" id="beforeContinueBisaya" style="display: none;">
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
-            <span>Ang GISUGO nag-connect nimo sa mga worker sa imong lugar ug nag-facilitate sa job postings.</span>
+            <span>Ang GISUGO nag-connect nimo sa mga worker sa imong lugar ug nag-facilitate sa gig postings.</span>
           </div>
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
@@ -129,7 +129,7 @@
         <div class="np2-disclaimer-content np2-lang-content" id="beforeContinueTagalog" style="display: none;">
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
-            <span>Kinokonekta ka ng GISUGO sa mga worker sa iyong lugar at nag-facilitate ng job postings.</span>
+            <span>Kinokonekta ka ng GISUGO sa mga worker sa iyong lugar at nag-facilitate ng gig postings.</span>
           </div>
           <div class="np2-disclaimer-item">
             <span class="np2-disclaimer-bullet">•</span>
@@ -170,8 +170,8 @@
     <div class="np2-section" id="section-location" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Location & Job Specifics <span class="np2-header-category" id="headerCategory2"></span></div>
-          <div class="np2-card-subtitle">Where will this job take place?</div>
+          <div class="np2-card-title">Location & Gig Specifics <span class="np2-header-category" id="headerCategory2"></span></div>
+          <div class="np2-card-subtitle">Where will this gig take place?</div>
         </div>
         <div class="np2-card-body">
           <!-- Region Selection -->
@@ -232,13 +232,13 @@
     <div class="np2-section" id="section-details" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Job Details <span class="np2-header-category" id="headerCategory3"></span></div>
-          <div class="np2-card-subtitle">Provide information about the job</div>
+          <div class="np2-card-title">Gig Details <span class="np2-header-category" id="headerCategory3"></span></div>
+          <div class="np2-card-subtitle">Provide information about the gig</div>
         </div>
         <div class="np2-card-body">
           <!-- Job Title -->
           <div class="np2-form-group">
-            <label class="np2-label">Job Title<span class="np2-required">*</span></label>
+            <label class="np2-label">Gig Title<span class="np2-required">*</span></label>
             <div class="np2-input-wrapper">
               <input type="text" class="np2-input" id="jobTitleInput" placeholder="Brief description of the work needed..." maxlength="55" autocomplete="off" spellcheck="false">
               <div class="np2-char-counter"><span id="titleCharCount">0</span>/55</div>
@@ -247,7 +247,7 @@
 
           <!-- Job Date -->
           <div class="np2-form-group">
-            <label class="np2-label">Job Date<span class="np2-required">*</span></label>
+            <label class="np2-label">Gig Date<span class="np2-required">*</span></label>
             <input type="date" class="np2-input np2-input-date" id="jobDateInput">
           </div>
 
@@ -283,7 +283,7 @@
 
           <!-- Photo Upload -->
           <div class="np2-form-group">
-            <label class="np2-label">Job Photo (Optional)</label>
+            <label class="np2-label">Gig Photo (Optional)</label>
             <div class="np2-photo-upload-container">
               <input type="file" id="jobPhotoInput" accept="image/*" style="display: none;">
               <div class="np2-photo-upload-area" id="photoUploadArea">
@@ -301,7 +301,7 @@
           <!-- Job Description -->
           <div class="np2-form-group">
             <label class="np2-label">Detailed Description<span class="np2-required">*</span></label>
-            <textarea class="np2-textarea" id="jobDescriptionTextarea" placeholder="Describe the job in detail... What needs to be done? Any special requirements or instructions?" rows="6" autocomplete="off" spellcheck="false"></textarea>
+            <textarea class="np2-textarea" id="jobDescriptionTextarea" placeholder="Describe the gig in detail... What needs to be done? Any special requirements or instructions?" rows="6" autocomplete="off" spellcheck="false"></textarea>
           </div>
         </div>
       </div>
@@ -315,17 +315,17 @@
           <div class="np2-card-subtitle">How much will you pay for this work?</div>
         </div>
         <div class="np2-card-body">
-          <!-- Payment Type Selection (Graphic Icons) -->
+          <!-- Gig Use Type Selection (Graphic Icons) -->
           <div class="np2-form-group">
-            <label class="np2-label">Payment Type<span class="np2-required">*</span></label>
+            <label class="np2-label">Gig Use Type<span class="np2-required">*</span></label>
             <div class="np2-payment-type-selector">
-              <div class="np2-payment-type-option active" data-value="Per Job" id="paymentPerJob">
-                <div class="np2-payment-type-icon">💼</div>
-                <div class="np2-payment-type-label">Per Gig</div>
+              <div class="np2-payment-type-option active" data-value="Personal" id="paymentPerJob">
+                <div class="np2-payment-type-icon">🙋🏻</div>
+                <div class="np2-payment-type-label">Personal</div>
               </div>
-              <div class="np2-payment-type-option" data-value="Per Hour" id="paymentPerHour">
-                <div class="np2-payment-type-icon">⏱️</div>
-                <div class="np2-payment-type-label">Per Hour</div>
+              <div class="np2-payment-type-option" data-value="Business" id="paymentPerHour">
+                <div class="np2-payment-type-icon">🏢</div>
+                <div class="np2-payment-type-label">Business</div>
               </div>
             </div>
           </div>
@@ -366,7 +366,7 @@
 
           <!-- Job Title -->
           <div class="np2-edit-group">
-            <label class="np2-edit-label">Job Title<span class="np2-required">*</span></label>
+            <label class="np2-edit-label">Gig Title<span class="np2-required">*</span></label>
             <div class="np2-input-wrapper">
               <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown" maxlength="55">
               <div class="np2-char-counter"><span id="editTitleCharCount">0</span>/55</div>
@@ -417,8 +417,8 @@
 
           <!-- Description -->
           <div class="np2-edit-group">
-            <label class="np2-edit-label">Job Description<span class="np2-required">*</span></label>
-            <textarea class="np2-edit-textarea" id="editDescriptionInput" rows="6" placeholder="Describe the job in detail..." maxlength="500"></textarea>
+            <label class="np2-edit-label">Gig Description<span class="np2-required">*</span></label>
+            <textarea class="np2-edit-textarea" id="editDescriptionInput" rows="6" placeholder="Describe the gig in detail..." maxlength="500"></textarea>
           </div>
 
           <!-- Photo -->
@@ -438,9 +438,9 @@
           <!-- Payment -->
           <div class="np2-edit-row">
             <div class="np2-edit-group np2-edit-half">
-              <label class="np2-edit-label">Payment Type<span class="np2-required">*</span></label>
+              <label class="np2-edit-label">Gig Use Type<span class="np2-required">*</span></label>
               <div class="np2-edit-dropdown" id="editPaymentTypeDropdown">
-                <div class="np2-edit-dropdown-display" data-value="Per Job">Per Gig</div>
+                <div class="np2-edit-dropdown-display" data-value="Personal">Personal</div>
               </div>
             </div>
             <div class="np2-edit-group np2-edit-half">
@@ -490,16 +490,16 @@
       <div class="np2-overlay-content">
         <!-- Job Header -->
         <div class="np2-preview-header">
-          <div class="np2-preview-category" id="previewCategory">Job Category</div>
+          <div class="np2-preview-category" id="previewCategory">Gig Category</div>
           <div class="np2-preview-location" id="previewLocation">Location</div>
         </div>
         
         <!-- Job Title -->
-        <div class="np2-preview-title" id="previewTitle">Job Title</div>
+        <div class="np2-preview-title" id="previewTitle">Gig Title</div>
         
         <!-- Job Photo -->
         <div class="np2-preview-photo-container" id="previewPhotoContainer" style="display: none;">
-          <img id="previewPhoto" src="" alt="Job Photo">
+          <img id="previewPhoto" src="" alt="Gig Photo">
         </div>
         
         <!-- Job Info Grid -->
@@ -531,7 +531,7 @@
         <!-- Payment -->
         <div class="np2-preview-payment">
           <div class="np2-preview-payment-amount" id="previewPaymentAmount">₱0</div>
-          <div class="np2-preview-payment-type" id="previewPaymentType">Per Gig</div>
+          <div class="np2-preview-payment-type" id="previewPaymentType">Personal</div>
         </div>
       </div>
       <div class="np2-overlay-actions">
@@ -576,7 +576,7 @@
         <div class="np2-success-section">
           <div class="np2-success-section-title">⚠️ Important Reminder:</div>
           <div class="np2-success-section-text">
-            GISUGO connects you with workers but is not involved in job disputes or outcomes. Please verify worker qualifications, meet in safe public locations when possible, and trust your instincts. Your safety is your responsibility.
+            GISUGO connects you with workers but is not involved in gig disputes or outcomes. Please verify worker qualifications, meet in safe public locations when possible, and trust your instincts. Your safety is your responsibility.
           </div>
         </div>
         
@@ -812,16 +812,16 @@
     </div>
   </div>
 
-  <!-- Payment Type Overlay -->
+  <!-- Gig Use Type Overlay -->
   <div class="np2-dropdown-overlay" id="paymentTypeOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Payment Type</div>
+        <div class="np2-dropdown-title">Select Gig Use Type</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="paymentTypeDropdown">
-        <div class="np2-dropdown-option" data-value="Per Job">Per Gig</div>
-        <div class="np2-dropdown-option" data-value="Per Hour">Per Hour</div>
+        <div class="np2-dropdown-option" data-value="Personal">Personal</div>
+        <div class="np2-dropdown-option" data-value="Business">Business</div>
       </div>
     </div>
   </div>

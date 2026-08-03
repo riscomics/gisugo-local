@@ -1134,9 +1134,9 @@ function populateJobPage(jobData) {
   
   // Set payment (check multiple field variations)
   const paymentAmount = jobData.paymentAmount || jobData.priceOffer || '0';
-  const paymentType = jobData.paymentType || 'Per Hour';
+  const gigUseType = jobData.gigUseType || 'Personal';
   safeSetText('jobPaymentAmount', `₱${paymentAmount}`);
-  safeSetText('jobPaymentRate', paymentType);
+  safeSetText('jobPaymentRate', gigUseType);
   safeSetText('modalPaymentAmount', `₱${paymentAmount}`);
   
   // Set customer info (poster)

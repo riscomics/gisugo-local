@@ -259,6 +259,41 @@ See `AGENTS.md` § "verify production data."
         here as a clean swap (don't rewrite a working trust flow on an unproven module).
 
 ## Track D — Product/UX
+- [x] **"Payment Type" → "Gig Use Type" rename (Per Gig/Per Hour → Personal/Business) — COMPLETE
+      (2026-08-03).** Product decision: avoid "Per Hour" phrasing (reads like employment, not
+      one-time freelance gigs); replaced with Personal/Business so workers know what kind of
+      customer/setting they're applying to, and it doubles as future platform-usage analytics.
+      Renamed field end-to-end: `paymentType` → `gigUseType` in `firebase-db.js` (write defaults +
+      `getJobsByCategory` filter), `new-post2.html`/`new-post2.js` (step picker, edit-mode dropdown,
+      new icons — 🙋🏻 Personal / 🏢 Business), `listing.js` (badges, filter dropdown, class logic),
+      all ~58 category HTML files (filter widget + footer label), `dynamic-job.html`/`.js`, and
+      `jobs.js` display text. Also swept `new-post2.html` for user-facing "job/jobs" → "gig/gigs"
+      text (careful not to touch function/file names). One-time data migration
+      (`scripts/migrate-payment-type-to-gig-use-type.js --apply`) run 2026-08-03 against all 69
+      live sample gigs (55 → Personal, 14 → Business), old `paymentType` field removed.
+      `new-post.html`/`new-post.js` (pre-`new-post2` legacy files) confirmed dead/unreferenced —
+      deletion + `new-post2` → `new-post` rename still pending as a separate low-risk follow-up.
+      **Two real (pre-existing, unrelated to the rename itself) bugs found + fixed in `listing.js`
+      during verification:**
+      1. A leftover filter guard still checked the literal string `'PAY TYPE'` (the old sentinel
+         value) instead of the renamed default `'GIG TYPE'`, so it was always-true and silently
+         filtered out every single gig on every category page regardless of any filter selection.
+      2. When a filter narrowed results to zero matches, the code showed the "no gigs" empty state
+         but never removed previously-rendered cards still in the DOM; a separate guard then saw
+         those stale leftover cards and cancelled the empty state, so an old card would keep
+         showing under a filter that should have produced no results (most visible on categories
+         with very few gigs, e.g. a lone Personal gig still showing under a Business filter).
+      **Bonus fix, same pass (2026-08-03):** found and fixed a genuine race condition in
+      `filterAndSortJobs()` — the warm-cache-then-background-revalidate flow could have its
+      background Firebase read resolve *after* a newer filter/region click's own read, silently
+      overwriting the newer (correct) result with the stale one. Fixed with a request-generation
+      counter: each call gets an incrementing ticket, and a result is only applied to the DOM if
+      no newer call has started since. Verified this does not affect the instant-from-cache render
+      on back-navigation (that render is fully synchronous, happens before any network call, and
+      isn't gated by the new check at all) and does not change Firestore read counts (the
+      duplicate background read still happens either way — this only decides which of the two
+      answers wins on screen). A related cost optimization (skip the background re-check entirely
+      when the cache is very fresh) was discussed and intentionally **deferred** — see Track E.
 - [~] **Rework Application-limit UX.** Design + build tracked in
       `docs/APPLICATION_LIMIT_UX_REDESIGN.md`. Phases **A–D BUILT + DEPLOYED 2026-06-23** (coin art
       archived; trilingual copy reworded; header + compose de-coined; Confirm/Capacity overlays
@@ -396,6 +431,45 @@ See `AGENTS.md` § "verify production data."
       `console.warn` filter in `firebase-config.js` that drops ONLY the
       `enableMultiTabIndexedDbPersistence` message (all other warnings still log). The real fix
       (migrate to the new cache config API) still rides with a future Firebase SDK upgrade.
+- [ ] **Category listing pages (56 files) are inconsistent vs. `hatod.html` — audit done, NO fixes
+      applied yet (deferred 2026-08-03, interrupted mid-task to ship other work first).**
+      `hatod.html` has been hand-fixed at some point and the other 55 category pages
+      (`aircon.html`, `plumber.html`, etc. — full list captured via content match on
+      `gamingFilterPanel` + `listing.js`) were never brought up to match. Confirmed via diff +
+      bulk scan, **nothing edited yet**:
+      - **55/56 missing `viewport-fit=cover`** in the `<meta name="viewport">` tag (safe-area/notch
+        handling on iOS).
+      - **12/56 still use `<img src="public/images/Post.png/search.png/menu.png">`** for the
+        header icons — those files don't exist (404 on every load), silently papered over at
+        runtime by `listing.js`'s "Replacing header icons..." JS fallback (swaps in ✏️/🔍/📋).
+        `hatod.html` already has the emoji baked directly into the HTML (`jobcat-icon-emoji` divs),
+        no 404, no runtime patch needed. Harmless today, just noisy/wasteful.
+      - **53/56 missing the `?v=` cache-busting query string** on `firebase-auth.js` and
+        `firebase-storage.js` script tags (loaded bare, no version param) — inconsistent with
+        every other shared script on the same pages, and a latent cache-staleness risk if either
+        file is ever updated (browsers may keep serving pre-update cached copies to users who
+        visited one of these 53 pages before).
+      - **12/56 still carry a leftover inline `<script>` block** duplicating the
+        `jobcatModalClose`/`jobcatServiceMenuOverlay` click-to-close handlers that `listing.js`
+        already provides globally — `hatod.html` removed this dupe with just a comment
+        ("Category modal close handlers are in listing.js"). Likely harmless (both just toggle the
+        same class) but redundant.
+      **Not urgent, not a live bug** — none of this breaks anything today. Revisit as its own pass;
+      likely a single small Node script per fix (mirroring the approach used for the Gig Use Type
+      icon/label rollout across the same 56 files) rather than manual per-file edits.
+- [ ] **Listing page cache: skip background re-check when cache is very fresh (cost optimization,
+      deferred 2026-08-03).** `filterAndSortJobs()` in `public/js/listing.js` always shows the
+      warm `sessionStorage` cache instantly (`LISTING_CACHE_TTL_MS` = 2 min), then *always* also
+      fires a background Firebase read to double-check nothing changed — even if the cache is
+      only a few seconds old (e.g. user tapped a gig card and immediately tapped back). That
+      double-read is intentional (catches gigs that got taken/expired/removed while the tab was
+      open) and was audited 2026-08-03 as correct/necessary for freshness, not a bug. **Decision:**
+      leave as-is for now — cost isn't a concern yet at current gig volume. **Future optimization
+      (not yet built):** skip the background re-check entirely when the cache entry is younger
+      than ~15s (long enough to cover "viewed a gig, came right back," short enough to still
+      re-verify anything older). Needs `readListingCache()` to expose the cache entry's age
+      (currently only returns the jobs array) before implementing. Revisit only once real Firestore
+      read costs from this page are actually a concern.
 
 ## Track G — Authentication / mobile OAuth login
 - [x] **Facebook Login taken live + made to work across mobile browsers** (2026-07-12/13, deployed).

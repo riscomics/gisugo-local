@@ -609,21 +609,13 @@ const citiesByRegion = {
   ],
   "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
 };
-const payTypes = ["PAY TYPE", "PER HOUR", "PER JOB"];
+const payTypes = ["GIG TYPE", "BUSINESS", "PERSONAL"];
 let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
-let activePay = "PAY TYPE";
+let activePay = "GIG TYPE";
 
 function formatListingPayTypeLabel(value) {
-  if (value === 'PER JOB') return 'PER GIG';
-  if (value === 'Per Job') return 'Per Gig';
   return value;
-}
-
-function applyListingPayTypeDisplayLabels() {
-  document.querySelectorAll('.pay-type-option[data-value="per-job"] .pay-type-label').forEach((labelEl) => {
-    labelEl.textContent = 'Per Gig';
-  });
 }
 
 function renderRegionMenu() {
@@ -1245,10 +1237,16 @@ const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
 const LISTING_CACHE_PREFIX = 'listing-cache-v1:';
 const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 
+// Ticket counter so an older, slower filterAndSortJobs() call can tell it's been
+// superseded by a newer one (e.g. a background cache re-check losing a race
+// against a fresh filter/region click) and discard its own stale result instead
+// of overwriting what the newer call already rendered.
+let listingRequestGeneration = 0;
+
 function buildListingCacheKey(category, region, payType) {
   const safeCategory = String(category || '').toLowerCase();
   const safeRegion = String(region || '').toUpperCase();
-  const safePayType = String(payType || 'PAY TYPE').toUpperCase();
+  const safePayType = String(payType || 'GIG TYPE').toUpperCase();
   return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safePayType}`;
 }
 
@@ -1350,6 +1348,7 @@ function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
 
 // Filter and sort jobs based on selected criteria
 async function filterAndSortJobs() {
+  const myRequestGeneration = ++listingRequestGeneration;
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
   const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activePay);
@@ -1429,7 +1428,7 @@ async function filterAndSortJobs() {
       extra1: getExtrasValue(firebaseJob.extras, 0),
       extra2: getExtrasValue(firebaseJob.extras, 1),
       price: formatGigPrice(firebaseJob.priceOffer),
-      rate: firebaseJob.paymentType,
+      rate: firebaseJob.gigUseType,
       date: formattedDate,
       time: timeDisplay,
       region: firebaseJob.region,
@@ -1459,7 +1458,7 @@ async function filterAndSortJobs() {
       
       const filters = {
         region: activeRegion,
-        payType: activePay !== 'PAY TYPE' ? activePay : null
+        gigUseType: activePay !== 'GIG TYPE' ? activePay : null
       };
       
       const rawJobs = await fetchCategoryJobsWithRetry(currentCategory, { ...filters, __strictFirebase: true });
@@ -1490,6 +1489,16 @@ async function filterAndSortJobs() {
     }
   }
 
+  // A newer request (e.g. the user changed the filter/region while this one was
+  // still waiting on Firebase) has since started. This one's result — success or
+  // failure — is stale, so discard it silently instead of overwriting whatever
+  // the newer request has already rendered.
+  if (myRequestGeneration !== listingRequestGeneration) {
+    console.log(`⏭️ Discarded stale listing result (request #${myRequestGeneration}, newest is #${listingRequestGeneration})`);
+    listingTrace('filter:stale-discarded', { category: currentCategory, generation: myRequestGeneration });
+    return;
+  }
+
   // In production Firebase mode, avoid silently showing "No Gigs Yet" for transient iOS fetch failures.
   if (firebaseFetchFailed && shouldUseFirebase && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
     throw new Error('Server read failed. Please retry.');
@@ -1513,8 +1522,8 @@ async function filterAndSortJobs() {
     return job.region === activeRegion;
   });
   
-  // Filter by pay type (keep this client-side for Firebase to avoid compound index complexity)
-  if (activePay !== 'PAY TYPE') {
+  // Filter by gig use type (keep this client-side for Firebase to avoid compound index complexity)
+  if (activePay !== 'GIG TYPE') {
     filteredJobs = filteredJobs.filter(job => {
       const jobRate = (job.rate || '').toUpperCase();
       const filterRate = activePay.toUpperCase();
@@ -1567,6 +1576,14 @@ async function filterAndSortJobs() {
   // Show empty state when no gigs are available
   if (filteredJobs.length === 0) {
     listingTrace('render:empty');
+    // Clear any stale cards from a previous (non-empty) filter result — otherwise
+    // setListingEmptyStateVisible's own "don't show empty state over real cards"
+    // guard sees the leftover cards and refuses to show the empty state at all.
+    Array.from(document.querySelectorAll('.job-preview-card')).forEach(card => card.remove());
+    PAGINATION.allJobs = [];
+    PAGINATION.currentIndex = 0;
+    PAGINATION.displayedJobs = [];
+    PAGINATION.hasMore = false;
     setListingEmptyStateVisible(true, headerSpacer);
     writeListingCache(cacheKey, []);
     return; // Exit early if no jobs
@@ -1682,7 +1699,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   
   // Track pay type for consecutive styling (continue from last displayed job)
   let previousPayType = PAGINATION.displayedJobs.length > 0 
-    ? PAGINATION.displayedJobs[PAGINATION.displayedJobs.length - 1].rate || 'Per Hour'
+    ? PAGINATION.displayedJobs[PAGINATION.displayedJobs.length - 1].rate || 'Personal'
     : null;
   let consecutiveCount = 0;
   
@@ -1695,7 +1712,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   let insertionCursor = headerSpacer;
   
   jobsToProcess.forEach((cardData) => {
-    const currentPayType = cardData.rate || 'Per Hour';
+    const currentPayType = cardData.rate || 'Personal';
     
     // Track consecutive cards of same pay type for subtle variations
     if (currentPayType === previousPayType) {
@@ -2429,7 +2446,7 @@ function getCurrentCategory() {
 //   extra1: string,                // "Label: Value" format (e.g., "Location: Cebu City")
 //   extra2: string,                // "Label: Value" format (e.g., "Vehicle: Motorcycle")
 //   price: string,                 // Payment amount (e.g., "₱500", "₱150")
-//   rate: string,                  // Payment rate type (e.g., "Per Job", "Per Hour")
+//   rate: string,                  // Gig use type (e.g., "Personal", "Business")
 //   date: string,                  // Job date (e.g., "Nov 22", "Dec 5")
 //   time: string,                  // Job time (e.g., "10 AM - 12 PM", "2-5 PM")
 //   region: string,                // Region (e.g., "CEBU", "MANILA")
@@ -2441,7 +2458,7 @@ function getCurrentCategory() {
 // }
 // ============================================================================
 
-function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
+function createJobPreviewCard(cardData, payType = 'Personal', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
   const safeTemplateUrl = sanitizeUrl(cardData.templateUrl, '#');
   cardElement.href = safeTemplateUrl;
@@ -2464,9 +2481,9 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   cardElement.setAttribute('data-job-title', cardData.title || '');
   cardElement.setAttribute('data-job-description', cardData.title || ''); // Can be expanded
   
-  // Determine background class based on pay type and consecutive count
+  // Determine background class based on gig use type and consecutive count
   let bgClass;
-  if (payType === 'Per Hour') {
+  if (payType === 'Business') {
     bgClass = consecutiveCount % 2 === 0 ? 'pay-per-hour' : 'pay-per-hour-alt';
   } else {
     bgClass = consecutiveCount % 2 === 0 ? 'pay-per-job' : 'pay-per-job-alt';
@@ -2484,7 +2501,7 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   const extra2Value = extra2Parts[1] ? extra2Parts[1].trim() : '';
   
   // Format rate badge text and icon
-  const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
+  const rateIcon = payType === 'Business' ? '🏢' : '🙋🏻';
   const rateText = formatListingPayTypeLabel(cardData.rate || payType);
   const safeTitle = escapeHtml(cardData.title || 'Untitled Job');
   const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, LISTING_THUMBNAIL_FALLBACK));
@@ -3226,8 +3243,8 @@ function initJobcatButtonAutoResize() {
     if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
     if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
     let payTypeText = 'SELECT';
-    if (selectedPayType === 'per-job') payTypeText = 'PER GIG';
-    else if (selectedPayType === 'per-hour') payTypeText = 'PER HOUR';
+    if (selectedPayType === 'personal') payTypeText = 'PERSONAL';
+    else if (selectedPayType === 'business') payTypeText = 'BUSINESS';
     if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
   }
   
@@ -3282,22 +3299,22 @@ function initJobcatButtonAutoResize() {
     });
   }
   
-  // Pay type icon selection handlers
+  // Gig type icon selection handlers
   if (payOptionJob) {
     payOptionJob.addEventListener('click', () => {
-      if (selectedPayType === 'per-job') {
+      if (selectedPayType === 'personal') {
         // Clicking again deselects (show all)
         selectedPayType = null;
-        activePay = 'PAY TYPE';
+        activePay = 'GIG TYPE';
         payOptionJob.classList.remove('active');
-        console.log('💰 Pay type deselected: Showing all jobs');
+        console.log('🙋 Gig type deselected: Showing all gigs');
       } else {
-        // Select per-job
-        selectedPayType = 'per-job';
-        activePay = 'PER JOB';
+        // Select personal
+        selectedPayType = 'personal';
+        activePay = 'PERSONAL';
         payOptionJob.classList.add('active');
         if (payOptionHour) payOptionHour.classList.remove('active');
-        console.log('💰 Pay type selected: Per Job - Jobs re-filtered');
+        console.log('🙋 Gig type selected: Personal - Gigs re-filtered');
       }
       updateFilterDisplay();
       filterAndSortJobs();
@@ -3306,19 +3323,19 @@ function initJobcatButtonAutoResize() {
   
   if (payOptionHour) {
     payOptionHour.addEventListener('click', () => {
-      if (selectedPayType === 'per-hour') {
+      if (selectedPayType === 'business') {
         // Clicking again deselects (show all)
         selectedPayType = null;
-        activePay = 'PAY TYPE';
+        activePay = 'GIG TYPE';
         payOptionHour.classList.remove('active');
-        console.log('⏰ Pay type deselected: Showing all jobs');
+        console.log('🏢 Gig type deselected: Showing all gigs');
       } else {
-        // Select per-hour
-        selectedPayType = 'per-hour';
-        activePay = 'PER HOUR';
+        // Select business
+        selectedPayType = 'business';
+        activePay = 'BUSINESS';
         payOptionHour.classList.add('active');
         if (payOptionJob) payOptionJob.classList.remove('active');
-        console.log('⏰ Pay type selected: Per Hour - Jobs re-filtered');
+        console.log('🏢 Gig type selected: Business - Gigs re-filtered');
       }
       updateFilterDisplay();
       filterAndSortJobs();
@@ -3326,7 +3343,6 @@ function initJobcatButtonAutoResize() {
   }
   
   // Initialize display on load
-  applyListingPayTypeDisplayLabels();
   updateFilterDisplay();
 
   // Toggle panel expansion when clicking footer bar

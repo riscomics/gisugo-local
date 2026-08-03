@@ -615,17 +615,8 @@ window.JobsDataService = {
         // Extract numeric price from priceOffer string
         const priceValue = job.priceOffer ? parseInt(job.priceOffer.toString().replace(/[₱,]/g, '')) : 0;
         
-        // Normalize paymentType from "Per Hour" to "per_hour"
-        let normalizedPaymentType = 'per_job';
-        if (job.paymentType) {
-            if (job.paymentType.toLowerCase().includes('hour')) {
-                normalizedPaymentType = 'per_hour';
-            } else if (job.paymentType.toLowerCase().includes('day')) {
-                normalizedPaymentType = 'per_day';
-            } else {
-                normalizedPaymentType = 'per_job';
-            }
-        }
+        // Normalize gigUseType to a known display value ("Personal" or "Business")
+        const normalizedPaymentType = job.gigUseType === 'Business' ? 'Business' : 'Personal';
         
         return {
             ...job,
@@ -635,7 +626,7 @@ window.JobsDataService = {
             jobId: job.jobId || job.id,
             // Extract numeric price from priceOffer
             price: priceValue,
-            // Normalize paymentType to lowercase with underscore
+            // Normalized gig use type for display ("Personal" or "Business")
             paymentType: normalizedPaymentType,
             // Ensure priceOffer has peso sign (display format)
             priceOffer: job.priceOffer ? 
@@ -889,15 +880,8 @@ window.JobsDataService = {
                     const data = doc.data();
                     const isCustomer = data.posterId === currentUserId;
                     
-                    // Normalize paymentType
-                    let normalizedPaymentType = 'per_job';
-                    if (data.paymentType) {
-                        if (data.paymentType.toLowerCase().includes('hour')) {
-                            normalizedPaymentType = 'per_hour';
-                        } else if (data.paymentType.toLowerCase().includes('day')) {
-                            normalizedPaymentType = 'per_day';
-                        }
-                    }
+                    // Normalize gigUseType to a known display value ("Personal" or "Business")
+                    const normalizedPaymentType = data.gigUseType === 'Business' ? 'Business' : 'Personal';
                     
                     return {
                         // Core job identification
@@ -2245,7 +2229,7 @@ function generateListingCardHTML(listing) {
     const safeApplicationCount = escapeHtml(String(listing.applicationCount || 0));
     const safeJobPageUrl = escapeHtml(sanitizeUrl(listing.jobPageUrl, '#'));
     const safePrice = escapeHtml(String(listing.price || 0));
-    const safePaymentType = escapeHtml(listing.paymentType || 'per_job');
+    const safePaymentType = escapeHtml(listing.paymentType || 'Personal');
     const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, 'public/images/Gisugo-icon.png'));
     const safeTitle = escapeHtml(listing.title || 'Untitled Job');
     const safeJobDate = escapeHtml(jobDateFormatted);
@@ -2525,7 +2509,7 @@ async function showListingOptionsOverlay(jobData) {
     overlay.setAttribute('data-current-status', currentStatus);
     overlay.setAttribute('data-title', jobData.title);
     overlay.setAttribute('data-price', jobData.price || '0');
-    overlay.setAttribute('data-payment-type', jobData.paymentType || 'per_job');
+    overlay.setAttribute('data-payment-type', jobData.paymentType || 'Personal');
     
     // Show overlay
     overlay.classList.add('show');
@@ -8074,7 +8058,7 @@ async function getApplicationsForJob(jobId) {
                     offeredAmount: app.counterOffer || 0,
                     originalAmount: app.originalAmount || 0,
                     currency: 'PHP',
-                    paymentType: 'per_job',
+                    paymentType: 'Personal',
                     isCounterOffer: app.counterOffer ? true : false
                 },
                 applicationMessage: app.message || '',
@@ -8082,7 +8066,7 @@ async function getApplicationsForJob(jobId) {
                 displayData: {
                     appliedDate: app.appliedAt ? formatDateForDisplay(app.appliedAt) : 'Unknown',
                     appliedTime: app.appliedAt ? formatTimeForDisplay(app.appliedAt) : '',
-                    formattedPrice: app.counterOffer ? `₱${app.counterOffer} Per Job` : 'No offer',
+                    formattedPrice: app.counterOffer ? `₱${app.counterOffer}` : 'No offer',
                     originalAmount: app.originalAmount || 0  // Store original for later use
                 }
                 };
@@ -8154,14 +8138,13 @@ function generateApplicationCardHTML(application, jobTitle, jobOriginalPrice, jo
     // SMART PRICE DISPLAY: Show counter offer OR original job price
     // ═══════════════════════════════════════════════════════════════
     let displayPrice;
+    const gigUseTypeText = jobPaymentType === 'Business' ? 'Business' : 'Personal';
     if (application.pricing.isCounterOffer && application.pricing.offeredAmount) {
         // Worker made a counter offer - show it
-        displayPrice = `₱${application.pricing.offeredAmount} Per Job`;
+        displayPrice = `₱${application.pricing.offeredAmount} ${gigUseTypeText}`;
     } else if (jobOriginalPrice) {
         // No counter offer - show original job price
-        const paymentTypeText = jobPaymentType === 'per_hour' ? 'Per Hour' : 
-                                jobPaymentType === 'per_day' ? 'Per Day' : 'Per Job';
-        displayPrice = `₱${jobOriginalPrice} ${paymentTypeText}`;
+        displayPrice = `₱${jobOriginalPrice} ${gigUseTypeText}`;
     } else {
         // Fallback (shouldn't happen)
         displayPrice = 'No offer';

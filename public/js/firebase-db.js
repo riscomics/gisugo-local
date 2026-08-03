@@ -1021,8 +1021,8 @@ async function createJob(jobData) {
       
       // Pricing
       priceOffer: jobData.priceOffer || jobData.paymentAmount,
-      paymentType: jobData.paymentType || 'Per Hour',
-      
+      gigUseType: jobData.gigUseType || 'Personal',
+
       // Extras (category-specific fields)
       extras: jobData.extras || [],
       
@@ -1161,7 +1161,7 @@ async function getJobById(jobId) {
 /**
  * Get jobs by category with filters
  * @param {string} category - Job category
- * @param {Object} filters - Filter options (region, city, payType)
+ * @param {Object} filters - Filter options (region, city, gigUseType)
  * @returns {Promise<Array>} - Array of jobs
  */
 async function getJobsByCategory(category, filters = {}, options = {}) {
@@ -1201,9 +1201,9 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
       jobs = jobs.filter(job => job.region === filters.region);
     }
     
-    if (filters.payType && filters.payType !== 'PAY TYPE') {
-      jobs = jobs.filter(job => 
-        (((job && job.paymentType) || '').toUpperCase()) === filters.payType.toUpperCase()
+    if (filters.gigUseType && filters.gigUseType !== 'GIG TYPE') {
+      jobs = jobs.filter(job =>
+        (((job && job.gigUseType) || '').toUpperCase()) === filters.gigUseType.toUpperCase()
       );
     }
     
@@ -1425,7 +1425,7 @@ async function updateJob(jobId, jobData) {
       startTime: jobData.startTime,
       endTime: jobData.endTime,
       priceOffer: jobData.priceOffer || jobData.paymentAmount,
-      paymentType: jobData.paymentType || 'Per Hour',
+      gigUseType: jobData.gigUseType || 'Personal',
       extras: jobData.extras || [],
       lastModified: firebase.firestore.FieldValue.serverTimestamp()
     };
