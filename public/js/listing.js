@@ -569,9 +569,56 @@ document.addEventListener('keydown', function(e) {
 const citiesByRegion = PH_LOCATIONS;
 const regions = PH_LOCATIONS_REGION_ORDER;
 const payTypes = ["GIG TYPE", "BUSINESS", "PERSONAL"];
+
+// Persist the user's Region/City choice (ONLY region/city -- deliberately NOT Gig Type,
+// see 2026-08-04 note below) across page navigations between different category pages.
+// User feedback: picking a region/city on hatod.html and then switching to aircon.html
+// reset it back to the CEBU/CEBU CITY default every time, which is jarring once you've set
+// your area. One shared localStorage key read by every category page, so the choice
+// follows you site-wide, not just within a single tab/session.
+//
+// Gig Type (Personal/Business) is intentionally excluded from persistence (2026-08-04,
+// user caught this on first ship): unlike region/city, which represents "where I am/where
+// I'm looking," a Business-only filter left on from a previous category could silently
+// hide gigs in a brand-new category the user hasn't consciously filtered yet -- Gig Type
+// always resets to "show all" on a fresh page load.
+const FILTER_PREFS_STORAGE_KEY = 'gisugo_filterPrefs';
+
+function loadSavedFilterPrefs() {
+  try {
+    const raw = localStorage.getItem(FILTER_PREFS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed : null;
+  } catch (e) {
+    return null; // Corrupt/blocked storage -- just fall back to the CEBU default, never break the page over this.
+  }
+}
+
+function saveFilterPrefs(region, city) {
+  try {
+    localStorage.setItem(FILTER_PREFS_STORAGE_KEY, JSON.stringify({ region, city }));
+  } catch (e) {
+    // Storage full/blocked (e.g. private browsing) -- silently skip, filter still works fine for this page view.
+  }
+}
+
 let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
 let activePay = "GIG TYPE";
+
+// Only trust a saved region if it still exists in the current region data (defensive
+// against future data changes), and only trust a saved city if it's still one of that
+// region's real cities -- otherwise fall back to that region's first/default city rather
+// than silently showing a stale, no-longer-valid city name.
+const _savedFilterPrefs = loadSavedFilterPrefs();
+if (_savedFilterPrefs && citiesByRegion[_savedFilterPrefs.region]) {
+  activeRegion = _savedFilterPrefs.region;
+  const _savedRegionCities = citiesByRegion[activeRegion] || [];
+  activeCity = (_savedFilterPrefs.city && _savedRegionCities.includes(_savedFilterPrefs.city))
+    ? _savedFilterPrefs.city
+    : (_savedRegionCities[0] || activeCity);
+}
 
 function formatListingPayTypeLabel(value) {
   return value;
@@ -1072,10 +1119,22 @@ function ensureListingEmptyState(headerSpacer) {
     <img class="listing-empty-graphic" src="public/images/Gisugo-emblem.png" alt="GISUGO logo">
     <div class="listing-empty-title">NO GIGS YET</div>
     <div class="listing-empty-subtitle">Be the first to Post<br>Or check again Later</div>
+    <div class="listing-empty-note">📍 GISUGO is launching in <strong>Cebu City</strong> first, so most gigs are available there right now.</div>
   `;
 
   headerSpacer.parentNode.insertBefore(emptyState, headerSpacer.nextSibling);
   return emptyState;
+}
+
+// The "launching in Cebu City" note only makes sense when the user is browsing OUTSIDE
+// Cebu/Cebu City -- if Cebu/Cebu City itself has no gigs yet in the current category, telling
+// the user to go to the place they're already standing in would be confusing/wrong. Hide the
+// note in that case and fall back to the plain "NO GIGS YET" placeholder with no extra note.
+function updateListingEmptyStateNote(emptyState) {
+  const noteEl = emptyState.querySelector('.listing-empty-note');
+  if (!noteEl) return;
+  const isDefaultLaunchArea = activeRegion === 'CEBU' && activeCity === 'CEBU CITY';
+  noteEl.style.display = isDefaultLaunchArea ? 'none' : '';
 }
 
 function setListingEmptyStateVisible(isVisible, headerSpacer) {
@@ -1085,6 +1144,7 @@ function setListingEmptyStateVisible(isVisible, headerSpacer) {
     // Guard against stale empty-state visibility when cards are already rendered.
     isVisible = false;
   }
+  if (isVisible) updateListingEmptyStateNote(emptyState);
   emptyState.classList.toggle('is-visible', isVisible);
   syncEmptyStateAdPlacement(isVisible, emptyState);
 }
@@ -1202,11 +1262,12 @@ const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 // of overwriting what the newer call already rendered.
 let listingRequestGeneration = 0;
 
-function buildListingCacheKey(category, region, payType) {
+function buildListingCacheKey(category, region, city, payType) {
   const safeCategory = String(category || '').toLowerCase();
   const safeRegion = String(region || '').toUpperCase();
+  const safeCity = String(city || '').toUpperCase();
   const safePayType = String(payType || 'GIG TYPE').toUpperCase();
-  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safePayType}`;
+  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safeCity}:${safePayType}`;
 }
 
 function readListingCache(cacheKey) {
@@ -1310,7 +1371,7 @@ async function filterAndSortJobs() {
   const myRequestGeneration = ++listingRequestGeneration;
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
-  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activePay);
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
   const viewStateKey = buildListingViewStateKey(cacheKey);
   let renderedFromCache = false;
   let cachedJobsSignature = '';
@@ -1417,6 +1478,7 @@ async function filterAndSortJobs() {
       
       const filters = {
         region: activeRegion,
+        city: activeCity,
         gigUseType: activePay !== 'GIG TYPE' ? activePay : null
       };
       
@@ -1479,6 +1541,15 @@ async function filterAndSortJobs() {
     // If no region data in job, include it (for backwards compatibility)
     if (!job.region) return true;
     return job.region === activeRegion;
+  });
+
+  // Filter by city (client-side, same defense-in-depth pattern as region above -- the
+  // actual filtering already happens in getJobsByCategory()/firebase-db.js, this is a
+  // second pass in case that ever changes). Added 2026-08-04: City was previously never
+  // filtered anywhere, so picking a City had zero effect on which gigs showed.
+  filteredJobs = filteredJobs.filter(job => {
+    if (!job.city) return true; // Backwards compatibility for jobs without city data
+    return job.city === activeCity;
   });
   
   // Filter by gig use type (keep this client-side for Firebase to avoid compound index complexity)
@@ -1616,7 +1687,7 @@ async function filterAndSortJobs() {
 
 window.addEventListener('pagehide', () => {
   const currentCategory = getCurrentCategory();
-  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activePay);
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
   const viewStateKey = buildListingViewStateKey(cacheKey);
   // Refresh cache timestamp when leaving listings so TTL starts from departure.
   if (Array.isArray(PAGINATION.allJobs) && PAGINATION.allJobs.length > 0) {
@@ -3109,9 +3180,14 @@ function initJobcatButtonAutoResize() {
   const payOptionJob = document.getElementById('payOptionJob');
   const payOptionHour = document.getElementById('payOptionHour');
   
-  let selectedRegion = 'CEBU';
-  let selectedCity = 'CEBU CITY';
-  let selectedPayType = null; // Default to no filter (show all)
+  // Region/City initialize from the shared top-level activeRegion/activeCity, which by this
+  // point already reflect either a restored saved filter preference (see
+  // loadSavedFilterPrefs() near the top of this file) or the CEBU/CEBU CITY default. Gig
+  // Type deliberately always starts unset ("show all") on every fresh page load -- it's
+  // not persisted (see the note above FILTER_PREFS_STORAGE_KEY).
+  let selectedRegion = activeRegion;
+  let selectedCity = activeCity;
+  let selectedPayType = null;
 
   // Default cities for each region. Only the original 9 regions have a curated "best" default
   // (usually the capital/largest city) -- any of the 64 nationwide-expansion regions fall back
@@ -3130,29 +3206,22 @@ function initJobcatButtonAutoResize() {
     'MANILA': 'Manila'
   };
 
-  // Title-cases an ALL-CAPS region key for display (e.g. "LA UNION" -> "La Union",
-  // "NEGROS ORIENTAL" -> "Negros Oriental"). Word-aware so multi-word region names
-  // (common among the nationwide expansion) don't get mangled into "La union". Keeps
-  // "del"/"de" lowercase per official PH province naming convention (e.g. "Zamboanga
-  // del Norte", not "Zamboanga Del Norte").
-  const REGION_LABEL_LOWERCASE_WORDS = new Set(['del', 'de']);
-  function formatRegionDisplayLabel(region) {
-    return region
-      .toLowerCase()
-      .split(' ')
-      .map(word => REGION_LABEL_LOWERCASE_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  }
-
   // Populate region picker list
   function populateRegions() {
     // Sourced from the shared public/js/ph-locations.js (same `regions` array used by the
     // filter/fetch logic elsewhere in this file) -- was a separate local hardcoded 9-item
     // array here before the 2026-08-03 nationwide expansion.
+    //
+    // Shown raw (ALL CAPS, matching the underlying region key) rather than title-cased --
+    // 2026-08-04, user asked for the selected Region display to match the selected City
+    // display style, which has never applied any special formatting (city names just show
+    // exactly as stored). A previous version of this code title-cased region names for
+    // readability (e.g. "LA UNION" -> "La Union"), but that made the selected REGION button
+    // look inconsistent with the selected CITY button next to it.
     const regionData = regions;
     if (regionList) {
       regionList.innerHTML = regionData.map(region => 
-        `<div class="region-picker-item" data-value="${region}">${formatRegionDisplayLabel(region)}</div>`
+        `<div class="region-picker-item" data-value="${region}">${region}</div>`
       ).join('');
       
       // Add click handlers to region items
@@ -3178,6 +3247,7 @@ function initJobcatButtonAutoResize() {
           if (cityButton) cityButton.textContent = selectedCity;
           
           updateFilterDisplay();
+          saveFilterPrefs(activeRegion, activeCity);
           
           // Re-filter jobs with new region
           filterAndSortJobs();
@@ -3205,6 +3275,7 @@ function initJobcatButtonAutoResize() {
           if (cityButton) cityButton.textContent = selectedCity;
           cityModalOverlay.classList.remove('show');
           updateFilterDisplay();
+          saveFilterPrefs(activeRegion, activeCity);
           
           // Re-filter jobs with new city
           filterAndSortJobs();
@@ -3214,9 +3285,16 @@ function initJobcatButtonAutoResize() {
     }
   }
 
-  // Initialize with CEBU cities
+  // Initialize with the restored (or default CEBU) region's cities
   populateRegions();
-  populateCities('CEBU');
+  populateCities(selectedRegion);
+
+  // Sync the always-visible REGION/CITY button labels to match the restored selection --
+  // populateRegions()/populateCities() only build the picker list content, they don't touch
+  // the button text on their own, and the HTML markup hardcodes "Cebu"/"CEBU CITY" as static
+  // defaults. Gig Type icons intentionally left un-highlighted here (always starts unset).
+  if (regionButton) regionButton.textContent = selectedRegion;
+  if (cityButton) cityButton.textContent = selectedCity;
   
   // Caps how many characters of the Region/City name show in the collapsed footer bar
   // strip (2026-08-04, after the nationwide region/city expansion made some names much

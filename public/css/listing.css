@@ -1128,7 +1128,7 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
   outline: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  text-align: left;
+  text-align: center;
 }
 
 .filter-button:hover {
@@ -2805,6 +2805,24 @@ body::-webkit-scrollbar {
   color: rgba(230, 214, 174, 0.9);
   line-height: 1.7;
   max-width: 40ch;
+}
+
+.listing-empty-note {
+  margin-top: clamp(16px, 3.5vw, 22px);
+  padding: clamp(10px, 2.5vw, 14px) clamp(14px, 3.5vw, 20px);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  background: rgba(16, 185, 129, 0.14);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.15);
+  font-size: clamp(15px, 3.6vw, 18px);
+  font-weight: 600;
+  color: #a7f3d0;
+  line-height: 1.5;
+  max-width: 38ch;
+}
+
+.listing-empty-note strong {
+  color: #fbbf24;
 }
 
 @keyframes emptyStateFadeIn {

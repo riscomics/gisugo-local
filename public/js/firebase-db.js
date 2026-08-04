@@ -1200,6 +1200,14 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
     if (filters.region) {
       jobs = jobs.filter(job => job.region === filters.region);
     }
+
+    // City was previously accepted by callers (e.g. the listing page's City picker) but
+    // silently ignored here -- gigs were only ever narrowed down to Region, so picking a
+    // specific City had no filtering effect at all (2026-08-04 user report: switching City
+    // within the same Region never changed which gigs showed).
+    if (filters.city) {
+      jobs = jobs.filter(job => job.city === filters.city);
+    }
     
     if (filters.gigUseType && filters.gigUseType !== 'GIG TYPE') {
       jobs = jobs.filter(job =>

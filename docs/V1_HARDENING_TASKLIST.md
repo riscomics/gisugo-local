@@ -431,6 +431,108 @@ See `AGENTS.md` § "verify production data."
       `text-overflow: ellipsis`, per the "no dots" decision) in case some wide-font/viewport
       combination still doesn't quite fit within 11 chars. Cache-buster bumped again
       (`listing.css?v=20260804b`, `listing.js?v=20260804a`).
+      **Bundled-in fix (2026-08-04) — Region/City filter now persists across category
+      pages (Gig Type deliberately excluded).** User caught a real UX gap: since every
+      category page (`hatod.html`, `aircon.html`, etc.) is a separate full page load (no SPA
+      routing), the filter's `activeRegion`/`activeCity` module variables always
+      re-initialized to the hardcoded `CEBU`/`CEBU CITY` default — picking e.g. Manila on
+      `hatod.html` then clicking into `aircon.html` silently reset back to Cebu every time.
+      Fixed by adding `loadSavedFilterPrefs()`/`saveFilterPrefs()` in `listing.js`, backed by
+      a single shared `localStorage` key (`gisugo_filterPrefs`, site-wide not per-category)
+      storing `{region, city}`. Saved on every region/city selection (2 call sites); read
+      once at top-level script init — before the Gaming Filter Panel IIFE runs and before the
+      initial `filterAndSortJobs()` fetch fires — so the very first render/fetch on a fresh
+      page load already uses the restored selection, not a flash-of-default. The Gaming
+      Filter Panel's own `selectedRegion`/`selectedCity` now initialize *from* the
+      already-restored `activeRegion`/`activeCity` instead of their own hardcoded `'CEBU'`,
+      and the on-load sync explicitly sets the REGION/CITY button text to match (previously
+      only `updateFilterDisplay()` — the collapsed footer bar — got its initial value from
+      JS; the buttons' initial text was static HTML markup). Defensive validation: a saved
+      region only applies if it still exists in `PH_LOCATIONS`, a saved city only applies if
+      it's still in that region's city list (else falls back to that region's default/first
+      city). `localStorage` read/write wrapped in try/catch (private-browsing/storage-full
+      degrades to session-only behavior, never throws). Cache-buster bumped to
+      `listing.js?v=20260804c` across all 56 category HTML files.
+      **Correction (same day, same ship) — Gig Type (Personal/Business) was initially
+      persisted too; user caught this and flagged it as bad UX before it shipped.** Unlike
+      region/city ("where I am/where I'm looking"), a Business-only filter carried over from
+      a previous category could silently hide gigs in a brand-new category the user hasn't
+      consciously filtered — easy to miss and confusing ("why don't I see any gigs here?").
+      Removed `pay` entirely from the persisted object and from `saveFilterPrefs()`'s
+      signature (now 2-arg: `region, city`); Gig Type (`selectedPayType`/`activePay`) always
+      starts unset/"show all" on every fresh page load, never restored from storage. Verified
+      with a Node harness: saving Business on a simulated "page 1," then simulating a fresh
+      "page 2" load restores the saved region/city but `activePay` is always back to
+      `'GIG TYPE'` (no filter).
+      **Bug fix (2026-08-04, same session) — City filter was never actually wired to
+      filtering, only Region was.** User caught this immediately after the persistence fix
+      above: switching the City picker (e.g. Cebu City → Lapu-Lapu) had zero effect on which
+      gigs displayed — only changing Region did anything. Root cause: `getJobsByCategory()`
+      (`firebase-db.js`) only ever filtered by `filters.region`/`filters.gigUseType`; City
+      was tracked in the UI (`activeCity`/`selectedCity`, footer bar, picker) but never
+      actually passed into a filter check anywhere in the fetch or client-side re-filter
+      pipeline. Fixed in both places gigs get filtered: `getJobsByCategory()` now also does
+      `jobs.filter(job => job.city === filters.city)` when `filters.city` is set, and
+      `listing.js`'s `filterAndSortJobs()` passes `city: activeCity` into the fetch filters
+      and adds a matching client-side re-filter pass (same defense-in-depth pattern already
+      used for region — belt-and-suspenders, not required for correctness alone). Also had
+      to widen `buildListingCacheKey()` from `category:region:payType` to
+      `category:region:city:payType` — without this, switching City within the same
+      Region/Gig-Type would have kept reusing (and overwriting) the same cache entry,
+      showing stale results from whichever city was fetched first. Cache-buster bumped:
+      `firebase-db.js?v=41` (was `v=40`) and `listing.js?v=20260804d` across all 56 category
+      HTML files.
+      **Bundled-in fix (2026-08-04) — 3 more small user-reported items, same session.**
+      1. **Empty-state launch-area note.** "NO GIGS YET" empty state (`listing.js`
+      `ensureListingEmptyState()`) now has a note below the existing subtitle: "📍 GISUGO is
+      launching in **Cebu City** first, so most gigs are available there right now." — so a user
+      filtering to a region/city with no gigs yet understands why, instead of assuming the
+      platform is broken/empty everywhere. Initially shipped as a small muted line; user asked for
+      more emphasis, so re-styled `.listing-empty-note` in `listing.css` into a highlighted green
+      callout pill (border + soft glow + green-tinted background) with bolder/larger text, and
+      "Cebu City" itself set in a contrasting gold `<strong>` to draw the eye.
+      **Follow-up correction (same session)** — user caught that the note is misleading when
+      Cebu/Cebu City is *already* selected and it's just the category itself that has no gigs yet
+      (telling someone standing in Cebu City to go to Cebu City is nonsensical). Added
+      `updateListingEmptyStateNote()`, called every time the empty state is about to become
+      visible (`setListingEmptyStateVisible()`): hides the note entirely (falls back to the plain
+      "Be the first to Post / Or check again Later" placeholder, no extra line) whenever
+      `activeRegion === 'CEBU' && activeCity === 'CEBU CITY'`, and shows the launch-area note only
+      when the user is browsing anywhere else.
+      **Bundled-in fix (2026-08-04) — 2 small "FILTER Gigs" overlay polish items.**
+      1. Panel title "FILTER Gigs" → "FILTER GIGS" (all-caps) across all 56 category HTML files.
+      2. Selected REGION display now shown raw/ALL-CAPS (e.g. "CEBU", "ZAMBOANGA DEL NORTE")
+      instead of title-cased ("Cebu", "Zamboanga del Norte") — user pointed out it looked
+      inconsistent next to the selected CITY box, which has never had any special-case
+      formatting applied (city names just render exactly as stored). Removed
+      `formatRegionDisplayLabel()` entirely from `listing.js` (was used for the region picker
+      list items + the selected-region button; both dead now) since `new-post2.js`'s region
+      dropdown never had this formatter in the first place — it was already showing raw
+      ALL-CAPS regions, so this makes `listing.js` consistent with it too, not just internally
+      consistent with its own City box. Also updated the static HTML fallback text (shown
+      before JS runs) from `id="regionButton">Cebu<` to `>CEBU<` across all 56 files, matching
+      the already-all-caps `cityButton` static fallback. Cache-buster bumped to
+      `listing.js?v=20260804e`.
+      2. **Free-text location character limit cut 25 → 20** (`new-post2.html`
+      `extrasField1Input`/`extrasField2Input` `maxlength` + counter denominator) — user's second
+      visual pass against the listing card layout found even 25 chars still ran too close to the
+      price box. No JS changes needed (the counter numerator/validation logic reads the DOM
+      `maxlength` and counts live characters generically, doesn't hardcode the limit number).
+      3. **Post-login menu "verifying" spinner.** Root cause: `index.html` renders the homepage
+      hamburger menu *optimistically* from a `localStorage` cache of the last known auth state
+      before Firebase's real `onAuthStateChanged` confirms (existing, intentional pattern so
+      returning logged-in users don't see a loading spinner every visit) — but right after a
+      *fresh* login+redirect, that cache still holds the *previous* (logged-out) session's value
+      until the real check catches up ~2-3s later, so the menu briefly shows the logged-out
+      Login/Signup view, risking the user thinking login failed and clicking Login again.
+      Fixed by threading a new `isConfirmed` flag through `updateHomeMenu(forcedState,
+      isConfirmed)`: the optimistic cache-render call passes `false`, the real
+      `onAuthStateChanged` callback passes `true`. When `false`, a small spinning 🕐 badge
+      (`.home-menu-verifying`, reuses the existing `spin` keyframe, respects
+      `prefers-reduced-motion`) renders next to the "Menu" label in both the logged-in and
+      logged-out grid templates, disappearing the instant the real confirmation re-renders the
+      menu. No change to the underlying cache/confirmation timing itself — this only makes the
+      already-temporary stale window visibly "in progress" instead of silently misleading.
       **Bundled-in fix (2026-08-04) — "attention shake" extended to the category card.** Step 1 had
       a shake-the-disclaimer nudge (`shakeBeforeContinueDisclaimer()`) for clicking Continue while
       locked (no language tab read yet), but clicking Continue with a language tab read and no gig
@@ -658,6 +760,23 @@ See `AGENTS.md` § "verify production data."
         `admin-dashboard.js` ~line 3660, `id="gigPayRate"`) still hardcodes `PAY RATE: Per Hour`.
         Not a live bug — Gig Moderation isn't wired to real Firestore data yet at all — but flag
         for update to `GIG TYPE: Personal/Business` whenever that admin feature actually gets built.
+      - **"payType"/"payment" naming leftovers from the Payment Type → Gig Use Type rename
+        (found 2026-08-04, recommendation: defer — cosmetic only, touches many files for zero
+        functional gain).** `listing.js` (`activePay`, `payTypes`, `payOptionJob`/`payOptionHour`,
+        `filterDisplayPay`), `new-post2.js` (`formatPaymentTypeDisplay()`, `editPaymentTypeDropdown`,
+        `previewPaymentType`), and `jobs.js` (`normalizedPaymentType`, `data-payment-type`
+        attributes) all still use "pay"/"payment" in internal variable/element/function names.
+        Traced every one: all correctly read/write the real `gigUseType` value at the point it
+        matters (confirmed via user's own live test — Gigs Manager → View Applications correctly
+        shows PERSONAL/BUSINESS) — this is pure internal naming, not a bug. **One genuine leftover
+        found and left as-is (also recommend deferring, since it's dead code with zero effect):**
+        `jobs.js`'s "who applied to my gig" card builder hardcodes
+        `pricing.paymentType: 'Personal'` (~line 8061) instead of deriving it from the real gig
+        type. Traced its only consumer: flows through `data-price-type` → `workerData.priceType` →
+        `processHireConfirmation()`, which never reads `priceType` before calling the actual
+        Firestore `hireWorker(jobId, applicationId)` — so it's unused, not user-visible (the
+        Personal/Business text users actually see comes from a different, correct source: the
+        `jobPaymentType` parameter, itself derived from `gigUseType`).
 - [ ] **Firestore SDK 10.7.0 `INTERNAL ASSERTION FAILED: Unexpected state` after browser
       back/forward-cache (bfcache) restore (observed 2026-08-03, pre-existing, not caused by any
       recent edit).** Repro: browse a listing page (e.g. `hatod.html`), open a gig, use the browser

@@ -32,6 +32,24 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+
+      /* Shown next to "Menu" while the optimistic cache-rendered menu (instant, from
+         localStorage) hasn't been confirmed by Firebase's real auth check yet -- lets the
+         user know the Login/Signup buttons they're looking at might just be stale, instead
+         of assuming login didn't work and clicking Login again. */
+      .home-menu-verifying {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 0.8em;
+        opacity: 0.75;
+        animation: spin 1.1s linear infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .home-menu-verifying {
+          animation: none;
+        }
+      }
       
       /* Logout Confirmation Modal */
       .logout-confirm-overlay {
@@ -774,7 +792,11 @@
         const CACHE_KEY = 'gisugo_menu_auth';
         const cachedAuth = localStorage.getItem(CACHE_KEY);
         if (cachedAuth !== null) {
-          updateHomeMenu(cachedAuth === 'true');
+          // isConfirmed=false: this is an optimistic render from a POSSIBLY stale cache
+          // (e.g. right after a fresh login, the cache still says "false" from the prior
+          // logged-out visit until Firebase's real check below catches up) -- shows a small
+          // spinning indicator so the user doesn't mistake it for the final state.
+          updateHomeMenu(cachedAuth === 'true', false);
           applyHomeVideoVisibility(cachedAuth === 'true' ? { uid: 'cached' } : null);
           console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
         }
@@ -808,7 +830,7 @@
             }
             
             // Now update menu with confirmed auth state
-            updateHomeMenu(!!user);
+            updateHomeMenu(!!user, true);
             applyHomeVideoVisibility(user);
           });
           startHomeCounterListener();
@@ -816,7 +838,7 @@
         } else {
           // Firebase not available - show logged out state
           console.warn('⚠️ Firebase not available');
-          updateHomeMenu();
+          updateHomeMenu(undefined, true);
           applyHomeVideoVisibility(null);
         }
       });
@@ -913,7 +935,7 @@
         cleanupHomeAuthAndCounters();
       });
       
-      function updateHomeMenu(forcedState) {
+      function updateHomeMenu(forcedState, isConfirmed = true) {
         const menuList = document.getElementById('homeMenuList');
         
         if (!menuList) return;
@@ -925,7 +947,11 @@
               ? firebase.auth().currentUser !== null
               : false);
         
-        console.log('📋 Updating home menu - User logged in:', userLoggedIn);
+        console.log('📋 Updating home menu - User logged in:', userLoggedIn, '| Confirmed:', isConfirmed);
+
+        // Small spinning clock next to "Menu" while this render is only an optimistic
+        // cache guess, not yet confirmed by Firebase -- see the CACHE_KEY comment above.
+        const verifyingBadge = isConfirmed ? '' : '<span class="home-menu-verifying" title="Verifying login status...">🕐</span>';
         
         // Helper to build a nav card
         function navCard(emoji, label, href, color, extraClass = '') {
@@ -944,7 +970,7 @@
 
         if (userLoggedIn) {
           gridHTML = `
-            <div class="home-menu-section-label">Menu</div>
+            <div class="home-menu-section-label">Menu ${verifyingBadge}</div>
             ${navCard('✏️', 'Post Gig',     'new-post2.html', 'amber')}
             ${navCard('😊', 'Account',      'profile.html',   'purple')}
             ${navCard('🔔', 'Alerts',       'alerts.html',    'cyan', 'row-link')}
@@ -964,7 +990,7 @@
           `;
         } else {
           gridHTML = `
-            <div class="home-menu-section-label">Menu</div>
+            <div class="home-menu-section-label">Menu ${verifyingBadge}</div>
             ${navCard('🌐', 'Community',   'forum.html',    'teal')}
             ${navCard('📬', 'Support',     'support.html',  'orange')}
             <a class="home-menu-card home-menu-card--full" href="login.html" data-color="green">
