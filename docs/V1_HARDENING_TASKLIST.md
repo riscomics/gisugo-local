@@ -140,6 +140,20 @@ See `AGENTS.md` § "verify production data."
       future role-based section hiding (e.g. a limited support-only admin). Logout button now
       actually calls Firebase `signOut()` (previously a no-op redirect). **Next: lock build order,
       then build.**
+      **False alarm investigated + reverted (2026-08-04): "Access denied" for a real admin, root
+      cause never confirmed.** Both primary test accounts hit "Access denied" on
+      `admin-dashboard.html` once, then worked on retry with no code change in between. Guessed at
+      a Firestore stale-cache root cause (pattern-matched to other SDK cache flakiness seen
+      elsewhere that day) and iterated four rounds of increasingly defensive code
+      (`source:'server'` re-verification, background revoke-detection, read timeouts) on top of
+      that guess — without ever actually confirming it with real evidence (no console log was
+      captured at the moment of the original failure). **Self-audit + user call: reverted all of
+      it back to the original committed gate** (`git checkout`, nothing had been shipped). None of
+      the four rounds were ever confirmed necessary, the accounts affected are 2 trusted internal
+      testers (not a live attack surface), and the added complexity (background DOM mutation,
+      cache-vs-server branching) wasn't worth carrying on an unverified theory. **If this recurs:**
+      get a console log from the exact moment of failure before writing any fix — diagnose from
+      evidence, not pattern-matching.
 - [x] **Step 0.5: Strip all mock/simulated data from the dashboard before wiring real data —
       COMPLETE (2026-08-02).** Full surgical step-by-step + post-plan fixes in
       `docs/ADMIN_DASHBOARD_MOCK_REMOVAL_PLAN.md` (rollback tag `pre-mock-removal-2026-08-01` +
@@ -527,12 +541,17 @@ See `AGENTS.md` § "verify production data."
       Login/Signup view, risking the user thinking login failed and clicking Login again.
       Fixed by threading a new `isConfirmed` flag through `updateHomeMenu(forcedState,
       isConfirmed)`: the optimistic cache-render call passes `false`, the real
-      `onAuthStateChanged` callback passes `true`. When `false`, a small spinning 🕐 badge
+      `onAuthStateChanged` callback passes `true`. When `false`, a small spinning ⌛ badge
       (`.home-menu-verifying`, reuses the existing `spin` keyframe, respects
       `prefers-reduced-motion`) renders next to the "Menu" label in both the logged-in and
       logged-out grid templates, disappearing the instant the real confirmation re-renders the
       menu. No change to the underlying cache/confirmation timing itself — this only makes the
       already-temporary stale window visibly "in progress" instead of silently misleading.
+      **Fixed 2026-08-04 (user feedback): was originally built with a 🕐 clock-face emoji —
+      changed to ⌛ (hourglass) to match the icon already used for this exact "still loading"
+      meaning elsewhere in the app** (`alerts.html`'s inline loader, `.alerts-loading-clock` in
+      `messages.css`, same `rotate(0→360deg)` spin style), instead of introducing a
+      visually-different icon for the same concept.
       **Bundled-in fix (2026-08-04) — "attention shake" extended to the category card.** Step 1 had
       a shake-the-disclaimer nudge (`shakeBeforeContinueDisclaimer()`) for clicking Continue while
       locked (no language tab read yet), but clicking Continue with a language tab read and no gig
@@ -1192,9 +1211,13 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 
 ---
 
-## Recommended order (re-synced 2026-07-24)
+## Recommended order (re-synced 2026-08-04)
 > Items 1–3 SHIPPED. **Alert/count + tray smoke COMPLETE** (incl. phone §E0d 2026-07-24).
 > **Track G auth CLOSED.** Meta FB app Live.
+> **Gig Use Type rename + nationwide region/city expansion + free-text location + photo-required
+> fix: BUILT, SHIPPED, user-tested live on `hatod.html`/`aircon.html`/`solicitor.html` 2026-08-03/04
+> (region/city filter persistence, city filtering bug, empty-state launch note, Filter Gigs overlay
+> polish all confirmed working). This front-facing detour is done.**
 > **Next linchpin = Admin Dashboard study/build (Track C #8).**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.

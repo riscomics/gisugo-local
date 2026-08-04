@@ -1,0 +1,47 @@
+---
+description: Get real evidence before fixing, and wait for a real answer before acting
+alwaysApply: true
+---
+
+# Confirm Before Acting — Don't Fix on a Guess, Don't Act on Your Own Question
+
+Two related failure modes, both from the same root cause (treating "sounds
+plausible" as "confirmed"):
+
+## 1. Diagnose from evidence before writing a fix
+
+If a bug is reported without a reproduction or a log from the actual moment
+of failure, get one before writing code — especially before writing a
+second or third revision of the same fix. Pattern-matching to "this looks
+like that other unrelated bug we saw earlier" is a hypothesis, not a
+diagnosis.
+
+Match the effort/complexity of a fix to the **confirmed** severity and
+confirmed root cause — not to how many plausible-sounding follow-on gaps
+can be found by re-reading the code again. If a fix is speculative, say so
+plainly and keep it minimal, instead of iterating rounds of increasingly
+defensive code on top of an unverified theory.
+
+**Bad:** User reports "X failed once, then worked on retry" with no log.
+Guess a root cause, ship a fix, then find + fix 3 more "gaps" in that fix
+over the next several turns, each time asserting real confidence.
+
+**Good:** Ask for (or wait for) a log/repro from the actual failure moment.
+If none is available and the issue hasn't recurred, say the root cause is
+unconfirmed and let the user decide whether a speculative fix is worth the
+added complexity — don't just build it.
+
+## 2. If you ask a yes/no question, wait for the answer
+
+Never write "Want me to do X?" and then do X in the same turn. That isn't
+a real question — it's acting first and narrating a choice that was never
+actually offered. If the action is worth doing regardless of the answer,
+don't phrase it as a question; just do it and say so. If it's genuinely
+optional, stop and wait.
+
+## Why
+
+Both are the same trust failure: presenting a guess or an unilateral
+decision as if it had been verified or agreed to. Saying "let me check" and
+then not checking (or asking and not waiting) is worse than not asking at
+all, because it looks like diligence without being diligence.
