@@ -396,10 +396,54 @@ See `AGENTS.md` § "verify production data."
       rotating "×" close button) — pure CSS, no HTML/JS changes (`listing.js` only toggles `.show`
       and queries `.region-picker-item`/`.city-picker-item` by class name, both left untouched).
       Bumped `listing.css?v=` cache-buster across all 55 category HTML files so the new styling
-      isn't served stale from browser cache. Also two small copy tweaks in the same pass: `new-post2`
+      isn't served stale from browser cache.       Also two small copy tweaks in the same pass: `new-post2`
       free-text location field limit lowered from 40→25 chars (user's live visual check against the
       listing card layout — 40 ran into the price box), and the Section 2 card title renamed from
-      "Location & Gig Specifics" to "Location Details". Also re-sorted the region picker list order
+      "Location & Gig Specifics" to "Location Details".
+      **Bundled-in fix (2026-08-04) — Select Region/City picker overflow + font size.** User's live
+      click-through caught a real regression from the 2026-08-03 restyle: `.region-picker-item`/
+      `.city-picker-item` got horizontal padding + a border added for the new pill-style look, but no
+      `box-sizing: border-box` — so each item rendered *wider than its container* (old design had
+      zero horizontal padding, `padding: 18px 0`, which is why this never surfaced before). Fixed by
+      adding `box-sizing: border-box` to both item classes plus their modal/list wrappers, and bumped
+      font-size from `clamp(15px, 2.8vw, 18px)` to `clamp(17px, 3.6vw, 21px)` (region) / same (city)
+      now that there's no more overflow margin to protect. Cache-buster bumped again
+      (`listing.css?v=20260804b`).
+      **Bundled-in fix (2026-08-04) — collapsed Filter Gigs footer bar text crowding.** Long
+      region/city names (post-nationwide-expansion) had no overflow handling in
+      `.filter-display-value` (`white-space: nowrap`, no `overflow`/`text-overflow`), so they spilled
+      out of their column and visually smashed into the neighboring REGION/CITY/GIG TYPE value —
+      user's screenshot showed "ZAMBOANGA DEL NORTBEACUNGAN (LEON T. POSTIGOSELECT" all overlapping
+      on one line. Discussed 3 options (ellipsis truncation / JS font auto-shrink / wrap to 2 lines
+      with a taller collapsed-bar height budget); user picked **plain character truncation, no
+      ellipsis** — reasoning: the user already read+selected the full name in the picker modal, so a
+      shortened reminder in this tiny at-a-glance strip is enough, and the untruncated name is always
+      one tap away again via the REGION/CITY buttons in the expanded panel. Implemented
+      `truncateFilterDisplayValue()` in `listing.js` (hard cap at 11 chars, picked by the user
+      visually checking the actual footer bar width against names like "ALOGUINSAN"), applied in
+      `updateFilterDisplay()` to the Region/City values only (Gig Type text is always short:
+      SELECT/PERSONAL/BUSINESS, never truncated). Confirmed the only other reader of that same
+      `filterDisplayRegion`/`filterDisplayCity` DOM text (`getSelectedRegion()`/`getSelectedCity()`
+      in the search-bar script) only feeds a `console.log`, not actual filtering logic (which reads
+      the separate `activeRegion`/`activeCity` module variables, never the truncated DOM text) — so
+      truncating the display text has zero effect on real search/filter behavior. Added
+      `overflow: hidden` to `.filter-display-value` as a silent safety-net clip (deliberately no
+      `text-overflow: ellipsis`, per the "no dots" decision) in case some wide-font/viewport
+      combination still doesn't quite fit within 11 chars. Cache-buster bumped again
+      (`listing.css?v=20260804b`, `listing.js?v=20260804a`).
+      **Bundled-in fix (2026-08-04) — "attention shake" extended to the category card.** Step 1 had
+      a shake-the-disclaimer nudge (`shakeBeforeContinueDisclaimer()`) for clicking Continue while
+      locked (no language tab read yet), but clicking Continue with a language tab read and no gig
+      category selected only showed a toast — easy to miss because once a language tab is picked the
+      disclaimer box expands with the full trilingual text, pushing the "Select Gig Category" card
+      further down, often right behind the fixed bottom nav-buttons bar. Refactored the shake helper
+      into a generic `triggerAttentionShake(element)` (WeakMap-tracked per-element, so the disclaimer
+      and the category card can shake independently without listener leaks/collisions) and added
+      `shakeAndScrollToCategoryCard()`, which `categoryCard.scrollIntoView({behavior:'smooth',
+      block:'center'})`s then shakes it, called from `validateCurrentStep()` case 1 alongside the
+      existing toast. CSS selector broadened from `.np2-disclaimer-section.np2-attention-shake` to a
+      generic `.np2-attention-shake` (same keyframes, now reusable by any element).
+      Also re-sorted the region picker list order
       itself (`ph-locations.js`'s `PH_LOCATIONS_REGION_ORDER`): the original 9 regions (Cebu → Manila)
       keep their existing order, but the ~64 nationwide-expansion regions after them are now sorted
       alphabetically (was: grouped by official region, north to south — harder to scan/find a

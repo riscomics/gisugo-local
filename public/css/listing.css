@@ -1439,7 +1439,12 @@ body::-webkit-scrollbar {
   text-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
   text-transform: uppercase;
   white-space: nowrap;
-  overflow: visible;
+  /* Region/City text is already hard-capped to 11 characters in JS (listing.js
+     truncateFilterDisplayValue) before it ever reaches this element, so this is just a
+     safety net for the rare case a wide font/viewport combo still doesn't quite fit --
+     no text-overflow:ellipsis on purpose, per 2026-08-04 decision: plain silent clip,
+     no "..." needed since the user already read the full name when picking it. */
+  overflow: hidden;
   text-align: center;
   width: 100%;
   transition: all 0.35s ease-out;
@@ -3540,6 +3545,7 @@ body::-webkit-scrollbar {
 }
 
 .region-picker-modal {
+  box-sizing: border-box;
   background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   border: 2px solid rgba(16, 185, 129, 0.4);
   border-radius: 14px;
@@ -3565,6 +3571,7 @@ body::-webkit-scrollbar {
 }
 
 .region-picker-list {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: clamp(6px, 1.2vh, 9px);
@@ -3582,11 +3589,15 @@ body::-webkit-scrollbar {
 }
 
 .region-picker-item {
+  box-sizing: border-box; /* Without this, width:100% + this item's own padding/border
+    added on top overflowed past the list's right edge (the old design had zero
+    horizontal padding so this never showed up -- regression from the 2026-08-03
+    restyle, fixed 2026-08-04). */
   background: rgba(45, 55, 72, 0.6);
   color: #ffffff;
   border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: 8px;
-  font-size: clamp(15px, 2.8vw, 18px);
+  font-size: clamp(17px, 3.6vw, 21px);
   font-weight: 700;
   padding: clamp(10px, 2vh, 14px) clamp(14px, 2.8vw, 18px);
   cursor: pointer;
@@ -3638,7 +3649,7 @@ body::-webkit-scrollbar {
     min-height: 160px;
   }
   .region-picker-item {
-    font-size: 15px;
+    font-size: 17px;
     padding: 10px 12px;
     font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
   }
@@ -3670,6 +3681,7 @@ body::-webkit-scrollbar {
 }
 
 .city-picker-modal {
+  box-sizing: border-box;
   background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   border: 2px solid rgba(16, 185, 129, 0.4);
   border-radius: 14px;
@@ -3696,6 +3708,7 @@ body::-webkit-scrollbar {
 }
 
 .city-picker-list {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: clamp(6px, 1.2vh, 9px);
@@ -3713,11 +3726,12 @@ body::-webkit-scrollbar {
 }
 
 .city-picker-item {
+  box-sizing: border-box; /* Same overflow fix as .region-picker-item above -- see comment there. */
   background: rgba(45, 55, 72, 0.6);
   color: #ffffff;
   border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: 8px;
-  font-size: clamp(15px, 2.8vw, 18px);
+  font-size: clamp(17px, 3.6vw, 21px);
   font-weight: 700;
   padding: clamp(9px, 1.8vh, 12px) clamp(14px, 2.8vw, 18px);
   cursor: pointer;
@@ -3770,7 +3784,7 @@ body::-webkit-scrollbar {
     min-height: 180px;
   }
   .city-picker-item {
-    font-size: 14px;
+    font-size: 16px;
     padding: 9px 10px;
     font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
   }

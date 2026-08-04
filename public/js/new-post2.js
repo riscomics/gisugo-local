@@ -708,6 +708,7 @@ function validateCurrentStep() {
     case 1:
       if (!np2State.selectedCategory) {
         showToast('Please select a job category', 'error');
+        shakeAndScrollToCategoryCard();
         return false;
       }
       return true;
@@ -1716,35 +1717,56 @@ function initializeNavigation() {
   }
 }
 
-// Nudges the "Before You Continue" disclaimer box with a brief shake so a click on
-// the (visually locked) Continue button has a visible response instead of doing
-// nothing. Re-triggers cleanly even on repeated clicks by removing the animation
-// class first and re-adding it on the next frame.
-let _np2ShakeEndHandler = null; // tracks the one active listener so rapid clicks can't stack them
+// Nudges an element with a brief shake animation to draw attention to it (e.g. a
+// locked/blocked action was attempted). Re-triggers cleanly even on repeated clicks by
+// removing the animation class first and re-adding it on the next frame. Tracks the
+// pending animationend listener per-element (WeakMap) so rapid repeated triggers on the
+// same element can't stack listeners, while still allowing two different elements
+// (disclaimer box, category card) to shake independently without interfering.
+const _np2ShakeEndHandlers = new WeakMap();
 
-function shakeBeforeContinueDisclaimer() {
-  const disclaimerSection = document.querySelector('.np2-disclaimer-section');
-  if (!disclaimerSection) return;
+function triggerAttentionShake(element) {
+  if (!element) return;
 
-  // If a previous shake's listener is still pending (interrupted before it fired),
-  // remove it before attaching a new one so repeated clicks can't accumulate listeners.
-  if (_np2ShakeEndHandler) {
-    disclaimerSection.removeEventListener('animationend', _np2ShakeEndHandler);
-    _np2ShakeEndHandler = null;
+  const existingHandler = _np2ShakeEndHandlers.get(element);
+  if (existingHandler) {
+    element.removeEventListener('animationend', existingHandler);
+    _np2ShakeEndHandlers.delete(element);
   }
 
-  disclaimerSection.classList.remove('np2-attention-shake');
+  element.classList.remove('np2-attention-shake');
   // Force a reflow so the class removal actually takes effect before we re-add it,
-  // otherwise the browser may not replay the animation on rapid repeat clicks.
-  void disclaimerSection.offsetWidth;
-  disclaimerSection.classList.add('np2-attention-shake');
+  // otherwise the browser may not replay the animation on rapid repeat triggers.
+  void element.offsetWidth;
+  element.classList.add('np2-attention-shake');
 
-  _np2ShakeEndHandler = function handleShakeEnd() {
-    disclaimerSection.classList.remove('np2-attention-shake');
-    disclaimerSection.removeEventListener('animationend', _np2ShakeEndHandler);
-    _np2ShakeEndHandler = null;
+  const handleShakeEnd = function() {
+    element.classList.remove('np2-attention-shake');
+    _np2ShakeEndHandlers.delete(element);
   };
-  disclaimerSection.addEventListener('animationend', _np2ShakeEndHandler, { once: true });
+  _np2ShakeEndHandlers.set(element, handleShakeEnd);
+  element.addEventListener('animationend', handleShakeEnd, { once: true });
+}
+
+// Nudges the "Before You Continue" disclaimer box so a click on the (visually locked)
+// Continue button has a visible response instead of doing nothing.
+function shakeBeforeContinueDisclaimer() {
+  triggerAttentionShake(document.querySelector('.np2-disclaimer-section'));
+}
+
+// Scrolls the "Select Gig Category" card into view and shakes it. Needed because once a
+// disclaimer language tab is read, the disclaimer box expands with the full trilingual
+// text, pushing this card further down the page -- it can end up sitting right behind
+// the fixed bottom nav-buttons bar, so a plain toast alone is easy to miss/not connect
+// to this card. Waits for the smooth scroll to roughly finish before shaking so the
+// animation is visible once the card is actually in view, not off-screen mid-scroll.
+function shakeAndScrollToCategoryCard() {
+  const categoryCard = document.getElementById('categoryCardSection');
+  if (!categoryCard) return;
+  categoryCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(function() {
+    triggerAttentionShake(categoryCard);
+  }, 400);
 }
 
 // ========================== PREVIEW OVERLAY ==========================

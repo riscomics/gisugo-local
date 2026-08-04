@@ -826,7 +826,10 @@ html body.page-post2:has(.uniform-header) {
   box-shadow: none;
 }
 
-/* Attention shake — nudges the disclaimer box when Continue is clicked while locked */
+/* Attention shake — nudges the disclaimer box when Continue is clicked while locked,
+   and (2026-08-04) the "Select Gig Category" card when Continue is clicked with no
+   category chosen. Generic selector so any element can reuse this via the JS toggle
+   pattern in new-post2.js (shakeBeforeContinueDisclaimer / shakeAndScrollToElement). */
 @keyframes np2AttentionShake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8px); }
@@ -835,7 +838,7 @@ html body.page-post2:has(.uniform-header) {
   80% { transform: translateX(3px); }
 }
 
-.np2-disclaimer-section.np2-attention-shake {
+.np2-attention-shake {
   animation: np2AttentionShake 0.4s ease-in-out;
 }
 

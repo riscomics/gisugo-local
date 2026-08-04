@@ -3218,14 +3218,29 @@ function initJobcatButtonAutoResize() {
   populateRegions();
   populateCities('CEBU');
   
+  // Caps how many characters of the Region/City name show in the collapsed footer bar
+  // strip (2026-08-04, after the nationwide region/city expansion made some names much
+  // longer, e.g. "ZAMBOANGA DEL NORTE", "ALOGUINSAN"). Deliberately a hard cutoff with NO
+  // "..." ellipsis -- the user already read and picked the full name from the picker
+  // modal, so a plain truncated reminder in this tiny at-a-glance strip is enough; the
+  // untruncated name is always available again via the REGION/CITY buttons once the panel
+  // is expanded. 11 chars was picked as the sweetspot after visually checking against the
+  // actual footer bar width (fits comfortably, e.g. "ALOGUINSAN" at 10 chars, without
+  // crowding the neighboring column).
+  const FILTER_DISPLAY_MAX_CHARS = 11;
+  function truncateFilterDisplayValue(text) {
+    if (!text) return text;
+    return text.length > FILTER_DISPLAY_MAX_CHARS ? text.slice(0, FILTER_DISPLAY_MAX_CHARS) : text;
+  }
+
   // Update display text in footer bar
   function updateFilterDisplay() {
-    if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
-    if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
+    if (filterDisplayRegion) filterDisplayRegion.textContent = truncateFilterDisplayValue(selectedRegion);
+    if (filterDisplayCity) filterDisplayCity.textContent = truncateFilterDisplayValue(selectedCity);
     let payTypeText = 'SELECT';
     if (selectedPayType === 'personal') payTypeText = 'PERSONAL';
     else if (selectedPayType === 'business') payTypeText = 'BUSINESS';
-    if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
+    if (filterDisplayPay) filterDisplayPay.textContent = payTypeText; // always short (SELECT/PERSONAL/BUSINESS), never needs truncation
   }
   
   // Region button click - open modal (prevent panel from closing)
