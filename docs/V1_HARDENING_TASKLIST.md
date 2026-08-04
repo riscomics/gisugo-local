@@ -298,8 +298,9 @@ See `AGENTS.md` § "verify production data."
       duplicate background read still happens either way — this only decides which of the two
       answers wins on screen). A related cost optimization (skip the background re-check entirely
       when the cache is very fresh) was discussed and intentionally **deferred** — see Track E.
-- [ ] **Nationwide Region/City expansion + kill the barangay dropdown for free-text location
-      details — PLAN LOCKED (2026-08-03), NOT YET BUILT.** Triggered by the Region picker
+- [x] **Nationwide Region/City expansion + kill the barangay dropdown for free-text location
+      details — BUILT (2026-08-03), statically audited, pending user's live click-through test.**
+      Triggered by the Region picker
       (`hatod.html` screenshot) only offering 9 hand-picked regions (Cebu/Bohol/Leyte/Masbate/
       Negros/Panay/Samar/Davao/Manila) with hand-typed city lists, duplicated across exactly 2
       files (`public/js/listing.js` + `public/js/new-post2.js` — **not** duplicated across the 56+
@@ -338,6 +339,73 @@ See `AGENTS.md` § "verify production data."
       **Known trade-off, accepted:** free text means no structured barangay data for any future
       admin analytic or filter that might want it (e.g. "gig activity by barangay") — nothing today
       needs that and nothing is roadmapped to, so deemed acceptable; reversible later if it ever is.
+      **What was actually built (2026-08-03):**
+      1. New shared file `public/js/ph-locations.js` — 73 top-level "region" groups (up from 9),
+         ~1,632 cities/municipalities total, ~25KB uncompressed. The **original 9 keys/values are
+         byte-for-byte identical** to the prior hardcoded data (extracted programmatically from
+         `listing.js`, never retyped) — zero risk to existing live Firestore gig documents whose
+         `region`/`city` fields already match those exact strings. The other 64 groups are
+         **auto-generated from the official PSGC dataset** (via
+         `open-admin-data/philippines-administrative-divisions`, CC-BY-4.0, PSA-sourced), grouped
+         by **province** (not the stricter 17-region tier) to match the granularity the original 9
+         keys already established (e.g. "DAVAO"/"PANAY" are themselves multi-province informal
+         groupings, not single official regions) — switching to strict 17-region tier would have
+         actually been a UX regression (e.g. Cebu + Bohol + Negros Oriental + Siquijor would all
+         collapse into one "Region VII" bucket). Two pre-existing naming quirks carried forward
+         as-is, not introduced: `"NEGROS"` = Negros Occidental only (new `"NEGROS ORIENTAL"` is a
+         separate key); `"SAMAR"` = Western Samar only (new `"EASTERN SAMAR"`/`"NORTHERN SAMAR"`
+         are separate keys). Full attribution and rationale documented in the file's header comment.
+      2. `public/js/listing.js` and `public/js/new-post2.js` both now source region/city data from
+         `PH_LOCATIONS`/`PH_LOCATIONS_REGION_ORDER` (new script loaded before each on every page)
+         instead of their own local copies — kept the exact same variable names
+         (`regions`/`citiesByRegion` in `listing.js`, `locationData` in `new-post2.js`) so no
+         downstream code in either large file had to change. Found and fixed a **second**, separate
+         hardcoded 9-region array in `listing.js` (`populateRegions()`'s local `regionData`, the
+         code that actually renders the "Select Region" picker UI) that the shared-file swap alone
+         wouldn't have caught — plus a display-casing bug there (`region.charAt(0) + ...` mangled
+         multi-word names like "LA UNION" → "La union"; replaced with a word-aware title-case
+         helper that also keeps "del"/"de" lowercase per PH naming convention, e.g. "Zamboanga del
+         Norte"). Fixed a dead-code key mismatch in `new-post2.js`'s `defaultCities` map (`"DINAGAT"`
+         → `"DINAGAT ISLANDS"`, now matches the real key so that default actually fires).
+      3. Barangay dropdown system fully removed from `new-post2.js`/`new-post2.html`: deleted
+         `barangaysByCity` (hand-curated data for ~10 major cities only), `getBarangaysForCurrentCity()`,
+         and the unused/dead `cityHasBarangayData()`. The "location" `menuType` (Pickup at:/Deliver
+         at:/Load at:/etc., ~35 categories) is now unconditionally a free-text input, never a
+         dropdown.
+      4. Free-text location inputs: `maxlength="25"` (started at 40, user visually checked against
+         the listing card layout and cut it to 25 — 40 ran into the price box), placeholder
+         "Barangay name or general area", live character counter (e.g. "12/25") using the same
+         `.np2-char-counter` pattern already used for the Gig Title field, reusing the existing
+         `blockUnsupportedCharsForInput` sanitizer for consistency with other text fields. Counter
+         resets correctly on category/city change and on full form reset.
+      **Audit method:** no live browser tool was available in this session (cursor-ide-browser MCP
+      server not present), so verification was done via `node --check` syntax checks on every touched
+      file, `git diff` line-by-line review of all changes, programmatic evaluation of the generated
+      data file (73 keys confirmed, no duplicates, original 9 spot-checked byte-identical, casing
+      spot-checked), and full-repo greps confirming no orphaned references to deleted
+      functions/variables remain anywhere (including the duplicate/dead `regionPickerOverlay` markup
+      in category HTML files, which was already a pre-existing issue, confirmed harmless and
+      unrelated to this change). **Live click-through testing (actually opening the pages, clicking
+      through the pickers, posting a test gig) was NOT done by the agent and still needs the user's
+      pass before this is considered fully verified.**
+      **Bundled-in fix (2026-08-03) — Select Region / Select City picker modals restyled.** User
+      flagged these two modals as visually stuck on the old flat-gray design theme, out of step with
+      the "FILTER Gigs" panel they open from. Rewrote `.region-picker-*`/`.city-picker-*` in
+      `public/css/listing.css` to match the Gaming Filter Panel look (dark `#1a202c`→`#2d3748`
+      gradient, `#10b981` green border/glow, rounded pill-style list items with hover/active glow,
+      rotating "×" close button) — pure CSS, no HTML/JS changes (`listing.js` only toggles `.show`
+      and queries `.region-picker-item`/`.city-picker-item` by class name, both left untouched).
+      Bumped `listing.css?v=` cache-buster across all 55 category HTML files so the new styling
+      isn't served stale from browser cache. Also two small copy tweaks in the same pass: `new-post2`
+      free-text location field limit lowered from 40→25 chars (user's live visual check against the
+      listing card layout — 40 ran into the price box), and the Section 2 card title renamed from
+      "Location & Gig Specifics" to "Location Details". Also re-sorted the region picker list order
+      itself (`ph-locations.js`'s `PH_LOCATIONS_REGION_ORDER`): the original 9 regions (Cebu → Manila)
+      keep their existing order, but the ~64 nationwide-expansion regions after them are now sorted
+      alphabetically (was: grouped by official region, north to south — harder to scan/find a
+      specific province in a long list). `new-post2.js`'s region dropdown was switched from its own
+      `Object.keys(locationData)` to the same shared `PH_LOCATIONS_REGION_ORDER`, so both the listing
+      pages and the gig-posting form now show regions in the identical order.
       **Bundled-in fix — COMPLETE (2026-08-03), shipped ahead of the region/city work above since
       it was small/isolated with no dependency on it.** Gig Photo was labeled "(Optional)"
       (`new-post2.html`) and `validateCurrentStep()` case 3 (`new-post2.js`) checked
@@ -564,6 +632,15 @@ See `AGENTS.md` § "verify production data."
       teardown/re-init bug in our code. **Decision: ship as-is.** Revisit only if a future SDK
       upgrade is being done anyway, or if the notification-badge-goes-stale symptom becomes a real
       user complaint.
+- [ ] **Nationwide region/city expansion — minor polish deferred (not blocking, 2026-08-03):**
+      - The 64 new regions have no curated "default city" (e.g. Cebu → Cebu City, Manila → Manila);
+        selecting one falls back to the alphabetically-first city in that province, which is always
+        valid but not necessarily the most prominent/populous one. Curate if it's ever worth the
+        30-ish minutes of polish.
+      - The "Select Region" picker is now a plain scrollable list of 73 items (up from 9), no search
+        box. The list container already had `overflow-y: auto`/`max-height` before this change (same
+        treatment large city lists already got), so it's functional, just a longer scroll. Add a
+        type-to-filter search box if this becomes a real usability complaint.
 
 ## Track G — Authentication / mobile OAuth login
 - [x] **Facebook Login taken live + made to work across mobile browsers** (2026-07-12/13, deployed).

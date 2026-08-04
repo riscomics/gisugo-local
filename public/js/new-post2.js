@@ -252,100 +252,23 @@ function blockUnsupportedCharsForInput(inputEl, onSanitizedValue) {
 
 // ========================== LOCATION DATA ==========================
 
-const locationData = {
-  "CEBU": [
-    "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
-  ],
-  "BOHOL": ["Tagbilaran City", "Alburquerque", "Alicia", "Anda", "Antequera", "Baclayon", "Balilihan", "Batuan", "Bien Unido", "Bilar", "Buenavista", "Calape", "Candijay", "Carmen", "Catigbian", "Clarin", "Corella", "Cortes", "Dagohoy", "Danao", "Dauis", "Dimiao", "Duero", "Garcia Hernandez", "Guindulman", "Inabanga", "Jagna", "Jetafe", "Lila", "Loay", "Loboc", "Loon", "Mabini", "Maribojoc", "Panglao", "Pilar", "Pres. Carlos P. Garcia", "Sagbayan", "San Isidro", "San Miguel", "Sevilla", "Sierra Bullones", "Sikatuna", "Talibon", "Trinidad", "Tubigon", "Ubay", "Valencia"],
-  "LEYTE": [
-    "Tacloban City", "Ormoc City", "Baybay City", "Abuyog", "Alangalang", "Albuera", "Babatngon", "Barugo", "Bato", "Burauen", "Calubian", "Capoocan", "Carigara", "Dagami", "Dulag", "Hilongos", "Hindang", "Inopacan", "Isabel", "Jaro", "Javier", "Julita", "Kananga", "La Paz", "Leyte", "MacArthur", "Mahaplag", "Matag-ob", "Matalom", "Mayorga", "Merida", "Palo", "Palompon", "Pastrana", "San Isidro", "San Miguel", "Santa Fe", "Tabango", "Tabontabon", "Tanauan", "Tolosa", "Tunga", "Villaba*", "Maasin City", "Anahawan", "Bontoc", "Hinunangan", "Hinundayan", "Libagon", "Liloan", "Limasawa", "Macrohon", "Malitbog", "Pintuyan", "Saint Bernard", "San Francisco", "San Juan Kabalian", "San Ricardo", "Silago", "Sogod", "Tomas Oppus"
-  ],
-  "MASBATE": ["Masbate City", "Aroroy", "Baleno", "Balud", "Batuan", "Cataingan", "Cawayan", "Claveria", "Dimasalang", "Esperanza", "Mandaon", "Milagros", "Mobo", "Monreal", "Palanas", "Pio V. Corpuz", "Placer", "San Fernando", "San Jacinto", "San Pascual", "Uson"],
-  "NEGROS": ["Bacolod City", "Bago City", "Binalbagan", "Cadiz City", "Calatrava", "Cauayan", "Enrique B. Magalona", "Escalante City", "Himamaylan City", "Hinigaran", "Hinoba-an", "Ilog", "Isabela", "Kabankalan City", "La Carlota City", "La Castellana", "Manapla", "Moises Padilla", "Murcia", "Pontevedra", "Pulupandan", "Sagay City", "Salvador Benedicto", "San Carlos City", "San Enrique", "Silay City", "Sipalay City", "Talisay City", "Toboso", "Valladolid", "Victorias City"],
-  "PANAY": [
-    "Altavas", "Balete", "Banga", "Batan", "Buruanga", "Ibajay", "Kalibo", "Lezo", "Libacao", "Madalag", "Makato", "Malay", "Malinao", "Nabas", "New Washington", "Numancia", "Tangalan",
-    "Anini-y", "Barbaza", "Belison", "Bugasong", "Caluya", "Culasi", "Hamtic", "Laua-an", "Libertad", "Pandan", "Patnongon", "San Jose de Buenavista", "San Remigio", "Sebaste", "Sibalom", "Tibiao", "Tobias Fornier", "Valderrama",
-    "Cuartero", "Dao", "Dumalag", "Dumarao", "Ivisan", "Jamindan", "Maayon", "Mambusao", "Panay", "Panitan", "Pilar", "Pontevedra", "President Roxas", "Roxas City", "Sapian", "Sigma", "Tapaz",
-    "Ajuy", "Alimodian", "Anilao", "Badiangan", "Balasan", "Banate", "Barotac Nuevo", "Barotac Viejo", "Batad", "Bingawan", "Cabatuan", "Calinog", "Carles", "Concepcion", "Dingle", "Dueñas", "Dumangas", "Estancia", "Guimbal", "Igbaras", "Iloilo City", "Janiuay", "Lambunao", "Leganes", "Lemery", "Leon", "Maasin", "Miagao", "Mina", "New Lucena", "Oton", "Passi City", "Pavia", "Pototan", "San Dionisio", "San Enrique", "San Joaquin", "San Miguel", "San Rafael", "Santa Barbara", "Sara", "Tigbauan", "Tubungan", "Zarraga",
-    "Buenavista", "Jordan", "Nueva Valencia", "San Lorenzo", "Sibunag"
-  ],
-  "SAMAR": [
-    "Catbalogan City", "Calbayog City", "Almagro", "Basey", "Calbiga", "Daram", "Gandara", "Hinabangan", "Jiabong", "Marabut", "Matuguinao", "Motiong", "Pagsanghan", "Paranas", "Pinabacdao", "San Jorge", "San Jose de Buan", "San Sebastian", "Santa Margarita", "Santa Rita", "Santo Niño", "Tagapul-an", "Talalora", "Tarangnan", "Villareal", "Zumarraga"
-  ],
-  "DAVAO": [
-    "Davao City", "Digos City", "Mati City", "Panabo City", "Samal City", "Tagum City",
-    "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "Nabunturan", "New Bataan", "Pantukan",
-    "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod",
-    "Bansalan", "Don Marcelino", "Hagonoy", "Jose Abad Santos", "Kiblawan", "Magsaysay", "Malalag", "Malita", "Matanao",
-    "Don Marcelino", "Jose Abad Santos", "Malita", "Santa Maria", "Sulop",
-    "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"
-  ],
-  "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
-};
+// Sourced from the shared public/js/ph-locations.js (loaded before this script in
+// new-post2.html) -- single source of truth also used by listing.js. Kept the same
+// variable name (locationData) so nothing below this line had to change: this file
+// previously had its own local 9-region copy of this exact data.
+const locationData = PH_LOCATIONS;
 
-// Barangay data for major cities (simplified - can be expanded)
-const barangaysByCity = {
-  // CEBU PROVINCE
-  "CEBU CITY": [
-    "Adlaon", "Agsungot", "Apas", "Bacayan", "Banilad", "Binaliw", "Budla-an", "Buhisan", "Bulacao", "Busay", "Calamba", "Cambinocot", "Capitol Site", "Carreta", "Cogon Pardo", "Cogon Ramos", "Colon", "Day-as", "Duljo Fatima", "Ermita", "Guba", "Guadalupe", "Hipodromo", "Inayawan", "Kamagayan", "Kamputhaw", "Kasambagan", "Kinasang-an", "Labangon", "Lahug", "Lorega San Miguel", "Luz", "Mabini", "Mabolo", "Malubog", "Mambaling", "Pahina Central", "Pahina San Nicolas", "Pardo", "Pasil", "Pit-os", "Pulangbato", "Punta Princesa", "Pung-ol Sibugay", "Quiot", "Sambag I", "Sambag II", "San Antonio", "San Jose", "San Nicolas Proper", "San Roque", "Santa Cruz", "Santo Niño", "Sawang Calero", "Sinsin", "Sirao", "Suba", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o", "Talamban", "Taptap", "Tejero", "Tinago", "Tisa", "To-ong", "Zapatera"
-  ],
-  "Lapu-Lapu": [
-    "Agus", "Babag", "Bankal", "Baring", "Basak", "Buaya", "Canjulao", "Caw-oy", "Caubian", "Gun-ob", "Ibo", "Looc", "Mactan", "Maribago", "Marigondon", "Pajac", "Pajo", "Poblacion", "Punta Engaño", "Pusok", "Sabang", "Santa Rosa", "Subabasbas", "Talima", "Tingo", "Tugbok"
-  ],
-  "Mandaue": [
-    "Alang-alang", "Bakilid", "Banilad", "Basak", "Cabancalan", "Cambaro", "Canduman", "Casili", "Casuntingan", "Centro", "Cubacub", "Guizo", "Ibabao-Estancia", "Jagobiao", "Labogon", "Looc", "Maguikay", "Mantuyong", "Opao", "Pakna-an", "Pagsabungan", "San Jose", "Subangdaku", "Tabok", "Tawason", "Tipolo", "Umapad"
-  ],
-  "Talisay": [
-    "Biasong", "Bulacao", "Cadulawan", "Camp Lapu-Lapu", "Candulawan", "Cansojong", "Dumlog", "Lagtang", "Lawaan I", "Lawaan II", "Lawaan III", "Linao", "Maghaway", "Manipis", "Mohon", "Poblacion", "Pooc", "San Isidro", "San Roque", "Tabunoc", "Tangke", "Tapul"
-  ],
-  "Minglanilla": [
-    "Calajoan", "Cambulo", "Cuanos", "Guindaruhan", "Lipata", "Linao", "Pakigne", "Poblacion Ward I", "Poblacion Ward II", "Tunghaan", "Tungkil", "Tubod", "Vito"
-  ],
-  "Consolation": [
-    "Cabangahan", "Cansaga", "Casili", "Danlag", "Garing", "Jugan", "Lamac", "Lanipga", "Nangka", "Pitogo", "Poblacion Occidental", "Poblacion Oriental", "Pulpogan", "Sacsac", "Tayud", "Tilhaong", "Tolotolo", "Tugbongan"
-  ],
-  "Cordova": [
-    "Alegria", "Bangbang", "Buagsong", "Catarman", "Day-as", "Gabi", "Gilutongan", "Ibabao", "Pilipog", "Poblacion"
-  ],
-  "Danao": [
-    "Bayabas", "Binlod", "Cagat-lamac", "Cambanay", "Cambubho", "Cogon-cruz", "Danao", "Dungga", "Dunggoan", "Guinacot", "Guinsay", "Ibo", "Langosig", "Lawaan", "Licos", "Looc", "Magtagobtob", "Malapoc", "Mambalili", "Masaba", "Maslog", "Manlayag", "Nangka", "Oguis", "Pili", "Poblacion", "Sabang", "Sacsac", "Sandayong", "Santa Rosa", "Santican", "Sibayon", "Suba", "Taboc", "Tabok", "Togonon", "Tuburan"
-  ],
-
-  // BOHOL PROVINCE
-  "Tagbilaran City": [
-    "Bool", "Booy", "Cabawan", "Cogon", "Dampas", "Dao", "Mansasa", "Poblacion I", "Poblacion II", "Poblacion III", "San Isidro", "Taloto", "Tiptip", "Ubujan"
-  ],
-
-  // LEYTE PROVINCE
-  "Tacloban City": [
-    "Abucay", "Apitong", "Bagacay", "Baras", "Bliss", "Buri", "Cabalawan", "Caibaan", "Camanchile", "Cancadarag", "Catagbacan", "Diit", "Downtown", "Fatima", "Guardia", "Humuya", "Lanzones", "Magsaysay", "Marasbaras", "New Kawayan", "Old Kawayan", "Palanog", "Pitogo", "Poblacion", "Rawis", "Sagkahan", "San Jose", "San Roque", "Santa Elena", "Santo Niño", "Suhi", "Tagpuro", "Tanghas", "V&G Subdivision", "Sto. Niño"
-  ],
-  "Ormoc City": [
-    "Alegria", "Alta Vista", "Bagong Buhay", "Bantigue", "Barangay Poblacion", "Batuan", "Bato", "Bayog", "Biliboy", "Cabingtan", "Cabulihan", "Catmon", "Cogon Combado", "Concepcion", "Curva", "Danao", "Dolores", "Don Felipe Larrazabal", "Donghol", "Flores", "Gaas", "Green Valley", "Guintigui-an", "Hibunawon", "Ipil", "Labrador", "Lao", "Licuma", "Linao", "Luna", "Magaswi", "Mahayag", "Mahayahay", "Malbog", "Margen", "Mas-in", "Milagro", "Mim-osa", "Naungan", "Nichols", "Patag", "Pilar", "Puente", "Quezon Jr.", "Rufina", "Sabang Bao", "Salvacion", "San Isidro", "San Pablo", "Sibucao", "Simion", "Tambulilid", "Tongonan", "Tugbong", "Valencia", "Veloso"
-  ],
-
-  // DAVAO REGION
-  "Davao City": [
-    "Acacia", "Agdao", "Alambre", "Angalan", "Angliongto", "Aparicio", "Apo Sandawa", "Apokon", "Artiaga", "Atan-awe", "Badjao", "Bago Aplaya", "Bago Gallera", "Bago Oshiro", "Baguio", "Balamban", "Baracatan", "Barang", "Bato", "Binugao", "Bucana", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Cagayan de Oro", "Callawa", "Camansi", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catigan", "Cawayan", "Centro", "Daliao", "Daliaon Plantation", "Dominga", "Eden", "Ecoland", "Fatima", "Gatungan", "Gov. Paciano Bangoy", "Gov. Generoso", "Guadalupe", "Gunong", "Hizon", "Ilang", "Indangan", "Kilate", "Lacson", "Lamanan", "Lampianao", "Langub", "Leon Garcia", "Lizada", "Los Amigos", "Lubogan", "Lumiad", "Ma-a", "Mabuhay", "Magsaysay", "Malabog", "Malamba", "Manambulan", "Mandug", "Manuel Guianga", "Marapangi", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Megkawayan", "Mintal", "Mudiang", "Mulig", "New Carmen", "New Valencia", "Obrero", "Pampanga", "Panacan", "Panalum", "Pangyan", "Paquibato", "Paradise Embac", "Poblacion", "Rafael Castillo", "Riverside", "Sabang", "Salapawan", "Salaysay", "Saloy", "San Antonio", "San Isidro", "Santo Tomas", "Sasa", "Sibulan", "Sirawan", "Suawan", "Subasta", "Sumimao", "Tacunan", "Tagakpan", "Tagurano", "Talandang", "Talomo", "Tamayong", "Tambobong", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Tigatto", "Toril", "Tugbok", "Tule", "Tungkalan", "Ubalde", "Ula", "Vicente Hizon Sr.", "Waan", "Wangan", "Wilfredo Aquino"
-  ],
-
-  // METRO MANILA
-  "Manila": [
-    "Baseco Compound", "Binondo", "Ermita", "Intramuros", "Malate", "Paco", "Pandacan", "Port Area", "Quiapo", "Sampaloc", "San Andres", "San Miguel", "San Nicolas", "Santa Ana", "Santa Cruz", "Santa Mesa", "Tondo"
-  ],
-  "Quezon City": [
-    "Alicia", "Amihan", "Apolonio Samson", "Aurora", "Baesa", "Bagong Lipunan ng Crame", "Bagong Pag-asa", "Bagong Silangan", "Bagumbayan", "Bagumbuhay", "Balingasa", "Balintawak", "Balong Bato", "Barangka", "Batasan Hills", "Botocan", "Bungad", "Camp Aguinaldo", "Central", "Claro", "Commonwealth", "Culiat", "Cubao", "Damayan", "Del Monte", "Diliman", "Don Manuel", "Dona Aurora", "Dona Imelda", "Dona Josefa", "Duyan-duyan", "E. Rodriguez", "East Kamias", "Escopa", "Fairview", "Galas", "Gulod", "Holy Spirit", "Horseshoe", "Immaculate Conception", "Kaligayahan", "Kalusugan", "Kamuning", "Katipunan", "Kaunlaran", "Kristong Hari", "Krus na Ligas", "Laging Handa", "Libis", "Lourdes", "Loyola Heights", "Lucban", "Maharlika", "Malaya", "Manresa", "Mariblo", "Marilag", "Masagana", "Masambong", "Matandang Balara", "Milagrosa", "N.S. Amoranto", "Nagkaisang Nayon", "Nayong Kanluran", "New Era", "North Fairview", "Novaliches Proper", "Obrero", "Old Balara", "Paang Bundok", "Pag-ibig sa Nayon", "Pagkakaisa", "Paligsahan", "Paltok", "Paraiso", "Pasong Putik Proper", "Pasong Tamo", "Payatas", "Phil-Am", "Pinagkaisahan", "Pinyahan", "Project 6", "Project 7", "Project 8", "Quirino 2-A", "Quirino 2-B", "Quirino 2-C", "Quirino 3-A", "Ramón Magsaysay", "Sacred Heart", "Salvacion", "San Antonio", "San Bartolome", "San Isidro", "San Jose", "San Martin de Porres", "San Roque", "San Vicente", "Sangandaan", "Santa Lucia", "Santa Monica", "Santa Teresita", "Santo Cristo", "Santo Domingo", "Santo Niño", "Santol", "Sauyo", "Sienna", "Silangan", "Socorro", "South Triangle", "St. Ignatius", "St. Peter", "Tagumpay", "Talayan", "Tatalon", "Teachers Village East", "Teachers Village West", "Ugong Norte", "Unang Sigaw", "UP Campus", "UP Village", "Valencia", "Vasra", "Veterans Village", "Villa Maria Clara", "West Kamias", "West Triangle", "White Plains"
-  ]
-};
+// Structured barangay-level data was removed 2026-08-03 in favor of a free-text
+// "location detail" input (see updateExtrasField below) -- keeping a hand-curated list
+// for only a handful of major cities was inconsistent (most cities had none, silently
+// falling back to free text already) and did not scale to the nationwide region/city
+// expansion. See docs/V1_HARDENING_TASKLIST.md Track D for the full decision trail.
 
 // ========================== EXTRAS CONFIGURATION ==========================
 
 const menuTypes = {
-  location: {
-    getOptions: function() {
-      return getBarangaysForCurrentCity();
-    }
-  },
+  // "location" is NOT listed here -- it's special-cased directly in updateExtrasField()
+  // as a free-text input, never a dropdown (see 2026-08-03 barangay-removal decision above).
   supplies: {
     options: ["PROVIDED", "REQUIRED"]
   },
@@ -422,12 +345,6 @@ const extrasConfig = {
 };
 
 // ========================== HELPER FUNCTIONS ==========================
-
-function getBarangaysForCurrentCity() {
-  if (!np2State.selectedCity) return null;
-  const barangays = barangaysByCity[np2State.selectedCity];
-  return (barangays && barangays.length > 0) ? barangays : null;
-}
 
 function convertTo24Hour(hour, period) {
   // Convert 12-hour format to 24-hour format
@@ -618,10 +535,6 @@ function createCompressedOriginal(img, callback) {
   callback(originalDataURL);
 }
 
-function cityHasBarangayData(city) {
-  return barangaysByCity[city] && barangaysByCity[city].length > 0;
-}
-
 function getCategoryDisplayName(category) {
   const categoryMap = {
     hatod: 'Transporter Jobs',
@@ -808,12 +721,15 @@ function validateCurrentStep() {
         showToast('Please select a city', 'error');
         return false;
       }
-      if (!np2State.extras1Value) {
-        showToast('Please select the first option', 'error');
+      const stepTwoConfig = extrasConfig[np2State.selectedCategory];
+      if (!np2State.extras1Value || !String(np2State.extras1Value).trim()) {
+        const isLocation1 = stepTwoConfig && stepTwoConfig.field1 && stepTwoConfig.field1.menuType === 'location';
+        showToast(isLocation1 ? 'Please enter a location detail' : 'Please select the first option', 'error');
         return false;
       }
-      if (!np2State.extras2Value) {
-        showToast('Please select the second option', 'error');
+      if (!np2State.extras2Value || !String(np2State.extras2Value).trim()) {
+        const isLocation2 = stepTwoConfig && stepTwoConfig.field2 && stepTwoConfig.field2.menuType === 'location';
+        showToast(isLocation2 ? 'Please enter a location detail' : 'Please select the second option', 'error');
         return false;
       }
       return true;
@@ -1218,8 +1134,9 @@ function initializeRegion() {
   const regionDropdown = document.getElementById('regionDropdown');
   const regionValue = document.getElementById('regionValue');
   
-  // Populate regions
-  const regions = Object.keys(locationData);
+  // Populate regions (same order as listing.js: original 9 first, then the
+  // nationwide-expansion additions sorted alphabetically -- see ph-locations.js)
+  const regions = PH_LOCATIONS_REGION_ORDER;
   populateDropdown('regionDropdown', regions, np2State.selectedRegion);
   
   // Handle region selection
@@ -1251,7 +1168,12 @@ function initializeRegion() {
         'SIQUIJOR': 'Siquijor',
         'BILIRAN': 'Naval',
         'CAMIGUIN': 'Mambajao',
-        'DINAGAT': 'San Jose',
+        'DINAGAT ISLANDS': 'San Jose', // key was "DINAGAT" before the 2026-08-03 nationwide
+        // expansion -- fixed to match the actual PH_LOCATIONS key (this entry was previously
+        // unreachable dead code since "DINAGAT" never matched any real region in the dropdown).
+        // "SOUTHERN LEYTE" (below) is intentionally left as an unreachable leftover -- Southern
+        // Leyte is merged into the single "LEYTE" key (same as the pre-existing app convention),
+        // not its own separate region.
         'SOUTHERN LEYTE': 'Maasin City',
         'DAVAO': 'Davao City',
         'MANILA': 'Manila'
@@ -1260,7 +1182,7 @@ function initializeRegion() {
       const defaultCity = defaultCities[value];
       
       if (defaultCity) {
-        // Use generic handler to update city AND extras/barangays
+        // Use generic handler to update city AND extras
         handleCityChange(defaultCity);
       } else {
         // No default city - reset
@@ -1293,7 +1215,7 @@ function initializeCity() {
       if (overlay) overlay.classList.remove('show');
       citySelect.classList.remove('active');
       
-      // Use generic handler to update city AND extras/barangays
+      // Use generic handler to update city AND extras
       handleCityChange(value);
     }
   });
@@ -1324,10 +1246,10 @@ function handleCityChange(city) {
   np2State.extras1Value = null;
   np2State.extras2Value = null;
   
-  // Update extras for current category (this will refresh barangays if applicable)
+  // Update extras for current category (resets the location detail input for the new city)
   if (np2State.selectedCategory) {
     updateExtrasForCategory(np2State.selectedCategory);
-    console.log('✅ Updated extras/barangays for city:', city);
+    console.log('✅ Updated extras for city:', city);
   }
 }
 
@@ -1356,6 +1278,7 @@ function updateExtrasField(fieldNumber, fieldConfig) {
   const value = document.getElementById(`extrasField${fieldNumber}Value`);
   const dropdown = document.getElementById(`extrasField${fieldNumber}Dropdown`);
   const input = document.getElementById(`extrasField${fieldNumber}Input`);
+  const charCounter = document.getElementById(`extrasField${fieldNumber}CharCount`);
   
   if (!container || !label || !select || !value || !dropdown) return;
   
@@ -1365,6 +1288,32 @@ function updateExtrasField(fieldNumber, fieldConfig) {
   requiredMark.className = 'np2-required';
   requiredMark.textContent = '*';
   label.appendChild(requiredMark);
+  
+  // Location fields are always a free-text "location detail" input, never a dropdown --
+  // structured barangay data was removed 2026-08-03 (see decision trail near locationData
+  // above). Every category using menuType "location" hits this branch.
+  if (fieldConfig.menuType === 'location') {
+    select.style.display = 'none';
+    const counterEl = document.getElementById(`extrasField${fieldNumber}Counter`);
+    if (input) {
+      input.style.display = 'block';
+      input.placeholder = fieldConfig.placeholder || 'Barangay name or general area';
+      input.value = '';
+      if (charCounter) charCounter.textContent = '0';
+      if (counterEl) counterEl.style.display = 'block';
+      // Sanitization only (strips disallowed characters); the always-fires counter/state
+      // update lives in initializeExtras() below, since this callback only runs when
+      // characters actually get stripped, not on every normal keystroke.
+      blockUnsupportedCharsForInput(input, function(sanitizedValue) {
+        if (fieldNumber === 1) np2State.extras1Value = sanitizedValue;
+        if (fieldNumber === 2) np2State.extras2Value = sanitizedValue;
+        if (charCounter) charCounter.textContent = sanitizedValue.length;
+      });
+    }
+    if (fieldNumber === 1) np2State.extras1Value = null;
+    if (fieldNumber === 2) np2State.extras2Value = null;
+    return;
+  }
   
   // Get menu type config
   const menuTypeConfig = menuTypes[fieldConfig.menuType];
@@ -1378,22 +1327,13 @@ function updateExtrasField(fieldNumber, fieldConfig) {
     options = menuTypeConfig.options;
   }
   
-  // Check if this is a location field and city doesn't have barangay data
-  if (fieldConfig.menuType === 'location' && !options && np2State.selectedCity) {
-    // Show input field instead of dropdown
-    select.style.display = 'none';
-    if (input) {
-      input.style.display = 'block';
-      input.placeholder = 'Enter barangay/area...';
-    }
-    return;
-  }
-  
   // Show dropdown, hide input
   select.style.display = 'flex';
   if (input) {
     input.style.display = 'none';
   }
+  const nonLocationCounterEl = document.getElementById(`extrasField${fieldNumber}Counter`);
+  if (nonLocationCounterEl) nonLocationCounterEl.style.display = 'none';
   
   // Populate dropdown
   if (options) {
@@ -1445,11 +1385,13 @@ function initializeExtras() {
       });
     }
     
-    // Handle input field changes
+    // Handle input field changes (location detail free-text fields)
+    const charCounter = document.getElementById(`extrasField${fieldNumber}CharCount`);
     if (input) {
       input.addEventListener('input', function() {
         if (fieldNumber === 1) np2State.extras1Value = this.value;
         if (fieldNumber === 2) np2State.extras2Value = this.value;
+        if (charCounter) charCounter.textContent = this.value.length;
       });
     }
   });
@@ -2267,6 +2209,14 @@ function resetForm() {
   document.getElementById('cityValue').classList.add('placeholder');
   document.getElementById('jobTitleInput').value = '';
   document.getElementById('titleCharCount').textContent = '0';
+  const extrasInput1El = document.getElementById('extrasField1Input');
+  const extrasInput2El = document.getElementById('extrasField2Input');
+  const extrasCount1El = document.getElementById('extrasField1CharCount');
+  const extrasCount2El = document.getElementById('extrasField2CharCount');
+  if (extrasInput1El) extrasInput1El.value = '';
+  if (extrasInput2El) extrasInput2El.value = '';
+  if (extrasCount1El) extrasCount1El.textContent = '0';
+  if (extrasCount2El) extrasCount2El.textContent = '0';
   document.getElementById('jobDateInput').value = '';
   document.getElementById('jobDescriptionTextarea').value = '';
   document.getElementById('paymentAmountInput').value = '';
@@ -3474,10 +3424,10 @@ document.addEventListener('DOMContentLoaded', function() {
   console.log('📌 Initializing city...');
   initializeCity();
   
-  // Initialize default city's barangays/extras if a category is already selected
-  // This ensures CEBU CITY's barangays load on page load
+  // Initialize the extras fields (location detail / supplies / subject / position) if a
+  // category is already selected -- ensures the default city's fields render on page load.
   if (np2State.selectedCity && np2State.selectedCategory) {
-    console.log('📌 Loading initial barangays for:', np2State.selectedCity);
+    console.log('📌 Loading initial extras for:', np2State.selectedCity);
     updateExtrasForCategory(np2State.selectedCategory);
   }
   

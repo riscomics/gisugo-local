@@ -220,6 +220,13 @@ html body.page-post2:has(.uniform-header) {
   padding-right: 60px;
 }
 
+/* Free-text location detail input inside the extras .np2-select-wrapper (which already has
+   position: relative for the dropdown) -- same right-padding treatment as .np2-input-wrapper
+   above, so typed text doesn't run under the character counter. */
+.np2-select-wrapper .np2-extras-text-input {
+  padding-right: 60px;
+}
+
 /* TEXTAREA */
 .np2-textarea {
   width: 100%;

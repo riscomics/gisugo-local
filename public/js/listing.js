@@ -562,53 +562,12 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// Dynamic region, city, and pay type selection
-const regions = ["CEBU", "BOHOL", "LEYTE", "MASBATE", "NEGROS", "PANAY", "SAMAR", "DAVAO", "MANILA"];
-const citiesByRegion = {
-  "CEBU": [
-    "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
-  ],
-  "LEYTE": [
-    "Tacloban City", "Ormoc City", "Baybay City", "Abuyog", "Alangalang", "Albuera", "Babatngon", "Barugo", "Bato", "Burauen", "Calubian", "Capoocan", "Carigara", "Dagami", "Dulag", "Hilongos", "Hindang", "Inopacan", "Isabel", "Jaro", "Javier", "Julita", "Kananga", "La Paz", "Leyte", "MacArthur", "Mahaplag", "Matag-ob", "Matalom", "Mayorga", "Merida", "Palo", "Palompon", "Pastrana", "San Isidro", "San Miguel", "Santa Fe", "Tabango", "Tabontabon", "Tanauan", "Tolosa", "Tunga", "Villaba*", "Maasin City", "Anahawan", "Bontoc", "Hinunangan", "Hinundayan", "Libagon", "Liloan", "Limasawa", "Macrohon", "Malitbog", "Pintuyan", "Saint Bernard", "San Francisco", "San Juan Kabalian", "San Ricardo", "Silago", "Sogod", "Tomas Oppus"
-  ],
-  "BOHOL": ["Tagbilaran City", "Alburquerque", "Alicia", "Anda", "Antequera", "Baclayon", "Balilihan", "Batuan", "Bien Unido", "Bilar", "Buenavista", "Calape", "Candijay", "Carmen", "Catigbian", "Clarin", "Corella", "Cortes", "Dagohoy", "Danao", "Dauis", "Dimiao", "Duero", "Garcia Hernandez", "Guindulman", "Inabanga", "Jagna", "Jetafe", "Lila", "Loay", "Loboc", "Loon", "Mabini", "Maribojoc", "Panglao", "Pilar", "Pres. Carlos P. Garcia", "Sagbayan", "San Isidro", "San Miguel", "Sevilla", "Sierra Bullones", "Sikatuna", "Talibon", "Trinidad", "Tubigon", "Ubay", "Valencia"],
-  "MASBATE": ["Masbate City", "Aroroy", "Baleno", "Balud", "Batuan", "Cataingan", "Cawayan", "Claveria", "Dimasalang", "Esperanza", "Mandaon", "Milagros", "Mobo", "Monreal", "Palanas", "Pio V. Corpuz", "Placer", "San Fernando", "San Jacinto", "San Pascual", "Uson"],
-  "NEGROS": ["Bacolod City", "Bago City", "Binalbagan", "Cadiz City", "Calatrava", "Cauayan", "Enrique B. Magalona", "Escalante City", "Himamaylan City", "Hinigaran", "Hinoba-an", "Ilog", "Isabela", "Kabankalan City", "La Carlota City", "La Castellana", "Manapla", "Moises Padilla", "Murcia", "Pontevedra", "Pulupandan", "Sagay City", "Salvador Benedicto", "San Carlos City", "San Enrique", "Silay City", "Sipalay City", "Talisay City", "Toboso", "Valladolid", "Victorias City"],
-  "PANAY": [
-    // AKLAN (17 municipalities)
-    "Altavas", "Balete", "Banga", "Batan", "Buruanga", "Ibajay", "Kalibo", "Lezo", "Libacao", "Madalag", "Makato", "Malay", "Malinao", "Nabas", "New Washington", "Numancia", "Tangalan",
-    // ANTIQUE (18 municipalities)
-    "Anini-y", "Barbaza", "Belison", "Bugasong", "Caluya", "Culasi", "Hamtic", "Laua-an", "Libertad", "Pandan", "Patnongon", "San Jose de Buenavista", "San Remigio", "Sebaste", "Sibalom", "Tibiao", "Tobias Fornier", "Valderrama",
-    // CAPIZ (16 municipalities + 1 city)
-    "Cuartero", "Dao", "Dumalag", "Dumarao", "Ivisan", "Jamindan", "Maayon", "Mambusao", "Panay", "Panitan", "Pilar", "Pontevedra", "President Roxas", "Roxas City", "Sapian", "Sigma", "Tapaz",
-    // ILOILO (42 municipalities + 2 cities)
-    "Ajuy", "Alimodian", "Anilao", "Badiangan", "Balasan", "Banate", "Barotac Nuevo", "Barotac Viejo", "Batad", "Bingawan", "Cabatuan", "Calinog", "Carles", "Concepcion", "Dingle", "Dueñas", "Dumangas", "Estancia", "Guimbal", "Igbaras", "Iloilo City", "Janiuay", "Lambunao", "Leganes", "Lemery", "Leon", "Maasin", "Miagao", "Mina", "New Lucena", "Oton", "Passi City", "Pavia", "Pototan", "San Dionisio", "San Enrique", "San Joaquin", "San Miguel", "San Rafael", "Santa Barbara", "Sara", "Tigbauan", "Tubungan", "Zarraga",
-    // GUIMARAS (5 municipalities)
-    "Buenavista", "Jordan", "Nueva Valencia", "San Lorenzo", "Sibunag"
-  ],
-  "SAMAR": [
-    // 2 Component Cities
-    "Catbalogan City", "Calbayog City",
-    // 24 Municipalities
-    "Almagro", "Basey", "Calbiga", "Daram", "Gandara", "Hinabangan", "Jiabong", "Marabut", "Matuguinao", "Motiong", "Pagsanghan", "Paranas", "Pinabacdao", "San Jorge", "San Jose de Buan", "San Sebastian", "Santa Margarita", "Santa Rita", "Santo Niño", "Tagapul-an", "Talalora", "Tarangnan", "Villareal", "Zumarraga"
-  ],
-  "DAVAO": [
-    // 6 Cities (1 HUC + 5 Component Cities)
-    "Davao City", "Digos City", "Mati City", "Panabo City", "Samal City", "Tagum City",
-    // 43 Municipalities from all 5 provinces
-    // Davao de Oro (11 municipalities)
-    "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "Nabunturan", "New Bataan", "Pantukan",
-    // Davao del Norte (8 municipalities)  
-    "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod",
-    // Davao del Sur (9 municipalities)
-    "Bansalan", "Don Marcelino", "Hagonoy", "Jose Abad Santos", "Kiblawan", "Magsaysay", "Malalag", "Malita", "Matanao",
-    // Davao Occidental (5 municipalities)
-    "Don Marcelino", "Jose Abad Santos", "Malita", "Santa Maria", "Sulop",
-    // Davao Oriental (10 municipalities)
-    "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"
-  ],
-  "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
-};
+// Region/city data now lives in the shared public/js/ph-locations.js (loaded before this
+// script in every category HTML page) -- single source of truth also used by new-post2.js.
+// Kept the same variable names (regions, citiesByRegion) so nothing below this line had to
+// change: this file previously had its own local 9-region copy of this exact data.
+const citiesByRegion = PH_LOCATIONS;
+const regions = PH_LOCATIONS_REGION_ORDER;
 const payTypes = ["GIG TYPE", "BUSINESS", "PERSONAL"];
 let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
@@ -3154,7 +3113,11 @@ function initJobcatButtonAutoResize() {
   let selectedCity = 'CEBU CITY';
   let selectedPayType = null; // Default to no filter (show all)
 
-  // Default cities for each region
+  // Default cities for each region. Only the original 9 regions have a curated "best" default
+  // (usually the capital/largest city) -- any of the 64 nationwide-expansion regions fall back
+  // to citiesByRegion[selectedRegion][0] below (alphabetically first city), which is always a
+  // valid real city, just not necessarily the most prominent one. Fine as a default; can be
+  // curated later if worth the polish.
   const defaultCities = {
     'CEBU': 'CEBU CITY',
     'BOHOL': 'Tagbilaran City',
@@ -3167,12 +3130,29 @@ function initJobcatButtonAutoResize() {
     'MANILA': 'Manila'
   };
 
+  // Title-cases an ALL-CAPS region key for display (e.g. "LA UNION" -> "La Union",
+  // "NEGROS ORIENTAL" -> "Negros Oriental"). Word-aware so multi-word region names
+  // (common among the nationwide expansion) don't get mangled into "La union". Keeps
+  // "del"/"de" lowercase per official PH province naming convention (e.g. "Zamboanga
+  // del Norte", not "Zamboanga Del Norte").
+  const REGION_LABEL_LOWERCASE_WORDS = new Set(['del', 'de']);
+  function formatRegionDisplayLabel(region) {
+    return region
+      .toLowerCase()
+      .split(' ')
+      .map(word => REGION_LABEL_LOWERCASE_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   // Populate region picker list
   function populateRegions() {
-    const regionData = ['CEBU', 'BOHOL', 'LEYTE', 'MASBATE', 'NEGROS', 'PANAY', 'SAMAR', 'DAVAO', 'MANILA'];
+    // Sourced from the shared public/js/ph-locations.js (same `regions` array used by the
+    // filter/fetch logic elsewhere in this file) -- was a separate local hardcoded 9-item
+    // array here before the 2026-08-03 nationwide expansion.
+    const regionData = regions;
     if (regionList) {
       regionList.innerHTML = regionData.map(region => 
-        `<div class="region-picker-item" data-value="${region}">${region.charAt(0) + region.slice(1).toLowerCase()}</div>`
+        `<div class="region-picker-item" data-value="${region}">${formatRegionDisplayLabel(region)}</div>`
       ).join('');
       
       // Add click handlers to region items
