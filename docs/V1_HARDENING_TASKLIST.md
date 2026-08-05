@@ -759,6 +759,36 @@ See `AGENTS.md` § "verify production data."
       re-verify anything older). Needs `readListingCache()` to expose the cache entry's age
       (currently only returns the jobs array) before implementing. Revisit only once real Firestore
       read costs from this page are actually a concern.
+      **Confirmed NOT the cause of a separate, real bug found + fixed 2026-08-05 (see next item)
+      — that bug lives in a different, older check (`getListingJobsSignature`) that predates this
+      deferred idea and was never connected to it.**
+- [x] **BUG FIXED (2026-08-05): editing an existing gig (Gig Use Type, and really any field) could
+      silently fail to update on listing pages, indefinitely, on any browser that had already
+      cached that category/filter combo.** Reported as "changed a sample gig from Personal to
+      Business, the live site's own desktop browser still shows Personal even after hard refresh
+      and clearing cache, but a phone on the same live site shows it correctly." Confirmed via the
+      user's own console logs: `⚡ Listing refresh matched cache; skipped rerender` fired on both
+      the local and live desktop loads. Root cause: `getListingJobsSignature()` (used to decide
+      "did the freshly-fetched data actually change vs. what's on screen, or can I skip
+      re-rendering") only hashed each job's **ID list** — length + IDs, nothing else. Editing a
+      gig never changes its ID, so the signature came out identical before and after the edit,
+      and the code confidently skipped applying the (correct, freshly-fetched) data to the DOM,
+      leaving the old cached cards on screen indefinitely. The underlying database write was
+      never wrong — confirmed by the phone (a session with no pre-existing cache for that
+      category) rendering correctly from a cold load every time. **Not a migration issue, not
+      specific to sample gigs or to `gigUseType`** — this would affect any field edit (price,
+      title, photo, status) on any existing gig, real or sample, old or new, as long as the
+      editing browser/device had ever cached that category+filter combo before. **Also not the
+      same thing as the deferred 15s-cache-freshness idea above** — that's about *skipping the
+      background re-fetch* on a very fresh cache (never built); this bug is in a separate,
+      already-existing *"does the fetched result differ enough to redraw"* check that always ran.
+      Fixed by expanding the signature to include each job's `rate` (Gig Use Type), `price`,
+      `title`, `status`, and `photo` alongside its ID, so any of those changing now correctly
+      forces a re-render instead of silently no-op'ing. No cache-clearing/migration needed for
+      already-affected browsers — the underlying `sessionStorage` cache itself already held the
+      correct data the whole time (only the on-screen render was stale), so the very next page
+      load under the new signature logic self-heals automatically. Bumped
+      `listing.js?v=20260805a` in all 56 category HTML files.
 - [ ] **Dead code cleanup (deferred 2026-08-03) — none of this is reachable/live, purely tidiness:**
       - **`public/js/support.js` — ~1,400-line dead comment block (~lines 5027–6418).** A whole
         `LEGACY_APPLICATIONS` mock-data array (fake negotiation/counter-offer entries, still using

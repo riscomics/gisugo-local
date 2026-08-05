@@ -1333,8 +1333,21 @@ function writeListingViewState(viewStateKey, payload) {
 
 function getListingJobsSignature(jobs) {
   if (!Array.isArray(jobs) || jobs.length === 0) return 'empty';
-  const ids = jobs.map((job) => getBestListingJobIdentifier(job));
-  return `${jobs.length}:${ids.join('|')}`;
+  // Must include actual displayed content, not just IDs -- editing an existing gig (Gig Use
+  // Type, price, title, photo, status) never changes its ID, so an ID-only signature would
+  // wrongly conclude "nothing changed" and skip re-rendering the freshly-fetched data, leaving
+  // stale cards on screen indefinitely (only self-correcting on a device/session with no
+  // pre-existing cache). Found 2026-08-05 via a Personal->Business edit that silently failed to
+  // update the listing page (but did correctly update the database + a cache-less phone session).
+  const parts = jobs.map((job) => [
+    getBestListingJobIdentifier(job),
+    job && job.rate,
+    job && job.price,
+    job && job.title,
+    job && job.status,
+    job && job.photo
+  ].join(':'));
+  return `${jobs.length}:${parts.join('|')}`;
 }
 
 function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
