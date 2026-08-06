@@ -233,6 +233,20 @@ service cloud.firestore {
       allow create, update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) || isAdmin();
     }
+
+    match /security_metadata/{userId} {
+      // Signup GPS coordinates/region + signup IP (Trust & Safety: ban-evasion
+      // / multi-accounting detection). Deliberately admin-only, NOT
+      // owner-readable like user_private -- the whole point of recording an
+      // IP is as independent evidence, so the account itself must never be
+      // able to read or (especially) overwrite its own copy. Written only by
+      // the submitSignupLocation Cloud Function via the Admin SDK, which
+      // bypasses these rules entirely -- no client write path exists or is
+      // needed. (An owner-facing "download my data" export, if ever built,
+      // would go through its own Cloud Function, not a rules change here.)
+      allow read: if isAdmin();
+      allow write: if false;
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // JOBS COLLECTION
@@ -518,7 +532,18 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
     }
-    
+
+    // ═══════════════════════════════════════════════════════════════
+    // PLATFORM ANALYTICS (Admin Dashboard — cheap counter docs)
+    // ═══════════════════════════════════════════════════════════════
+    match /platform_analytics/{docId} {
+      // Admin dashboard reads these small aggregate docs instead of scanning
+      // jobs/applications directly. Only Cloud Functions (Admin SDK, bypasses
+      // rules) ever write here — no client write path needed or allowed.
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT
     // ═══════════════════════════════════════════════════════════════

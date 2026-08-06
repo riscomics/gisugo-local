@@ -7428,6 +7428,19 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Dynamically-generated breakdown lists (category counters, etc.) */
+.breakdown-list .breakdown-item {
+    margin-bottom: 0.85rem;
+}
+
+.breakdown-empty-note {
+    color: rgba(230, 214, 174, 0.6);
+    font-size: 0.9rem;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: center;
+    padding: 0.75rem 0;
+}
+
 /* Info Rows (for transaction stats) */
 .stat-info-row {
     display: flex;

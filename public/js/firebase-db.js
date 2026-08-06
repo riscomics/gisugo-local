@@ -4267,6 +4267,81 @@ async function getAdminAnalytics() {
   };
 }
 
+/**
+ * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
+ * Cloud Function-maintained aggregate doc (see functions/index.js
+ * syncGigAnalyticsCountersOnCreate). Never scans the live jobs collection.
+ * @returns {Promise<{totalPosted:number, byCategory:Object, byGigUseType:Object}>}
+ */
+async function getPlatformAnalyticsGigs() {
+  const db = getFirestore();
+  if (!db) return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+
+  try {
+    const doc = await db.collection('platform_analytics').doc('gigs').get();
+    if (!doc.exists) return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+    const data = doc.data() || {};
+    return {
+      totalPosted: data.totalPosted || 0,
+      byCategory: data.byCategory || {},
+      byGigUseType: data.byGigUseType || {}
+    };
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/gigs:', error);
+    return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+  }
+}
+
+/**
+ * Get the Applications Analytics counter doc (platform_analytics/applications).
+ * Same cheap counter-doc pattern as getPlatformAnalyticsGigs() above.
+ * @returns {Promise<{totalApplications:number, byCategory:Object}>}
+ */
+async function getPlatformAnalyticsApplications() {
+  const db = getFirestore();
+  if (!db) return { totalApplications: 0, byCategory: {} };
+
+  try {
+    const doc = await db.collection('platform_analytics').doc('applications').get();
+    if (!doc.exists) return { totalApplications: 0, byCategory: {} };
+    const data = doc.data() || {};
+    return {
+      totalApplications: data.totalApplications || 0,
+      byCategory: data.byCategory || {}
+    };
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/applications:', error);
+    return { totalApplications: 0, byCategory: {} };
+  }
+}
+
+/**
+ * Get the Users Analytics counter doc (platform_analytics/users) — Age
+ * Groups + Account Types + Regional Distribution breakdowns (see
+ * functions/index.js syncUserAnalyticsCountersOnWrite +
+ * submitSignupLocation). Never scans the live users collection.
+ * @returns {Promise<{byAgeGroup:Object, byAccountType:Object, byRegion:Object}>}
+ */
+async function getPlatformAnalyticsUsers() {
+  const empty = { byAgeGroup: {}, byAccountType: {}, byRegion: {} };
+  const db = getFirestore();
+  if (!db) return empty;
+
+  try {
+    const doc = await db.collection('platform_analytics').doc('users').get();
+    if (!doc.exists) return empty;
+    const data = doc.data() || {};
+    return {
+      byAgeGroup: data.byAgeGroup || {},
+      byAccountType: data.byAccountType || {},
+      byRegion: data.byRegion || {}
+    };
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/users:', error);
+    return empty;
+  }
+}
+
 // Get start of current month timestamp
 function getMonthStartTimestamp() {
   const now = new Date();
@@ -4400,6 +4475,9 @@ window.subscribeToThreadMessages = subscribeToThreadMessages;
 
 // Admin
 window.getAdminAnalytics = getAdminAnalytics;
+window.getPlatformAnalyticsGigs = getPlatformAnalyticsGigs;
+window.getPlatformAnalyticsApplications = getPlatformAnalyticsApplications;
+window.getPlatformAnalyticsUsers = getPlatformAnalyticsUsers;
 
 // ============================================================================
 // NOTIFICATION HELPER (Pre-wired for RELIST feature - uses existing ALERTS)

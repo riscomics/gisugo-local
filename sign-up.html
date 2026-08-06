@@ -1082,7 +1082,7 @@
         <!-- Date of Birth -->
         <div class="form-group">
           <label for="dateOfBirth" class="form-label" data-i18n="dobLabel">Date of Birth (Private Only - Not Visible To Public)</label>
-          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off">
+          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off" required>
           <div class="form-error" id="dateOfBirthError"></div>
         </div>
 
@@ -1198,6 +1198,24 @@
     </div>
   </div>
 
+  <!-- Location Explainer Overlay -->
+  <!-- Shown once, right after the Face Verification choice (either button)
+       on the success screen above -- never triggered anywhere else in the
+       app. See public/js/sign-up.js showLocationExplainer(). -->
+  <div class="success-overlay" id="locationExplainerOverlay">
+    <div class="success-modal">
+      <div class="success-icon">📍</div>
+      <div class="success-title" style="font-size: 1.5rem;">Enable Location?</div>
+      <div class="success-message" style="margin: 10px 0 4px;">
+        <p style="color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; margin: 0;">GISUGO uses your general location for accuracy in local listings and to understand where our community is growing. This is optional, and you can change it anytime in your profile.</p>
+      </div>
+      <div class="success-actions">
+        <button class="success-btn secondary shiny-metal" id="locationAllowBtn">ALLOW LOCATION</button>
+        <button class="success-btn" id="locationSkipBtn">NOT NOW</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Terms of Service Modal -->
   <div class="terms-modal-overlay" id="termsOfServiceModal">
     <div class="terms-modal-content">
@@ -1260,8 +1278,13 @@
           <li>Social media profile links (optional)</li>
           <li>Job postings and application information</li>
           <li>Chat and messaging data</li>
+          <li>General location, requested once at account creation with your permission (see Section 1A)</li>
+          <li>IP address and basic device/technical information, collected automatically for account security</li>
         </ul>
-        
+
+        <h3>1A. Location Information</h3>
+        <p>When you create an account, we ask for permission to access your device's general location. This is optional — you can decline, and you can also enable or disable it later from your profile settings. We use it for accuracy in local listings feeds and to understand where our community is growing. Your precise location is never shown on your public profile or visible to other users.</p>
+
         <h3>2. How We Use Your Information</h3>
         <p>We use collected information to:</p>
         <ul>
@@ -1272,6 +1295,7 @@
           <li>Improve our platform and services</li>
           <li>Send notifications and updates</li>
           <li>Verify user identities</li>
+          <li>Protect the platform and our community by detecting fraud, spam, and abuse (e.g. banned users creating new accounts)</li>
         </ul>
         
         <h3>3. Information Sharing</h3>
@@ -1318,11 +1342,12 @@
   <!-- OAuth debug panel removed 2026-07-14 (kept at public/js/oauth-debug-panel.js;
        restore steps in docs/V1_HARDENING_TASKLIST.md Track G) -->
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=39"></script>
+  <script src="public/js/firebase-auth.js?v=40"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
+  <script src="public/js/ph-regions-geo.js?v=1"></script>
   
-  <script src="public/js/sign-up.js?v=8.1"></script>
+  <script src="public/js/sign-up.js?v=8.2"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====

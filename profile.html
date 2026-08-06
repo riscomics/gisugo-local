@@ -949,6 +949,19 @@
             </div>
           </div>
 
+          <!-- Privacy / Location Sharing Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">Privacy</div>
+            <label class="notif-toggle-row" id="locationShareToggleRow">
+              <div class="notif-toggle-copy">
+                <div class="notif-toggle-title">Share my location</div>
+                <div class="notif-toggle-desc" id="locationShareToggleDesc">Used for accuracy in local listings and community insights</div>
+              </div>
+              <input type="checkbox" class="notif-toggle-input" id="locationShareToggle">
+              <span class="notif-toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+
           <!-- Form Actions -->
           <div class="edit-profile-actions">
             <button type="button" class="edit-profile-cancel-btn" id="editProfileCancelBtn" onclick="closeEditProfileOverlay()">Cancel</button>
@@ -1493,10 +1506,11 @@
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260627a"></script>
-  <script src="public/js/firebase-auth.js?v=39"></script>
+  <script src="public/js/firebase-auth.js?v=40"></script>
   <script src="public/js/push-notifications.js?v=9"></script>
   <script src="public/js/firebase-db.js?v=63"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
+  <script src="public/js/ph-regions-geo.js?v=1"></script>
   
   <!-- UNIFORM HEADER SYSTEM -->
   <script src="public/js/app-config.js"></script>

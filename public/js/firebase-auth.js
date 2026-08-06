@@ -1890,6 +1890,115 @@ async function getPrivatePhone(userId) {
   }
 }
 
+/**
+ * Read the current (non-sensitive) location-sharing state for the signed-in
+ * user, for displaying the Edit Profile "Share My Location" toggle. Reads
+ * user_private (owner-readable) -- never security_metadata, which is
+ * admin-only and holds the actual coordinates/IP; this only returns whether
+ * location is shared and which region it resolved to.
+ * @param {string} userId
+ * @returns {Promise<{locationShared:boolean, locationRegion:string}>}
+ */
+async function getLocationShareState(userId) {
+  const fallback = { locationShared: false, locationRegion: '' };
+  const db = getFirestore();
+  if (!db || !userId) return fallback;
+  try {
+    const snap = await db.collection('user_private').doc(userId).get();
+    if (!snap.exists) return fallback;
+    const data = snap.data() || {};
+    return {
+      locationShared: !!data.locationShared,
+      locationRegion: typeof data.locationRegion === 'string' ? data.locationRegion : ''
+    };
+  } catch (error) {
+    console.warn('⚠️ Could not read location share state:', (error && error.code) || error);
+    return fallback;
+  }
+}
+
+/**
+ * Turn OFF location sharing going forward. Only flips the owner-readable
+ * flag on user_private -- deliberately does NOT delete the historical
+ * record in security_metadata (that's a Trust & Safety log, not a live
+ * preference; see firestore.rules). Re-enabling later re-triggers a fresh
+ * GPS request via requestAndSubmitDeviceLocation(), it does not "resume"
+ * anything.
+ */
+async function disableLocationSharing(userId) {
+  const db = getFirestore();
+  if (!db || !userId) return { success: false };
+  try {
+    await db.collection('user_private').doc(userId).set({
+      locationShared: false,
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error disabling location sharing:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Shared "ask for GPS, classify into a PH region, submit to the server"
+ * flow -- used both by the one-time signup explainer (sign-up.js) and the
+ * retroactive "Share My Location" toggle (profile.js Edit Profile). Never
+ * fires on its own; only ever in direct response to explicit user action
+ * (clicking Allow, or flipping the toggle on).
+ * @returns {Promise<{success:boolean, region?:string, reason?:string}>}
+ *   reason is one of: 'unsupported' | 'denied' | 'classify-failed' | 'submit-failed'
+ */
+function requestAndSubmitDeviceLocation() {
+  return new Promise((resolve) => {
+    if (!('geolocation' in navigator)) {
+      resolve({ success: false, reason: 'unsupported' });
+      return;
+    }
+
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    // Backstop in case getCurrentPosition's own timeout option ever fails to fire.
+    const hardStop = setTimeout(() => finish({ success: false, reason: 'denied' }), 12000);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        clearTimeout(hardStop);
+        const { latitude, longitude } = position.coords;
+
+        if (typeof classifyCoordinateToRegion !== 'function') {
+          finish({ success: false, reason: 'classify-failed' });
+          return;
+        }
+        const region = await classifyCoordinateToRegion(latitude, longitude);
+        if (!region) {
+          finish({ success: false, reason: 'classify-failed' });
+          return;
+        }
+
+        try {
+          const callable = firebase.app().functions('asia-southeast1').httpsCallable('submitSignupLocation');
+          await callable({ lat: latitude, lng: longitude, region });
+          finish({ success: true, region });
+        } catch (error) {
+          console.warn('⚠️ Could not save location:', (error && error.message) || error);
+          finish({ success: false, reason: 'submit-failed' });
+        }
+      },
+      () => {
+        clearTimeout(hardStop);
+        finish({ success: false, reason: 'denied' });
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
 // Generate referral code
 function generateReferralCode(userId) {
   const shortId = userId.substring(0, 8).toUpperCase();
@@ -2354,6 +2463,9 @@ window.getUserProfile = getUserProfile;
 window.updateUserProfile = updateUserProfile;
 window.savePrivatePhone = savePrivatePhone;
 window.getPrivatePhone = getPrivatePhone;
+window.getLocationShareState = getLocationShareState;
+window.disableLocationSharing = disableLocationSharing;
+window.requestAndSubmitDeviceLocation = requestAndSubmitDeviceLocation;
 window.checkUserHasProfile = checkUserHasProfile;
 window.handleAuthRedirect = handleAuthRedirect;
 window.requireVerifiedEmailForPage = requireVerifiedEmailForPage;

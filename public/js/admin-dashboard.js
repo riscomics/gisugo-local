@@ -4702,7 +4702,13 @@ async function initializeStatOverlays() {
         }
         
         console.log('✅ Stat cards display updated');
-        
+
+        // Gigs Analytics glance card (Total Gigs/Applications/Avg + Gig Use
+        // Type) lives directly on the Overview grid, not behind a click, so
+        // it loads here alongside the other stat cards rather than lazily
+        // on overlay open like renderGigsAnalyticsOverlay().
+        loadGigsAnalyticsGlanceCard();
+
         // Attach click listeners to stat cards
         attachStatCardListeners();
         console.log('✅ Stat card listeners attached');
@@ -4847,12 +4853,398 @@ function openStatOverlay(type) {
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden'; // Prevent background scroll
 
-        // NOTE: overlay content population isn't wired to a real data source yet.
+        // NOTE: most overlay content isn't wired to a real data source yet.
         // Previously this populated the overlay from mock localStorage on a
         // recurring timer -- that's been removed. Once Firestore-backed
         // analytics exist, populate the overlay's fields here.
+        if (type === 'gigsAnalytics') {
+            renderGigsAnalyticsOverlay();
+        } else if (type === 'totalUsers') {
+            renderAgeGroupsBreakdown();
+        }
 
         console.log(`Opened ${type} overlay`);
+    }
+}
+
+// ============================================================================
+// GIGS ANALYTICS OVERLAY (real Firestore wiring, 2026-08-05)
+// ============================================================================
+// Data source: two tiny Cloud Function-maintained counter docs
+// (platform_analytics/gigs, platform_analytics/applications) -- see
+// functions/index.js syncGigAnalyticsCountersOnCreate /
+// syncApplicationAnalyticsCountersOnCreate. This overlay never scans the
+// live jobs/applications collections. Loaded on-demand when the overlay
+// opens (cheap: 2 doc reads), not on dashboard init.
+
+// Canonical category value -> {icon, label} map, mirrors the picker list in
+// new-post2.js (buildJobCategoryGrid) so admin-facing labels match what
+// customers actually selected when posting.
+const GIG_CATEGORY_DISPLAY = {
+    aircon: { icon: '❄️', label: 'AC Cleaner' },
+    hatod: { icon: '📦', label: 'Transporter' },
+    solicitor: { icon: '📣', label: 'Solicitor' },
+    limpyo: { icon: '🧹', label: 'Basic Cleaner' },
+    plumber: { icon: '🚰', label: 'Plumber' },
+    handyman: { icon: '🛠️', label: 'Handyman' },
+    gardner: { icon: '👩🏻\u200d🌾', label: 'Gardner' },
+    electrician: { icon: '⚡', label: 'Electrician' },
+    mechanic: { icon: '👨🏻\u200d🔧', label: 'Mechanic' },
+    hakot: { icon: '🚚', label: 'Movers' },
+    clerical: { icon: '🗂️', label: 'Clerical' },
+    staff: { icon: '🙋🏻', label: 'Assistant' },
+    ittech: { icon: '🛜', label: 'IT Tech' },
+    researcher: { icon: '🔍', label: 'Researcher' },
+    accountant: { icon: '💰', label: 'Accountant' },
+    marketer: { icon: '📊', label: 'Marketer' },
+    tindera: { icon: '🏪', label: 'Tindera' },
+    reception: { icon: '👩🏻\u200d💼', label: 'Reception' },
+    waiter: { icon: '💁🏻\u200d♂️', label: 'Waiter' },
+    security: { icon: '👮🏻', label: 'Security' },
+    driver: { icon: '🚗', label: 'Driver' },
+    tourguide: { icon: '🧭', label: 'Tour Guide' },
+    trainer: { icon: '🏃', label: 'Trainer' },
+    chef: { icon: '👩🏻\u200d🍳', label: 'Chef' },
+    realtor: { icon: '🏡', label: 'Realtor' },
+    hugas: { icon: '🍽️', label: 'Hugas' },
+    laba: { icon: '👕', label: 'Laba' },
+    luto: { icon: '🍳', label: 'Luto' },
+    kompra: { icon: '🛒', label: 'Kompra' },
+    barber: { icon: '💇🏻', label: 'Barber' },
+    bantay: { icon: '👁️', label: 'Bantay' },
+    tutor: { icon: '📚', label: 'Tutor' },
+    massage: { icon: '💆🏻\u200d♀️', label: 'Massager' },
+    petcare: { icon: '🐾', label: 'Pet Care' },
+    builder: { icon: '👷🏻', label: 'Builder' },
+    carpenter: { icon: '🔨', label: 'Carpenter' },
+    painter: { icon: '🖌️', label: 'Painter' },
+    engineer: { icon: '⚙️', label: 'Engineer' },
+    architect: { icon: '🏛️', label: 'Architect' },
+    landscaper: { icon: '🌿', label: 'Landscaper' },
+    photographer: { icon: '📷', label: 'Photographer' },
+    videographer: { icon: '🎥', label: 'Videographer' },
+    editor: { icon: '🎬', label: 'Editor' },
+    artist: { icon: '🖼️', label: 'Artist' },
+    musician: { icon: '🎵', label: 'Musician' },
+    performer: { icon: '💃🏻', label: 'Performer' },
+    creative: { icon: '✨', label: 'Creative' },
+    tailor: { icon: '✂️', label: 'Tailor' },
+    social: { icon: '📱', label: 'Social' },
+    doctor: { icon: '🧑🏻\u200d⚕️', label: 'Doctor' },
+    nurse: { icon: '❤️\u200d🩹', label: 'Nurse' },
+    lawyer: { icon: '⚖️', label: 'Lawyer' },
+    consultant: { icon: '💼', label: 'Consultant' },
+    therapist: { icon: '🧘🏻', label: 'Therapist' },
+    programmer: { icon: '💻', label: 'Programmer' }
+};
+
+function getGigCategoryDisplay(categoryKey) {
+    const known = GIG_CATEGORY_DISPLAY[categoryKey];
+    if (known) return known;
+    if (categoryKey === 'uncategorized' || !categoryKey) {
+        return { icon: '❓', label: 'Uncategorized' };
+    }
+    // Fallback for any category key not in the map yet: title-case the raw key.
+    const label = categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1);
+    return { icon: '📦', label };
+}
+
+// Render a sorted list of {icon, label, value} into a container using the
+// generic .breakdown-item / .breakdown-bar-container markup (scales to any
+// number of categories, unlike a fixed per-category card grid).
+function renderCategoryBreakdownList(containerId, byCategoryMap, emptyMessage, maxRows = 10) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const entries = Object.keys(byCategoryMap || {})
+        .map((key) => ({ key, count: Number(byCategoryMap[key]) || 0 }))
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count);
+
+    if (entries.length === 0) {
+        container.innerHTML = `<div class="breakdown-empty-note">${emptyMessage}</div>`;
+        return;
+    }
+
+    const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+    const topEntries = entries.slice(0, maxRows);
+    const remainder = entries.slice(maxRows);
+    const remainderCount = remainder.reduce((sum, entry) => sum + entry.count, 0);
+
+    const rowsHtml = topEntries.map((entry) => {
+        const display = getGigCategoryDisplay(entry.key);
+        const percentage = total > 0 ? Math.round((entry.count / total) * 100) : 0;
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-bar-container">
+                    <span class="breakdown-label">${display.icon} ${display.label}</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-bar-fill" style="width: ${percentage}%;"></div>
+                    </div>
+                    <span class="breakdown-value">${entry.count.toLocaleString()}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const remainderHtml = remainderCount > 0 ? `
+        <div class="breakdown-item">
+            <div class="breakdown-bar-container">
+                <span class="breakdown-label">📦 Other (${remainder.length})</span>
+                <div class="breakdown-bar">
+                    <div class="breakdown-bar-fill" style="width: ${Math.round((remainderCount / total) * 100)}%;"></div>
+                </div>
+                <span class="breakdown-value">${remainderCount.toLocaleString()}</span>
+            </div>
+        </div>
+    ` : '';
+
+    container.innerHTML = rowsHtml + remainderHtml;
+}
+
+// Maps each of the 17 official region names (must match PH_REGION_NAMES in
+// functions/index.js and public/js/ph-regions-geo.js) to its island group,
+// for the quick-glance Luzon/Visayas/Mindanao pie chart. "unknown" (never
+// shared location, or hasn't reached the explainer yet) is deliberately
+// excluded from island totals -- it's shown only as its own row in the full
+// breakdown list below, not folded into a fake 4th island.
+const PH_REGION_ISLAND_GROUP = {
+  'Ilocos Region': 'luzon',
+  'Cagayan Valley': 'luzon',
+  'Central Luzon': 'luzon',
+  'Calabarzon': 'luzon',
+  'Bicol Region': 'luzon',
+  'NCR (Metro Manila)': 'luzon',
+  'CAR (Cordillera)': 'luzon',
+  'Mimaropa': 'luzon',
+  'Western Visayas': 'visayas',
+  'Central Visayas': 'visayas',
+  'Eastern Visayas': 'visayas',
+  'Zamboanga Peninsula': 'mindanao',
+  'Northern Mindanao': 'mindanao',
+  'Davao Region': 'mindanao',
+  'Soccsksargen': 'mindanao',
+  'Caraga': 'mindanao',
+  'BARMM': 'mindanao'
+};
+
+function renderRegionBreakdownList(byRegion) {
+    const container = document.getElementById('regionBreakdownList');
+    if (!container) return;
+
+    const entries = Object.keys(byRegion || {})
+        .map((name) => ({ name, count: Number(byRegion[name]) || 0 }))
+        .filter((entry) => entry.count > 0)
+        .sort((a, b) => b.count - a.count);
+
+    if (entries.length === 0) {
+        container.innerHTML = '<div class="breakdown-empty-note">No location data yet.</div>';
+        return;
+    }
+
+    const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+    container.innerHTML = entries.map((entry) => {
+        const icon = entry.name === 'unknown' ? '❔' : '📍';
+        const label = entry.name === 'unknown' ? 'Not shared / unknown' : entry.name;
+        const percentage = total > 0 ? Math.round((entry.count / total) * 100) : 0;
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-bar-container">
+                    <span class="breakdown-label">${icon} ${label}</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-bar-fill" style="width: ${percentage}%;"></div>
+                    </div>
+                    <span class="breakdown-value">${entry.count.toLocaleString()}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================================================
+// TOTAL USERS OVERLAY — AGE GROUPS + ACCOUNT TYPES + REGIONAL DISTRIBUTION
+// (real Firestore wiring, 2026-08-06)
+// ============================================================================
+// Data source: platform_analytics/users (byAgeGroup, byAccountType,
+// byRegion), maintained by syncUserAnalyticsCountersOnWrite +
+// submitSignupLocation in functions/index.js.
+// Age Groups buckets match the 4 existing cards: 18-25 / 26-40 / 41-59 / 60+.
+// Account Types collapses what used to be two independently-mocked splits
+// ("User Status": New Members/ID Verified, and "Account Types": New
+// Member/Pro Verified/Business Verified) into ONE real counter doc, per
+// docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md -- both UI spots now read the
+// same New/Pro/Business numbers instead of two independent (and previously
+// inconsistent, since both were hand-typed mock values) data paths.
+// Regional Distribution: partial coverage by design (GPS is opt-in, once at
+// signup) -- a glance stat, not a census. "unknown" covers declined/pending.
+async function renderAgeGroupsBreakdown() {
+    if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+        console.warn('⚠️ Total Users breakdowns: Firebase offline, skipping load');
+        return;
+    }
+    if (typeof getPlatformAnalyticsUsers !== 'function') {
+        console.warn('⚠️ Total Users breakdowns: analytics function unavailable');
+        return;
+    }
+
+    try {
+        const usersAnalytics = await getPlatformAnalyticsUsers();
+        const byAgeGroup = usersAnalytics.byAgeGroup || {};
+        const byAccountType = usersAnalytics.byAccountType || {};
+        const byRegion = usersAnalytics.byRegion || {};
+
+        setElementValue('age18_25Value', (Number(byAgeGroup['18-25']) || 0).toLocaleString());
+        setElementValue('age26_40Value', (Number(byAgeGroup['26-40']) || 0).toLocaleString());
+        setElementValue('age41_59Value', (Number(byAgeGroup['41-59']) || 0).toLocaleString());
+        setElementValue('age60PlusValue', (Number(byAgeGroup['60+']) || 0).toLocaleString());
+
+        const newCount = Number(byAccountType.new) || 0;
+        const proCount = Number(byAccountType.pro) || 0;
+        const businessCount = Number(byAccountType.business) || 0;
+        const accountTypeTotal = newCount + proCount + businessCount;
+
+        // "Account Types" breakdown (the fuller, correctly-labeled 3-way split)
+        setElementValue('newMemberLegend', newCount.toLocaleString());
+        setElementValue('proVerifiedLegend', proCount.toLocaleString());
+        setElementValue('businessVerifiedLegend', businessCount.toLocaleString());
+        setElementValue('accountTypePieTotal', accountTypeTotal.toLocaleString());
+        if (typeof updatePieChart === 'function') {
+            updatePieChart('accountTypePieChart', [
+                { value: newCount, color: '#6c5ce7' },
+                { value: proCount, color: '#00b894' },
+                { value: businessCount, color: '#ff6b6b' }
+            ]);
+        }
+
+        // Top "USER STATUS" glance card -- same underlying numbers, just
+        // reads New Member count directly and folds Pro+Business together
+        // into a single "Verified" figure for a quick at-a-glance summary.
+        setElementValue('usersNewDisplay', newCount.toLocaleString());
+        setElementValue('usersVerifiedDisplay', (proCount + businessCount).toLocaleString());
+
+        // Regional Distribution -- island-group quick glance + pie, full
+        // 17-region breakdown list below it.
+        let luzonCount = 0, visayasCount = 0, mindanaoCount = 0;
+        let regionKnownTotal = 0;
+        Object.keys(byRegion).forEach((name) => {
+            const count = Number(byRegion[name]) || 0;
+            if (name === 'unknown') return;
+            regionKnownTotal += count;
+            const group = PH_REGION_ISLAND_GROUP[name];
+            if (group === 'luzon') luzonCount += count;
+            else if (group === 'visayas') visayasCount += count;
+            else if (group === 'mindanao') mindanaoCount += count;
+        });
+        setElementValue('luzonLegend', luzonCount.toLocaleString());
+        setElementValue('visayasLegend', visayasCount.toLocaleString());
+        setElementValue('mindanaoLegend', mindanaoCount.toLocaleString());
+        setElementValue('regionPieTotal', regionKnownTotal.toLocaleString());
+        if (typeof updatePieChart === 'function' && regionKnownTotal > 0) {
+            updatePieChart('regionPieChart', [
+                { value: luzonCount, color: '#ff6b6b' },
+                { value: visayasCount, color: '#4ecdc4' },
+                { value: mindanaoCount, color: '#ffd93d' }
+            ]);
+        }
+        renderRegionBreakdownList(byRegion);
+
+        console.log('✅ Total Users breakdowns populated from platform_analytics/users', { byAgeGroup, byAccountType, byRegion });
+    } catch (error) {
+        console.error('❌ Error rendering Total Users breakdowns:', error);
+    }
+}
+
+// Glance card on the main Overview grid (not the overlay) — shows the same
+// Total Gigs/Applications/Avg + Gig Use Type split at a glance, before the
+// admin even clicks in. Loads once on dashboard init (cheap: 2 doc reads).
+async function loadGigsAnalyticsGlanceCard() {
+    if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+        console.warn('⚠️ Gigs Analytics glance card: Firebase offline, skipping load');
+        return;
+    }
+    if (typeof getPlatformAnalyticsGigs !== 'function' || typeof getPlatformAnalyticsApplications !== 'function') {
+        console.warn('⚠️ Gigs Analytics glance card: analytics functions unavailable');
+        return;
+    }
+
+    try {
+        const [gigsAnalytics, applicationsAnalytics] = await Promise.all([
+            getPlatformAnalyticsGigs(),
+            getPlatformAnalyticsApplications()
+        ]);
+
+        const totalGigs = gigsAnalytics.totalPosted || 0;
+        const totalApplications = applicationsAnalytics.totalApplications || 0;
+        const avgPerGig = totalGigs > 0 ? (totalApplications / totalGigs) : 0;
+
+        setElementValue('totalGigsPosted', totalGigs.toLocaleString());
+        setElementValue('totalApplicants', totalApplications.toLocaleString());
+        setElementValue('avgApplicantsPerGig', avgPerGig.toFixed(1));
+
+        const byGigUseType = gigsAnalytics.byGigUseType || {};
+        const personalCount = Number(byGigUseType.Personal) || 0;
+        const businessCount = Number(byGigUseType.Business) || 0;
+        const gigUseTypeTotal = personalCount + businessCount;
+        const personalPct = gigUseTypeTotal > 0 ? Math.round((personalCount / gigUseTypeTotal) * 100) : 0;
+        const businessPct = gigUseTypeTotal > 0 ? Math.round((businessCount / gigUseTypeTotal) * 100) : 0;
+
+        setElementValue('gigsCardPersonalCount', personalCount.toLocaleString());
+        setElementValue('gigsCardBusinessCount', businessCount.toLocaleString());
+        setElementValue('gigsCardPersonalPercent', `${personalPct}%`);
+        setElementValue('gigsCardBusinessPercent', `${businessPct}%`);
+
+        console.log('✅ Gigs Analytics glance card populated', { totalGigs, totalApplications, personalCount, businessCount });
+    } catch (error) {
+        console.error('❌ Error loading Gigs Analytics glance card:', error);
+    }
+}
+
+async function renderGigsAnalyticsOverlay() {
+    if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+        console.warn('⚠️ Gigs Analytics: Firebase offline, skipping load');
+        return;
+    }
+    if (typeof getPlatformAnalyticsGigs !== 'function' || typeof getPlatformAnalyticsApplications !== 'function') {
+        console.warn('⚠️ Gigs Analytics: analytics functions unavailable');
+        return;
+    }
+
+    try {
+        const [gigsAnalytics, applicationsAnalytics] = await Promise.all([
+            getPlatformAnalyticsGigs(),
+            getPlatformAnalyticsApplications()
+        ]);
+
+        const totalGigs = gigsAnalytics.totalPosted || 0;
+        const totalApplications = applicationsAnalytics.totalApplications || 0;
+        const avgPerGig = totalGigs > 0 ? (totalApplications / totalGigs) : 0;
+
+        setElementValue('gigsOverlayTotalGigs', totalGigs.toLocaleString());
+        setElementValue('gigsOverlayTotalApplicants', totalApplications.toLocaleString());
+        setElementValue('gigsOverlayAvgPerGig', avgPerGig.toFixed(1));
+
+        renderCategoryBreakdownList('gigsPostedBreakdownList', gigsAnalytics.byCategory, 'No gigs posted yet.');
+        renderCategoryBreakdownList('applicationsBreakdownList', applicationsAnalytics.byCategory, 'No applications yet.');
+
+        const byGigUseType = gigsAnalytics.byGigUseType || {};
+        const personalCount = Number(byGigUseType.Personal) || 0;
+        const businessCount = Number(byGigUseType.Business) || 0;
+        const gigUseTypeTotal = personalCount + businessCount;
+        const personalPct = gigUseTypeTotal > 0 ? (personalCount / gigUseTypeTotal) * 100 : 0;
+        const businessPct = gigUseTypeTotal > 0 ? (businessCount / gigUseTypeTotal) * 100 : 0;
+
+        setElementValue('gigUseTypePersonalValue', personalCount.toLocaleString());
+        setElementValue('gigUseTypeBusinessValue', businessCount.toLocaleString());
+        const personalBar = document.getElementById('gigUseTypePersonalBar');
+        const businessBar = document.getElementById('gigUseTypeBusinessBar');
+        if (personalBar) personalBar.style.width = `${personalPct}%`;
+        if (businessBar) businessBar.style.width = `${businessPct}%`;
+
+        console.log('✅ Gigs Analytics overlay populated from platform_analytics', {
+            totalGigs, totalApplications, personalCount, businessCount
+        });
+    } catch (error) {
+        console.error('❌ Error rendering Gigs Analytics overlay:', error);
     }
 }
 

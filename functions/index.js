@@ -1264,3 +1264,301 @@ exports.sendPushOnNotificationCreate = onDocumentCreated(
     }
   }
 );
+
+// ============================================================================
+// PLATFORM ANALYTICS COUNTERS (Admin Dashboard — Gigs Analytics)
+// ============================================================================
+// Cheap counter-map pattern, same idea as syncNotificationCountersOnWrite /
+// metrics/contact_reveals above: the dashboard must never scan or live-listen
+// the real jobs/applications collections just to show a number. Instead these
+// two tiny platform_analytics docs are kept in sync here, one Firestore write
+// per gig post / per application, and the dashboard reads only those two small
+// docs. All-time cumulative counters (increment on CREATE only, never
+// decremented on edit/delete) per docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md
+// ("increment both maps on the same post/apply write") — "Total Gigs Posted"
+// and "Total Applications" are meant to read as historical totals, not a
+// live snapshot of what's currently active, so editing or deleting a gig
+// later intentionally does not move these buckets.
+
+function sanitizePlatformAnalyticsKey(value, fallback) {
+  const raw = String(value || "").trim();
+  return raw || fallback;
+}
+
+exports.syncGigAnalyticsCountersOnCreate = onDocumentCreated(
+  { document: "jobs/{jobId}", region: "asia-southeast1" },
+  async (event) => {
+    const job = event.data?.data() || {};
+    const category = sanitizePlatformAnalyticsKey(job.category, "uncategorized");
+    const gigUseType = sanitizePlatformAnalyticsKey(job.gigUseType, "Personal");
+
+    try {
+      await db.collection("platform_analytics").doc("gigs").set({
+        totalPosted: admin.firestore.FieldValue.increment(1),
+        [`byCategory.${category}`]: admin.firestore.FieldValue.increment(1),
+        [`byGigUseType.${gigUseType}`]: admin.firestore.FieldValue.increment(1),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      logger.error("Gig analytics counter sync failed", {
+        jobId: event.params?.jobId || "",
+        error: String(error)
+      });
+    }
+  }
+);
+
+exports.syncApplicationAnalyticsCountersOnCreate = onDocumentCreated(
+  { document: "applications/{applicationId}", region: "asia-southeast1" },
+  async (event) => {
+    const application = event.data?.data() || {};
+    const jobId = String(application.jobId || "").trim();
+    let category = "uncategorized";
+
+    if (jobId) {
+      try {
+        const jobDoc = await db.collection("jobs").doc(jobId).get();
+        if (jobDoc.exists) {
+          category = sanitizePlatformAnalyticsKey(jobDoc.data().category, "uncategorized");
+        }
+      } catch (error) {
+        logger.error("Application analytics category lookup failed", {
+          jobId,
+          applicationId: event.params?.applicationId || "",
+          error: String(error)
+        });
+      }
+    }
+
+    try {
+      await db.collection("platform_analytics").doc("applications").set({
+        totalApplications: admin.firestore.FieldValue.increment(1),
+        [`byCategory.${category}`]: admin.firestore.FieldValue.increment(1),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      logger.error("Application analytics counter sync failed", {
+        applicationId: event.params?.applicationId || "",
+        error: String(error)
+      });
+    }
+  }
+);
+
+// Age bucket boundaries for the Admin Dashboard's Age Groups breakdown.
+// Matches the 4 brackets already laid out in admin-dashboard.html's Age
+// Groups card (18-25 / 26-40 / 41-59 / 60+) so no UI redesign is needed.
+// dateOfBirth became a required signup field 2026-08-06 specifically so this
+// has full coverage going forward; pre-existing accounts that signed up
+// before then may have it blank -- those fall into "unknown", not a crash.
+function bucketAgeGroup(dateOfBirthValue) {
+  const raw = String(dateOfBirthValue || "").trim();
+  if (!raw) return "unknown";
+
+  const birthDate = new Date(raw);
+  if (Number.isNaN(birthDate.getTime())) return "unknown";
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+
+  if (age < 18) return "unknown"; // shouldn't happen (signup enforces 18+), guard anyway
+  if (age <= 25) return "18-25";
+  if (age <= 40) return "26-40";
+  if (age <= 59) return "41-59";
+  return "60+";
+}
+
+// Account-type bucket for the Admin Dashboard's Account Types breakdown
+// (New Member / Pro Verified / Business Verified). Mutually exclusive,
+// business takes priority over pro if somehow both are true. Both
+// verification.proVerified and verification.businessVerified are real,
+// already-live fields on every user doc (createUserProfile default), so
+// this is real data even though the *workflow* that flips them true for ID
+// verification isn't fully built yet -- Face Verification Video already
+// sets some of this today.
+function bucketAccountType(userData) {
+  const verification = (userData && userData.verification) || {};
+  if (verification.businessVerified) return "business";
+  if (verification.proVerified) return "pro";
+  return "new";
+}
+
+exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
+  { document: "users/{userId}", region: "asia-southeast1" },
+  async (event) => {
+    const before = event.data?.before?.exists ? (event.data.before.data() || {}) : null;
+    const after = event.data?.after?.exists ? (event.data.after.data() || {}) : null;
+    if (!before && !after) return;
+
+    // Unlike Gigs Analytics (deliberately all-time cumulative), both Age
+    // Groups and Account Types are meant to describe the CURRENT user base
+    // composition, matching the Overview headline's live totalUsers count
+    // (getAdminAnalytics() -> users collection .get().size, which already
+    // shrinks on deletion) -- so these counters move on create, update
+    // (account-type only -- a verification status change), AND delete, to
+    // stay consistent with that number. Not tracking a competing totalUsers
+    // field here; these are breakdowns of that same live total, not a
+    // second source of truth for it.
+    const updates = {};
+
+    if (!before && after) {
+      // create -- location isn't known yet at this instant (it's captured a
+      // few seconds later via the separate submitSignupLocation callable, on
+      // the success screen), so every new account starts in byRegion.unknown
+      // and submitSignupLocation moves it to the real region once resolved.
+      const ageGroup = bucketAgeGroup(after.dateOfBirth);
+      const accountType = bucketAccountType(after);
+      updates[`byAgeGroup.${ageGroup}`] = admin.firestore.FieldValue.increment(1);
+      updates[`byAccountType.${accountType}`] = admin.firestore.FieldValue.increment(1);
+      updates["byRegion.unknown"] = admin.firestore.FieldValue.increment(1);
+    } else if (before && !after) {
+      // delete -- decrement whatever region bucket this user was last known
+      // to be in (read from security_metadata; "unknown" if they never
+      // shared location or that doc doesn't exist).
+      const ageGroup = bucketAgeGroup(before.dateOfBirth);
+      const accountType = bucketAccountType(before);
+      updates[`byAgeGroup.${ageGroup}`] = admin.firestore.FieldValue.increment(-1);
+      updates[`byAccountType.${accountType}`] = admin.firestore.FieldValue.increment(-1);
+
+      let lastRegion = "unknown";
+      try {
+        const securitySnap = await db.collection("security_metadata").doc(event.params.userId).get();
+        if (securitySnap.exists) {
+          lastRegion = securitySnap.data().location?.region || "unknown";
+        }
+      } catch (error) {
+        logger.error("User analytics: failed to read security_metadata on delete", {
+          userId: event.params?.userId || "",
+          error: String(error)
+        });
+      }
+      updates[`byRegion.${lastRegion}`] = admin.firestore.FieldValue.increment(-1);
+    } else {
+      // update -- dateOfBirth edits after signup deliberately not tracked
+      // (same "don't chase every edit" call as Gigs Analytics above), but a
+      // verification status change is exactly the kind of transition this
+      // breakdown exists to show, so account type DOES move on update.
+      const beforeType = bucketAccountType(before);
+      const afterType = bucketAccountType(after);
+      if (beforeType === afterType) return;
+      updates[`byAccountType.${beforeType}`] = admin.firestore.FieldValue.increment(-1);
+      updates[`byAccountType.${afterType}`] = admin.firestore.FieldValue.increment(1);
+    }
+
+    updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+    try {
+      await db.collection("platform_analytics").doc("users").set(updates, { merge: true });
+    } catch (error) {
+      logger.error("User analytics counter sync failed", {
+        userId: event.params?.userId || "",
+        error: String(error)
+      });
+    }
+  }
+);
+
+// Must match the exact 17 canonical region names baked into
+// public/data/ph-regions.geojson (public/js/ph-regions-geo.js classifies
+// into these). Validated server-side so a tampered/buggy client can't pollute
+// platform_analytics/users.byRegion with arbitrary strings.
+const PH_REGION_NAMES = [
+  "Ilocos Region", "Cagayan Valley", "Central Luzon", "Calabarzon",
+  "Bicol Region", "Western Visayas", "Central Visayas", "Eastern Visayas",
+  "Zamboanga Peninsula", "Northern Mindanao", "Davao Region", "Soccsksargen",
+  "NCR (Metro Manila)", "CAR (Cordillera)", "Caraga", "Mimaropa", "BARMM"
+];
+
+/**
+ * Signup-time location + IP capture (Regional Distribution admin stat +
+ * Trust & Safety ban-evasion signal, both resolved 2026-08-06). Called once,
+ * right after the signup success screen's Face Verification step is
+ * confirmed/skipped (see sign-up.js) -- never re-triggered automatically
+ * elsewhere. Can also be called again later from Edit Profile's "Share My
+ * Location" toggle, which is why this handles a resubmission (region change)
+ * cleanly rather than assuming it only ever fires once per account.
+ *
+ * The client already resolved lat/lng -> region name (public/js/ph-regions-
+ * geo.js, free client-side geometry, no server lookup needed) -- this
+ * function just validates that region name server-side and adds the one
+ * piece a client can never honestly self-report: its own IP address, read
+ * here from the request itself.
+ */
+exports.submitSignupLocation = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const lat = Number(request.data?.lat);
+    const lng = Number(request.data?.lng);
+    const region = String(request.data?.region || "");
+
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 ||
+        !Number.isFinite(lng) || lng < -180 || lng > 180) {
+      throw new HttpsError("invalid-argument", "Invalid coordinates.");
+    }
+    if (!PH_REGION_NAMES.includes(region)) {
+      throw new HttpsError("invalid-argument", "Invalid region.");
+    }
+
+    // Google Cloud Functions/Run sits behind Google Front End, which sets
+    // x-forwarded-for to "<client-ip>, <proxy-ips...>" -- the first entry is
+    // the real client. req.ip is also populated but x-forwarded-for is the
+    // more explicit, well-documented source on this platform.
+    const forwardedFor = request.rawRequest?.headers?.["x-forwarded-for"] || "";
+    const ip = String(forwardedFor).split(",")[0].trim() || request.rawRequest?.ip || "";
+
+    const securityRef = db.collection("security_metadata").doc(uid);
+
+    try {
+      const existingSnap = await securityRef.get();
+      const previousRegion = existingSnap.exists ? (existingSnap.data().location?.region || null) : null;
+
+      await securityRef.set({
+        location: {
+          lat,
+          lng,
+          region,
+          capturedAt: admin.firestore.FieldValue.serverTimestamp()
+        },
+        lastSignupIp: ip,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Mirror a NON-sensitive flag (no coordinates, no IP) onto user_private
+      // so the owner's own "Share My Location" toggle (Edit Profile) can
+      // read its own current state -- the owner can never read
+      // security_metadata itself (admin-only, see firestore.rules), only
+      // this safe summary of it.
+      await db.collection("user_private").doc(uid).set({
+        locationShared: true,
+        locationRegion: region,
+        lastModified: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      if (previousRegion !== region) {
+        const analyticsUpdates = {
+          [`byRegion.${region}`]: admin.firestore.FieldValue.increment(1),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+        // previousRegion is null on a brand-new capture -- the account is
+        // sitting in byRegion.unknown from account-creation time (see
+        // syncUserAnalyticsCountersOnWrite above), so move it out of there.
+        analyticsUpdates[`byRegion.${previousRegion || "unknown"}`] = admin.firestore.FieldValue.increment(-1);
+        await db.collection("platform_analytics").doc("users").set(analyticsUpdates, { merge: true });
+      }
+
+      return { status: "saved", region };
+    } catch (error) {
+      logger.error("submitSignupLocation failed", { uid, error: String(error) });
+      throw new HttpsError("internal", "Could not save location.");
+    }
+  }
+);

@@ -725,7 +725,11 @@ function initializeForm() {
   if (successOverlay) {
     successOverlay.addEventListener('click', (event) => {
       if (event.target === successOverlay) {
-        window.location.href = 'index.html';
+        // Backdrop-dismiss is a real, useful shortcut elsewhere in the app,
+        // but this particular overlay must not be skippable straight past
+        // the location explainer -- route it through the same choice
+        // handler as the two real buttons instead of navigating directly.
+        handleFaceVerificationChoice('index.html');
       }
     });
   }
@@ -745,6 +749,8 @@ function initializeForm() {
     const eighteenYearsAgo = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
     dateInput.max = eighteenYearsAgo.toISOString().split('T')[0];
   }
+
+  initializeLocationExplainer();
 }
 
 // Initialize photo upload functionality
@@ -1108,7 +1114,13 @@ function validateField(field) {
       break;
       
     case 'dateOfBirth':
-      if (!value) break;
+      // Made required 2026-08-06 for the Admin Dashboard's Age Groups
+      // breakdown (docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md) — was
+      // previously optional and silently skipped when blank.
+      if (!value) {
+        showError(fieldId, 'Date of birth is required');
+        return false;
+      }
       
       const birthDate = new Date(value);
       const today = new Date();
@@ -1888,9 +1900,9 @@ function applySuccessOverlayMode(verificationMessage = '') {
       emailNoteEl.style.display = 'block';
     }
     primaryBtn.textContent = 'GET FACE VERIFIED NOW';
-    primaryBtn.onclick = () => { window.location.href = 'profile.html?startFaceVerify=1'; };
+    primaryBtn.onclick = () => { handleFaceVerificationChoice('profile.html?startFaceVerify=1'); };
     secondaryBtn.textContent = 'GO TO HOME';
-    secondaryBtn.onclick = () => { window.location.href = 'index.html'; };
+    secondaryBtn.onclick = () => { handleFaceVerificationChoice('index.html'); };
     return;
   }
 
@@ -1902,9 +1914,58 @@ function applySuccessOverlayMode(verificationMessage = '') {
     emailNoteEl.style.display = 'none';
   }
   primaryBtn.textContent = 'GET FACE VERIFIED NOW';
-  primaryBtn.onclick = () => { window.location.href = 'profile.html?startFaceVerify=1'; };
+  primaryBtn.onclick = () => { handleFaceVerificationChoice('profile.html?startFaceVerify=1'); };
   secondaryBtn.textContent = 'MAYBE LATER';
-  secondaryBtn.onclick = () => { window.location.href = 'index.html'; };
+  secondaryBtn.onclick = () => { handleFaceVerificationChoice('index.html'); };
+}
+
+// ============================================================================
+// LOCATION EXPLAINER (fires once, right after the Face Verification choice
+// above -- either button -- is confirmed/skipped). Never triggered anywhere
+// else in the app; see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md (resolved
+// 2026-07-27) and functions/index.js submitSignupLocation.
+// ============================================================================
+let pendingPostLocationDestination = 'index.html';
+
+function handleFaceVerificationChoice(destinationUrl) {
+  pendingPostLocationDestination = destinationUrl || 'index.html';
+  hideSuccessOverlay();
+  const overlay = document.getElementById('locationExplainerOverlay');
+  if (!overlay) {
+    // Explainer markup missing for some reason -- don't strand the user on a
+    // blank screen, just continue to their chosen destination.
+    window.location.href = pendingPostLocationDestination;
+    return;
+  }
+  overlay.classList.add('show');
+}
+
+function proceedToPostLocationDestination() {
+  window.location.href = pendingPostLocationDestination;
+}
+
+function initializeLocationExplainer() {
+  const allowBtn = document.getElementById('locationAllowBtn');
+  const skipBtn = document.getElementById('locationSkipBtn');
+  if (!allowBtn || !skipBtn) return;
+
+  skipBtn.addEventListener('click', () => {
+    proceedToPostLocationDestination();
+  });
+
+  allowBtn.addEventListener('click', async () => {
+    if (typeof requestAndSubmitDeviceLocation !== 'function') {
+      proceedToPostLocationDestination();
+      return;
+    }
+    allowBtn.disabled = true;
+    allowBtn.textContent = 'GETTING LOCATION...';
+    // Errors/denials are non-fatal by design -- the account simply stays in
+    // the "unknown" region bucket (see functions/index.js
+    // syncUserAnalyticsCountersOnWrite), no error shown to the user.
+    await requestAndSubmitDeviceLocation();
+    proceedToPostLocationDestination();
+  });
 }
 
 function applySuccessModalLanguage(lang) {

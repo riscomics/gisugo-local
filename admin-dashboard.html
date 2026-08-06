@@ -180,7 +180,13 @@
                         </div>
                     </div>
                     
-                    <div class="stat-card" id="revenueCard">
+                    <!-- Total Revenue: hidden per docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md --
+                         no G-Coins purchase flow or verification fees exist yet to generate
+                         real revenue, so this card would only ever show a placeholder 0 with
+                         nothing behind it. Markup kept (not deleted) + JS/overlay untouched so
+                         re-enabling later (once ad revenue or purchases exist) is a one-line
+                         CSS change, not a rebuild. -->
+                    <div class="stat-card" id="revenueCard" style="display: none;">
                         <div class="stat-icon">💰</div>
                         <div class="stat-content">
                             <div class="stat-number" id="revenueNumber">₱0</div>
@@ -315,19 +321,19 @@
                                             </div>
                                             <!-- Total display below chart -->
                                             <div style="text-align: center; margin-top: 1rem;">
-                                                <div style="font-size: 0.85rem; color: #a0a0a0; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 0.25rem;">TOTAL USERS</div>
+                                                <div style="font-size: 0.85rem; color: #a0a0a0; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 0.25rem;">LOCATION SHARED</div>
                                                 <div class="pie-chart-total-large counting" id="regionPieTotal" style="font-size: 2rem; font-weight: 700; color: #ffffff;">0</div>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <!-- Regional Breakdown Cards -->
+                                    <!-- Island-group quick glance (feeds the pie chart above) -->
                                     <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ff6b6b);">🏙️</div>
                                             <div class="revenue-content">
                                                 <div class="revenue-label">Luzon</div>
-                                                <div class="revenue-amount counting" id="luzonLegend" data-target="0" style="color: #ff6b6b;">0</div>
+                                                <div class="revenue-amount" id="luzonLegend" style="color: #ff6b6b;">0</div>
                                                 <div class="revenue-sparkline"></div>
                                             </div>
                                         </div>
@@ -335,7 +341,7 @@
                                             <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #4ecdc4);">🏝️</div>
                                             <div class="revenue-content">
                                                 <div class="revenue-label">Visayas</div>
-                                                <div class="revenue-amount counting" id="visayasLegend" data-target="0" style="color: #4ecdc4;">0</div>
+                                                <div class="revenue-amount" id="visayasLegend" style="color: #4ecdc4;">0</div>
                                                 <div class="revenue-sparkline"></div>
                                             </div>
                                         </div>
@@ -343,10 +349,15 @@
                                             <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ffd93d);">🌴</div>
                                             <div class="revenue-content">
                                                 <div class="revenue-label">Mindanao</div>
-                                                <div class="revenue-amount counting" id="mindanaoLegend" data-target="0" style="color: #ffd93d;">0</div>
+                                                <div class="revenue-amount" id="mindanaoLegend" style="color: #ffd93d;">0</div>
                                                 <div class="revenue-sparkline"></div>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <!-- Full 17-region breakdown (real Firestore data, byRegion) -->
+                                    <div class="breakdown-list" id="regionBreakdownList" style="margin-top: 1rem;">
+                                        <div class="breakdown-empty-note">Loading...</div>
                                     </div>
                                 </div>
                             </div>
@@ -1073,136 +1084,9 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="gigsPostedBreakdown">
-                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/gigs/byCategory -->
-                                    <div class="revenue-showcase">
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">🚗</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Driver</div>
-                                                <div class="revenue-amount" style="color: #3b82f6; display: none;" id="gigsDriverValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #3b82f6;" id="gigsDriverPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">🔨</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Carpenter</div>
-                                                <div class="revenue-amount" style="color: #8b5cf6; display: none;" id="gigsCarpenterValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #8b5cf6;" id="gigsCarpenterPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #06b6d4);">🧹</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Limpyo</div>
-                                                <div class="revenue-amount" style="color: #06b6d4; display: none;" id="gigsLimfyoValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #06b6d4;" id="gigsLimfyoPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⚡</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Electrician</div>
-                                                <div class="revenue-amount" style="color: #fbbf24; display: none;" id="gigsElectricianValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #fbbf24;" id="gigsElectricianPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #0ea5e9);">🔧</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Plumber</div>
-                                                <div class="revenue-amount" style="color: #0ea5e9; display: none;" id="gigsPlumberValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #0ea5e9;" id="gigsPlumberPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">🛠️</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Mechanic</div>
-                                                <div class="revenue-amount" style="color: #ef4444; display: none;" id="gigsMechanicValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ef4444;" id="gigsMechanicPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">🛡️</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Bantay</div>
-                                                <div class="revenue-amount" style="color: #10b981; display: none;" id="gigsBantayValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #10b981;" id="gigsBantayPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f97316);">🍳</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Luto</div>
-                                                <div class="revenue-amount" style="color: #f97316; display: none;" id="gigsLutoValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #f97316;" id="gigsLutoPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #14b8a6);">📚</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Tutor</div>
-                                                <div class="revenue-amount" style="color: #14b8a6; display: none;" id="gigsTutorValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #14b8a6;" id="gigsTutorPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ec4899);">💉</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Nurse</div>
-                                                <div class="revenue-amount" style="color: #ec4899; display: none;" id="gigsNurseValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ec4899;" id="gigsNursePercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">🎨</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Painter</div>
-                                                <div class="revenue-amount" style="color: #f59e0b; display: none;" id="gigsPainterValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #f59e0b;" id="gigsPainterPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a855f7);">📋</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Clerical</div>
-                                                <div class="revenue-amount" style="color: #a855f7; display: none;" id="gigsClericalValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #a855f7;" id="gigsClericalPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #6366f1);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Hatod</div>
-                                                <div class="revenue-amount" style="color: #6366f1; display: none;" id="gigsHatodValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #6366f1;" id="gigsHatodPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #84cc16);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Hakot</div>
-                                                <div class="revenue-amount" style="color: #84cc16; display: none;" id="gigsHakotValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #84cc16;" id="gigsHakotPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #22c55e);">👷</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Builder</div>
-                                                <div class="revenue-amount" style="color: #22c55e; display: none;" id="gigsBuilderValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #22c55e;" id="gigsBuilderPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #888);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Other (10+)</div>
-                                                <div class="revenue-amount" style="color: #888; display: none;" id="gigsOtherValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #888;" id="gigsOtherPercent">0%</div>
-                                            </div>
-                                        </div>
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs -->
+                                    <div class="breakdown-list" id="gigsPostedBreakdownList">
+                                        <div class="breakdown-empty-note">No gigs posted yet.</div>
                                     </div>
                                 </div>
                             </div>
@@ -1214,135 +1098,37 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="applicationsBreakdown">
-                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/applications/byCategory -->
-                                    <div class="revenue-showcase">
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">🚗</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Driver</div>
-                                                <div class="revenue-amount" style="color: #3b82f6; display: none;" id="appsDriverValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #3b82f6;" id="appsDriverPercent">0%</div>
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/applications -->
+                                    <div class="breakdown-list" id="applicationsBreakdownList">
+                                        <div class="breakdown-empty-note">No applications yet.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gig Use Type (Personal vs Business) -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="gigUseTypeBreakdown">
+                                    <span class="breakdown-title">🙋🏻/🏢 Gig Use Type</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="gigUseTypeBreakdown">
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs.byGigUseType -->
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <span class="breakdown-label">🙋🏻 Personal</span>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill green" id="gigUseTypePersonalBar" style="width: 0%;"></div>
                                             </div>
+                                            <span class="breakdown-value" id="gigUseTypePersonalValue">0</span>
                                         </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">🔨</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Carpenter</div>
-                                                <div class="revenue-amount" style="color: #8b5cf6; display: none;" id="appsCarpenterValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #8b5cf6;" id="appsCarpenterPercent">0%</div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <span class="breakdown-label">🏢 Business</span>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigUseTypeBusinessBar" style="width: 0%;"></div>
                                             </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⚡</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Electrician</div>
-                                                <div class="revenue-amount" style="color: #fbbf24; display: none;" id="appsElectricianValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #fbbf24;" id="appsElectricianPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #0ea5e9);">🔧</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Plumber</div>
-                                                <div class="revenue-amount" style="color: #0ea5e9; display: none;" id="appsPlumberValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #0ea5e9;" id="appsPlumberPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">🛠️</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Mechanic</div>
-                                                <div class="revenue-amount" style="color: #ef4444; display: none;" id="appsMechanicValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ef4444;" id="appsMechanicPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">🛡️</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Bantay</div>
-                                                <div class="revenue-amount" style="color: #10b981; display: none;" id="appsBantayValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #10b981;" id="appsBantayPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #06b6d4);">🧹</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Limpyo</div>
-                                                <div class="revenue-amount" style="color: #06b6d4; display: none;" id="appsLimfyoValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #06b6d4;" id="appsLimfyoPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f97316);">🍳</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Luto</div>
-                                                <div class="revenue-amount" style="color: #f97316; display: none;" id="appsLutoValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #f97316;" id="appsLutoPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #14b8a6);">📚</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Tutor</div>
-                                                <div class="revenue-amount" style="color: #14b8a6; display: none;" id="appsTutorValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #14b8a6;" id="appsTutorPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ec4899);">💉</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Nurse</div>
-                                                <div class="revenue-amount" style="color: #ec4899; display: none;" id="appsNurseValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ec4899;" id="appsNursePercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">🎨</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Painter</div>
-                                                <div class="revenue-amount" style="color: #f59e0b; display: none;" id="appsPainterValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #f59e0b;" id="appsPainterPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a855f7);">📋</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Clerical</div>
-                                                <div class="revenue-amount" style="color: #a855f7; display: none;" id="appsClericalValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #a855f7;" id="appsClericalPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #6366f1);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Hatod</div>
-                                                <div class="revenue-amount" style="color: #6366f1; display: none;" id="appsHatodValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #6366f1;" id="appsHatodPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #84cc16);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Hakot</div>
-                                                <div class="revenue-amount" style="color: #84cc16; display: none;" id="appsHakotValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #84cc16;" id="appsHakotPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #22c55e);">👷</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Builder</div>
-                                                <div class="revenue-amount" style="color: #22c55e; display: none;" id="appsBuilderValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #22c55e;" id="appsBuilderPercent">0%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #888);">📦</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Other (10+)</div>
-                                                <div class="revenue-amount" style="color: #888; display: none;" id="appsOtherValue">0</div>
-                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #888;" id="appsOtherPercent">0%</div>
-                                            </div>
+                                            <span class="breakdown-value" id="gigUseTypeBusinessValue">0</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1677,6 +1463,22 @@
                             <div class="ratio-display">
                                 <span class="ratio-label">Average per Gig:</span>
                                 <span class="ratio-value" id="avgApplicantsPerGig">0.0</span>
+                            </div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Gig Use Type</div>
+                            <div class="analytics-row">
+                                <div class="analytics-item">
+                                    <div class="analytics-label">🙋🏻 Personal</div>
+                                    <div class="analytics-value" id="gigsCardPersonalCount">0</div>
+                                    <div class="analytics-percent" id="gigsCardPersonalPercent">0%</div>
+                                </div>
+                                <div class="analytics-item">
+                                    <div class="analytics-label">🏢 Business</div>
+                                    <div class="analytics-value" id="gigsCardBusinessCount">0</div>
+                                    <div class="analytics-percent" id="gigsCardBusinessPercent">0%</div>
+                                </div>
                             </div>
                         </div>
                     </div>

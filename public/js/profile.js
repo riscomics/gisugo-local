@@ -2252,6 +2252,9 @@ function openEditProfileOverlay() {
       if (typeof updateLoginMethodsUI === 'function') {
         updateLoginMethodsUI();
       }
+      if (typeof updateLocationShareToggleUI === 'function') {
+        updateLocationShareToggleUI();
+      }
       overlay.classList.add('show');
       document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
@@ -2270,6 +2273,71 @@ function closeEditProfileOverlay() {
 
 // Make closeEditProfileOverlay globally accessible
 window.closeEditProfileOverlay = closeEditProfileOverlay;
+
+// ── "Share My Location" toggle (retroactive opt-in for whoever skipped it at
+// signup, or wants to turn it off/on later). See docs/
+// ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md (Regional Distribution, resolved
+// 2026-07-27) and functions/index.js submitSignupLocation.
+let locationShareToggleWired = false;
+
+async function updateLocationShareToggleUI() {
+  const toggle = document.getElementById('locationShareToggle');
+  const desc = document.getElementById('locationShareToggleDesc');
+  if (!toggle) return;
+
+  if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth().currentUser) return;
+  const uid = firebase.auth().currentUser.uid;
+
+  if (typeof getLocationShareState === 'function') {
+    const state = await getLocationShareState(uid);
+    toggle.checked = !!state.locationShared;
+    if (desc) {
+      desc.textContent = state.locationShared && state.locationRegion
+        ? `Currently sharing: ${state.locationRegion}`
+        : 'Used for accuracy in local listings and community insights';
+    }
+  }
+
+  if (!locationShareToggleWired) {
+    locationShareToggleWired = true;
+    toggle.addEventListener('change', handleLocationShareToggleChange);
+  }
+}
+
+async function handleLocationShareToggleChange(event) {
+  const toggle = event.target;
+  const desc = document.getElementById('locationShareToggleDesc');
+
+  if (toggle.checked) {
+    toggle.disabled = true;
+    if (desc) desc.textContent = 'Getting location...';
+
+    if (typeof requestAndSubmitDeviceLocation !== 'function') {
+      toggle.checked = false;
+      toggle.disabled = false;
+      return;
+    }
+
+    const result = await requestAndSubmitDeviceLocation();
+    toggle.disabled = false;
+
+    if (result.success) {
+      if (desc) desc.textContent = `Currently sharing: ${result.region}`;
+    } else {
+      // Permission denied or unavailable -- revert the toggle, don't leave
+      // it showing "on" for something that didn't actually happen.
+      toggle.checked = false;
+      if (desc) desc.textContent = 'Used for accuracy in local listings and community insights';
+    }
+  } else {
+    toggle.disabled = true;
+    if (typeof disableLocationSharing === 'function' && firebase.auth().currentUser) {
+      await disableLocationSharing(firebase.auth().currentUser.uid);
+    }
+    toggle.disabled = false;
+    if (desc) desc.textContent = 'Used for accuracy in local listings and community insights';
+  }
+}
 
 // ── Phone helpers (mirror sign-up.js so the stored E.164 format stays consistent) ──
 const EDIT_PHONE_COUNTRY_CODES = ['+971', '+63', '+44', '+61', '+81', '+82', '+65', '+60', '+66', '+84', '+62', '+49', '+33', '+86', '+91', '+1'];
