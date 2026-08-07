@@ -2325,9 +2325,16 @@ async function handleLocationShareToggleChange(event) {
       if (desc) desc.textContent = `Currently sharing: ${result.region}`;
     } else {
       // Permission denied or unavailable -- revert the toggle, don't leave
-      // it showing "on" for something that didn't actually happen.
+      // it showing "on" for something that didn't actually happen. Actual
+      // reason is always logged to console (see requestAndSubmitDeviceLocation
+      // in firebase-auth.js) -- surface a plain-language hint here too so a
+      // real user isn't left guessing why it snapped back off.
       toggle.checked = false;
-      if (desc) desc.textContent = 'Used for accuracy in local listings and community insights';
+      if (desc) {
+        desc.textContent = result.reason === 'denied'
+          ? "Location blocked by your browser. Check this site's permissions and try again."
+          : 'Could not save your location. Please try again.';
+      }
     }
   } else {
     toggle.disabled = true;

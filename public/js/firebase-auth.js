@@ -1972,11 +1972,13 @@ function requestAndSubmitDeviceLocation() {
         const { latitude, longitude } = position.coords;
 
         if (typeof classifyCoordinateToRegion !== 'function') {
+          console.warn('⚠️ Could not save location: ph-regions-geo.js not loaded on this page');
           finish({ success: false, reason: 'classify-failed' });
           return;
         }
         const region = await classifyCoordinateToRegion(latitude, longitude);
         if (!region) {
+          console.warn('⚠️ Could not save location: coordinates did not classify into any PH region', { latitude, longitude });
           finish({ success: false, reason: 'classify-failed' });
           return;
         }
@@ -1986,12 +1988,17 @@ function requestAndSubmitDeviceLocation() {
           await callable({ lat: latitude, lng: longitude, region });
           finish({ success: true, region });
         } catch (error) {
-          console.warn('⚠️ Could not save location:', (error && error.message) || error);
+          console.warn('⚠️ Could not save location (submitSignupLocation call failed):', (error && error.message) || error, error);
           finish({ success: false, reason: 'submit-failed' });
         }
       },
-      () => {
+      (geoError) => {
         clearTimeout(hardStop);
+        // GeolocationPositionError codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT.
+        // Silently swallowed downstream by design (declining is a normal choice), but log the
+        // real reason here so it's visible in devtools when testing/debugging.
+        const codeNames = { 1: 'PERMISSION_DENIED', 2: 'POSITION_UNAVAILABLE', 3: 'TIMEOUT' };
+        console.warn(`⚠️ Could not get location: ${codeNames[geoError && geoError.code] || 'UNKNOWN'} (code ${geoError && geoError.code}) - ${geoError && geoError.message}`);
         finish({ success: false, reason: 'denied' });
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
