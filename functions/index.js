@@ -1293,10 +1293,19 @@ exports.syncGigAnalyticsCountersOnCreate = onDocumentCreated(
     const gigUseType = sanitizePlatformAnalyticsKey(job.gigUseType, "Personal");
 
     try {
+      // NOTE: nested-object form (byCategory: {...}), NOT a dotted string key
+      // (e.g. "byCategory.hatod") -- set(..., {merge:true}) treats a dotted
+      // STRING key as one literal field name containing a dot, it does NOT
+      // parse it into a nested path (that's only true for .update()). Using
+      // a dotted key here silently created a sibling top-level field like
+      // "byCategory.hatod" next to the real byCategory map instead of
+      // updating it -- found + fixed 2026-08-07 after a bogus region label
+      // (Mimaropa, for a signup tested from New Jersey) surfaced the same
+      // bug in submitSignupLocation below.
       await db.collection("platform_analytics").doc("gigs").set({
         totalPosted: admin.firestore.FieldValue.increment(1),
-        [`byCategory.${category}`]: admin.firestore.FieldValue.increment(1),
-        [`byGigUseType.${gigUseType}`]: admin.firestore.FieldValue.increment(1),
+        byCategory: { [category]: admin.firestore.FieldValue.increment(1) },
+        byGigUseType: { [gigUseType]: admin.firestore.FieldValue.increment(1) },
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (error) {
@@ -1333,7 +1342,7 @@ exports.syncApplicationAnalyticsCountersOnCreate = onDocumentCreated(
     try {
       await db.collection("platform_analytics").doc("applications").set({
         totalApplications: admin.firestore.FieldValue.increment(1),
-        [`byCategory.${category}`]: admin.firestore.FieldValue.increment(1),
+        byCategory: { [category]: admin.firestore.FieldValue.increment(1) },
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (error) {
@@ -1403,6 +1412,13 @@ exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
     // stay consistent with that number. Not tracking a competing totalUsers
     // field here; these are breakdowns of that same live total, not a
     // second source of truth for it.
+    // NOTE: every bucket update below uses a nested-object shape
+    // (byAgeGroup: {bucket: increment(...)}), NEVER a dotted string key
+    // (e.g. "byAgeGroup.18-25") -- set(..., {merge:true}) treats a dotted
+    // STRING key as one literal field name containing a dot, it does NOT
+    // parse it into a nested path (only .update() does that). A dotted key
+    // here would silently create a useless sibling field instead of
+    // touching the real map the dashboard reads -- found + fixed 2026-08-07.
     const updates = {};
 
     if (!before && after) {
@@ -1412,17 +1428,17 @@ exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
       // and submitSignupLocation moves it to the real region once resolved.
       const ageGroup = bucketAgeGroup(after.dateOfBirth);
       const accountType = bucketAccountType(after);
-      updates[`byAgeGroup.${ageGroup}`] = admin.firestore.FieldValue.increment(1);
-      updates[`byAccountType.${accountType}`] = admin.firestore.FieldValue.increment(1);
-      updates["byRegion.unknown"] = admin.firestore.FieldValue.increment(1);
+      updates.byAgeGroup = { [ageGroup]: admin.firestore.FieldValue.increment(1) };
+      updates.byAccountType = { [accountType]: admin.firestore.FieldValue.increment(1) };
+      updates.byRegion = { unknown: admin.firestore.FieldValue.increment(1) };
     } else if (before && !after) {
       // delete -- decrement whatever region bucket this user was last known
       // to be in (read from security_metadata; "unknown" if they never
       // shared location or that doc doesn't exist).
       const ageGroup = bucketAgeGroup(before.dateOfBirth);
       const accountType = bucketAccountType(before);
-      updates[`byAgeGroup.${ageGroup}`] = admin.firestore.FieldValue.increment(-1);
-      updates[`byAccountType.${accountType}`] = admin.firestore.FieldValue.increment(-1);
+      updates.byAgeGroup = { [ageGroup]: admin.firestore.FieldValue.increment(-1) };
+      updates.byAccountType = { [accountType]: admin.firestore.FieldValue.increment(-1) };
 
       let lastRegion = "unknown";
       try {
@@ -1436,7 +1452,7 @@ exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
           error: String(error)
         });
       }
-      updates[`byRegion.${lastRegion}`] = admin.firestore.FieldValue.increment(-1);
+      updates.byRegion = { [lastRegion]: admin.firestore.FieldValue.increment(-1) };
     } else {
       // update -- dateOfBirth edits after signup deliberately not tracked
       // (same "don't chase every edit" call as Gigs Analytics above), but a
@@ -1445,8 +1461,10 @@ exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
       const beforeType = bucketAccountType(before);
       const afterType = bucketAccountType(after);
       if (beforeType === afterType) return;
-      updates[`byAccountType.${beforeType}`] = admin.firestore.FieldValue.increment(-1);
-      updates[`byAccountType.${afterType}`] = admin.firestore.FieldValue.increment(1);
+      updates.byAccountType = {
+        [beforeType]: admin.firestore.FieldValue.increment(-1),
+        [afterType]: admin.firestore.FieldValue.increment(1)
+      };
     }
 
     updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
@@ -1504,7 +1522,11 @@ exports.submitSignupLocation = onCall(
         !Number.isFinite(lng) || lng < -180 || lng > 180) {
       throw new HttpsError("invalid-argument", "Invalid coordinates.");
     }
-    if (!PH_REGION_NAMES.includes(region)) {
+    // 'Overseas' is a legitimate, deliberate result from the client-side
+    // classifier (ph-regions-geo.js) -- a real shared location that just
+    // isn't one of the 17 PH regions. Distinct from "unknown" (never
+    // shared at all). See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md.
+    if (region !== "Overseas" && !PH_REGION_NAMES.includes(region)) {
       throw new HttpsError("invalid-argument", "Invalid region.");
     }
 
@@ -1544,15 +1566,19 @@ exports.submitSignupLocation = onCall(
       }, { merge: true });
 
       if (previousRegion !== region) {
-        const analyticsUpdates = {
-          [`byRegion.${region}`]: admin.firestore.FieldValue.increment(1),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        };
+        // Nested-object shape (byRegion: {...}), not a dotted string key --
+        // see the note on syncUserAnalyticsCountersOnWrite above for why.
         // previousRegion is null on a brand-new capture -- the account is
         // sitting in byRegion.unknown from account-creation time (see
         // syncUserAnalyticsCountersOnWrite above), so move it out of there.
-        analyticsUpdates[`byRegion.${previousRegion || "unknown"}`] = admin.firestore.FieldValue.increment(-1);
-        await db.collection("platform_analytics").doc("users").set(analyticsUpdates, { merge: true });
+        const previousBucket = previousRegion || "unknown";
+        await db.collection("platform_analytics").doc("users").set({
+          byRegion: {
+            [region]: admin.firestore.FieldValue.increment(1),
+            [previousBucket]: admin.firestore.FieldValue.increment(-1)
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
       }
 
       return { status: "saved", region };

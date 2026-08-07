@@ -96,6 +96,17 @@ overlays. Verdict per card:
     ongoing-freshness feature (people move; a one-time signup snapshot goes stale) — likely needs
     its own request point (listing pages, or a manual "set your area" in profile) when it's
     actually built. Not to be conflated with this one-time admin-stat capture.
+  - **`Overseas` bucket added 2026-08-07 (owner call):** a shared location outside the Philippines
+    is a real, useful answer — not the same thing as "declined/never shared" — so it gets its own
+    counter instead of being lumped into `unknown`. `unknown` now means strictly "no data" (never
+    asked/declined/pending); `Overseas` means "shared successfully, just not one of the 17."
+    Same zero marginal cost as the rest of this feature — `classifyCoordinateToRegion()`
+    (`public/js/ph-regions-geo.js`) does one cheap bounding-box check before running
+    point-in-polygon at all, so classifying "not in PH" costs nothing extra over classifying
+    "in PH." Country-level granularity (e.g. "USA", "Japan") was considered and explicitly
+    deferred — would need a paid reverse-geocoding API call (the free client-side PH boundary
+    dataset has no data for the rest of the world); one `Overseas` bucket is enough signal for
+    now, can be layered in later if there's ever a real user base living abroad to justify it.
 - **Age Groups — `dateOfBirth` to be made required at signup.** Confirmed in code
   (`sign-up.js` ~line 1111) it's currently optional — the validator silently skips it if blank,
   no error shown. Small change to make it mandatory like other signup fields, needed so the Age

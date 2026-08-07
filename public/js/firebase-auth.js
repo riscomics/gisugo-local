@@ -1964,7 +1964,15 @@ function requestAndSubmitDeviceLocation() {
     };
 
     // Backstop in case getCurrentPosition's own timeout option ever fails to fire.
-    const hardStop = setTimeout(() => finish({ success: false, reason: 'denied' }), 12000);
+    // Generous window -- Android/Chrome's permission prompt has its own
+    // Precise/Approximate picker plus 3 buttons, and BOTH the "waiting for
+    // the user to respond to the permission prompt" time AND the actual GPS
+    // fix time count against getCurrentPosition's timeout. A short timeout
+    // here was firing WHILE the user was still reading the prompt, wrongly
+    // reporting "denied" and reverting the toggle even though they were
+    // about to tap Allow (confirmed 2026-08-07: 2nd click right after
+    // succeeded instantly since permission was already granted by then).
+    const hardStop = setTimeout(() => finish({ success: false, reason: 'denied' }), 35000);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -1976,9 +1984,13 @@ function requestAndSubmitDeviceLocation() {
           finish({ success: false, reason: 'classify-failed' });
           return;
         }
+        // Returns one of the 17 PH region names, or 'Overseas' for a real
+        // shared location outside the Philippines -- both are valid,
+        // successful outcomes. Only a falsy null means classification
+        // itself failed (bad coords, or the boundary GeoJSON didn't load).
         const region = await classifyCoordinateToRegion(latitude, longitude);
         if (!region) {
-          console.warn('⚠️ Could not save location: coordinates did not classify into any PH region', { latitude, longitude });
+          console.warn('⚠️ Could not save location: region classification failed to load/run', { latitude, longitude });
           finish({ success: false, reason: 'classify-failed' });
           return;
         }
@@ -2001,7 +2013,7 @@ function requestAndSubmitDeviceLocation() {
         console.warn(`⚠️ Could not get location: ${codeNames[geoError && geoError.code] || 'UNKNOWN'} (code ${geoError && geoError.code}) - ${geoError && geoError.message}`);
         finish({ success: false, reason: 'denied' });
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 30000, maximumAge: 0 }
     );
   });
 }

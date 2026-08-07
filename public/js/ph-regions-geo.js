@@ -75,6 +75,17 @@
     return null;
   }
 
+  // findNearestRegion exists ONLY to rescue genuinely-Philippine coastal
+  // points that fail point-in-polygon due to boundary simplification (e.g.
+  // Tacloban, see module header) -- it must NEVER be used to force-fit a
+  // coordinate that isn't in the Philippines at all onto "whichever of the
+  // 17 regions happens to be least-far-away". A raw-degree nearest search
+  // has no sense of "too far", so a real-world test from New Jersey (lat
+  // ~40, lng ~-74) got matched to Mimaropa on 2026-08-07 -- there was
+  // nothing rejecting that as nonsense. This cap makes the rescue only ever
+  // fire within a tight margin around the actual coastline.
+  const NEAREST_REGION_MAX_DEGREES = 0.5; // ~55km at the equator -- coastal-simplification-sized, not "closest of 17 wrong countries"
+
   function findNearestRegion(lat, lng, features) {
     let best = null;
     let bestDistSq = Infinity;
@@ -95,23 +106,44 @@
         }
       }
     }
-    return best;
+    return bestDistSq <= NEAREST_REGION_MAX_DEGREES * NEAREST_REGION_MAX_DEGREES ? best : null;
+  }
+
+  // Cheap first-pass sanity gate before running point-in-polygon at all --
+  // the Philippines' full extent (mainland + islands) is roughly lat 4.5-21,
+  // lng 116-127; padded generously below. Anything outside this box (e.g.
+  // any other country) is rejected immediately as "not in the Philippines",
+  // rather than falling through to point-in-polygon/nearest-neighbor and
+  // risking a bogus match.
+  function isWithinPhilippinesBoundingBox(lat, lng) {
+    return lat >= 0 && lat <= 23 && lng >= 114 && lng <= 129;
   }
 
   /**
-   * Classify a lat/lng coordinate into one of the 17 official PH regions.
+   * Classify a lat/lng coordinate into one of the 17 official PH regions, or
+   * the sentinel 'Overseas' if the point is a real, successfully-shared
+   * location that simply isn't in the Philippines. 'Overseas' is a genuine,
+   * useful result -- it means "we know where they are, it's just not one of
+   * the 17" -- deliberately distinct from returning null, which means "we
+   * have no usable answer at all" (bad input, or the boundary data failed
+   * to load) and correctly leaves the account in the separate "unknown"
+   * bucket (declined/hasn't shared/hasn't reached the explainer yet).
    * @param {number} lat
    * @param {number} lng
-   * @returns {Promise<string|null>} region name, or null if data failed to load
+   * @returns {Promise<string|null>} region name, 'Overseas', or null on failure
    */
   async function classifyCoordinateToRegion(lat, lng) {
     if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) {
       return null;
     }
+    if (!isWithinPhilippinesBoundingBox(lat, lng)) {
+      console.log('📍 Location outside the Philippines -- marking Overseas', { lat, lng });
+      return 'Overseas';
+    }
     try {
       const data = await loadRegionsData();
       const features = data.features || [];
-      return findContainingRegion(lat, lng, features) || findNearestRegion(lat, lng, features);
+      return findContainingRegion(lat, lng, features) || findNearestRegion(lat, lng, features) || 'Overseas';
     } catch (error) {
       return null;
     }

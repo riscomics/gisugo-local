@@ -5044,7 +5044,12 @@ function renderRegionBreakdownList(byRegion) {
 
     const total = entries.reduce((sum, entry) => sum + entry.count, 0);
     container.innerHTML = entries.map((entry) => {
-        const icon = entry.name === 'unknown' ? '❔' : '📍';
+        // 'unknown' = never shared/declined (no data at all). 'Overseas' =
+        // shared a REAL location, just not one of the 17 PH regions --
+        // deliberately kept distinct so this stat doesn't lump "didn't
+        // answer" and "answered, lives abroad" together. See
+        // ph-regions-geo.js classifyCoordinateToRegion.
+        const icon = entry.name === 'unknown' ? '❔' : entry.name === 'Overseas' ? '🌏' : '📍';
         const label = entry.name === 'unknown' ? 'Not shared / unknown' : entry.name;
         const percentage = total > 0 ? Math.round((entry.count / total) * 100) : 0;
         return `
@@ -5076,7 +5081,11 @@ function renderRegionBreakdownList(byRegion) {
 // same New/Pro/Business numbers instead of two independent (and previously
 // inconsistent, since both were hand-typed mock values) data paths.
 // Regional Distribution: partial coverage by design (GPS is opt-in, once at
-// signup) -- a glance stat, not a census. "unknown" covers declined/pending.
+// signup) -- a glance stat, not a census. "unknown" covers declined/pending
+// (never shared, no data at all). "Overseas" is a real, successfully-shared
+// location that's just outside the 17 PH regions -- it counts toward
+// regionKnownTotal ("LOCATION SHARED") below but is deliberately excluded
+// from the Luzon/Visayas/Mindanao pie since it isn't a PH island group.
 async function renderAgeGroupsBreakdown() {
     if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
         console.warn('⚠️ Total Users breakdowns: Firebase offline, skipping load');
