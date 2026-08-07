@@ -91,11 +91,24 @@ overlays. Verdict per card:
     signups will cluster in one or two regions anyway — the plain 17-region view already shows
     that clearly. Can be layered in later at the same zero marginal cost once there's an actual
     nationwide spread of users to justify the finer detail.
-  - **Explicitly out of scope for this feature:** using this same location capture to filter/sort
-    gig listings by proximity (e.g. `hatod.html` nationwide rollout). That's a separate, future,
-    ongoing-freshness feature (people move; a one-time signup snapshot goes stale) — likely needs
-    its own request point (listing pages, or a manual "set your area" in profile) when it's
-    actually built. Not to be conflated with this one-time admin-stat capture.
+  - **⚠️ NOT out of scope — read this before touching signup/profile location copy again.**
+    Corrected twice already in conversation (2026-08-06, 2026-08-07) after being wrongly
+    described as "out of scope" here — that framing was wrong and caused two repeat mistakes
+    (nearly rewriting the consent copy, then flagging it as a false claim again). **The actual
+    plan, confirmed directly by the owner:** this GPS-classified region snapshot is deliberately
+    built *first* as the foundation for a real, planned feature — using a user's registered
+    region to drive their default listings feed (e.g. a user registered in Manila sees
+    Manila-region gigs by default, across every gig category, instead of always defaulting to
+    Cebu). The dashboard/backend work (this file) had to be built before that feed feature
+    *could* be built. The Cebu-first empty-state placeholder note already live on listing pages
+    exists specifically *because* that region-aware feed isn't wired yet — it's a stopgap, not
+    the end state. So: the signup explainer and Edit Profile toggle copy ("used for accuracy in
+    local listings and community insights") is describing genuine, confirmed roadmap intent, not
+    an unearned claim — **do not reword it without being explicitly asked.** The one real
+    open question (not yet decided, don't assume an answer) is *how* the eventual feed feature
+    reconciles a one-time signup snapshot with the fact that people move — that's implementation
+    detail for whoever builds the feed integration, not a reason to hold back or downplay this
+    copy today.
   - **`Overseas` bucket added 2026-08-07 (owner call):** a shared location outside the Philippines
     is a real, useful answer — not the same thing as "declined/never shared" — so it gets its own
     counter instead of being lumped into `unknown`. `unknown` now means strictly "no data" (never

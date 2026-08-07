@@ -1,0 +1,41 @@
+---
+description: User communication preferences for this repo (GISUGO) - avoid repeated friction points
+alwaysApply: true
+---
+
+# Communication Preferences
+
+## No multiple-choice / AskQuestion prompts
+
+The user has explicitly said, more than once, that they do not like the `AskQuestion`
+multiple-choice tool prompt. Do not use `AskQuestion` for this user. Instead:
+
+- Present options as plain text in the response.
+- If genuinely blocked on a decision, just ask directly in prose and wait for their reply.
+- Recommend a default and proceed, rather than presenting a menu, when the task allows it.
+
+## TLDR first
+
+Always lead responses with a short "TLDR" line/section before the detailed explanation
+(explicitly requested, repeatedly).
+
+## Location snapshot -> future listings feed (do not re-litigate this)
+
+The signup/profile GPS location capture (`ph-regions-geo.js`, `submitSignupLocation`,
+`platform_analytics/users.byRegion`) is **not** a dead-end admin-only stat. It is
+deliberately built *first* as the foundation for a **confirmed planned feature**: using a
+user's registered region to drive their listings feed (e.g. a user registered in Manila
+would see Manila-region gigs by default across all gig categories). The Cebu-first empty-state
+placeholder note on listing pages exists specifically *because* that region-aware feed isn't
+wired yet — it's a stopgap, not the end state.
+
+Do NOT:
+- Describe this as "out of scope" or claim the "for accuracy in local listings" copy is a
+  false/unearned claim. It reflects genuine, confirmed roadmap intent, just sequenced after
+  the dashboard/backend groundwork. This has already been corrected twice in conversation
+  (2026-08-06, 2026-08-07) — do not re-raise it a third time.
+- Change the signup explainer or Edit Profile toggle copy ("used for accuracy in local
+  listings and community insights") without being explicitly asked to.
+
+See `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` (Regional Distribution section) for the full
+locked design notes, kept in sync with this rule.
