@@ -6587,6 +6587,9 @@ async function loadPreviousContent() {
         
         console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
         if (consumeJobsWarmIfMatched('previous', customerCompletedJobs, warmMeta)) {
+            // Warm-painted cards are kept, but initializePreviousTab() tore down the
+            // 'previous-cards' listeners the warm paint attached, so re-arm them here.
+            if (customerCompletedJobs.length > 0) initializeCompletedCardHandlers();
             jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: customerCompletedJobs.length, cacheHit: true });
             return;
         }
