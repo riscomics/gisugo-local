@@ -6558,8 +6558,12 @@ async function initializePreviousTab() {
     
     console.log('📜 Initializing Previous tab...');
     
-    // Always clean up existing handlers to prevent the bug
-    executeCleanupsByType('previous-cards');
+    // Always clean up existing handlers to prevent the bug.
+    // Exception: a warm paint has already rendered cards with live handlers. Dropping them
+    // here would leave the visible cards dead until the refetch lands (one wasted tap), and
+    // loadPreviousContent() rebinds on rerender / re-arms on a cache match anyway.
+    const warmPaintPending = !!(JOBS_WARM && JOBS_WARM.tab === 'previous');
+    if (!warmPaintPending) executeCleanupsByType('previous-cards');
     executeCleanupsByType('previous-overlay');
     executeCleanupsByType('previous-feedback-overlay');
     
