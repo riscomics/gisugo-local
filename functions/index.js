@@ -1354,6 +1354,179 @@ exports.syncApplicationAnalyticsCountersOnCreate = onDocumentCreated(
   }
 );
 
+// ============================================================================
+// GIG MODERATION -- REPORT COUNTER (Admin Dashboard Phase 2)
+// ============================================================================
+// One gig_reports doc already exists per (jobId, reporterId) pair -- see
+// submitGigReportToAdmin() in firebase-db.js. Firestore has no cheap
+// "group by jobId, count" query, so instead of scanning gig_reports at read
+// time, this trigger keeps a running reportCount directly on the job doc
+// (cheap, same counter-doc philosophy as the analytics syncs above) and
+// flips status to 'reported' once a threshold is crossed. This is the ONLY
+// path that is allowed to write reportCount/status:'reported' -- the owner
+// update rule in firestore.rules explicitly blocks the job poster from
+// touching either, so a reported gig can't quietly un-report itself.
+const GIG_REPORT_THRESHOLD_DEFAULT = 10;
+
+exports.syncGigReportCountersOnCreate = onDocumentCreated(
+  { document: "gig_reports/{reportId}", region: "asia-southeast1" },
+  async (event) => {
+    const report = event.data?.data() || {};
+    const jobId = String(report.jobId || "").trim();
+    if (!jobId) return;
+
+    const jobRef = db.collection("jobs").doc(jobId);
+    try {
+      await db.runTransaction(async (tx) => {
+        const jobSnap = await tx.get(jobRef);
+        if (!jobSnap.exists) return;
+        const job = jobSnap.data() || {};
+        const newCount = (Number(job.reportCount) || 0) + 1;
+        const threshold = Number(job.reportThreshold) || GIG_REPORT_THRESHOLD_DEFAULT;
+
+        const update = {
+          reportCount: newCount,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        };
+        // Only escalate a currently-active gig into the moderation queue --
+        // a gig that's already reported/suspended/hired/completed isn't
+        // re-flagged or overwritten by a late-arriving report.
+        if (newCount >= threshold && job.status === "active") {
+          update.status = "reported";
+          // Lock the threshold in explicitly (was implicit default before)
+          // so a future "Ignore" action has a real number to add +10 to.
+          update.reportThreshold = threshold;
+        }
+        tx.update(jobRef, update);
+      });
+    } catch (error) {
+      logger.error("syncGigReportCountersOnCreate failed", { jobId, error: String(error) });
+    }
+  }
+);
+
+// ============================================================================
+// GIG MODERATION -- ADMIN ACTIONS (Admin Dashboard Phase 2)
+// ============================================================================
+// Client-side firestore.rules give admins zero direct write access to
+// jobs.status (see the jobs/{jobId} update rule) -- suspend/reinstate/ignore
+// only exist through this callable, which checks admin membership itself
+// via the Admin SDK (bypasses rules) against the same admins/{uid}
+// collection the rules' isAdmin() reads from, so there is exactly one
+// source of truth for "who is an admin," not a second hardcoded list.
+const GIG_MODERATION_ACTIONS = new Set(["suspend", "reinstate", "ignore"]);
+
+exports.adminModerateGig = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const adminDoc = await db.collection("admins").doc(uid).get();
+    if (!adminDoc.exists) {
+      throw new HttpsError("permission-denied", "Admin access required.");
+    }
+
+    const jobId = String(request.data?.jobId || "").trim();
+    const action = String(request.data?.action || "").trim();
+    const reason = String(request.data?.reason || "").trim().slice(0, 500);
+
+    if (!jobId) {
+      throw new HttpsError("invalid-argument", "jobId is required.");
+    }
+    if (!GIG_MODERATION_ACTIONS.has(action)) {
+      throw new HttpsError("invalid-argument", "action must be one of: suspend, reinstate, ignore.");
+    }
+
+    const adminName = String(request.auth.token?.name || request.auth.token?.email || uid);
+    const jobRef = db.collection("jobs").doc(jobId);
+    let previousStatus = "";
+    let newStatus = "";
+
+    await db.runTransaction(async (tx) => {
+      const jobSnap = await tx.get(jobRef);
+      if (!jobSnap.exists) {
+        throw new HttpsError("not-found", "Gig not found.");
+      }
+      const job = jobSnap.data() || {};
+      previousStatus = String(job.status || "");
+
+      if (action === "suspend") {
+        // Reachable from an active gig an admin caught directly (search /
+        // Posted glance), or one already flagged 'reported' by the counter
+        // trigger -- both are legitimate starting points for a suspend.
+        if (previousStatus !== "active" && previousStatus !== "reported") {
+          throw new HttpsError("failed-precondition", `Cannot suspend a gig with status '${previousStatus}'.`);
+        }
+        newStatus = "suspended";
+        tx.update(jobRef, {
+          status: newStatus,
+          suspendedAt: admin.firestore.FieldValue.serverTimestamp(),
+          suspendedBy: uid,
+          suspendedByName: adminName,
+          suspendReason: reason,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else if (action === "reinstate") {
+        if (previousStatus !== "suspended") {
+          throw new HttpsError("failed-precondition", `Cannot reinstate a gig with status '${previousStatus}'.`);
+        }
+        newStatus = "active";
+        // Clean slate: reinstating is the admin vouching the gig is fine now,
+        // so old report history/suspension stamps are cleared rather than
+        // left to linger and immediately re-trigger on the next report.
+        tx.update(jobRef, {
+          status: newStatus,
+          reportCount: admin.firestore.FieldValue.delete(),
+          reportThreshold: admin.firestore.FieldValue.delete(),
+          suspendedAt: admin.firestore.FieldValue.delete(),
+          suspendedBy: admin.firestore.FieldValue.delete(),
+          suspendedByName: admin.firestore.FieldValue.delete(),
+          suspendReason: admin.firestore.FieldValue.delete(),
+          reinstatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          reinstatedBy: uid,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        // ignore: dismiss the current batch of reports without a full
+        // suspend. Raises the bar for next time instead of resetting it, so
+        // a gig that keeps attracting reports doesn't take an identical
+        // (small) number to re-flag every time it's ignored.
+        if (previousStatus !== "reported") {
+          throw new HttpsError("failed-precondition", `Cannot ignore reports on a gig with status '${previousStatus}'.`);
+        }
+        const currentCount = Number(job.reportCount) || 0;
+        newStatus = "active";
+        tx.update(jobRef, {
+          status: newStatus,
+          reportThreshold: currentCount + 10,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    // Best-effort audit trail -- never let a logging failure undo/mask an
+    // action that already succeeded.
+    try {
+      await db.collection("job_moderation_log").add({
+        jobId,
+        action,
+        adminUid: uid,
+        adminName,
+        previousStatus,
+        newStatus,
+        reason: reason || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (error) {
+      logger.warn("job_moderation_log write skipped", { jobId, action, error: String(error) });
+    }
+
+    return { success: true, status: newStatus };
+  }
+);
+
 // Age bucket boundaries for the Admin Dashboard's Age Groups breakdown.
 // Matches the 4 brackets already laid out in admin-dashboard.html's Age
 // Groups card (18-25 / 26-40 / 41-59 / 60+) so no UI redesign is needed.
@@ -1586,5 +1759,193 @@ exports.submitSignupLocation = onCall(
       logger.error("submitSignupLocation failed", { uid, error: String(error) });
       throw new HttpsError("internal", "Could not save location.");
     }
+  }
+);
+
+// ============================================================================
+// BAN CASCADE (Admin Dashboard Phase 2, dormant until Phase 3 ships)
+// ============================================================================
+// Phase 3 (User Management) doesn't exist yet -- firestore.rules gives no
+// client, including admin, a direct write path to users/{uid}.status today.
+// This function is deliberately self-contained and built ahead of that: it
+// only needs Phase 3's future ban action to write status: 'suspended' onto
+// the user doc via the Admin SDK (which bypasses rules), and this trigger
+// picks it up automatically the moment that ships -- nothing here will need
+// to change. Implements the locked "Ban cascade" design in
+// docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md: (1) auto-suspend the user's
+// own live gigs, (2) withdraw their pending applications on other people's
+// gigs, (3) reopen any gig where they were the hired worker + notify that
+// customer. Deliberately skips refunding "application coins" held by their
+// withdrawn applications (see firebase-db.js normalizeApplicationCoins) --
+// a banned account has no use for that balance, and isApplicationHoldingCoin()
+// already stops treating a 'withdrawn' application as coin-holding regardless,
+// so no stale/double-counted state is left behind by skipping it.
+exports.executeBanCascadeOnUserSuspend = onDocumentWritten(
+  { document: "users/{userId}", region: "asia-southeast1" },
+  async (event) => {
+    const userId = event.params?.userId || "";
+    const before = event.data?.before?.exists ? (event.data.before.data() || {}) : {};
+    const after = event.data?.after?.exists ? (event.data.after.data() || {}) : {};
+
+    // Only fire on the actual (not-suspended) -> suspended transition --
+    // never on a no-op re-write while already suspended, and never on
+    // account deletion (after won't exist, after.status is undefined).
+    if (!userId || before.status === "suspended" || after.status !== "suspended") {
+      return;
+    }
+
+    logger.log("Ban cascade starting", { userId });
+
+    // 1. Auto-suspend every still-live gig this user posted. Not a delete --
+    // suspend is reversible and keeps a record, matching adminModerateGig's
+    // own suspend semantics above.
+    try {
+      const postedSnap = await db.collection("jobs")
+        .where("posterId", "==", userId)
+        .where("status", "in", ["active", "reported"])
+        .get();
+      if (!postedSnap.empty) {
+        const batch = db.batch();
+        postedSnap.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            status: "suspended",
+            suspendedAt: admin.firestore.FieldValue.serverTimestamp(),
+            suspendedBy: "system_ban_cascade",
+            suspendedByName: "System (account banned)",
+            suspendReason: "Poster account banned",
+            lastModified: admin.firestore.FieldValue.serverTimestamp()
+          });
+        });
+        await batch.commit();
+      }
+      logger.log("Ban cascade: suspended posted gigs", { userId, count: postedSnap.size });
+    } catch (error) {
+      logger.error("Ban cascade: suspending posted gigs failed", { userId, error: String(error) });
+    }
+
+    // 2. Withdraw this user's own pending applications on other people's
+    // gigs, freeing whichever application slot they were holding.
+    try {
+      const pendingAppsSnap = await db.collection("applications")
+        .where("applicantId", "==", userId)
+        .where("status", "==", "pending")
+        .get();
+      if (!pendingAppsSnap.empty) {
+        const batch = db.batch();
+        const jobIdsToResync = new Set();
+        pendingAppsSnap.docs.forEach((doc) => {
+          const app = doc.data() || {};
+          batch.update(doc.ref, {
+            status: "withdrawn",
+            withdrawnAt: admin.firestore.FieldValue.serverTimestamp(),
+            withdrawnReason: "Applicant account banned"
+          });
+          if (app.jobId) jobIdsToResync.add(String(app.jobId));
+        });
+        await batch.commit();
+
+        // Keep each affected job's applicationCount honest -- same
+        // "count of pending applications" rule the client-side
+        // syncJobApplicationCount() enforces after every withdrawal.
+        await Promise.all(Array.from(jobIdsToResync).map(async (jobId) => {
+          try {
+            const stillPending = await db.collection("applications")
+              .where("jobId", "==", jobId)
+              .where("status", "==", "pending")
+              .get();
+            await db.collection("jobs").doc(jobId).update({ applicationCount: stillPending.size });
+          } catch (error) {
+            logger.warn("Ban cascade: applicationCount resync skipped", { jobId, error: String(error) });
+          }
+        }));
+      }
+      logger.log("Ban cascade: withdrew pending applications", { userId, count: pendingAppsSnap.size });
+    } catch (error) {
+      logger.error("Ban cascade: withdrawing pending applications failed", { userId, error: String(error) });
+    }
+
+    // 3. Reopen any gig where this (now-banned) user was the hired worker,
+    // and notify the customer. Same field-reset shape as the proven
+    // relistGigFromChat() "ghost hire" path (public/js/firebase-db.js),
+    // replicated here with the Admin SDK since the customer isn't the one
+    // acting this time -- the admin's ban is.
+    try {
+      const hiredSnap = await db.collection("jobs")
+        .where("hiredWorkerId", "==", userId)
+        .where("status", "in", ["accepted", "hired"])
+        .get();
+
+      for (const doc of hiredSnap.docs) {
+        const job = doc.data() || {};
+        const jobId = doc.id;
+        const customerId = String(job.posterId || "").trim();
+        const jobTitle = job.title || "Gig";
+
+        await doc.ref.update({
+          status: "active",
+          hiredWorkerId: admin.firestore.FieldValue.delete(),
+          hiredWorkerName: admin.firestore.FieldValue.delete(),
+          hiredWorkerThumbnail: admin.firestore.FieldValue.delete(),
+          agreedPrice: admin.firestore.FieldValue.delete(),
+          hiredAt: admin.firestore.FieldValue.delete(),
+          acceptedAt: admin.firestore.FieldValue.delete(),
+          relistedAt: admin.firestore.FieldValue.serverTimestamp(),
+          relistReason: "Hired worker account banned",
+          voidedWorker: job.hiredWorkerName || "Worker",
+          voidedWorkerId: userId,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Void this specific worker's own application on this job too, so
+        // it stops showing as an active hire in their (now-banned) history.
+        try {
+          const workerAppsSnap = await db.collection("applications")
+            .where("jobId", "==", jobId)
+            .where("applicantId", "==", userId)
+            .where("status", "in", ["accepted", "hired"])
+            .get();
+          if (!workerAppsSnap.empty) {
+            const appBatch = db.batch();
+            workerAppsSnap.docs.forEach((appDoc) => {
+              appBatch.update(appDoc.ref, {
+                status: "voided",
+                voidedAt: admin.firestore.FieldValue.serverTimestamp(),
+                voidReason: "Worker account banned"
+              });
+            });
+            await appBatch.commit();
+          }
+        } catch (error) {
+          logger.warn("Ban cascade: voiding worker's own application skipped", { jobId, userId, error: String(error) });
+        }
+
+        // Customer-facing notification -- new type, opposite direction from
+        // 'contract_voided' (which is worker-facing, for when a customer
+        // voids on a worker). Locked copy per architecture study.
+        if (customerId) {
+          try {
+            await db.collection("notifications").add({
+              recipientId: customerId,
+              type: "worker_banned_gig_reopened",
+              role: "customer",
+              jobId,
+              jobTitle,
+              message: `Worker account revoked, your gig "${jobTitle}" has been opened again on the market.`,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              read: false,
+              actionRequired: false,
+              dedupeKey: null
+            });
+          } catch (error) {
+            logger.warn("Ban cascade: customer notification skipped", { jobId, customerId, error: String(error) });
+          }
+        }
+      }
+      logger.log("Ban cascade: reopened hired gigs", { userId, count: hiredSnap.size });
+    } catch (error) {
+      logger.error("Ban cascade: reopening hired gigs failed", { userId, error: String(error) });
+    }
+
+    logger.log("Ban cascade complete", { userId });
   }
 );

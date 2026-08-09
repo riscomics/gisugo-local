@@ -268,7 +268,25 @@ service cloud.firestore {
       // OR customer can mark accepted job as completed
       // OR customer can submit review for completed job
       // OR worker can submit review for completed job
+      //
+      // Gig Moderation guardrails (Admin Dashboard Phase 2): a 'reported' or
+      // 'suspended' gig is frozen for every client-side path (including the
+      // poster) in BOTH directions -- can't already be in that state and
+      // get touched, and can't be moved INTO that state -- only the
+      // adminModerateGig Cloud Function (and the report-counter trigger,
+      // for reported) can, since Admin SDK writes bypass these rules
+      // entirely. Checking both resource.data (before) and
+      // request.resource.data (after) matters here: checking only "after"
+      // would also block a harmless unrelated field update (e.g. an
+      // applicationCount bump) on a gig that's already sitting in
+      // 'reported', since its status value stays 'reported' either way.
+      // reportCount/reportThreshold are likewise admin/Cloud-Function-only,
+      // which is what stops a reported poster from quietly un-reporting or
+      // un-suspending their own gig.
       allow update: if isAuthenticated()
+        && !(resource.data.status in ['reported', 'suspended'])
+        && !(request.resource.data.status in ['reported', 'suspended'])
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['reportCount', 'reportThreshold'])
         && (resource.data.posterId == request.auth.uid
             || onlyUpdatingApplicationFields()
             || isHiredWorkerRejectingOffer()
@@ -323,7 +341,22 @@ service cloud.firestore {
       // No updates or deletes allowed (immutable audit trail)
       allow update, delete: if false;
     }
-    
+
+    // ═══════════════════════════════════════════════════════════════
+    // JOB MODERATION LOG COLLECTION (Audit Log — Gig Moderation Phase 2)
+    // ═══════════════════════════════════════════════════════════════
+    match /job_moderation_log/{logId} {
+      // Only admins can read the moderation audit trail.
+      allow read: if isAdmin();
+
+      // Written only by the adminModerateGig Cloud Function via the Admin
+      // SDK, which bypasses these rules entirely — no client write path
+      // exists or is needed (mirrors job_deletions' immutable-trail intent,
+      // but stricter: no client `create` either, since this one only ever
+      // needs to be written by an already-verified admin action).
+      allow write: if false;
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // ORPHANED FILES COLLECTION (Future Feature)
     // ═══════════════════════════════════════════════════════════════

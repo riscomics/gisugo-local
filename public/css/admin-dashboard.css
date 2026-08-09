@@ -6233,6 +6233,22 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.suspend-reason {
+    color: #cbd5e0;
+    font-size: 0.8rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: italic;
+}
+
+/* Shown while gig_reports is still being fetched on demand -- reportCount
+   is known immediately, the per-reporter list resolves a beat later. */
+.reported-by-loading {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: italic;
+}
+
 /* ===== BIG SUSPEND SECTION (for reported gigs) ===== */
 .big-suspend-section {
     margin-top: 2rem;

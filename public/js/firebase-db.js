@@ -3518,7 +3518,8 @@ const CUSTOMER_NOTIFICATION_COUNTER_TYPES = new Set([
   'gig_auto_paused',
   'offer_rejected',
   'worker_resigned',
-  'worker_feedback_received'
+  'worker_feedback_received',
+  'worker_banned_gig_reopened'
 ]);
 
 function classifyUnreadNotificationRole(notification = null) {
@@ -4266,6 +4267,143 @@ async function getAdminAnalytics() {
     reportedGigs: jobsResult.status === 'fulfilled' ? jobsResult.value.size : 0
   };
 }
+
+// ============================================================================
+// GIG MODERATION (Admin Dashboard Phase 2)
+// ============================================================================
+// Posted is a "glance" tool (refresh + optional Load More, no gap-guarantee,
+// no live listener). Reported/Suspended are small always-current queues —
+// no pagination needed at V1 scale. See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md
+// "Gig Moderation — resolved design" for the full reasoning.
+const GIG_MODERATION_POSTED_PAGE_SIZE = 20;
+
+async function getGigModerationPosted(startAfterDoc = null) {
+  const db = getFirestore();
+  if (!db) return { jobs: [], lastDoc: null, hasMore: false };
+  try {
+    let query = db.collection('jobs')
+      .where('status', '==', 'active')
+      .orderBy('datePosted', 'desc')
+      .limit(GIG_MODERATION_POSTED_PAGE_SIZE);
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+    const snap = await query.get();
+    return {
+      jobs: snap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      lastDoc: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === GIG_MODERATION_POSTED_PAGE_SIZE
+    };
+  } catch (error) {
+    console.error('❌ Error loading Posted gigs (admin):', error);
+    return { jobs: [], lastDoc: null, hasMore: false };
+  }
+}
+
+async function getGigModerationReported() {
+  const db = getFirestore();
+  if (!db) return [];
+  try {
+    const snap = await db.collection('jobs')
+      .where('status', '==', 'reported')
+      .orderBy('datePosted', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error loading Reported gigs (admin):', error);
+    return [];
+  }
+}
+
+async function getGigModerationSuspended() {
+  const db = getFirestore();
+  if (!db) return [];
+  try {
+    const snap = await db.collection('jobs')
+      .where('status', '==', 'suspended')
+      .orderBy('datePosted', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error loading Suspended gigs (admin):', error);
+    return [];
+  }
+}
+
+/**
+ * Prefix-match title search across ALL gigs regardless of status, so an
+ * admin can act on something they personally spotted live on the site, not
+ * just gigs already caught by the Reported queue. Cheap at any scale —
+ * Firestore charges for matches returned, not collection size. Limitation:
+ * matches from the start of the title only (not fuzzy/contains).
+ */
+async function searchGigsByTitlePrefix(prefix) {
+  const db = getFirestore();
+  const safePrefix = String(prefix || '').trim();
+  if (!db || !safePrefix) return [];
+  try {
+    const snap = await db.collection('jobs')
+      .orderBy('title')
+      .startAt(safePrefix)
+      .endAt(safePrefix + '\uf8ff')
+      .limit(30)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error searching gigs by title (admin):', error);
+    return [];
+  }
+}
+
+/**
+ * Live per-gig report list for the moderation detail panel's "Reported By"
+ * section — fetched on demand (only when an admin opens a specific gig),
+ * not stored/duplicated as a shadow array on the job doc itself. gig_reports
+ * already has admin read access in firestore.rules.
+ */
+async function getGigReportsForJob(jobId) {
+  const db = getFirestore();
+  const safeJobId = String(jobId || '').trim();
+  if (!db || !safeJobId) return [];
+  try {
+    const snap = await db.collection('gig_reports')
+      .where('jobId', '==', safeJobId)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('❌ Error loading gig reports (admin):', error);
+    return [];
+  }
+}
+
+/**
+ * Suspend / reinstate / ignore a gig via the adminModerateGig callable
+ * Cloud Function — the ONLY write path for these transitions, since
+ * firestore.rules gives no client (including admin) a direct write to
+ * jobs.status for this. See functions/index.js.
+ * @param {string} jobId
+ * @param {'suspend'|'reinstate'|'ignore'} action
+ * @param {string} [reason]
+ * @returns {Promise<{success:boolean,status?:string,message?:string}>}
+ */
+async function callAdminModerateGig(jobId, action, reason = '') {
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('adminModerateGig');
+    const response = await callable({ jobId, action, reason });
+    return { success: true, status: response?.data?.status };
+  } catch (error) {
+    console.error('❌ adminModerateGig call failed:', error);
+    return { success: false, message: error.message || 'Action failed' };
+  }
+}
+
+window.getGigModerationPosted = getGigModerationPosted;
+window.getGigModerationReported = getGigModerationReported;
+window.getGigModerationSuspended = getGigModerationSuspended;
+window.searchGigsByTitlePrefix = searchGigsByTitlePrefix;
+window.getGigReportsForJob = getGigReportsForJob;
+window.callAdminModerateGig = callAdminModerateGig;
 
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,

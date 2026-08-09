@@ -208,6 +208,35 @@ When a user is banned, three things need to happen, not just suspending their ow
      new surface area is small (new notification recipient/copy + wiring the trigger to "ban"
      instead of only "account deletion").
 
+### Implementation status (2026-08-09) — built, pending deploy
+
+The design above is now fully implemented in code, not deployed to production yet (holding for
+explicit Ship, per standing rule):
+
+- **Backend** (`functions/index.js`): `syncGigReportCountersOnCreate` (aggregates `gig_reports` →
+  `jobs.reportCount`/`status`), `adminModerateGig` callable (suspend/reinstate/ignore, transaction +
+  `job_moderation_log` audit write), `executeBanCascadeOnUserSuspend` (all 3 cascade steps above).
+- **Rules** (`firestore.rules`): owners/clients can no longer flip `jobs.status` to/from
+  reported/suspended or touch `reportCount`/`reportThreshold` directly; `job_moderation_log` is
+  admin-read-only, no client writes.
+- **Indexes** (`firestore.indexes.json`): `jobs` (status ASC, datePosted DESC) for the three tab
+  queries, `gig_reports` (jobId ASC, createdAt DESC) for the on-demand Reported-By fetch.
+- **Frontend** (`admin-dashboard.js`/`.html`): Posted/Reported/Suspended tabs, detail panel/overlay,
+  and Suspend/Reinstate/Ignore/Permanently-Delete buttons are wired to the functions above instead
+  of in-memory mock data. Search bar debounces (400ms) into `searchGigsByTitlePrefix`. Permanent
+  delete reuses the existing `deleteJob()` (photo/application/coin cleanup) rather than a new
+  function, since `firestore.rules` already lets `isAdmin()` hard-delete any job.
+- **Known gap, deliberately out of scope for this pass:** the "Contact" overlay's Send Message
+  button (desktop `contactGigBtn` / mobile `gigOverlayContactBtn`, always visible regardless of
+  gig status) is still non-functional (shows a toast, doesn't send anything) — it predates this
+  chapter and needs its own pass wired into the real messaging system (`messages.js`/Firestore
+  `chat_threads`), not a quick patch here. Tracked as its own task in
+  `docs/V1_HARDENING_TASKLIST.md` ("Wire 'Gig Moderation → Contact' admin messaging").
+  **Not to be confused with** the user-facing "Report Gig" button on the live gig detail page
+  (`dynamic-job.js` → `submitGigReportToAdmin()`) — that's a different, already fully-built and
+  confirmed-working feature that feeds `gig_reports` straight into this same Gig Moderation
+  system (see Chapter 1 above).
+
 ---
 
 ## User Management — resolved design (2026-07-26)

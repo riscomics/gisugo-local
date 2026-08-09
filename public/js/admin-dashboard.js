@@ -3429,10 +3429,125 @@ function showToast(message, type = 'success', duration = 1500) {
 }
 
 // ===== GIG MODERATION SYSTEM =====
+// Wired to real Firestore data (Admin Dashboard Phase 2, 2026-08-09). See
+// docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "Gig Moderation — resolved
+// design" for the Posted-is-a-glance / Reported+Suspended-are-live-queues
+// reasoning, and functions/index.js (syncGigReportCountersOnCreate,
+// adminModerateGig) for the backend half of this.
 
 let currentGigTab = 'posted'; // Track current tab: 'posted', 'reported', 'suspended'
-let currentGigData = null; // Track currently selected gig
-let allGigs = []; // Store all gig data
+let currentGigData = null; // Track currently selected gig (normalized shape, see normalizeGigForDisplay)
+let allGigs = []; // Currently-loaded gigs for the active tab only -- NOT the whole collection.
+let gigsPostedLastDoc = null; // Firestore cursor for Posted tab's "Load More" glance pagination
+let gigsPostedHasMore = false;
+let gigModerationActionInFlight = false; // Guards double-submits on Suspend/Reinstate/Ignore/Delete
+
+const GIG_MODERATION_FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">' +
+    '<circle cx="20" cy="20" r="20" fill="#ccd3dc"/>' +
+    '<circle cx="20" cy="16" r="7" fill="#ffffff"/>' +
+    '<path d="M6 36c0-9.4 6.3-15 14-15s14 5.6 14 15" fill="#ffffff"/>' +
+    '</svg>'
+);
+
+function formatGigTimestamp(ts) {
+    if (!ts) return '';
+    try {
+        const date = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+        });
+    } catch (_) {
+        return '';
+    }
+}
+
+// Handles both shapes seen on job docs: a plain "YYYY-MM-DD" string
+// (new-post2.js jobDate, no time component) and a Firestore Timestamp
+// (legacy scheduledDate). The plain string is parsed manually instead of
+// via `new Date(str)` -- that treats "YYYY-MM-DD" as UTC midnight, which
+// can silently roll back a day once localized in timezones behind UTC.
+function formatGigDateOnly(ts) {
+    if (!ts) return '';
+    try {
+        const plainDateMatch = typeof ts === 'string' && ts.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (plainDateMatch) {
+            const [, y, m, d] = plainDateMatch;
+            const date = new Date(Number(y), Number(m) - 1, Number(d));
+            return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+        const date = typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    } catch (_) {
+        return '';
+    }
+}
+
+// Extras are already pre-formatted "Label: Value" strings (see new-post2.js
+// createJobPostWithData) -- split once here so the existing 2-slot
+// EXTRA 1 / EXTRA 2 template markup can stay unchanged.
+function splitGigExtraString(str) {
+    const safe = String(str || '');
+    const idx = safe.indexOf(': ');
+    if (idx === -1) return { label: '', value: safe };
+    return { label: safe.slice(0, idx).toUpperCase() + ':', value: safe.slice(idx + 2) };
+}
+
+// Converts a raw jobs/{jobId} Firestore document into the flat shape the
+// existing card/panel/overlay templates already expect. This is the ONLY
+// place real field names (posterThumbnail, priceOffer, gigUseType,
+// scheduledDate, etc.) get translated -- keeps the rendering functions
+// below unchanged from their pre-Phase-2 shape as much as possible.
+function normalizeGigForDisplay(jobId, job) {
+    const data = job || {};
+    const hiredWorker = data.hiredWorkerId ? {
+        workerAvatar: data.hiredWorkerThumbnail || GIG_MODERATION_FALLBACK_AVATAR,
+        workerName: data.hiredWorkerName || 'Worker'
+    } : null;
+
+    const suspendedBy = (data.status === 'suspended' && data.suspendedByName) ? {
+        adminName: data.suspendedByName,
+        suspendDate: formatGigTimestamp(data.suspendedAt),
+        reason: data.suspendReason || ''
+    } : null;
+
+    return {
+        gigId: jobId,
+        posterId: data.posterId || '',
+        posterAvatar: data.posterThumbnail || GIG_MODERATION_FALLBACK_AVATAR,
+        posterName: data.posterName || 'Customer',
+        datePosted: formatGigTimestamp(data.datePosted),
+        category: data.category || 'uncategorized',
+        title: data.title || '(untitled gig)',
+        thumbnail: data.thumbnail || '',
+        // jobDate is the current (new-post2.js) field name -- a plain
+        // "YYYY-MM-DD" string. scheduledDate is a legacy/alternate name
+        // some older or relisted docs may still carry; kept as a fallback.
+        jobDate: formatGigDateOnly(data.jobDate || data.scheduledDate),
+        startTime: data.startTime || '',
+        endTime: data.endTime || '',
+        region: data.region || '',
+        city: data.city || '',
+        // No separate "locationDetails" field exists on the job doc -- the
+        // free-text barangay/general-area input (2026-08-03 barangay-removal
+        // decision) is stored as part of `extras` (e.g. "Pickup at: Marigondon"),
+        // rendered below via splitGigExtraString, not duplicated here.
+        extras: Array.isArray(data.extras) ? data.extras : [],
+        description: data.description || '',
+        price: (data.priceOffer !== undefined && data.priceOffer !== null) ? data.priceOffer : '',
+        gigUseType: data.gigUseType || 'Personal',
+        applicationCount: Number(data.applicationCount) || 0,
+        status: data.status || 'active',
+        reportCount: Number(data.reportCount) || 0,
+        hiredWorker,
+        suspendedBy,
+        // Populated on demand (async) only when the detail panel/overlay for
+        // this specific gig is opened -- see loadGigReportsIntoCurrentGig().
+        reportedBy: []
+    };
+}
 
 function initializeGigModeration() {
     console.log('🛡️ Initializing Gig Moderation system');
@@ -3442,6 +3557,9 @@ function initializeGigModeration() {
     
     // Initialize search
     initializeGigSearch();
+
+    // Initialize Load More (Posted tab glance pagination)
+    initializeGigLoadMore();
     
     // Initialize action buttons (desktop)
     initializeGigActions();
@@ -3485,6 +3603,11 @@ function switchGigTab(tabType) {
     
     // Clear detail view
     clearGigDetail();
+
+    // A stale search query would otherwise silently keep filtering after
+    // switching tabs -- clear it so the tab shows its normal full view.
+    const searchInput = document.getElementById('gigsSearchInput');
+    if (searchInput) searchInput.value = '';
     
     // Load gigs for this tab
     loadGigCards(tabType);
@@ -3498,60 +3621,108 @@ function switchGigTab(tabType) {
     }, 0);
 }
 
-function loadGigCards(tabType) {
+async function loadGigCards(tabType, options = {}) {
     const gigCardsList = document.getElementById('gigCardsList');
     if (!gigCardsList) return;
-    
-    // Filter gigs by tab type
-    let filteredGigs;
-    
-    if (tabType === 'reported') {
-        // Show gigs that are reported AND meet threshold
-        filteredGigs = allGigs.filter(gig => 
-            gig.reportedBy && 
-            gig.reportedBy.length > 0 && 
-            gig.reportCount >= gig.reportThreshold &&
-            gig.status !== 'suspended' // Don't show suspended gigs in reported tab
-        );
-    } else if (tabType === 'suspended') {
-        // Show only suspended gigs
-        filteredGigs = allGigs.filter(gig => gig.status === 'suspended');
-    } else {
-        // Posted tab: show all posted gigs (including reported ones that are still live)
-        filteredGigs = allGigs.filter(gig => gig.status === 'posted' && (!gig.reportedBy || gig.reportedBy.length === 0));
+
+    const append = options.append === true;
+    const loadingIndicator = document.getElementById('gigsLoading');
+    const loadMoreBtn = document.getElementById('loadMoreGigsBtn');
+
+    if (!append) {
+        gigCardsList.innerHTML = '<div class="gig-cards-empty-loading" style="padding:2rem;text-align:center;color:#a0aec0;">Loading gigs…</div>';
+        clearGigDetail();
     }
-    
-    // Update tab counts
-    updateTabCounts();
-    
-    // Generate HTML
-    gigCardsList.innerHTML = filteredGigs.map(gig => generateGigCardHTML(gig)).join('');
-    
-    // Update stats
-    const gigsStats = document.getElementById('gigsStats');
-    if (gigsStats) {
-        gigsStats.textContent = `Showing ${filteredGigs.length} gigs`;
+    if (loadingIndicator) loadingIndicator.style.display = append ? 'block' : 'none';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+
+    try {
+        let fetchedGigs = [];
+
+        if (tabType === 'reported') {
+            const results = (typeof getGigModerationReported === 'function')
+                ? await getGigModerationReported()
+                : [];
+            fetchedGigs = results.map(r => normalizeGigForDisplay(r.id, r.data));
+            gigsPostedHasMore = false;
+        } else if (tabType === 'suspended') {
+            const results = (typeof getGigModerationSuspended === 'function')
+                ? await getGigModerationSuspended()
+                : [];
+            fetchedGigs = results.map(r => normalizeGigForDisplay(r.id, r.data));
+            gigsPostedHasMore = false;
+        } else {
+            // Posted tab: "glance" pattern -- newest batch, optional Load More,
+            // no gap-guarantee. See architecture study for why this is
+            // deliberate, not a shortcut.
+            const startAfter = append ? gigsPostedLastDoc : null;
+            const result = (typeof getGigModerationPosted === 'function')
+                ? await getGigModerationPosted(startAfter)
+                : { jobs: [], lastDoc: null, hasMore: false };
+            const normalized = result.jobs.map(r => normalizeGigForDisplay(r.id, r.data));
+            fetchedGigs = append ? [...allGigs, ...normalized] : normalized;
+            gigsPostedLastDoc = result.lastDoc;
+            gigsPostedHasMore = result.hasMore;
+        }
+
+        allGigs = fetchedGigs;
+        currentGigTab = tabType;
+
+        // Update tab counts (Reported/Suspended are exact since those queues
+        // are fully loaded; Posted count reflects only what's been fetched so
+        // far -- see updateTabCounts()).
+        updateTabCounts();
+
+        if (allGigs.length === 0) {
+            gigCardsList.innerHTML = '<div class="gig-cards-empty" style="padding:2rem;text-align:center;color:#a0aec0;">No gigs here right now.</div>';
+        } else {
+            gigCardsList.innerHTML = allGigs.map(gig => generateGigCardHTML(gig)).join('');
+        }
+
+        const gigsStats = document.getElementById('gigsStats');
+        if (gigsStats) {
+            gigsStats.textContent = `Showing ${allGigs.length} gig${allGigs.length === 1 ? '' : 's'}`;
+        }
+
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = (tabType === 'posted' && gigsPostedHasMore) ? 'inline-block' : 'none';
+        }
+
+        attachGigCardHandlers();
+    } catch (error) {
+        console.error('❌ Error loading gig moderation cards:', error);
+        gigCardsList.innerHTML = '<div class="gig-cards-empty" style="padding:2rem;text-align:center;color:#e53e3e;">Could not load gigs. Try refreshing.</div>';
+    } finally {
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
     }
-    
-    // Attach click handlers
-    attachGigCardHandlers();
+}
+
+function initializeGigLoadMore() {
+    document.getElementById('loadMoreGigsBtn')?.addEventListener('click', function () {
+        if (currentGigTab === 'posted') {
+            loadGigCards('posted', { append: true });
+        }
+    });
 }
 
 function generateGigCardHTML(gig) {
+    const safeTitle = escapeHtml(gig.title || '');
+    const safeThumb = escapeHtml(gig.thumbnail || GIG_MODERATION_FALLBACK_AVATAR);
+    const priceLabel = gig.price !== '' ? `₱${gig.price}` : '₱—';
     return `
         <div class="gig-card" data-gig-id="${gig.gigId}" data-poster-id="${gig.posterId}">
             <div class="gig-thumbnail">
-                <img src="${gig.thumbnail}" alt="${gig.title}">
+                <img src="${safeThumb}" alt="${safeTitle}">
             </div>
             <div class="gig-card-content">
-                <div class="gig-card-title">${gig.title}</div>
+                <div class="gig-card-title">${safeTitle}</div>
                 <div class="gig-card-meta">
                     <div class="gig-card-schedule">
-                        <span class="gig-card-date">📅 ${gig.jobDate}</span>
-                        <span class="gig-card-time">🕐 ${gig.startTime} - ${gig.endTime}</span>
+                        <span class="gig-card-date">📅 ${escapeHtml(gig.jobDate || '—')}</span>
+                        <span class="gig-card-time">🕐 ${escapeHtml(gig.startTime || '—')} - ${escapeHtml(gig.endTime || '—')}</span>
                     </div>
-                    <div class="gig-card-price">₱${gig.price} (${gig.payRate})</div>
-                    <div class="gig-card-posted">Posted ${gig.datePosted} • ${gig.applicationCount} applicants</div>
+                    <div class="gig-card-price">${priceLabel} (${escapeHtml(gig.gigUseType || 'Personal')})</div>
+                    <div class="gig-card-posted">Posted ${escapeHtml(gig.datePosted || '—')} • ${gig.applicationCount} applicants</div>
                 </div>
             </div>
         </div>
@@ -3589,6 +3760,37 @@ function loadGigDetails(gigId) {
         // Desktop: Populate right panel
         populateGigDetailPanel(gig);
     }
+
+    // "Reported By" list is fetched on demand (not stored on the job doc) --
+    // only relevant for reported/suspended gigs, but harmless to skip
+    // otherwise since gig_reports would just come back empty.
+    if (gig.status === 'reported' || gig.status === 'suspended') {
+        loadGigReportsIntoCurrentGig(gigId);
+    }
+}
+
+async function loadGigReportsIntoCurrentGig(gigId) {
+    if (typeof getGigReportsForJob !== 'function') return;
+    try {
+        const reports = await getGigReportsForJob(gigId);
+        // Guard against the admin having clicked to a different gig while this was in flight.
+        if (!currentGigData || currentGigData.gigId !== gigId) return;
+        currentGigData.reportedBy = reports.map(r => ({
+            reporterName: r.reporterName || 'A user',
+            reporterAvatar: r.reporterAvatar || GIG_MODERATION_FALLBACK_AVATAR,
+            reportDate: formatGigTimestamp(r.createdAt),
+            subject: r.subject || '',
+            message: r.message || ''
+        }));
+        // Re-render whichever view is currently showing this gig.
+        if (window.innerWidth <= 887) {
+            showGigOverlay(currentGigData);
+        } else {
+            populateGigDetailPanel(currentGigData);
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not load gig reports for detail panel:', error);
+    }
 }
 
 function populateGigDetailPanel(gig) {
@@ -3617,7 +3819,7 @@ function populateGigDetailPanel(gig) {
     document.getElementById('gigPostedTime').textContent = `Posted ${gig.datePosted}`;
     
     // Populate body
-    document.getElementById('gigCategory').textContent = gig.category.toUpperCase();
+    document.getElementById('gigCategory').textContent = (gig.category || '').toUpperCase();
     document.getElementById('gigTitle').textContent = gig.title;
     
     // Photo
@@ -3631,21 +3833,27 @@ function populateGigDetailPanel(gig) {
     }
     
     // Info fields
-    document.getElementById('gigDate').textContent = gig.jobDate;
-    document.getElementById('gigTime').textContent = `${gig.startTime} - ${gig.endTime}`;
-    document.getElementById('gigRegion').textContent = gig.region;
-    document.getElementById('gigCity').textContent = gig.city;
+    document.getElementById('gigDate').textContent = gig.jobDate || '—';
+    document.getElementById('gigTime').textContent = gig.startTime ? `${gig.startTime} - ${gig.endTime}` : '—';
+    document.getElementById('gigRegion').textContent = gig.region || '—';
+    document.getElementById('gigCity').textContent = gig.city || '—';
     
-    // Extras (category-specific)
+    // Extras -- already pre-formatted "Label: Value" strings (new-post2.js),
+    // split here to reuse the existing 2-slot EXTRA 1 / EXTRA 2 markup.
     const extrasRow = document.getElementById('gigExtrasRow');
-    if (gig.extras && Object.keys(gig.extras).length > 0) {
-        const extraKeys = Object.keys(gig.extras);
-        document.getElementById('gigExtra1Label').textContent = extraKeys[0]?.toUpperCase() + ':' || 'EXTRA 1:';
-        document.getElementById('gigExtra1Value').textContent = gig.extras[extraKeys[0]] || 'N/A';
-        
-        if (extraKeys[1]) {
-            document.getElementById('gigExtra2Label').textContent = extraKeys[1]?.toUpperCase() + ':' || 'EXTRA 2:';
-            document.getElementById('gigExtra2Value').textContent = gig.extras[extraKeys[1]] || 'N/A';
+    if (gig.extras && gig.extras.length > 0) {
+        const extra1 = splitGigExtraString(gig.extras[0]);
+        document.getElementById('gigExtra1Label').textContent = extra1.label || 'DETAIL:';
+        document.getElementById('gigExtra1Value').textContent = extra1.value || 'N/A';
+
+        const extra2El = document.getElementById('gigExtra2Label');
+        if (gig.extras[1]) {
+            const extra2 = splitGigExtraString(gig.extras[1]);
+            extra2El.textContent = extra2.label || 'DETAIL:';
+            document.getElementById('gigExtra2Value').textContent = extra2.value || 'N/A';
+            extra2El.parentElement.style.display = '';
+        } else if (extra2El) {
+            extra2El.parentElement.style.display = 'none';
         }
         extrasRow.style.display = 'grid';
     } else {
@@ -3653,11 +3861,11 @@ function populateGigDetailPanel(gig) {
     }
     
     // Description
-    document.getElementById('gigDescription').textContent = gig.description;
+    document.getElementById('gigDescription').textContent = gig.description || '';
     
     // Payment
-    document.getElementById('gigPrice').textContent = `₱${gig.price}`;
-    document.getElementById('gigPayRate').textContent = gig.payRate;
+    document.getElementById('gigPrice').textContent = gig.price !== '' ? `₱${gig.price}` : '₱—';
+    document.getElementById('gigPayRate').textContent = gig.gigUseType || 'Personal';
     
     // Hired worker
     const hiredWorkerInfo = document.getElementById('hiredWorkerInfo');
@@ -3675,20 +3883,27 @@ function populateGigDetailPanel(gig) {
     // Reported By section (for reported and suspended gigs)
     const reportedBySection = document.getElementById('reportedBySection');
     const reportedByInfo = document.getElementById('reportedByInfo');
-    if (gig.reportedBy && gig.reportedBy.length > 0) {
-        const firstReporter = gig.reportedBy[0];
-        const additionalCount = gig.reportedBy.length - 1;
-        const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
-        
-        reportedByInfo.innerHTML = `
-            <div class="reported-by-profile">
-                <img src="${firstReporter.reporterAvatar}" alt="${firstReporter.reporterName}" class="reporter-avatar">
-                <div class="reporter-details">
-                    <span class="reporter-name">${firstReporter.reporterName}${countBadge}</span>
-                    <span class="report-date">${firstReporter.reportDate}</span>
+    if (gig.status === 'reported' || gig.status === 'suspended') {
+        if (gig.reportedBy && gig.reportedBy.length > 0) {
+            const firstReporter = gig.reportedBy[0];
+            const additionalCount = gig.reportedBy.length - 1;
+            const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
+
+            reportedByInfo.innerHTML = `
+                <div class="reported-by-profile">
+                    <img src="${escapeHtml(firstReporter.reporterAvatar)}" alt="${escapeHtml(firstReporter.reporterName)}" class="reporter-avatar">
+                    <div class="reporter-details">
+                        <span class="reporter-name">${escapeHtml(firstReporter.reporterName)}${countBadge}</span>
+                        <span class="report-date">${escapeHtml(firstReporter.reportDate)}</span>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            // reportCount is authoritative and known immediately; the
+            // per-reporter list is fetched async (see loadGigReportsIntoCurrentGig)
+            // and may not have resolved yet, or gig_reports lookup failed.
+            reportedByInfo.innerHTML = `<div class="reported-by-loading">${gig.reportCount || 0} report${gig.reportCount === 1 ? '' : 's'} — loading details…</div>`;
+        }
         reportedBySection.style.display = 'block';
     } else {
         reportedBySection.style.display = 'none';
@@ -3698,12 +3913,16 @@ function populateGigDetailPanel(gig) {
     const suspendedBySection = document.getElementById('suspendedBySection');
     const suspendedByInfo = document.getElementById('suspendedByInfo');
     if (gig.status === 'suspended' && gig.suspendedBy) {
+        const reasonLine = gig.suspendedBy.reason
+            ? `<span class="suspend-reason">Reason: ${escapeHtml(gig.suspendedBy.reason)}</span>`
+            : '';
         suspendedByInfo.innerHTML = `
             <div class="suspended-by-profile">
-                <img src="${gig.suspendedBy.adminAvatar}" alt="${gig.suspendedBy.adminName}" class="admin-avatar">
+                <img src="${GIG_MODERATION_FALLBACK_AVATAR}" alt="${escapeHtml(gig.suspendedBy.adminName)}" class="admin-avatar">
                 <div class="admin-details">
-                    <span class="admin-name">${gig.suspendedBy.adminName}</span>
-                    <span class="suspend-date">${gig.suspendedBy.suspendDate}</span>
+                    <span class="admin-name">${escapeHtml(gig.suspendedBy.adminName)}</span>
+                    <span class="suspend-date">${escapeHtml(gig.suspendedBy.suspendDate)}</span>
+                    ${reasonLine}
                 </div>
             </div>
         `;
@@ -3712,7 +3931,9 @@ function populateGigDetailPanel(gig) {
         suspendedBySection.style.display = 'none';
     }
     
-    // Update action buttons based on gig status
+    // Update action buttons based on gig status. Keyed off gig.status
+    // directly (not the async-loaded reportedBy list) since status is
+    // known immediately, before the on-demand gig_reports fetch resolves.
     const suspendBtn = document.getElementById('suspendGigBtn');
     const relistBtn = document.getElementById('relistGigBtn');
     const closeBtn = document.getElementById('closeGigBtn');
@@ -3728,7 +3949,7 @@ function populateGigDetailPanel(gig) {
         if (closeBtn) closeBtn.style.display = 'inline-block';
         if (bigSuspendSection) bigSuspendSection.style.display = 'none';
         if (permDeleteSection) permDeleteSection.style.display = 'block';
-    } else if (gig.reportedBy && gig.reportedBy.length > 0) {
+    } else if (gig.status === 'reported') {
         // Reported: Hide SUSPEND, Show IGNORE/CLOSE, Show BIG SUSPEND section, Hide PERM DELETE
         if (suspendBtn) suspendBtn.style.display = 'none';
         if (ignoreBtn) ignoreBtn.style.display = 'inline-block';
@@ -3817,44 +4038,26 @@ function hideSuspendConfirmation() {
     }
 }
 
-function confirmSuspendGig() {
-    if (!currentGigData) return;
-    
-    // Update gig status
-    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
-    if (gig) {
-        gig.status = 'suspended';
-        
-        // Add suspended by info (current admin user)
-        const now = new Date();
-        gig.suspendedBy = {
-            adminId: 'admin001',
-            adminName: 'Admin Maria Garcia',
-            adminAvatar: 'public/users/User-01.jpg',
-            suspendDate: now.toLocaleString('en-US', { 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric', 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-            })
-        };
-    }
-    
-    // Hide confirmation
+async function confirmSuspendGig() {
+    if (!currentGigData || gigModerationActionInFlight) return;
+    const gigId = currentGigData.gigId;
+    gigModerationActionInFlight = true;
+
+    const result = await callAdminModerateGig(gigId, 'suspend');
+
+    gigModerationActionInFlight = false;
     hideSuspendConfirmation();
-    
-    // Close detail view
+
+    if (!result.success) {
+        showToast(result.message || 'Could not suspend gig', 'error');
+        console.error('❌ Suspend failed:', result.message);
+        return;
+    }
+
     clearGigDetail();
-    
-    // Reload current tab
     loadGigCards(currentGigTab);
-    
-    // Show toast
     showToast('Gig suspended successfully', 'success');
-    
-    console.log(`🚫 Gig ${currentGigData.gigId} suspended`);
+    console.log(`🚫 Gig ${gigId} suspended`);
 }
 
 function handleRelistGig() {
@@ -3885,31 +4088,26 @@ function hideRelistConfirmation() {
     }
 }
 
-function confirmRelistGig() {
-    if (!currentGigData) return;
-    
-    // Update gig status
-    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
-    if (gig) {
-        gig.status = 'posted';
-        
-        // Remove suspended by info
-        delete gig.suspendedBy;
-    }
-    
-    // Hide confirmation
+async function confirmRelistGig() {
+    if (!currentGigData || gigModerationActionInFlight) return;
+    const gigId = currentGigData.gigId;
+    gigModerationActionInFlight = true;
+
+    const result = await callAdminModerateGig(gigId, 'reinstate');
+
+    gigModerationActionInFlight = false;
     hideRelistConfirmation();
-    
-    // Close detail view
+
+    if (!result.success) {
+        showToast(result.message || 'Could not relist gig', 'error');
+        console.error('❌ Reinstate failed:', result.message);
+        return;
+    }
+
     clearGigDetail();
-    
-    // Reload current tab
     loadGigCards(currentGigTab);
-    
-    // Show toast
     showToast('Gig relisted successfully', 'success');
-    
-    console.log(`✅ Gig ${currentGigData.gigId} relisted`);
+    console.log(`✅ Gig ${gigId} relisted`);
 }
 
 function handleIgnoreGig() {
@@ -3940,45 +4138,26 @@ function hideIgnoreConfirmation() {
     }
 }
 
-function confirmIgnoreGig() {
-    if (!currentGigData) return;
-    
-    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
-    if (gig) {
-        // Add ignore record
-        const now = new Date();
-        gig.ignoredBy.push({
-            adminId: 'admin001',
-            adminName: 'Admin Maria Garcia',
-            adminAvatar: 'public/users/User-01.jpg',
-            ignoreDate: now.toLocaleString('en-US', { 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric', 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-            }),
-            reportCountAtIgnore: gig.reportCount
-        });
-        
-        // Set new threshold: current count + 10
-        gig.reportThreshold = gig.reportCount + 10;
-    }
-    
-    // Hide confirmation overlay
+async function confirmIgnoreGig() {
+    if (!currentGigData || gigModerationActionInFlight) return;
+    const gigId = currentGigData.gigId;
+    gigModerationActionInFlight = true;
+
+    const result = await callAdminModerateGig(gigId, 'ignore');
+
+    gigModerationActionInFlight = false;
     hideIgnoreConfirmation();
-    
-    // Close detail view
+
+    if (!result.success) {
+        showToast(result.message || 'Could not ignore reports', 'error');
+        console.error('❌ Ignore failed:', result.message);
+        return;
+    }
+
     clearGigDetail();
-    
-    // Reload Reported tab
     loadGigCards('reported');
-    
-    // Show toast
     showToast('Reports ignored. Gig will reappear after 10 more unique reports.', 'success');
-    
-    console.log(`🙈 Gig ${currentGigData.gigId} ignored`);
+    console.log(`🙈 Gig ${gigId} ignored`);
 }
 
 function handleDeleteGig() {
@@ -4016,28 +4195,33 @@ function hideDeleteConfirmation() {
     }
 }
 
-function confirmDeleteGig() {
-    if (!currentGigData) return;
-    
-    // Remove from allGigs array
-    const index = allGigs.findIndex(g => g.gigId === currentGigData.gigId);
-    if (index !== -1) {
-        allGigs.splice(index, 1);
-    }
-    
-    // Hide confirmation overlay
+async function confirmDeleteGig() {
+    if (!currentGigData || gigModerationActionInFlight) return;
+    const gigId = currentGigData.gigId;
+    gigModerationActionInFlight = true;
+
+    // Reuses the same battle-tested deleteJob() the gig owner's own listing
+    // deletion flow uses (firebase-db.js) -- photo cleanup, application
+    // cleanup + coin release, audit log, then the Firestore delete itself.
+    // Works for an admin here because firestore.rules already allows
+    // isAdmin() on jobs delete (no new Cloud Function needed for this one).
+    const result = (typeof deleteJob === 'function')
+        ? await deleteJob(gigId)
+        : { success: false, message: 'deleteJob() unavailable' };
+
+    gigModerationActionInFlight = false;
     hideDeleteConfirmation();
-    
-    // Close detail view
+
+    if (!result.success) {
+        showToast(result.message || 'Could not delete gig', 'error');
+        console.error('❌ Permanent delete failed:', result.message);
+        return;
+    }
+
     clearGigDetail();
-    
-    // Reload Suspended tab
     loadGigCards('suspended');
-    
-    // Show toast
     showToast('Gig permanently deleted from database', 'success');
-    
-    console.log(`🗑️ Gig ${currentGigData.gigId} permanently deleted`);
+    console.log(`🗑️ Gig ${gigId} permanently deleted`);
 }
 
 function handleContactGig() {
@@ -4258,8 +4442,8 @@ function showGigOverlay(gig) {
     // Populate header info
     document.getElementById('gigOverlayPosterAvatar').src = gig.posterAvatar;
     document.getElementById('gigOverlayPosterName').textContent = gig.posterName;
-    document.getElementById('gigOverlayPostedTime').textContent = `Posted ${gig.datePosted}`;
-    document.getElementById('gigOverlayCategory').textContent = gig.category.toUpperCase();
+    document.getElementById('gigOverlayPostedTime').textContent = `Posted ${gig.datePosted || '—'}`;
+    document.getElementById('gigOverlayCategory').textContent = (gig.category || '').toUpperCase();
     
     // Generate content (body only, without header)
     overlayBody.innerHTML = generateGigOverlayContent(gig);
@@ -4282,7 +4466,8 @@ function showGigOverlay(gig) {
         });
     }
     
-    // Update action buttons based on gig status
+    // Update action buttons based on gig status (keyed off gig.status
+    // directly, same reasoning as the desktop panel above).
     const overlaySuspendBtn = document.getElementById('gigOverlaySuspendBtn');
     const overlayIgnoreBtn = document.getElementById('gigOverlayIgnoreBtn');
     const overlayRelistBtn = document.getElementById('gigOverlayRelistBtn');
@@ -4294,7 +4479,7 @@ function showGigOverlay(gig) {
         if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'none';
         if (overlayRelistBtn) overlayRelistBtn.style.display = 'inline-block';
         if (overlayCloseBtn) overlayCloseBtn.style.display = 'inline-block';
-    } else if (gig.reportedBy && gig.reportedBy.length > 0) {
+    } else if (gig.status === 'reported') {
         // Reported: Hide SUSPEND, Show IGNORE/CLOSE
         if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'none';
         if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'inline-block';
@@ -4329,54 +4514,64 @@ function hideGigOverlay() {
 }
 
 function generateGigOverlayContent(gig) {
+    // Extras are already pre-formatted "Label: Value" strings (new-post2.js).
     let extrasHTML = '';
-    if (gig.extras && Object.keys(gig.extras).length > 0) {
-        extrasHTML = Object.entries(gig.extras).map(([key, value]) => `
+    if (gig.extras && gig.extras.length > 0) {
+        extrasHTML = gig.extras.map((extraStr) => {
+            const { label, value } = splitGigExtraString(extraStr);
+            return `
             <div class="gig-info-item">
-                <div class="gig-info-label">${key.toUpperCase()}:</div>
-                <div class="gig-info-value">${value}</div>
+                <div class="gig-info-label">${escapeHtml(label || 'DETAIL:')}</div>
+                <div class="gig-info-value">${escapeHtml(value)}</div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
     
     let hiredWorkerHTML = '';
     if (gig.hiredWorker) {
         hiredWorkerHTML = `
             <div class="hired-worker-profile">
-                <img src="${gig.hiredWorker.workerAvatar}" alt="${gig.hiredWorker.workerName}" class="hired-worker-avatar">
-                <span class="hired-worker-name">${gig.hiredWorker.workerName}</span>
+                <img src="${escapeHtml(gig.hiredWorker.workerAvatar)}" alt="${escapeHtml(gig.hiredWorker.workerName)}" class="hired-worker-avatar">
+                <span class="hired-worker-name">${escapeHtml(gig.hiredWorker.workerName)}</span>
             </div>
         `;
     } else {
         hiredWorkerHTML = '<div class="no-hired-worker">This Gig has no hired worker.</div>';
     }
     
-    // Reported By HTML (for reported and suspended gigs)
+    // Reported By HTML (for reported and suspended gigs). Per-reporter list
+    // is fetched on demand (loadGigReportsIntoCurrentGig) -- reportCount is
+    // known immediately and shown as a fallback while that resolves.
     let reportedByHTML = '';
-    if (gig.reportedBy && gig.reportedBy.length > 0) {
-        const firstReporter = gig.reportedBy[0];
-        const additionalCount = gig.reportedBy.length - 1;
-        const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
-        
+    if (gig.status === 'reported' || gig.status === 'suspended') {
+        let bodyHTML;
+        if (gig.reportedBy && gig.reportedBy.length > 0) {
+            const firstReporter = gig.reportedBy[0];
+            const additionalCount = gig.reportedBy.length - 1;
+            const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
+            bodyHTML = `
+                    <div class="reported-by-profile">
+                        <img src="${escapeHtml(firstReporter.reporterAvatar)}" alt="${escapeHtml(firstReporter.reporterName)}" class="reporter-avatar">
+                        <div class="reporter-details">
+                            <span class="reporter-name">${escapeHtml(firstReporter.reporterName)}${countBadge}</span>
+                            <span class="report-date">${escapeHtml(firstReporter.reportDate)}</span>
+                        </div>
+                    </div>`;
+        } else {
+            bodyHTML = `<div class="reported-by-loading">${gig.reportCount || 0} report${gig.reportCount === 1 ? '' : 's'} — loading details…</div>`;
+        }
         reportedByHTML = `
             <div class="reported-by-section">
                 <div class="reported-by-label">REPORTED BY:</div>
-                <div class="reported-by-info">
-                    <div class="reported-by-profile">
-                        <img src="${firstReporter.reporterAvatar}" alt="${firstReporter.reporterName}" class="reporter-avatar">
-                        <div class="reporter-details">
-                            <span class="reporter-name">${firstReporter.reporterName}${countBadge}</span>
-                            <span class="report-date">${firstReporter.reportDate}</span>
-                        </div>
-                    </div>
-                </div>
+                <div class="reported-by-info">${bodyHTML}</div>
             </div>
         `;
     }
     
     // Big Suspend HTML (for reported gigs only)
     let bigSuspendHTML = '';
-    if (gig.reportedBy && gig.reportedBy.length > 0 && gig.status !== 'suspended') {
+    if (gig.status === 'reported') {
         bigSuspendHTML = `
             <div class="big-suspend-section">
                 <div class="big-suspend-warning">
@@ -4393,15 +4588,19 @@ function generateGigOverlayContent(gig) {
     // Suspended By HTML (for suspended gigs)
     let suspendedByHTML = '';
     if (gig.status === 'suspended' && gig.suspendedBy) {
+        const reasonLine = gig.suspendedBy.reason
+            ? `<span class="suspend-reason">Reason: ${escapeHtml(gig.suspendedBy.reason)}</span>`
+            : '';
         suspendedByHTML = `
             <div class="suspended-by-section">
                 <div class="suspended-by-label">SUSPENDED BY:</div>
                 <div class="suspended-by-info">
                     <div class="suspended-by-profile">
-                        <img src="${gig.suspendedBy.adminAvatar}" alt="${gig.suspendedBy.adminName}" class="admin-avatar">
+                        <img src="${GIG_MODERATION_FALLBACK_AVATAR}" alt="${escapeHtml(gig.suspendedBy.adminName)}" class="admin-avatar">
                         <div class="admin-details">
-                            <span class="admin-name">${gig.suspendedBy.adminName}</span>
-                            <span class="suspend-date">${gig.suspendedBy.suspendDate}</span>
+                            <span class="admin-name">${escapeHtml(gig.suspendedBy.adminName)}</span>
+                            <span class="suspend-date">${escapeHtml(gig.suspendedBy.suspendDate)}</span>
+                            ${reasonLine}
                         </div>
                     </div>
                 </div>
@@ -4427,11 +4626,11 @@ function generateGigOverlayContent(gig) {
     
     return `
         <div class="gig-overlay-body-content">
-            <div class="gig-title">${gig.title}</div>
+            <div class="gig-title">${escapeHtml(gig.title)}</div>
             
             ${gig.thumbnail ? `
                 <div class="gig-photo-container">
-                    <img src="${gig.thumbnail}" alt="Gig Photo" class="gig-photo">
+                    <img src="${escapeHtml(gig.thumbnail)}" alt="Gig Photo" class="gig-photo">
                 </div>
             ` : ''}
             
@@ -4439,21 +4638,21 @@ function generateGigOverlayContent(gig) {
                 <div class="gig-info-row">
                     <div class="gig-info-item">
                         <div class="gig-info-label">DATE:</div>
-                        <div class="gig-info-value">${gig.jobDate}</div>
+                        <div class="gig-info-value">${escapeHtml(gig.jobDate || '—')}</div>
                     </div>
                     <div class="gig-info-item">
                         <div class="gig-info-label">TIME:</div>
-                        <div class="gig-info-value">${gig.startTime} - ${gig.endTime}</div>
+                        <div class="gig-info-value">${gig.startTime ? `${escapeHtml(gig.startTime)} - ${escapeHtml(gig.endTime)}` : '—'}</div>
                     </div>
                 </div>
                 <div class="gig-info-row">
                     <div class="gig-info-item">
                         <div class="gig-info-label">REGION:</div>
-                        <div class="gig-info-value">${gig.region}</div>
+                        <div class="gig-info-value">${escapeHtml(gig.region || '—')}</div>
                     </div>
                     <div class="gig-info-item">
                         <div class="gig-info-label">CITY:</div>
-                        <div class="gig-info-value">${gig.city}</div>
+                        <div class="gig-info-value">${escapeHtml(gig.city || '—')}</div>
                     </div>
                 </div>
                 ${extrasHTML ? `<div class="gig-info-row">${extrasHTML}</div>` : ''}
@@ -4461,18 +4660,18 @@ function generateGigOverlayContent(gig) {
             
             <div class="gig-description-section">
                 <div class="gig-description-label">DETAILS:</div>
-                <div class="gig-description-text">${gig.description}</div>
+                <div class="gig-description-text">${escapeHtml(gig.description)}</div>
             </div>
             
             <div class="gig-payment-section">
                 <div class="gig-payment-row">
                     <div class="gig-payment-item">
                         <div class="gig-payment-label">PRICE:</div>
-                        <div class="gig-payment-value">₱${gig.price}</div>
+                        <div class="gig-payment-value">${gig.price !== '' ? `₱${gig.price}` : '₱—'}</div>
                     </div>
                     <div class="gig-payment-item">
-                        <div class="gig-payment-label">PAY RATE:</div>
-                        <div class="gig-payment-value">${gig.payRate}</div>
+                        <div class="gig-payment-label">GIG TYPE:</div>
+                        <div class="gig-payment-value">${escapeHtml(gig.gigUseType || 'Personal')}</div>
                     </div>
                 </div>
             </div>
@@ -4490,78 +4689,88 @@ function generateGigOverlayContent(gig) {
     `;
 }
 
+let gigSearchDebounceTimer = null;
+
 function initializeGigSearch() {
     const searchInput = document.getElementById('gigsSearchInput');
     
     if (searchInput) {
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
+                clearTimeout(gigSearchDebounceTimer);
                 performGigSearch();
             }
         });
         
-        // Real-time search on input
-        searchInput.addEventListener('input', performGigSearch);
+        // Debounced so every keystroke doesn't fire a Firestore read.
+        searchInput.addEventListener('input', function() {
+            clearTimeout(gigSearchDebounceTimer);
+            gigSearchDebounceTimer = setTimeout(performGigSearch, 400);
+        });
     }
 }
 
-function performGigSearch() {
-    const query = document.getElementById('gigsSearchInput')?.value.toLowerCase().trim();
-    
-    if (!query) {
-        // If empty, show all gigs for current tab
+// Server-side prefix search across ALL gigs (any status) by title, so an
+// admin can find something they spotted live even if it's not in the
+// currently-loaded tab page. See searchGigsByTitlePrefix in firebase-db.js.
+async function performGigSearch() {
+    const rawQuery = document.getElementById('gigsSearchInput')?.value.trim() || '';
+    const gigCardsList = document.getElementById('gigCardsList');
+    if (!gigCardsList) return;
+
+    if (!rawQuery) {
+        // Empty box: back to the normal tab view.
         loadGigCards(currentGigTab);
         return;
     }
-    
-    // Filter gigs by current tab AND search query
-    const filteredGigs = allGigs.filter(gig => {
-        const matchesTab = gig.status === currentGigTab;
-        const matchesQuery = 
-            gig.title.toLowerCase().includes(query) ||
-            gig.description.toLowerCase().includes(query) ||
-            gig.posterName.toLowerCase().includes(query) ||
-            gig.category.toLowerCase().includes(query);
-        
-        return matchesTab && matchesQuery;
-    });
-    
-    // Render filtered results
-    const gigCardsList = document.getElementById('gigCardsList');
-    if (gigCardsList) {
-        if (filteredGigs.length === 0) {
+
+    gigCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">Searching…</div>';
+
+    try {
+        const results = (typeof searchGigsByTitlePrefix === 'function')
+            ? await searchGigsByTitlePrefix(rawQuery)
+            : [];
+        const searchedGigs = results.map(r => normalizeGigForDisplay(r.id, r.data));
+
+        // Swap allGigs so clicking a result still works via attachGigCardHandlers/loadGigDetails.
+        allGigs = searchedGigs;
+
+        if (searchedGigs.length === 0) {
             gigCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">No gigs found matching your search.</div>';
         } else {
-            gigCardsList.innerHTML = filteredGigs.map(gig => generateGigCardHTML(gig)).join('');
+            gigCardsList.innerHTML = searchedGigs.map(gig => generateGigCardHTML(gig)).join('');
             attachGigCardHandlers();
         }
-        
-        // Update stats
+
         const gigsStats = document.getElementById('gigsStats');
         if (gigsStats) {
-            gigsStats.textContent = `Showing ${filteredGigs.length} of ${allGigs.filter(g => g.status === currentGigTab).length} gigs`;
+            gigsStats.textContent = `Found ${searchedGigs.length} gig${searchedGigs.length === 1 ? '' : 's'} matching "${rawQuery}"`;
         }
+
+        const loadMoreBtn = document.getElementById('loadMoreGigsBtn');
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    } catch (error) {
+        console.error('❌ Gig search failed:', error);
+        gigCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #e53e3e;">Search failed. Try again.</div>';
     }
 }
 
+// Reported/Suspended counts reflect the fully-loaded queue for that tab.
+// Posted count reflects only what's been fetched so far this session (that
+// tab paginates via Load More) -- an approximation, not the true live total,
+// which is an accepted tradeoff to avoid a separate always-on counter read.
 function updateTabCounts() {
-    // Posted: gigs that are posted and not reported
-    const postedCount = allGigs.filter(g => g.status === 'posted' && (!g.reportedBy || g.reportedBy.length === 0)).length;
-    
-    // Reported: gigs with reports that meet threshold and not suspended
-    const reportedCount = allGigs.filter(g => 
-        g.reportedBy && 
-        g.reportedBy.length > 0 && 
-        g.reportCount >= g.reportThreshold &&
-        g.status !== 'suspended'
-    ).length;
-    
-    // Suspended: gigs that are suspended
-    const suspendedCount = allGigs.filter(g => g.status === 'suspended').length;
-    
-    document.getElementById('postedCount').textContent = postedCount;
-    document.getElementById('reportedCount').textContent = reportedCount;
-    document.getElementById('suspendedCount').textContent = suspendedCount;
+    const postedCountEl = document.getElementById('postedCount');
+    const reportedCountEl = document.getElementById('reportedCount');
+    const suspendedCountEl = document.getElementById('suspendedCount');
+
+    if (currentGigTab === 'posted' && postedCountEl) {
+        postedCountEl.textContent = allGigs.length + (gigsPostedHasMore ? '+' : '');
+    } else if (currentGigTab === 'reported' && reportedCountEl) {
+        reportedCountEl.textContent = allGigs.length;
+    } else if (currentGigTab === 'suspended' && suspendedCountEl) {
+        suspendedCountEl.textContent = allGigs.length;
+    }
 }
 
 // Handle resize to switch between overlay/panel views for Gig Moderation

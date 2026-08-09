@@ -2439,13 +2439,13 @@
                             <div class="gig-controls">
                                 <div class="gig-tabs">
                                     <button class="gig-tab-btn active" id="gigsPostedBtn" data-tab="posted">
-                                        POSTED <span class="tab-count" id="postedCount">24</span>
+                                        POSTED <span class="tab-count" id="postedCount">…</span>
                                     </button>
                                     <button class="gig-tab-btn" id="gigsReportedBtn" data-tab="reported">
-                                        REPORTED <span class="tab-count" id="reportedCount">5</span>
+                                        REPORTED <span class="tab-count" id="reportedCount">…</span>
                                     </button>
                                     <button class="gig-tab-btn" id="gigsSuspendedBtn" data-tab="suspended">
-                                        SUSPENDED <span class="tab-count" id="suspendedCount">2</span>
+                                        SUSPENDED <span class="tab-count" id="suspendedCount">…</span>
                                     </button>
                                 </div>
                                 <div class="gig-search">
@@ -3825,6 +3825,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <!-- Gig Moderation (Admin Dashboard Phase 2) calls the adminModerateGig callable Cloud Function -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
     
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js"></script>

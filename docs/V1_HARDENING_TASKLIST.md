@@ -179,6 +179,51 @@ See `AGENTS.md` § "verify production data."
       Type (Personal vs Business)**, not just category — full detail added to the "Gigs Analytics"
       bullet in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Didn't exist when that study was
       originally written (Gig Use Type shipped 2026-08-03, see Track D).
+- [x] **Phase 2: Gig Moderation built end-to-end — code complete, PENDING DEPLOY (2026-08-09).**
+      Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Gig Moderation — resolved
+      design" → "Implementation status" subsection. Built in 6 audited chapters:
+      1. `firestore.rules` locks `jobs.status`/`reportCount`/`reportThreshold` away from owner
+         writes once a gig is reported/suspended; `syncGigReportCountersOnCreate` Cloud Function
+         aggregates `gig_reports` into those fields.
+      2. `adminModerateGig` callable (suspend/reinstate/ignore) + `job_moderation_log` audit
+         collection (admin-read-only).
+      3. `executeBanCascadeOnUserSuspend` — auto-suspends a banned user's own gigs, withdraws
+         their pending applications elsewhere, reopens gigs where they were the hired worker +
+         new customer-facing `worker_banned_gig_reopened` notification.
+      4. Full code-level audit of chapters 1-3 (no deploy yet).
+      5. `admin-dashboard.js`/`.html` rewired off in-memory mock data onto the real
+         functions/queries above — Posted (glance + Load More)/Reported/Suspended tabs,
+         Suspend/Reinstate/Ignore/Permanently-Delete buttons, on-demand Reported-By list,
+         debounced title search. Caught and fixed 2 real bugs during this pass: the job-date
+         field is `jobDate` (plain string) not `scheduledDate`, and there is no separate
+         `locationDetails` field (the free-text barangay/area input lives inside `extras`).
+         Added the missing `jobs` (status+datePosted) and `gig_reports` (jobId+createdAt)
+         composite indexes this UI needs.
+      6. Docs updated (this entry + architecture study). **Not deployed** — functions/rules/
+         indexes/frontend all need a Ship before any of this is live. Until then `jobs.status`
+         changes remain fully open to owners in production (old behavior, unchanged risk).
+      **Two separate report/contact surfaces exist here — status of each, confirmed 2026-08-09:**
+      - **User-facing "Report Gig"** (the button/modal on the live gig detail page,
+        `dynamic-job.js` → `submitGigReportToAdmin()` in `firebase-db.js`, writes straight into
+        `gig_reports`) is **already fully built and confirmed wired end-to-end** — same collection
+        and field names (`jobId`, `reporterName`, `reporterAvatar`, `subject`, `message`,
+        `createdAt`) that Chapter 1's `syncGigReportCountersOnCreate` and Chapter 5's
+        `getGigReportsForJob()`/"Reported By" list already consume. **No action needed.**
+      - **Admin-side "Contact" button** (in the Gig Moderation detail panel/overlay — desktop
+        `contactGigBtn` + mobile `gigOverlayContactBtn`, both always visible regardless of gig
+        status, opening the "Contact Regarding Gig" form with Recipient/Message/Attachment) is a
+        **real, separate, still-unbuilt feature** — see next bullet.
+- [ ] **Wire "Gig Moderation → Contact" admin messaging (Send Message button is currently a mock).**
+      Confirmed 2026-08-09: the button/overlay itself is real and always shown in the Gig
+      Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
+      `initializeContactGigOverlay()`), but clicking Send Message only shows a toast + logs to
+      console — no message is actually created or delivered. Needs: pick a delivery mechanism (most
+      likely reuse the existing `chat_threads`/`chat_messages` system so it lands in the
+      poster's/worker's regular Messages inbox, tagged as coming from an admin re: this gig, rather
+      than inventing a parallel admin-only inbox) + wire the Recipient dropdown to the gig's actual
+      poster/hired worker + wire the optional photo attachment. Not part of Phase 2 (Gig
+      Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
+      so it isn't lost, build whenever it's prioritized.
 - [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)

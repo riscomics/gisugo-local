@@ -693,7 +693,7 @@ async function initializeCustomerMessagesTab() {
 
 // Source-of-truth alert types currently emitted by backend flows (jobs.js + firebase-db.js).
 const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided'];
-const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received', 'worker_banned_gig_reopened'];
 
 // Retained for compatibility with legacy datasets and planned interview workflow.
 // NOTE: No current producer emits this type in the active backend flow.
@@ -752,6 +752,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
             worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
             worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
+            worker_banned_gig_reopened: `Worker account revoked — your gig "${jobTitle}" has been opened again on the market.`,
             application_not_selected_batch: slotsEn,
             application_rejected_batch: slotsEn,
             application_slots_reopened_batch: slotsEn
@@ -768,6 +769,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
             worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
+            worker_banned_gig_reopened: `Gi-revoke ang account sa worker — nabuksan na usab ang imong gig nga "${jobTitle}" sa market.`,
             application_not_selected_batch: slotsBi,
             application_rejected_batch: slotsBi,
             application_slots_reopened_batch: slotsBi
@@ -784,6 +786,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
             worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
+            worker_banned_gig_reopened: `Binawi ang account ng worker — nabuksan muli ang gig mong "${jobTitle}" sa market.`,
             application_not_selected_batch: slotsTl,
             application_rejected_batch: slotsTl,
             application_slots_reopened_batch: slotsTl
@@ -1207,6 +1210,7 @@ async function handleNotificationTypeNavigation(notificationItem) {
             return true;
         case 'offer_rejected':
         case 'worker_resigned':
+        case 'worker_banned_gig_reopened':
             {
                 const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
                 openJobsManager(route.role, route.tab, route.jobId);
@@ -3526,6 +3530,11 @@ function transformFirebaseNotification(notif) {
             icon = 'Ã°Å¸Å¡Âª';
             iconClass = 'resign-icon';
             title = 'Worker Resigned';
+            break;
+        case 'worker_banned_gig_reopened':
+            icon = '🔓';
+            iconClass = 'warning-icon';
+            title = 'Gig Reopened';
             break;
         case 'worker_feedback_received':
             icon = 'Ã¢Â­Â';
