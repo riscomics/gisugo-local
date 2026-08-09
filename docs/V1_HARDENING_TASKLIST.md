@@ -179,6 +179,12 @@ See `AGENTS.md` § "verify production data."
       Type (Personal vs Business)**, not just category — full detail added to the "Gigs Analytics"
       bullet in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Didn't exist when that study was
       originally written (Gig Use Type shipped 2026-08-03, see Track D).
+- [x] **Phase 1: Overview built end-to-end — shipped (2026-08-02 through 2026-08-03).**
+      (Labeled retroactively for consistent numbering — built across Step 0.5 above +
+      the Gig Use Type note.) Total Users, Gigs Reported, Gigs Analytics (incl. Personal/
+      Business breakdown) wired to real counters. Verification Submissions + Total Revenue
+      shown as honest `0` placeholders (no backing feature yet). Storage Usage/User
+      Activity/Traffic & Costs intentionally NOT part of this phase — see Phase 7 below.
 - [x] **Phase 2: Gig Moderation built end-to-end — shipped and deployed (2026-08-09).**
       Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Gig Moderation — resolved
       design" → "Implementation status" subsection. Built in 6 audited chapters:
@@ -281,7 +287,7 @@ See `AGENTS.md` § "verify production data."
       poster/hired worker + wire the optional photo attachment. Not part of Phase 2 (Gig
       Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
       so it isn't lost, build whenever it's prioritized.
-- [ ] **Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
+- [ ] **Phase 4: Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)
         writes to `support_requests` (`contacts.html` redirects to `support.html?compose=1`).
@@ -291,20 +297,20 @@ See `AGENTS.md` § "verify production data."
         a response (`admin-dashboard.js` still has mock support data). Users can send but nothing
         can reply until the dashboard adds a Support queue + reply writer (+ optional email notify).
         Build with #8/#4.
-- [ ] **Settings must be server-backed (Firestore), NOT localStorage.** (2026-06-27) The admin
+- [ ] **Phase 5: Settings must be server-backed (Firestore), NOT localStorage.** (2026-06-27) The admin
       settings object (`gisugo_admin_settings`) currently lives in per-browser `localStorage`,
       so global toggles behave inconsistently across browsers/devices. Concrete symptom found:
       the homepage intro-video gate (`showHomepageVideoForLoggedIn`, read in `index.html`
       `getHomeVideoSettingAllowLoggedIn()`) shows the video to logged-in users only on browsers
       where the dashboard had been opened. When wiring the dashboard, move these settings to
       Firestore and have `index.html` read the shared value. Until then, cosmetic only — deferred.
-- [ ] **Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
+- [ ] **Phase 6: Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
       Track C sections (with Gig Moderation, User Management, Overview, Support, Settings)
       since the 2026-07-27 architecture study; "already scoped from earlier tasklist work"
       per that study but has no dedicated build write-up of its own yet. Needs a design pass
       before it can be built the way Gig Moderation/User Management were.
-- [ ] **Wire Overview's Storage Usage / User Activity / Traffic & Costs cards to real
-      external data (2 setup steps + 1 code pass — NOT deferred/optional, explicitly
+- [ ] **Phase 7: Wire Overview's Storage Usage / User Activity / Traffic & Costs cards to
+      real external data (2 setup steps + 1 code pass — NOT deferred/optional, explicitly
       wanted on the dashboard so admin can see live snapshots).** These 3 cards currently
       show honest `0`/`0%`/`$0.00` placeholders — correct, but non-functional. Full design
       already exists in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Open items" #1-#2;
