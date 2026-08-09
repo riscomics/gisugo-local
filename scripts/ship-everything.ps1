@@ -229,7 +229,17 @@ if ($DryRun) {
   exit 0
 }
 
+# Windows-only: firebase-tools' function-discovery step has a hardcoded 10s budget that
+# includes an npm version-check spawn (cmd.exe) which can be slow right after a git push.
+# Tripling it here avoids the known "Cannot determine backend specification. Timeout
+# after 10000" flake (firebase-tools#8776/#9502) without masking real function errors.
+$env:FUNCTIONS_DISCOVERY_TIMEOUT = "30"
+
 firebase deploy --only $targets
+if ($LASTEXITCODE -ne 0 -and $targets -match "functions") {
+  Write-Host "Firebase deploy failed - retrying once (known Windows discovery-timeout flake)..." -ForegroundColor Yellow
+  firebase deploy --only $targets
+}
 if ($LASTEXITCODE -ne 0) { Write-Fail "firebase deploy failed" }
 
 Write-Step "Post-ship lock check"
