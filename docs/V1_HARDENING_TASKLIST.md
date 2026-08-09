@@ -298,6 +298,28 @@ See `AGENTS.md` § "verify production data."
       `getHomeVideoSettingAllowLoggedIn()`) shows the video to logged-in users only on browsers
       where the dashboard had been opened. When wiring the dashboard, move these settings to
       Firestore and have `index.html` read the shared value. Until then, cosmetic only — deferred.
+- [ ] **Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
+      Track C sections (with Gig Moderation, User Management, Overview, Support, Settings)
+      since the 2026-07-27 architecture study; "already scoped from earlier tasklist work"
+      per that study but has no dedicated build write-up of its own yet. Needs a design pass
+      before it can be built the way Gig Moderation/User Management were.
+- [ ] **Wire Overview's Storage Usage / User Activity / Traffic & Costs cards to real
+      external data (2 setup steps + 1 code pass — NOT deferred/optional, explicitly
+      wanted on the dashboard so admin can see live snapshots).** These 3 cards currently
+      show honest `0`/`0%`/`$0.00` placeholders — correct, but non-functional. Full design
+      already exists in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Open items" #1-#2;
+      promoted here so it has its own tracked checkbox instead of living only as prose in a
+      design doc. Concretely:
+      1. **Enable Google Analytics** (Firebase Console + GA4 SDK) — no data source exists for
+         User Activity (device split, session length, peak hours) until this is on.
+      2. **Grant GCP Billing API read access** (one-time IAM grant) — needed for Traffic &
+         Firebase Costs to pull real bandwidth/$ numbers. Owner already confirmed OK to
+         proceed (2026-07-27) — grant not yet done.
+      3. **Code pass:** once both are enabled/granted, wire `userActivityCard` /
+         `storageUsageCard` / `trafficCostsCard` in `admin-dashboard.js` to pull from
+         GA4/BigQuery + the Billing API instead of self-reported Firestore (Firestore cannot
+         report its own storage size or read/write cost — confirmed architectural
+         constraint, not an oversight). Manual-refresh snapshot cards, not live listeners.
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.
