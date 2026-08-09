@@ -62,13 +62,13 @@ overlays. Verdict per card:
   already collected at signup (`sign-up.js`, plus an existing `calculateAge()` helper) — bucket
   existing accounts by stored birthdate into a cheap counter map. No new data collection needed.
 
-### Hidden for now (not cost — the underlying feature doesn't exist yet)
+### Shown as 0-placeholders, not hidden (decision reversed 2026-08-09) — the underlying feature doesn't exist yet, but these are admin-only screens, so an empty stat is not user-facing embarrassment — it's a standing reminder of planned work
 - **Verification Submissions** (headline card + full overlay: Total Submissions, Overdue,
   Submission Age, Verification Types) — ties to the ID-verification pipeline, which isn't built.
-  Same reasoning as hiding the Pending/Verified tabs in User Management — hide together.
+  Card + overlay stay visible showing 0 until that pipeline exists.
 - **Total Revenue** (headline card + full overlay: PHP/USD, Revenue Sources, Transaction Stats) —
   depends on G-Coins purchases + verification fees, neither of which is live (no purchase flow
-  exists yet). Same reasoning as the Financial section being cut. **Follow-up noted:** this card
+  exists yet). Card + overlay stay visible showing ₱0. **Follow-up noted:** this card
   will need to fold in ad revenue once the ad system actually generates money — revisit design
   then, not forgotten.
 - **Regional Distribution** (sub-breakdown under Total Users) — **resolved 2026-07-27, design

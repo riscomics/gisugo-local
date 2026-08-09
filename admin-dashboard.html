@@ -180,13 +180,11 @@
                         </div>
                     </div>
                     
-                    <!-- Total Revenue: hidden per docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md --
-                         no G-Coins purchase flow or verification fees exist yet to generate
-                         real revenue, so this card would only ever show a placeholder 0 with
-                         nothing behind it. Markup kept (not deleted) + JS/overlay untouched so
-                         re-enabling later (once ad revenue or purchases exist) is a one-line
-                         CSS change, not a rebuild. -->
-                    <div class="stat-card" id="revenueCard" style="display: none;">
+                    <!-- Total Revenue: shown as a 0 placeholder (admin-facing only, no
+                         G-Coins purchase flow or verification fees exist yet), same
+                         treatment as Verification Submissions -- a standing reminder of a
+                         planned feature, not hidden just because it's currently empty. -->
+                    <div class="stat-card" id="revenueCard">
                         <div class="stat-icon">💰</div>
                         <div class="stat-content">
                             <div class="stat-number" id="revenueNumber">₱0</div>
