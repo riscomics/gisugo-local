@@ -209,9 +209,16 @@ service cloud.firestore {
       // Only the owner can update their own profile
       // OR authenticated users can update statistics (for job completion)
       // OR authenticated users can update review stats (averageRating, totalReviews)
+      // Owner is explicitly blocked from touching moderation fields (status/
+      // suspend*/reinstate*) -- otherwise a suspended user could just save
+      // their own profile again to quietly clear their own suspension. Those
+      // fields are admin-only, written exclusively via the adminModerateUser
+      // callable (Admin SDK, bypasses these rules). See functions/index.js.
       allow update: if (isOwner(userId)
         && isValidProfile()
-        && request.resource.data.userId == userId)
+        && request.resource.data.userId == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ['status', 'suspendedAt', 'suspendedBy', 'suspendedByName', 'suspendReason', 'reinstatedAt', 'reinstatedBy']))
         || (isAuthenticated() && isUpdatingStatistics())
         || (isAuthenticated() && isUpdatingReviewStats());
       
@@ -354,6 +361,18 @@ service cloud.firestore {
       // exists or is needed (mirrors job_deletions' immutable-trail intent,
       // but stricter: no client `create` either, since this one only ever
       // needs to be written by an already-verified admin action).
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // USER MODERATION LOG COLLECTION (Audit Log — User Management Phase 3)
+    // ═══════════════════════════════════════════════════════════════
+    match /user_moderation_log/{logId} {
+      // Only admins can read the moderation audit trail.
+      allow read: if isAdmin();
+
+      // Written only by the adminModerateUser Cloud Function via the Admin
+      // SDK, which bypasses these rules entirely. See functions/index.js.
       allow write: if false;
     }
 

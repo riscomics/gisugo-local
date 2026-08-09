@@ -4405,6 +4405,152 @@ window.searchGigsByTitlePrefix = searchGigsByTitlePrefix;
 window.getGigReportsForJob = getGigReportsForJob;
 window.callAdminModerateGig = callAdminModerateGig;
 
+// ============================================================================
+// USER MANAGEMENT (Admin Dashboard Phase 3)
+// ============================================================================
+// New is a "glance" tool (refresh + optional Load More, no gap-guarantee,
+// no live listener) — same treatment as Gig Moderation's Posted tab.
+// Suspended is a small always-current queue. Pending/Verified are NOT
+// queried at all — that tier (ID-verification submissions) isn't built yet,
+// see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "User Management —
+// resolved design".
+const USER_MANAGEMENT_NEW_PAGE_SIZE = 20;
+
+/**
+ * Most-recently-registered users, newest first. accountCreated is stored as
+ * an ISO string (not a Firestore Timestamp) so orderBy still sorts
+ * chronologically correctly. No status filter at the query level -- most
+ * accounts never had a `status` field written at all (only ever set by
+ * adminModerateUser on suspend), so an equality filter would silently
+ * exclude everyone without it. Suspended accounts are filtered out
+ * client-side instead (same "no gap-guarantee" tradeoff already accepted
+ * for Gig Moderation's Posted tab).
+ */
+async function getUserManagementNew(startAfterDoc = null) {
+  const db = getFirestore();
+  if (!db) return { users: [], lastDoc: null, hasMore: false };
+  try {
+    let query = db.collection('users')
+      .orderBy('accountCreated', 'desc')
+      .limit(USER_MANAGEMENT_NEW_PAGE_SIZE);
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+    const snap = await query.get();
+    return {
+      users: snap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      lastDoc: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === USER_MANAGEMENT_NEW_PAGE_SIZE
+    };
+  } catch (error) {
+    console.error('❌ Error loading New users (admin):', error);
+    return { users: [], lastDoc: null, hasMore: false };
+  }
+}
+
+async function getUserManagementSuspended() {
+  const db = getFirestore();
+  if (!db) return [];
+  try {
+    const snap = await db.collection('users')
+      .where('status', '==', 'suspended')
+      .orderBy('suspendedAt', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error loading Suspended users (admin):', error);
+    return [];
+  }
+}
+
+/**
+ * Prefix-match name search across ALL users, same "matches from the start
+ * only" tradeoff as searchGigsByTitlePrefix.
+ */
+async function searchUsersByNamePrefix(prefix) {
+  const db = getFirestore();
+  const safePrefix = String(prefix || '').trim();
+  if (!db || !safePrefix) return [];
+  try {
+    const snap = await db.collection('users')
+      .orderBy('fullName')
+      .startAt(safePrefix)
+      .endAt(safePrefix + '\uf8ff')
+      .limit(30)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error searching users by name (admin):', error);
+    return [];
+  }
+}
+
+/**
+ * On-demand extras for the user detail panel, fetched only when an admin
+ * opens a specific user (never batched across a whole list) — mirrors
+ * getGigReportsForJob's "fetch on demand" pattern:
+ *  - region/IP come from security_metadata (admin-only collection; the
+ *    owner-safe mirror on user_private only has region, not IP)
+ *  - gigsListed/applications use Firestore count() aggregation queries,
+ *    which bill as ~1 read regardless of how many docs match — much
+ *    cheaper than fetching full documents just to count them.
+ */
+async function getUserModerationExtras(uid) {
+  const db = getFirestore();
+  const safeUid = String(uid || '').trim();
+  const empty = { region: null, ipAddress: null, gigsListed: 0, applications: 0 };
+  if (!db || !safeUid) return empty;
+
+  const [securityResult, gigsCountResult, appsCountResult] = await Promise.allSettled([
+    db.collection('security_metadata').doc(safeUid).get(),
+    db.collection('jobs').where('posterId', '==', safeUid).count().get(),
+    db.collection('applications').where('applicantId', '==', safeUid).count().get()
+  ]);
+
+  let region = null;
+  let ipAddress = null;
+  if (securityResult.status === 'fulfilled' && securityResult.value.exists) {
+    const data = securityResult.value.data() || {};
+    region = data.location?.region || null;
+    ipAddress = data.lastSignupIp || null;
+  } else if (securityResult.status === 'rejected') {
+    console.error('❌ Error loading security_metadata (admin):', securityResult.reason);
+  }
+
+  return {
+    region,
+    ipAddress,
+    gigsListed: gigsCountResult.status === 'fulfilled' ? (gigsCountResult.value.data().count || 0) : 0,
+    applications: appsCountResult.status === 'fulfilled' ? (appsCountResult.value.data().count || 0) : 0
+  };
+}
+
+/**
+ * Suspend / reinstate a user via the adminModerateUser callable Cloud
+ * Function — the ONLY write path for these transitions (firestore.rules
+ * gives no client, including admin, a direct write to users.status).
+ * See functions/index.js.
+ * @param {string} userId
+ * @param {'suspend'|'reinstate'} action
+ * @param {string} [reason]
+ */
+async function callAdminModerateUser(userId, action, reason = '') {
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('adminModerateUser');
+    const response = await callable({ userId, action, reason });
+    return { success: true, status: response?.data?.status };
+  } catch (error) {
+    console.error('❌ adminModerateUser call failed:', error);
+    return { success: false, message: error.message || 'Action failed' };
+  }
+}
+
+window.getUserManagementNew = getUserManagementNew;
+window.getUserManagementSuspended = getUserManagementSuspended;
+window.searchUsersByNamePrefix = searchUsersByNamePrefix;
+window.getUserModerationExtras = getUserModerationExtras;
+window.callAdminModerateUser = callAdminModerateUser;
+
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
  * Cloud Function-maintained aggregate doc (see functions/index.js

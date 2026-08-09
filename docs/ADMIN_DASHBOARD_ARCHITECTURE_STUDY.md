@@ -257,6 +257,53 @@ explicit Ship, per standing rule):
   existing codebase pattern of hiding (not deleting) unbuilt-feature UI
   (`docs/preserved-ui/account-settings-deferred-ui.md`).
 
+### Implementation status (Phase 3, shipped 2026-08-09)
+
+- **Backend** (`functions/index.js`): `adminModerateUser` callable (`suspend`/`reinstate` only —
+  no `ignore` equivalent, no report-threshold concept here). `suspend` sets
+  `users/{userId}.status = 'suspended'`, which is exactly the transition
+  `executeBanCascadeOnUserSuspend` (Phase 2/Chapter 3) already listens for, so the real cascade
+  (auto-suspend their gigs, withdraw pending applications, reopen gigs where they were hired) just
+  fires automatically — no duplicate logic needed here. `reinstate` only restores login/account
+  access; it deliberately does **not** auto-restore whatever the cascade touched — an admin
+  reviews and reinstates those gigs individually in Gig Moderation. Extra guard: moderating
+  another admin account requires `super_admin`; an admin can never moderate themself.
+- **Rules** (`firestore.rules`): `users/{userId}` owner-update rule now explicitly blocks the
+  owner from touching `status`/`suspendedAt`/`suspendedBy`/`suspendedByName`/`suspendReason`/
+  `reinstatedAt`/`reinstatedBy` — otherwise a suspended user could simply re-save their own
+  profile to quietly clear their own suspension (there was previously **no admin bypass on update
+  at all** for this collection, so this gap was real, not theoretical). New
+  `user_moderation_log/{logId}` collection, admin-read-only, no client writes.
+- **Indexes** (`firestore.indexes.json`): `users` (status ASC, suspendedAt DESC) for the Suspended
+  tab query.
+- **Frontend** (`admin-dashboard.js`/`.html`): New (glance, paginated, Load More) and Suspended
+  (small always-current queue) tabs wired to real Firestore data; Pending/Verified tab buttons
+  hidden (not deleted). Suspend/Restore buttons call `adminModerateUser`. Search bar debounces
+  (400ms) into `searchUsersByNamePrefix` (name-prefix match, any status). Region/last-signup-IP/
+  Gigs-Listed/Applications-count are fetched **on demand only** when an admin opens a specific
+  user (never batched across the list) — region + IP come from the admin-only `security_metadata`
+  collection (the owner-safe `user_private` mirror only has region, not IP); Gigs Listed/
+  Applications use Firestore `count()` aggregation queries (bills as ~1 read regardless of match
+  count) instead of fetching full documents just to count them. City is shown as "Not tracked" —
+  honestly, since no city-level capture pipeline exists, only region (see
+  `submitSignupLocation`). Suspension "Duration" field hidden in the confirm form (markup kept,
+  not deleted) — no auto-expiry/auto-restore Cloud Function exists, so every suspension is
+  indefinite until an admin manually clicks Restore.
+- **Known gap, deliberately NOT built this pass — "Permanently Ban User."** The button is visible
+  (Suspended tab detail panel) but intentionally does nothing except show an honest "not
+  implemented" toast — it does **not** fake success by hiding the card locally (the old mock's
+  behavior, which would have silently done nothing to the real account while looking like it
+  worked). What this button should actually **do** is an open, consequential design question that
+  hasn't been decided: disable the account's Firebase Auth login (reversible, keeps all
+  history/reviews/references intact) vs. a hard delete of the account and its data (irreversible,
+  breaks foreign-key references throughout the app — jobs they posted, applications, reviews,
+  messages — and has Data Privacy Act 2012 retention implications). Not building either path until
+  that decision is made explicitly. Tracked in `docs/V1_HARDENING_TASKLIST.md`.
+- **Also deliberately out of scope, same as Gig Moderation's "Contact":** the desktop/mobile
+  Contact button on a user's detail panel is still a mock (shows a toast, doesn't send anything) —
+  same known gap as "Gig Moderation → Contact," same fix (wire into the real messaging system),
+  not duplicated effort.
+
 ---
 
 ## Support (Messages) — resolved design (2026-07-27)

@@ -179,7 +179,7 @@ See `AGENTS.md` § "verify production data."
       Type (Personal vs Business)**, not just category — full detail added to the "Gigs Analytics"
       bullet in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Didn't exist when that study was
       originally written (Gig Use Type shipped 2026-08-03, see Track D).
-- [x] **Phase 2: Gig Moderation built end-to-end — code complete, PENDING DEPLOY (2026-08-09).**
+- [x] **Phase 2: Gig Moderation built end-to-end — shipped and deployed (2026-08-09).**
       Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Gig Moderation — resolved
       design" → "Implementation status" subsection. Built in 6 audited chapters:
       1. `firestore.rules` locks `jobs.status`/`reportCount`/`reportThreshold` away from owner
@@ -199,9 +199,10 @@ See `AGENTS.md` § "verify production data."
          `locationDetails` field (the free-text barangay/area input lives inside `extras`).
          Added the missing `jobs` (status+datePosted) and `gig_reports` (jobId+createdAt)
          composite indexes this UI needs.
-      6. Docs updated (this entry + architecture study). **Not deployed** — functions/rules/
-         indexes/frontend all need a Ship before any of this is live. Until then `jobs.status`
-         changes remain fully open to owners in production (old behavior, unchanged risk).
+      6. Docs updated (this entry + architecture study). **Deployed 2026-08-09** — two of the new
+         Cloud Functions (`syncGigReportCountersOnCreate`, `executeBanCascadeOnUserSuspend`) got
+         stuck as broken HTTP stubs from a first failed deploy attempt (Firestore won't let a
+         trigger type change in place); deleted those two stubs and redeployed clean.
       **Two separate report/contact surfaces exist here — status of each, confirmed 2026-08-09:**
       - **User-facing "Report Gig"** (the button/modal on the live gig detail page,
         `dynamic-job.js` → `submitGigReportToAdmin()` in `firebase-db.js`, writes straight into
@@ -213,6 +214,62 @@ See `AGENTS.md` § "verify production data."
         `contactGigBtn` + mobile `gigOverlayContactBtn`, both always visible regardless of gig
         status, opening the "Contact Regarding Gig" form with Recipient/Message/Attachment) is a
         **real, separate, still-unbuilt feature** — see next bullet.
+- [x] **Phase 3: User Management built end-to-end — shipped and deployed (2026-08-09).**
+      Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "User Management — resolved
+      design" → "Implementation status" subsection. Built in 4 audited chapters, same pattern as
+      Phase 2:
+      1. `firestore.rules`: closed a real gap — `users/{userId}` had **no admin bypass on update
+         at all**, and the owner-update rule didn't block moderation fields, so a suspended user
+         could have simply re-saved their own profile to quietly clear `status: 'suspended'`
+         themselves. Now explicitly blocks the owner from touching
+         `status`/`suspendedAt`/`suspendedBy`/`suspendedByName`/`suspendReason`/`reinstatedAt`/
+         `reinstatedBy`. New `adminModerateUser` callable (suspend/reinstate only — no `ignore`,
+         no report-threshold concept for users) + `user_moderation_log` audit collection
+         (admin-read-only). `suspend` sets `status='suspended'`, which is the exact transition
+         `executeBanCascadeOnUserSuspend` (Phase 2) already listens for — the real ban cascade
+         just fires automatically, no duplicate logic. `reinstate` only restores login access, not
+         whatever the cascade touched (their gigs stay suspended for an admin to review
+         individually). Extra guard: moderating another admin requires `super_admin`.
+      2. Full code-level audit of chapter 1 (confirmed the account-type analytics counter
+         correctly no-ops on suspend/reinstate writes — verified it wouldn't double-count).
+      3. `admin-dashboard.js`/`.html` rewired off in-memory mock data (which, on inspection, was
+         actually already emptied to `[]` by the earlier mock-data-removal pass — so tabs were
+         showing "0 users" honestly, not fake data) onto real Firestore: New (glance + Load
+         More)/Suspended tabs, Suspend/Restore buttons, debounced name-prefix search. Pending/
+         Verified tab buttons hidden (not deleted) — that tier doesn't exist in the real schema.
+         Region/last-signup-IP/Gigs-Listed/Applications-count fetched on demand only (never
+         batched across the list) — region+IP from admin-only `security_metadata`, activity counts
+         via `count()` aggregation queries (~1 read regardless of match count). City shown
+         honestly as "Not tracked" (no city-capture pipeline exists, only region). Suspension
+         "Duration" field hidden (no auto-expiry function exists — every suspension is indefinite
+         until manually restored). Also fixed real bugs found in the mock code along the way: a
+         missing `age` calculation (referenced but never computed), unguarded `new Date(null)` on
+         birthdate for accounts predating the required-DOB change, and several unescaped
+         user-submitted strings (`fullName`/`education`/`introduction`) going into `innerHTML` in
+         the mobile overlay (desktop panel was already safe via `.textContent`) — a real
+         stored-XSS gap once real user data started flowing through, not just cosmetic.
+      4. Docs updated (this entry + architecture study). Deployed clean, no stuck stubs this time.
+      **"Permanently Ban User" deliberately NOT built this pass** — visible button, but shows an
+      honest "not implemented" toast instead of the old mock's fake-success behavior (which
+      silently removed the card locally without touching the real account). What it should
+      actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
+      dedicated task below.
+- [ ] **Wire "User Management → Contact" admin messaging (Send Message button is currently a
+      mock).** Same known gap as the Gig Moderation Contact item below, same fix, not duplicated
+      effort — one messaging build should wire both Contact buttons at once.
+- [ ] **DECISION NEEDED: what should "Permanently Ban User" actually do?** (User Management,
+      Phase 3, 2026-08-09) The button is visible in the Suspended tab detail panel but
+      intentionally does nothing except show an honest "not implemented" toast — deliberately not
+      built until this is decided, since the two options are meaningfully different and one is
+      irreversible:
+      • **Disable Auth login** (reversible) — `admin.auth().updateUser(uid, {disabled: true})` via
+        a new admin callable. Account, profile, reviews, gig history all stay intact and
+        query-able; just can't log in. Can be undone later.
+      • **Hard delete** (irreversible) — deletes the Firebase Auth user + Firestore docs. Breaks
+        foreign-key references throughout the app (jobs they posted, applications, reviews,
+        messages reference this uid), needs a cascade/cleanup story, and raises Data Privacy Act
+        2012 retention questions. Once decided, implement as its own `adminModerateUser` action
+        (or a separate callable) — not a patch on `suspend`.
 - [ ] **Wire "Gig Moderation → Contact" admin messaging (Send Message button is currently a mock).**
       Confirmed 2026-08-09: the button/overlay itself is real and always shown in the Gig
       Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /

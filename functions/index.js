@@ -1527,6 +1527,119 @@ exports.adminModerateGig = onCall(
   }
 );
 
+// ============================================================================
+// USER MANAGEMENT -- ADMIN ACTIONS (Admin Dashboard Phase 3)
+// ============================================================================
+// Mirrors adminModerateGig's shape exactly (same admin-check pattern, same
+// transaction + best-effort audit-log structure). Only two actions exist
+// here (no "ignore" equivalent -- User Management has no report-threshold
+// concept). "suspend" sets users/{userId}.status = 'suspended', which is
+// exactly the transition executeBanCascadeOnUserSuspend (above) listens for
+// -- that Cloud Function does the actual cascade (auto-suspend their gigs,
+// withdraw their pending applications, reopen gigs where they were hired).
+// "reinstate" only restores login/account access -- it deliberately does NOT
+// auto-restore whatever the cascade touched (their suspended gigs stay
+// suspended); an admin reviews and reinstates those individually in Gig
+// Moderation, same as a fresh report would be handled case-by-case.
+const USER_MODERATION_ACTIONS = new Set(["suspend", "reinstate"]);
+
+exports.adminModerateUser = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const callerAdminDoc = await db.collection("admins").doc(uid).get();
+    if (!callerAdminDoc.exists) {
+      throw new HttpsError("permission-denied", "Admin access required.");
+    }
+
+    const targetUserId = String(request.data?.userId || "").trim();
+    const action = String(request.data?.action || "").trim();
+    const reason = String(request.data?.reason || "").trim().slice(0, 500);
+
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "userId is required.");
+    }
+    if (!USER_MODERATION_ACTIONS.has(action)) {
+      throw new HttpsError("invalid-argument", "action must be one of: suspend, reinstate.");
+    }
+    if (targetUserId === uid) {
+      throw new HttpsError("failed-precondition", "You cannot moderate your own admin account.");
+    }
+
+    // Extra guard: moderating another admin (even to reinstate them) requires
+    // super_admin -- a limited/compromised support-role admin should not be
+    // able to suspend a fellow admin's account through this path.
+    const targetAdminDoc = await db.collection("admins").doc(targetUserId).get();
+    if (targetAdminDoc.exists && callerAdminDoc.data()?.role !== "super_admin") {
+      throw new HttpsError("permission-denied", "Only a super admin can moderate another admin account.");
+    }
+
+    const adminName = String(request.auth.token?.name || request.auth.token?.email || uid);
+    const userRef = db.collection("users").doc(targetUserId);
+    let previousStatus = "";
+    let newStatus = "";
+
+    await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new HttpsError("not-found", "User not found.");
+      }
+      const user = userSnap.data() || {};
+      previousStatus = String(user.status || "active");
+
+      if (action === "suspend") {
+        if (previousStatus === "suspended") {
+          throw new HttpsError("failed-precondition", "User is already suspended.");
+        }
+        newStatus = "suspended";
+        tx.update(userRef, {
+          status: newStatus,
+          suspendedAt: admin.firestore.FieldValue.serverTimestamp(),
+          suspendedBy: uid,
+          suspendedByName: adminName,
+          suspendReason: reason,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else { // reinstate
+        if (previousStatus !== "suspended") {
+          throw new HttpsError("failed-precondition", `Cannot reinstate a user with status '${previousStatus}'.`);
+        }
+        newStatus = "active";
+        tx.update(userRef, {
+          status: newStatus,
+          suspendedAt: admin.firestore.FieldValue.delete(),
+          suspendedBy: admin.firestore.FieldValue.delete(),
+          suspendedByName: admin.firestore.FieldValue.delete(),
+          suspendReason: admin.firestore.FieldValue.delete(),
+          reinstatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          reinstatedBy: uid,
+          lastModified: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    try {
+      await db.collection("user_moderation_log").add({
+        userId: targetUserId,
+        action,
+        adminUid: uid,
+        adminName,
+        previousStatus,
+        newStatus,
+        reason: reason || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (error) {
+      logger.warn("user_moderation_log write skipped", { targetUserId, action, error: String(error) });
+    }
+
+    return { success: true, status: newStatus };
+  }
+);
+
 // Age bucket boundaries for the Admin Dashboard's Age Groups breakdown.
 // Matches the 4 brackets already laid out in admin-dashboard.html's Age
 // Groups card (18-25 / 26-40 / 41-59 / 60+) so no UI redesign is needed.

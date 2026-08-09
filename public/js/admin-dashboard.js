@@ -421,29 +421,6 @@ function hideLoading(element) {
     }
 }
 
-// ===== ADMIN ACTIONS (Future Implementation) =====
-
-// Placeholder functions for future features
-function approveVerification(userId) {
-    console.log(`✅ Approve verification for user: ${userId}`);
-    // Future: Firebase integration
-}
-
-function rejectVerification(userId, reason) {
-    console.log(`❌ Reject verification for user: ${userId}, reason: ${reason}`);
-    // Future: Firebase integration
-}
-
-function suspendUser(userId, reason) {
-    console.log(`🚫 Suspend user: ${userId}, reason: ${reason}`);
-    // Future: Firebase integration
-}
-
-function processRefund(transactionId, amount) {
-    console.log(`💸 Process refund: ${transactionId}, amount: ${amount}`);
-    // Future: Payment gateway integration
-}
-
 // ===== KEYBOARD SHORTCUTS =====
 document.addEventListener('keydown', function(e) {
     // Alt + 1-6 for quick navigation
@@ -6323,9 +6300,12 @@ function initializeAdminDropdown() {
 
 // ===== USER MANAGEMENT SYSTEM =====
 
-let currentUserTab = 'new'; // Track current tab: 'new', 'pending', 'verified', 'suspended'
+let currentUserTab = 'new'; // Track current tab: 'new', 'suspended' (pending/verified hidden -- not built)
 let currentUserData = null; // Track currently selected user
-let allUsers = []; // Store all user data
+let allUsers = []; // Store currently-displayed page of users
+let usersNewLastDoc = null; // Pagination cursor for the New tab's "glance" Load More
+let usersNewHasMore = false;
+let userModerationActionInFlight = false; // Throttle: prevent double-click double-submits on Suspend/Restore
 
 function initializeUserManagement() {
     console.log('👥 Initializing User Management system');
@@ -6351,10 +6331,21 @@ function initializeUserManagement() {
     // Initialize image lightbox
     initializeImageLightbox();
     
+    // Initialize Load More (New tab only)
+    initializeUserLoadMore();
+    
     // Load initial users (new tab)
     loadUserCards('new');
     
     console.log('✅ User Management initialized');
+}
+
+function initializeUserLoadMore() {
+    document.getElementById('loadMoreUsersBtn')?.addEventListener('click', function () {
+        if (currentUserTab === 'new') {
+            loadUserCards('new', { append: true });
+        }
+    });
 }
 
 
@@ -6406,37 +6397,140 @@ function switchUserTab(tabType) {
     }, 0);
 }
 
-function loadUserCards(tabType) {
+/**
+ * Normalize a raw users/{userId} Firestore doc into the flat shape the
+ * User Management UI expects. Mirrors normalizeGigForDisplay's role in Gig
+ * Moderation. region/city/ipAddress/gigsListed/applications are NOT filled
+ * here -- those come from getUserModerationExtras(), fetched on demand only
+ * when an admin opens this specific user (see selectUser()).
+ */
+// dateOfBirth became a required signup field 2026-08-06; pre-existing
+// accounts from before then may have it blank, so this returns null
+// instead of NaN/garbage in that case (displayed as "Not specified").
+function calculateAgeFromDOB(dateOfBirth) {
+    if (!dateOfBirth) return null;
+    const birthDate = new Date(dateOfBirth);
+    if (Number.isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+function normalizeUserForDisplay(id, data) {
+    const d = data || {};
+    const verification = d.verification || {};
+    let verificationStatus = 'NEW MEMBER';
+    if (verification.businessVerified) verificationStatus = 'BUSINESS VERIFIED';
+    else if (verification.proVerified) verificationStatus = 'PRO VERIFIED';
+
+    const isSuspended = d.status === 'suspended';
+
+    return {
+        id,
+        fullName: d.fullName || 'Unnamed User',
+        avatar: d.profilePhoto || GIG_MODERATION_FALLBACK_AVATAR,
+        rating: Number(d.rating) || 0,
+        reviewCount: Number(d.reviewCount) || 0,
+        verificationStatus,
+        status: isSuspended ? 'suspended' : 'new',
+        registeredDate: d.accountCreated ? new Date(d.accountCreated) : new Date(0),
+        birthdate: d.dateOfBirth || null,
+        age: calculateAgeFromDOB(d.dateOfBirth),
+        education: d.educationLevel || 'Not specified',
+        introduction: (d.userSummary || '').trim() || 'No introduction provided.',
+        socialMediaLinks: {
+            facebook: d.socialMedia?.facebook || null,
+            instagram: d.socialMedia?.instagram || null,
+            linkedin: d.socialMedia?.linkedin || null
+        },
+        // Filled on demand via getUserModerationExtras() when this user is opened.
+        region: 'Loading...',
+        city: 'Loading...',
+        ipAddress: 'Loading...',
+        gigsListed: 0,
+        applications: 0,
+        suspendedInfo: isSuspended ? {
+            suspendedBy: d.suspendedByName || 'Unknown admin',
+            suspensionDate: formatGigTimestamp ? formatGigTimestamp(d.suspendedAt) : '',
+            reason: d.suspendReason || '',
+            duration: 'indefinite',
+            notes: ''
+        } : null
+    };
+}
+
+async function loadUserCards(tabType, options = {}) {
     const userCardsList = document.getElementById('userCardsList');
     if (!userCardsList) return;
-    
-    // Filter users by tab type
-    let filteredUsers;
-    
-    if (tabType === 'new') {
-        filteredUsers = allUsers.filter(user => user.status === 'new');
-    } else if (tabType === 'pending') {
-        filteredUsers = allUsers.filter(user => user.status === 'pending');
-    } else if (tabType === 'verified') {
-        filteredUsers = allUsers.filter(user => user.status === 'verified');
-    } else if (tabType === 'suspended') {
-        filteredUsers = allUsers.filter(user => user.status === 'suspended');
+
+    const append = options.append === true;
+    const loadingIndicator = document.getElementById('usersLoading');
+    const loadMoreBtn = document.getElementById('loadMoreUsersBtn');
+
+    if (!append) {
+        userCardsList.innerHTML = '<div class="user-cards-empty-loading" style="padding:2rem;text-align:center;color:#a0aec0;">Loading users…</div>';
+        closeUserDetail();
     }
-    
-    // Update tab counts
-    updateUserTabCounts();
-    
-    // Generate HTML
-    userCardsList.innerHTML = filteredUsers.map(user => generateUserCardHTML(user)).join('');
-    
-    // Update stats
-    const usersStats = document.getElementById('usersStats');
-    if (usersStats) {
-        usersStats.textContent = `Showing ${filteredUsers.length} users`;
+    if (loadingIndicator) loadingIndicator.style.display = append ? 'block' : 'none';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+
+    try {
+        let fetchedUsers = [];
+
+        if (tabType === 'suspended') {
+            const results = (typeof getUserManagementSuspended === 'function')
+                ? await getUserManagementSuspended()
+                : [];
+            fetchedUsers = results.map(r => normalizeUserForDisplay(r.id, r.data));
+            usersNewHasMore = false;
+        } else {
+            // New tab: "glance" pattern -- newest batch, optional Load More, no
+            // gap-guarantee. Suspended accounts filtered out client-side (see
+            // getUserManagementNew's doc comment for why this can't be a
+            // server-side query filter).
+            const startAfter = append ? usersNewLastDoc : null;
+            const result = (typeof getUserManagementNew === 'function')
+                ? await getUserManagementNew(startAfter)
+                : { users: [], lastDoc: null, hasMore: false };
+            const normalized = result.users
+                .map(r => normalizeUserForDisplay(r.id, r.data))
+                .filter(u => u.status !== 'suspended');
+            fetchedUsers = append ? [...allUsers, ...normalized] : normalized;
+            usersNewLastDoc = result.lastDoc;
+            usersNewHasMore = result.hasMore;
+        }
+
+        allUsers = fetchedUsers;
+        currentUserTab = tabType;
+
+        updateUserTabCounts();
+
+        if (allUsers.length === 0) {
+            userCardsList.innerHTML = '<div class="user-cards-empty" style="padding:2rem;text-align:center;color:#a0aec0;">No users here right now.</div>';
+        } else {
+            userCardsList.innerHTML = allUsers.map(user => generateUserCardHTML(user)).join('');
+        }
+
+        const usersStats = document.getElementById('usersStats');
+        if (usersStats) {
+            usersStats.textContent = `Showing ${allUsers.length} user${allUsers.length === 1 ? '' : 's'}`;
+        }
+
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = (tabType === 'new' && usersNewHasMore) ? 'inline-block' : 'none';
+        }
+
+        attachUserCardHandlers();
+    } catch (error) {
+        console.error('❌ Error loading user management cards:', error);
+        userCardsList.innerHTML = '<div class="user-cards-empty" style="padding:2rem;text-align:center;color:#e53e3e;">Could not load users. Try refreshing.</div>';
+    } finally {
+        if (loadingIndicator) loadingIndicator.style.display = 'none';
     }
-    
-    // Attach click handlers
-    attachUserCardHandlers();
 }
 
 function generateUserCardHTML(user) {
@@ -6488,12 +6582,15 @@ function generateUserCardHTML(user) {
         statusClass = 'business';
     }
     
+    const safeName = escapeHtml(user.fullName || '');
+    const ageLabel = Number.isFinite(user.age) ? `${user.age} years old` : 'Age not specified';
+
     return `
         <div class="user-card" data-user-id="${user.id}">
-            <img src="${user.avatar}" alt="${user.fullName}" class="user-card-avatar">
+            <img src="${user.avatar}" alt="${safeName}" class="user-card-avatar">
             <div class="user-card-info">
                 <div class="user-card-header">
-                    <div class="user-card-name">${user.fullName}</div>
+                    <div class="user-card-name">${safeName}</div>
                     <div class="user-card-status ${statusClass}">${user.verificationStatus}</div>
                 </div>
                 <div class="user-card-rating">
@@ -6509,7 +6606,7 @@ function generateUserCardHTML(user) {
                     </div>
                     <div class="user-card-detail-item">
                         <span class="user-card-detail-icon">🎂</span>
-                        <span>${user.age} years old</span>
+                        <span>${ageLabel}</span>
                     </div>
                 </div>
             </div>
@@ -6517,21 +6614,19 @@ function generateUserCardHTML(user) {
     `;
 }
 
+// Only the currently-active tab's count is authoritative (mirrors Gig
+// Moderation's updateTabCounts) -- New shows a trailing "+" while more
+// pages remain unfetched. Pending/Verified counts are left untouched
+// (hidden tabs, never queried).
 function updateUserTabCounts() {
-    const newCount = allUsers.filter(u => u.status === 'new').length;
-    const pendingCount = allUsers.filter(u => u.status === 'pending').length;
-    const verifiedCount = allUsers.filter(u => u.status === 'verified').length;
-    const suspendedCount = allUsers.filter(u => u.status === 'suspended').length;
-    
     const newCountEl = document.getElementById('newUsersCount');
-    const pendingCountEl = document.getElementById('pendingUsersCount');
-    const verifiedCountEl = document.getElementById('verifiedUsersCount');
     const suspendedCountEl = document.getElementById('suspendedUsersCount');
-    
-    if (newCountEl) newCountEl.textContent = newCount;
-    if (pendingCountEl) pendingCountEl.textContent = pendingCount;
-    if (verifiedCountEl) verifiedCountEl.textContent = verifiedCount;
-    if (suspendedCountEl) suspendedCountEl.textContent = suspendedCount;
+
+    if (currentUserTab === 'new' && newCountEl) {
+        newCountEl.textContent = allUsers.length + (usersNewHasMore ? '+' : '');
+    } else if (currentUserTab === 'suspended' && suspendedCountEl) {
+        suspendedCountEl.textContent = allUsers.length;
+    }
 }
 
 function attachUserCardHandlers() {
@@ -6562,6 +6657,11 @@ function selectUser(user) {
     // Check viewport width
     const isMobile = window.innerWidth <= 887;
     
+    // Region/City/IP/activity counts are fetched on demand (never batched
+    // across the whole list) -- fill them in once they arrive, whichever
+    // view (desktop panel or mobile overlay) is currently showing.
+    loadUserModerationExtrasInto(user);
+
     if (isMobile) {
         // Show mobile overlay
         showUserDetailOverlay(user);
@@ -6625,8 +6725,11 @@ function displayUserDetails(user) {
     
     // Update user info
     document.getElementById('userRegisteredSince').textContent = user.registeredDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('userBirthdate').textContent = new Date(user.birthdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    document.getElementById('userAge').textContent = `${user.age} years old`;
+    const birthDateObj = user.birthdate ? new Date(user.birthdate) : null;
+    document.getElementById('userBirthdate').textContent = (birthDateObj && !Number.isNaN(birthDateObj.getTime()))
+        ? birthDateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'Not specified';
+    document.getElementById('userAge').textContent = Number.isFinite(user.age) ? `${user.age} years old` : 'Not specified';
     document.getElementById('userEducation').textContent = user.education;
     document.getElementById('userRegion').textContent = user.region;
     document.getElementById('userCity').textContent = user.city;
@@ -6639,6 +6742,42 @@ function displayUserDetails(user) {
     
     // Update footer sections based on tab
     updateUserFooterSections(user);
+}
+
+async function loadUserModerationExtrasInto(user) {
+    if (typeof getUserModerationExtras !== 'function') return;
+    try {
+        const extras = await getUserModerationExtras(user.id);
+        if (!currentUserData || currentUserData.id !== user.id) return; // selection changed mid-fetch
+
+        user.region = extras.region || 'Not shared';
+        user.city = 'Not tracked'; // no city-level capture pipeline exists, only region -- see submitSignupLocation
+        user.ipAddress = extras.ipAddress || 'Not available';
+        user.gigsListed = extras.gigsListed;
+        user.applications = extras.applications;
+
+        // Desktop panel: individual field IDs, safe to patch in place.
+        const regionEl = document.getElementById('userRegion');
+        const cityEl = document.getElementById('userCity');
+        const gigsListedEl = document.getElementById('userGigsListed');
+        const applicationsEl = document.getElementById('userApplications');
+        const ipEl = document.getElementById('userIpAddress');
+        if (regionEl) regionEl.textContent = user.region;
+        if (cityEl) cityEl.textContent = user.city;
+        if (gigsListedEl) gigsListedEl.textContent = user.gigsListed;
+        if (applicationsEl) applicationsEl.textContent = user.applications;
+        if (ipEl) ipEl.textContent = user.ipAddress;
+
+        // Mobile overlay has no per-field IDs (its body is a single
+        // regenerated HTML blob) -- if it's currently open on this same
+        // user, just rebuild it now that the extras have arrived.
+        const overlay = document.getElementById('userDetailOverlay');
+        if (overlay && overlay.classList.contains('active')) {
+            showUserDetailOverlay(user);
+        }
+    } catch (error) {
+        console.error('❌ Error loading user moderation extras:', error);
+    }
 }
 
 function updateStars(containerId, rating) {
@@ -6840,39 +6979,68 @@ function closeUserDetail() {
     }
 }
 
+let userSearchDebounceTimer = null;
+
 function initializeUserSearch() {
     const searchInput = document.getElementById('usersSearchInput');
     if (!searchInput) return;
-    
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        
-        if (query === '') {
-            // Show all users in current tab
-            loadUserCards(currentUserTab);
-            return;
-        }
-        
-        // Filter users in current tab
-        let filteredUsers = allUsers.filter(user => {
-            return user.status === currentUserTab &&
-                   (user.fullName.toLowerCase().includes(query) ||
-                    user.region.toLowerCase().includes(query) ||
-                    user.city.toLowerCase().includes(query));
-        });
-        
-        // Update display
-        const userCardsList = document.getElementById('userCardsList');
-        if (userCardsList) {
-            userCardsList.innerHTML = filteredUsers.map(user => generateUserCardHTML(user)).join('');
-            attachUserCardHandlers();
-        }
-        
-        const usersStats = document.getElementById('usersStats');
-        if (usersStats) {
-            usersStats.textContent = `Showing ${filteredUsers.length} of ${allUsers.filter(u => u.status === currentUserTab).length} users`;
+
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            clearTimeout(userSearchDebounceTimer);
+            performUserSearch();
         }
     });
+
+    // Debounced so every keystroke doesn't fire a Firestore read.
+    searchInput.addEventListener('input', function() {
+        clearTimeout(userSearchDebounceTimer);
+        userSearchDebounceTimer = setTimeout(performUserSearch, 400);
+    });
+}
+
+// Server-side prefix search across ALL users (any status) by name, so an
+// admin can find someone even if they're not on the currently-loaded tab
+// page. See searchUsersByNamePrefix in firebase-db.js.
+async function performUserSearch() {
+    const rawQuery = document.getElementById('usersSearchInput')?.value.trim() || '';
+    const userCardsList = document.getElementById('userCardsList');
+    if (!userCardsList) return;
+
+    if (!rawQuery) {
+        loadUserCards(currentUserTab);
+        return;
+    }
+
+    userCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">Searching…</div>';
+
+    try {
+        const results = (typeof searchUsersByNamePrefix === 'function')
+            ? await searchUsersByNamePrefix(rawQuery)
+            : [];
+        const searchedUsers = results.map(r => normalizeUserForDisplay(r.id, r.data));
+
+        // Swap allUsers so clicking a result still works via attachUserCardHandlers/selectUser.
+        allUsers = searchedUsers;
+
+        if (searchedUsers.length === 0) {
+            userCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">No users found matching your search.</div>';
+        } else {
+            userCardsList.innerHTML = searchedUsers.map(user => generateUserCardHTML(user)).join('');
+            attachUserCardHandlers();
+        }
+
+        const usersStats = document.getElementById('usersStats');
+        if (usersStats) {
+            usersStats.textContent = `Found ${searchedUsers.length} user${searchedUsers.length === 1 ? '' : 's'} matching "${rawQuery}"`;
+        }
+
+        const loadMoreBtn = document.getElementById('loadMoreUsersBtn');
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+    } catch (error) {
+        console.error('❌ User search failed:', error);
+        userCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #e53e3e;">Search failed. Try again.</div>';
+    }
 }
 
 function initializeImageLightbox() {
@@ -7055,9 +7223,10 @@ function showContactUserOverlay() {
     const userInfoDisplay = document.getElementById('contactUserInfoDisplay');
     
     if (userInfoDisplay && currentUserData) {
+        const safeName = escapeHtml(currentUserData.fullName || '');
         userInfoDisplay.innerHTML = `
-            <img src="${currentUserData.avatar}" alt="${currentUserData.fullName}">
-            <div class="contact-user-info-name">${currentUserData.fullName}</div>
+            <img src="${currentUserData.avatar}" alt="${safeName}">
+            <div class="contact-user-info-name">${safeName}</div>
         `;
     }
     
@@ -7094,11 +7263,12 @@ function initializeUserConfirmationOverlays() {
                 duration: duration
             };
             
-            // Suspend user with captured data
+            // Suspend user with captured data -- the overlay is closed by
+            // suspendUser() itself once the callable resolves (success or
+            // failure), not immediately, so it stays visible/disabled
+            // through the network round-trip (matches Gig Moderation's
+            // confirmSuspendGig pattern).
             suspendUser(currentUserData, suspensionData);
-            
-            // Close overlay and reset form
-            suspendOverlay.classList.remove('active');
             resetSuspendForm();
         });
     }
@@ -7126,8 +7296,9 @@ function initializeUserConfirmationOverlays() {
     
     if (restoreConfirm) {
         restoreConfirm.addEventListener('click', () => {
+            // Overlay is closed by restoreUser() itself once the callable
+            // resolves, same reasoning as the suspend confirm above.
             restoreUser(currentUserData);
-            document.getElementById('restoreUserConfirmOverlay').classList.remove('active');
         });
     }
     
@@ -7321,220 +7492,92 @@ function formatSuspensionDuration(suspendedInfo) {
     return `<span style="color: ${statusColor}; font-weight: 600;">${durationLabel}</span><br><span style="font-size: 0.85rem; color: #a0aec0;">Until: ${expiryDateStr}</span>${statusText}`;
 }
 
-/*
-=== FIREBASE INTEGRATION: USER SUSPENSION LOGIC ===
+/**
+ * Suspend a user via the adminModerateUser callable Cloud Function -- the
+ * ONLY write path for users.status (see firestore.rules and
+ * functions/index.js). Setting status='suspended' also triggers
+ * executeBanCascadeOnUserSuspend server-side, which auto-suspends their
+ * gigs, withdraws their pending applications, and reopens gigs where they
+ * were the hired worker. The Duration field is hidden in the UI (no
+ * auto-expiry function exists) -- suspensionData.duration is always
+ * 'indefinite' and isn't sent to the backend at all; notes are folded into
+ * the reason string sent, since the backend only stores one reason field.
+ */
+async function suspendUser(user, suspensionData) {
+    if (userModerationActionInFlight) return;
+    userModerationActionInFlight = true;
+    const confirmBtn = document.getElementById('confirmSuspendUserBtn');
+    if (confirmBtn) confirmBtn.disabled = true;
 
-When suspending a user, we MUST store their current status so we can properly
-restore them later. Don't just overwrite status - save it first!
-
-CRITICAL: Store previousStatus before suspension for proper restoration
-*/
-
-function suspendUser(user, suspensionData) {
-    console.log('🚫 Suspending user:', user.fullName);
-    console.log('   Suspension data:', suspensionData);
-    
-    // FIREBASE CRITICAL: Store current status BEFORE changing to 'suspended'
-    const previousStatus = user.status;  // 'verified', 'pending', or 'new'
-    const previousVerificationStatus = user.verificationStatus;
-    
-    console.log(`  → Previous status: ${previousStatus} (${previousVerificationStatus})`);
-    console.log(`  → Reason: ${suspensionData.reason}`);
-    console.log(`  → Duration: ${suspensionData.duration}`);
-    if (suspensionData.notes) {
-        console.log(`  → Notes: ${suspensionData.notes}`);
+    const reasonParts = [suspensionData.reason];
+    if (suspensionData.notes && suspensionData.notes.trim()) {
+        reasonParts.push(suspensionData.notes.trim());
     }
-    
-    // Update user status to suspended
-    user.status = 'suspended';
-    
-    // Store suspension data including PREVIOUS STATUS for restoration
-    user.suspendedInfo = {
-        suspendedBy: 'Admin: Peter J. Ang',  // FIREBASE TODO: Get from currentAdmin.displayName
-        suspendedByUid: 'admin_001',  // FIREBASE TODO: Get from currentAdmin.uid
-        suspensionDate: new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        }),
-        // CRITICAL FOR FIREBASE: Store original status for restoration
-        previousStatus: previousStatus,  // <- KEY FIELD
-        previousVerificationStatus: previousVerificationStatus,
-        // Admin-provided suspension details
-        reason: suspensionData.reason,
-        notes: suspensionData.notes || '',
-        duration: suspensionData.duration
-    };
-    
-    // FIREBASE TODO: Update Firestore document
-    // Calculate expiry timestamp if duration is not indefinite
-    // let expiresAt = null;
-    // if (suspensionData.duration !== 'indefinite') {
-    //     const daysMap = {
-    //         '7-days': 7,
-    //         '14-days': 14,
-    //         '30-days': 30,
-    //         '90-days': 90
-    //     };
-    //     const days = daysMap[suspensionData.duration];
-    //     if (days) {
-    //         expiresAt = firebase.firestore.Timestamp.fromDate(
-    //             new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-    //         );
-    //     }
-    // }
-    //
-    // await db.collection('users').doc(user.userId).update({
-    //     status: 'suspended',
-    //     suspensionData: {
-    //         suspendedAt: firebase.firestore.Timestamp.now(),
-    //         suspendedBy: currentAdmin.uid,
-    //         suspendedByName: currentAdmin.displayName,
-    //         reason: suspensionData.reason,  // From form dropdown
-    //         notes: suspensionData.notes,  // From form textarea
-    //         duration: suspensionData.duration,  // From form dropdown
-    //         expiresAt: expiresAt,  // <- Calculated timestamp for timed suspensions
-    //         previousStatus: previousStatus,  // <- CRITICAL: Store for restoration
-    //         previousVerificationStatus: previousVerificationStatus
-    //     }
-    // });
-    //
-    // FIREBASE CLOUD FUNCTION: Auto-restore expired suspensions
-    // Create a scheduled function that runs daily (or hourly) to check for expired suspensions:
-    //
-    // exports.autoRestoreExpiredSuspensions = functions.pubsub
-    //     .schedule('every 1 hours')
-    //     .onRun(async (context) => {
-    //         const now = admin.firestore.Timestamp.now();
-    //         const expiredUsers = await db.collection('users')
-    //             .where('status', '==', 'suspended')
-    //             .where('suspensionData.expiresAt', '<=', now)
-    //             .where('suspensionData.expiresAt', '!=', null)
-    //             .get();
-    //
-    //         const batch = db.batch();
-    //         expiredUsers.forEach(doc => {
-    //             const userData = doc.data();
-    //             batch.update(doc.ref, {
-    //                 status: userData.suspensionData.previousStatus,
-    //                 verificationStatus: userData.suspensionData.previousVerificationStatus,
-    //                 suspensionData: admin.firestore.FieldValue.delete(),
-    //                 restoredAt: admin.firestore.Timestamp.now(),
-    //                 restoredBy: 'system-auto-restore'
-    //             });
-    //         });
-    //
-    //         await batch.commit();
-    //         console.log(`Auto-restored ${expiredUsers.size} users with expired suspensions`);
-    //     });
-    
-    // Close detail overlay
-    closeUserDetail();
-    
-    // Switch to suspended tab to show where user was moved
-    switchUserTab('suspended');
-    
-    showToast(`${user.fullName} has been suspended`, 'success', 2000);
-    console.log('✅ User suspended and moved to Suspended tab');
-}
+    const combinedReason = reasonParts.join(' — ');
 
-/*
-=== FIREBASE INTEGRATION: USER RESTORATION LOGIC ===
+    try {
+        const result = await callAdminModerateUser(user.id, 'suspend', combinedReason);
+        document.getElementById('suspendUserConfirmOverlay')?.classList.remove('active');
 
-When a suspended user is restored, we need to restore them to their PREVIOUS status
-before they were suspended, not just assume 'verified'.
-
-FIRESTORE DATA STRUCTURE FOR SUSPENDED USERS:
-{
-  userId: "user_123",
-  status: "suspended",
-  verificationStatus: "PRO VERIFIED" | "NEW MEMBER",
-  
-  // CRITICAL: Store pre-suspension state for proper restoration
-  suspensionData: {
-    suspendedAt: Firestore.Timestamp,
-    suspendedBy: "admin_id",
-    reason: "Policy violation...",
-    duration: "7 days" | "permanent",
-    
-    // STORE ORIGINAL STATUS BEFORE SUSPENSION
-    previousStatus: "verified" | "pending" | "new",  // <- KEY FIELD
-    previousVerificationStatus: "PRO VERIFIED" | "NEW MEMBER"
-  }
-}
-
-RESTORATION LOGIC:
-1. Read suspensionData.previousStatus
-2. Restore user to that status:
-   - If previousStatus === "verified" → Move to Verified tab
-   - If previousStatus === "pending" → Move to Pending tab (with verification images intact)
-   - If previousStatus === "new" → Move to New tab
-3. Clear suspensionData field
-4. Update Firestore document
-5. Switch admin view to appropriate tab
-
-EDGE CASES:
-- User suspended before verification completed → Restore to 'pending' with verification images
-- User suspended after being verified → Restore to 'verified'
-- User never verified → Restore to 'new'
-*/
-
-function restoreUser(user) {
-    console.log('🔄 Restoring user from suspension:', user.fullName);
-    
-    let restoredStatus;
-    let restoredVerificationStatus;
-    let targetTab;
-    
-    // FIREBASE: Read previousStatus from suspendedInfo (or suspensionData in Firestore)
-    if (user.suspendedInfo && user.suspendedInfo.previousStatus) {
-        // Use stored previousStatus (proper restoration)
-        restoredStatus = user.suspendedInfo.previousStatus;
-        restoredVerificationStatus = user.suspendedInfo.previousVerificationStatus || user.verificationStatus;
-        targetTab = restoredStatus; // 'verified', 'pending', or 'new'
-        console.log(`  → Restoring to ${restoredStatus.toUpperCase()} status (stored previousStatus)`);
-    } else {
-        // Fallback: determine from verification status (for older data without previousStatus)
-        console.warn('  ⚠️ No previousStatus found - using fallback logic');
-        if (user.verificationStatus === 'PRO VERIFIED') {
-            restoredStatus = 'verified';
-            restoredVerificationStatus = 'PRO VERIFIED';
-            targetTab = 'verified';
-            console.log('  → Restoring to VERIFIED status (fallback: had PRO VERIFIED)');
-        } else {
-            restoredStatus = 'pending';
-            restoredVerificationStatus = 'NEW MEMBER';
-            targetTab = 'pending';
-            console.log('  → Restoring to PENDING status (fallback: had NEW MEMBER)');
+        if (!result.success) {
+            showToast(result.message || `Could not suspend ${user.fullName}.`, 'error', 3000);
+            return;
         }
+
+        closeUserDetail();
+        loadUserCards(currentUserTab); // stays on New -- matches Gig Moderation's suspend behavior (reload current tab, not force-navigate)
+        showToast(`${user.fullName} has been suspended`, 'success', 2000);
+    } catch (error) {
+        console.error('❌ Error suspending user:', error);
+        document.getElementById('suspendUserConfirmOverlay')?.classList.remove('active');
+        showToast('Something went wrong suspending this user.', 'error', 3000);
+    } finally {
+        userModerationActionInFlight = false;
+        if (confirmBtn) confirmBtn.disabled = false;
     }
-    
-    // Update user status
-    user.status = restoredStatus;
-    user.verificationStatus = restoredVerificationStatus;
-    user.suspendedInfo = null; // Clear suspension data
-    
-    // FIREBASE TODO: Update Firestore document
-    // await db.collection('users').doc(user.userId).update({
-    //     status: restoredStatus,
-    //     verificationStatus: restoredVerificationStatus,
-    //     suspensionData: firebase.firestore.FieldValue.delete(),
-    //     restoredAt: firebase.firestore.Timestamp.now(),
-    //     restoredBy: currentAdmin.uid
-    // });
-    
-    // Close detail overlay
-    closeUserDetail();
-    
-    // Switch to the appropriate tab where user now belongs
-    switchUserTab(targetTab);
-    
-    showToast(`${user.fullName} has been restored to ${targetTab} users`, 'success', 2000);
-    console.log(`✅ User restored successfully to ${targetTab} tab`);
 }
 
+/**
+ * Restore (reinstate) a suspended user via adminModerateUser. This only
+ * restores account/login access -- it deliberately does NOT auto-restore
+ * whatever executeBanCascadeOnUserSuspend touched (their gigs stay
+ * suspended); an admin reviews and reinstates those individually in Gig
+ * Moderation. See functions/index.js adminModerateUser comment.
+ */
+async function restoreUser(user) {
+    if (userModerationActionInFlight) return;
+    userModerationActionInFlight = true;
+    const confirmBtn = document.getElementById('confirmRestoreUserBtn');
+    if (confirmBtn) confirmBtn.disabled = true;
+
+    try {
+        const result = await callAdminModerateUser(user.id, 'reinstate');
+        document.getElementById('restoreUserConfirmOverlay')?.classList.remove('active');
+
+        if (!result.success) {
+            showToast(result.message || `Could not restore ${user.fullName}.`, 'error', 3000);
+            return;
+        }
+
+        closeUserDetail();
+        loadUserCards(currentUserTab); // stays on Suspended -- the restored user naturally drops out
+        showToast(`${user.fullName} has been restored`, 'success', 2000);
+    } catch (error) {
+        console.error('❌ Error restoring user:', error);
+        document.getElementById('restoreUserConfirmOverlay')?.classList.remove('active');
+        showToast('Something went wrong restoring this user.', 'error', 3000);
+    } finally {
+        userModerationActionInFlight = false;
+        if (confirmBtn) confirmBtn.disabled = false;
+    }
+}
+
+// Dead code below: approveVerification/revokeVerification are unreachable
+// (Pending/Verified tabs are hidden -- that tier doesn't exist in the real
+// schema, see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "User Management —
+// resolved design"). Left in place, not deleted, in case that workflow
+// gets built later; harmless since nothing can ever call them with a real
+// user.status of 'pending'/'verified'.
 function approveVerification(user) {
     // Approve verification
     user.status = 'verified';
@@ -7565,20 +7608,14 @@ function revokeVerification(user) {
     showToast(`${user.fullName}'s verification has been revoked`, 'success', 2000);
 }
 
+// Deliberately NOT wired to any backend action -- what "permanently ban"
+// should actually do (disable Firebase Auth login vs. hard-delete the
+// account/data) is an open design decision, not yet made (see
+// docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md). Silently removing the user
+// from the local list here would look like success while doing nothing to
+// the real account -- worse than just saying so.
 function permanentlyBanUser(user) {
-    // Remove user from array (permanent ban)
-    const index = allUsers.findIndex(u => u.id === user.id);
-    if (index !== -1) {
-        allUsers.splice(index, 1);
-    }
-    
-    // TODO: Add IP to banned list in Firebase
-    
-    // Reload current tab
-    loadUserCards(currentUserTab);
-    closeUserDetail();
-    
-    showToast(`${user.fullName} has been permanently banned (IP: ${user.ipAddress})`, 'success', 3000);
+    showToast('Permanent Ban is not implemented yet -- this account was NOT affected. Use Suspend for now.', 'error', 4000);
 }
 
 function initializeUserDetailOverlay() {
@@ -7665,11 +7702,16 @@ function showUserDetailOverlay(user) {
         if (restoreBtn) restoreBtn.style.display = 'none';
     }
     
-    // Build body content (photo, info boxes, intro)
+    // Build body content (photo, info boxes, intro). fullName/education/
+    // introduction are real user-submitted text going into innerHTML --
+    // escaped here (unlike the desktop panel, which uses safe .textContent).
+    const safeFullName = escapeHtml(user.fullName || '');
+    const safeEducation = escapeHtml(user.education || '');
+    const safeIntro = escapeHtml(user.introduction || '');
     let bodyHTML = `
         <!-- User Profile Photo (large, like gig photo) -->
         <div class="user-profile-photo-container">
-            <img src="${user.avatar}" alt="${user.fullName}" class="user-profile-photo">
+            <img src="${user.avatar}" alt="${safeFullName}" class="user-profile-photo">
         </div>
         
         <!-- User Information Boxes (like gig info boxes) -->
@@ -7681,27 +7723,30 @@ function showUserDetailOverlay(user) {
                 </div>
                 <div class="user-info-item">
                     <div class="user-info-label">BIRTHDATE:</div>
-                    <div class="user-info-value">${new Date(user.birthdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                    <div class="user-info-value">${(() => {
+                        const bd = user.birthdate ? new Date(user.birthdate) : null;
+                        return (bd && !Number.isNaN(bd.getTime())) ? bd.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not specified';
+                    })()}</div>
                 </div>
             </div>
             <div class="user-info-row">
                 <div class="user-info-item">
                     <div class="user-info-label">AGE:</div>
-                    <div class="user-info-value">${user.age} years old</div>
+                    <div class="user-info-value">${Number.isFinite(user.age) ? `${user.age} years old` : 'Not specified'}</div>
                 </div>
                 <div class="user-info-item">
                     <div class="user-info-label">EDUCATION:</div>
-                    <div class="user-info-value">${user.education}</div>
+                    <div class="user-info-value">${safeEducation}</div>
                 </div>
             </div>
             <div class="user-info-row">
                 <div class="user-info-item">
                     <div class="user-info-label">REGION:</div>
-                    <div class="user-info-value">${user.region}</div>
+                    <div class="user-info-value">${escapeHtml(String(user.region || ''))}</div>
                 </div>
                 <div class="user-info-item">
                     <div class="user-info-label">CITY:</div>
-                    <div class="user-info-value">${user.city}</div>
+                    <div class="user-info-value">${escapeHtml(String(user.city || ''))}</div>
                 </div>
             </div>
             <div class="user-info-row">
@@ -7718,7 +7763,7 @@ function showUserDetailOverlay(user) {
         
         <div class="user-intro-section">
             <div class="user-intro-label">INTRODUCTION:</div>
-            <div class="user-intro-text">${user.introduction}</div>
+            <div class="user-intro-text">${safeIntro}</div>
         </div>
         
         <div class="user-profile-section">
@@ -7792,7 +7837,7 @@ function showUserDetailOverlay(user) {
         if (user.suspendedInfo.notes && user.suspendedInfo.notes.trim()) {
             notesHTML = `
                 <div class="suspended-info-label" style="margin-top: 1rem;">ADDITIONAL NOTES:</div>
-                <div class="suspended-info-text" style="white-space: pre-wrap; line-height: 1.5;">${user.suspendedInfo.notes}</div>
+                <div class="suspended-info-text" style="white-space: pre-wrap; line-height: 1.5;">${escapeHtml(user.suspendedInfo.notes)}</div>
             `;
         }
         
@@ -7800,13 +7845,13 @@ function showUserDetailOverlay(user) {
             <div class="user-detail-footer" style="margin-top: 1rem;">
                 <div class="suspended-info-section" style="display: block;">
                     <div class="suspended-info-label">SUSPENDED BY:</div>
-                    <div class="suspended-info-text">${user.suspendedInfo.suspendedBy}</div>
+                    <div class="suspended-info-text">${escapeHtml(user.suspendedInfo.suspendedBy || '')}</div>
                     
                     <div class="suspended-info-label" style="margin-top: 1rem;">SUSPENSION DATE:</div>
-                    <div class="suspended-info-text">${user.suspendedInfo.suspensionDate}</div>
+                    <div class="suspended-info-text">${escapeHtml(user.suspendedInfo.suspensionDate || '')}</div>
                     
                     <div class="suspended-info-label" style="margin-top: 1rem;">REASON:</div>
-                    <div class="suspended-info-text">${user.suspendedInfo.reason || 'Not specified'}</div>
+                    <div class="suspended-info-text">${escapeHtml(user.suspendedInfo.reason || 'Not specified')}</div>
                     
                     <div class="suspended-info-label" style="margin-top: 1rem;">DURATION:</div>
                     <div class="suspended-info-text">${durationText}</div>
@@ -7816,12 +7861,14 @@ function showUserDetailOverlay(user) {
                     <div class="perm-ban-warning">
                         <div class="perm-ban-icon">🚫</div>
                         <div class="perm-ban-text">
-                            <strong>Danger Zone:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                            <strong>Danger Zone:</strong> Permanent ban is not implemented yet (design
+                            decision pending -- see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md). This
+                            button currently does nothing to the account.
                         </div>
                     </div>
                     <div class="perm-ban-ip-display">
-                        <div class="perm-ban-ip-label">IP Address:</div>
-                        <div class="perm-ban-ip-value">${user.ipAddress}</div>
+                        <div class="perm-ban-ip-label">Last Signup IP:</div>
+                        <div class="perm-ban-ip-value">${escapeHtml(String(user.ipAddress || ''))}</div>
                     </div>
                     <button class="perm-ban-btn" onclick="showPermBanUserConfirmation()">PERMANENTLY BAN USER</button>
                 </div>

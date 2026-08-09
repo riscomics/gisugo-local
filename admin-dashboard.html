@@ -1543,21 +1543,27 @@
                         <div class="panel-header">
                             <div class="user-controls">
                                 <!-- First Row: NEW, PENDING, VERIFIED -->
+                                <!-- Pending/Verified tabs hidden (not deleted): they map to the
+                                     ID-verification submission workflow, which isn't built yet --
+                                     an always-empty tab for a nonexistent feature is just confusing
+                                     UI. See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "User
+                                     Management — resolved design". Quick to unhide once that
+                                     pipeline ships. -->
                                 <div class="user-tabs-row">
                                     <button class="user-tab-btn active" id="usersNewBtn" data-tab="new">
-                                        NEW <span class="tab-count" id="newUsersCount">8</span>
+                                        NEW <span class="tab-count" id="newUsersCount">0</span>
                                     </button>
-                                    <button class="user-tab-btn" id="usersPendingBtn" data-tab="pending">
-                                        PENDING <span class="tab-count" id="pendingUsersCount">3</span>
+                                    <button class="user-tab-btn" id="usersPendingBtn" data-tab="pending" style="display: none;">
+                                        PENDING <span class="tab-count" id="pendingUsersCount">0</span>
                                     </button>
-                                    <button class="user-tab-btn" id="usersVerifiedBtn" data-tab="verified">
-                                        VERIFIED <span class="tab-count" id="verifiedUsersCount">42</span>
+                                    <button class="user-tab-btn" id="usersVerifiedBtn" data-tab="verified" style="display: none;">
+                                        VERIFIED <span class="tab-count" id="verifiedUsersCount">0</span>
                                     </button>
                                 </div>
                                 <!-- Second Row: SUSPENDED, SEARCH -->
                                 <div class="user-tabs-row user-tabs-row-bottom">
                                     <button class="user-tab-btn" id="usersSuspendedBtn" data-tab="suspended">
-                                        SUSPENDED <span class="tab-count" id="suspendedUsersCount">2</span>
+                                        SUSPENDED <span class="tab-count" id="suspendedUsersCount">0</span>
                                     </button>
                                     <div class="user-search">
                                         <input type="text" placeholder="Search users..." class="search-input-small" id="usersSearchInput">
@@ -1760,16 +1766,22 @@
                                         <div class="suspended-info-text" id="suspensionNotes" style="white-space: pre-wrap; line-height: 1.5;"></div>
                                     </div>
                                     
-                                    <!-- Permanent Ban Section (for SUSPENDED tab only) -->
+                                    <!-- Permanent Ban Section (for SUSPENDED tab only). NOT wired to
+                                         a real backend action yet -- what it should actually do
+                                         (disable Auth login vs. hard-delete account/data) is an open
+                                         design decision, not yet made. See
+                                         docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md. Button stays
+                                         visible + honest about not doing anything, rather than
+                                         silently faking success. -->
                                     <div class="perm-ban-section" id="permBanSection" style="display: none;">
                                         <div class="perm-ban-warning">
                                             <div class="perm-ban-icon">🚫</div>
                                             <div class="perm-ban-text">
-                                                <strong>Danger Zone:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                                                <strong>Danger Zone:</strong> Permanent ban is not implemented yet (design decision pending). This button currently does nothing to the account.
                                             </div>
                                         </div>
                                         <div class="perm-ban-ip-display">
-                                            <div class="perm-ban-ip-label">IP Address:</div>
+                                            <div class="perm-ban-ip-label">Last Signup IP:</div>
                                             <div class="perm-ban-ip-value" id="userIpAddress">Loading...</div>
                                         </div>
                                         <button class="perm-ban-btn" id="permBanUserBtn">PERMANENTLY BAN USER</button>
@@ -1862,7 +1874,12 @@
                             <textarea class="confirm-form-textarea" id="suspensionNotesTextarea" rows="3" placeholder="Add any additional details about this suspension..."></textarea>
                         </div>
                         
-                        <div class="confirm-form-group">
+                        <!-- Duration hidden: no auto-expiry/auto-restore Cloud Function exists
+                             yet (see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md). Every suspension
+                             is indefinite until an admin manually clicks Restore. Markup kept
+                             (not deleted) + defaults to 'indefinite' in JS so this is a one-line
+                             re-enable once a scheduled auto-restore function ships. -->
+                        <div class="confirm-form-group" style="display: none;">
                             <label class="confirm-form-label">Duration:</label>
                             <select class="confirm-form-select" id="suspensionDurationSelect">
                                 <option value="indefinite">Indefinite (until restored)</option>
