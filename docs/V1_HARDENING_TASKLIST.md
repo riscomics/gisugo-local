@@ -269,13 +269,16 @@ See `AGENTS.md` § "verify production data."
       (gig's poster/worker vs. a Suspended-tab user), different UI surface. Combining them would
       bloat Phase 4's scope and delay the more urgent piece (users can already submit support
       tickets with zero admin reply today).
-- [ ] **DECIDED (2026-08-10): "Permanently Ban User" = Disable Auth login, NOT hard delete.**
-      (User Management, Phase 3 follow-up) Rationale (owner): hard-deleting the account would
-      destroy evidence — reviews, gig/application history, messages, moderation log entries all
-      reference this uid and need to stay query-able for any future dispute/investigation. Disable
-      keeps every record intact and just revokes the ability to log in.
-      • **Not yet built** — button still shows the honest "not implemented" toast in the Suspended
-        tab detail panel. Ready to build now that the decision is made:
+- [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
+      NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
+      though it touches User Management — same rule as everything else post-Phase-3: new work
+      gets a new phase number, shipped phases stay untouched. Rationale (owner): hard-deleting the
+      account would destroy evidence — reviews, gig/application history, messages, moderation log
+      entries all reference this uid and need to stay query-able for any future dispute/
+      investigation. Disable keeps every record intact and just revokes the ability to log in.
+      • **Not yet built** — button still shows an honest "not built yet" toast in the Suspended
+        tab detail panel (account is NOT affected by clicking it). Ready to build now that the
+        decision is made:
         `admin.auth().updateUser(uid, {disabled: true})` via a new `adminModerateUser` action
         (e.g. `'ban'`), separate from `'suspend'` since suspend already has its own reversible
         flow — ban should be its own explicit, harder-to-reverse-by-accident action, logged the
