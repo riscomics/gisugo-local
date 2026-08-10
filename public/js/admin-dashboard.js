@@ -7615,7 +7615,7 @@ function revokeVerification(user) {
 // from the local list here would look like success while doing nothing to
 // the real account -- worse than just saying so.
 function permanentlyBanUser(user) {
-    showToast('Permanent Ban is not implemented yet -- this account was NOT affected. Use Suspend for now.', 'error', 4000);
+    showToast('Permanent Ban (disable login) is not built yet -- this account was NOT affected. Use Suspend for now.', 'error', 4000);
 }
 
 function initializeUserDetailOverlay() {
@@ -7861,8 +7861,9 @@ function showUserDetailOverlay(user) {
                     <div class="perm-ban-warning">
                         <div class="perm-ban-icon">🚫</div>
                         <div class="perm-ban-text">
-                            <strong>Danger Zone:</strong> Permanent ban is not implemented yet (design
-                            decision pending -- see docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md). This
+                            <strong>Danger Zone:</strong> Permanent ban will disable the account's login
+                            (decided -- not a data-deleting ban, see
+                            docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md) but is not built yet. This
                             button currently does nothing to the account.
                         </div>
                     </div>

@@ -289,16 +289,17 @@ explicit Ship, per standing rule):
   `submitSignupLocation`). Suspension "Duration" field hidden in the confirm form (markup kept,
   not deleted) — no auto-expiry/auto-restore Cloud Function exists, so every suspension is
   indefinite until an admin manually clicks Restore.
-- **Known gap, deliberately NOT built this pass — "Permanently Ban User."** The button is visible
-  (Suspended tab detail panel) but intentionally does nothing except show an honest "not
-  implemented" toast — it does **not** fake success by hiding the card locally (the old mock's
-  behavior, which would have silently done nothing to the real account while looking like it
-  worked). What this button should actually **do** is an open, consequential design question that
-  hasn't been decided: disable the account's Firebase Auth login (reversible, keeps all
-  history/reviews/references intact) vs. a hard delete of the account and its data (irreversible,
-  breaks foreign-key references throughout the app — jobs they posted, applications, reviews,
-  messages — and has Data Privacy Act 2012 retention implications). Not building either path until
-  that decision is made explicitly. Tracked in `docs/V1_HARDENING_TASKLIST.md`.
+- **Known gap, not yet built — "Permanently Ban User."** The button is visible (Suspended tab
+  detail panel) but intentionally does nothing except show an honest "not implemented" toast — it
+  does **not** fake success by hiding the card locally (the old mock's behavior, which would have
+  silently done nothing to the real account while looking like it worked). **Decided (2026-08-10):
+  disable the account's Firebase Auth login**, not a hard delete — owner's call, specifically to
+  avoid destroying evidence (reviews/history/moderation-log references all stay intact and
+  query-able; the account just can't log in). Ready to build: a new `adminModerateUser` action
+  (e.g. `'ban'`) calling `admin.auth().updateUser(uid, {disabled: true})`, logged to
+  `user_moderation_log` same as suspend/reinstate, kept separate from the existing reversible
+  `'suspend'` action since a ban should require its own explicit confirmation. Tracked in
+  `docs/V1_HARDENING_TASKLIST.md`.
 - **Also deliberately out of scope, same as Gig Moderation's "Contact":** the desktop/mobile
   Contact button on a user's detail panel is still a mock (shows a toast, doesn't send anything) —
   same known gap as "Gig Moderation → Contact," same fix (wire into the real messaging system),

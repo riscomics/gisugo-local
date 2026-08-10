@@ -269,19 +269,20 @@ See `AGENTS.md` § "verify production data."
       (gig's poster/worker vs. a Suspended-tab user), different UI surface. Combining them would
       bloat Phase 4's scope and delay the more urgent piece (users can already submit support
       tickets with zero admin reply today).
-- [ ] **DECISION NEEDED: what should "Permanently Ban User" actually do?** (User Management,
-      Phase 3, 2026-08-09) The button is visible in the Suspended tab detail panel but
-      intentionally does nothing except show an honest "not implemented" toast — deliberately not
-      built until this is decided, since the two options are meaningfully different and one is
-      irreversible:
-      • **Disable Auth login** (reversible) — `admin.auth().updateUser(uid, {disabled: true})` via
-        a new admin callable. Account, profile, reviews, gig history all stay intact and
-        query-able; just can't log in. Can be undone later.
-      • **Hard delete** (irreversible) — deletes the Firebase Auth user + Firestore docs. Breaks
-        foreign-key references throughout the app (jobs they posted, applications, reviews,
-        messages reference this uid), needs a cascade/cleanup story, and raises Data Privacy Act
-        2012 retention questions. Once decided, implement as its own `adminModerateUser` action
-        (or a separate callable) — not a patch on `suspend`.
+- [ ] **DECIDED (2026-08-10): "Permanently Ban User" = Disable Auth login, NOT hard delete.**
+      (User Management, Phase 3 follow-up) Rationale (owner): hard-deleting the account would
+      destroy evidence — reviews, gig/application history, messages, moderation log entries all
+      reference this uid and need to stay query-able for any future dispute/investigation. Disable
+      keeps every record intact and just revokes the ability to log in.
+      • **Not yet built** — button still shows the honest "not implemented" toast in the Suspended
+        tab detail panel. Ready to build now that the decision is made:
+        `admin.auth().updateUser(uid, {disabled: true})` via a new `adminModerateUser` action
+        (e.g. `'ban'`), separate from `'suspend'` since suspend already has its own reversible
+        flow — ban should be its own explicit, harder-to-reverse-by-accident action, logged the
+        same way to `user_moderation_log`. Reversible later via `disabled: false` if ever needed,
+        but the UI should treat it as a serious/rare action (extra confirmation step).
+      • No Data Privacy Act concern under this option — nothing is deleted, so no retention
+        conflict.
 - [ ] **Phase 8: Wire "Gig Moderation → Contact" admin messaging (Send Message button is
       currently a mock).** Confirmed 2026-08-09: the button/overlay itself is real and always shown
       in the Gig Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
