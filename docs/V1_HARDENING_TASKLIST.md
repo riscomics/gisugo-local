@@ -260,9 +260,15 @@ See `AGENTS.md` § "verify production data."
       silently removed the card locally without touching the real account). What it should
       actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
       dedicated task below.
-- [ ] **Wire "User Management → Contact" admin messaging (Send Message button is currently a
-      mock).** Same known gap as the Gig Moderation Contact item below, same fix, not duplicated
-      effort — one messaging build should wire both Contact buttons at once.
+- [ ] **Phase 8: Wire "User Management → Contact" admin messaging (Send Message button is
+      currently a mock).** Same known gap as the Gig Moderation Contact item below, same fix, not
+      duplicated effort — one messaging build should wire both Contact buttons at once. Deliberately
+      NOT merged into Phase 4 (Support): Support reads/replies inside the ticket-based
+      `support_requests` collection, while Contact needs the live `chat_threads`/`chat_messages`
+      system used by regular gig chat — different backend, different recipient-resolution logic
+      (gig's poster/worker vs. a Suspended-tab user), different UI surface. Combining them would
+      bloat Phase 4's scope and delay the more urgent piece (users can already submit support
+      tickets with zero admin reply today).
 - [ ] **DECISION NEEDED: what should "Permanently Ban User" actually do?** (User Management,
       Phase 3, 2026-08-09) The button is visible in the Suspended tab detail panel but
       intentionally does nothing except show an honest "not implemented" toast — deliberately not
@@ -276,9 +282,9 @@ See `AGENTS.md` § "verify production data."
         messages reference this uid), needs a cascade/cleanup story, and raises Data Privacy Act
         2012 retention questions. Once decided, implement as its own `adminModerateUser` action
         (or a separate callable) — not a patch on `suspend`.
-- [ ] **Wire "Gig Moderation → Contact" admin messaging (Send Message button is currently a mock).**
-      Confirmed 2026-08-09: the button/overlay itself is real and always shown in the Gig
-      Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
+- [ ] **Phase 8: Wire "Gig Moderation → Contact" admin messaging (Send Message button is
+      currently a mock).** Confirmed 2026-08-09: the button/overlay itself is real and always shown
+      in the Gig Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
       `initializeContactGigOverlay()`), but clicking Send Message only shows a toast + logs to
       console — no message is actually created or delivered. Needs: pick a delivery mechanism (most
       likely reuse the existing `chat_threads`/`chat_messages` system so it lands in the
@@ -286,7 +292,8 @@ See `AGENTS.md` § "verify production data."
       than inventing a parallel admin-only inbox) + wire the Recipient dropdown to the gig's actual
       poster/hired worker + wire the optional photo attachment. Not part of Phase 2 (Gig
       Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
-      so it isn't lost, build whenever it's prioritized.
+      so it isn't lost, build whenever it's prioritized. Bundled with the User Management Contact
+      item above as one Phase (same delivery mechanism, one build).
 - [ ] **Phase 4: Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
       shipped (Item 3); admin reply tooling is still missing. Current wiring:
       • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)
