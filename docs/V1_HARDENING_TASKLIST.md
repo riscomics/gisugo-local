@@ -298,16 +298,48 @@ See `AGENTS.md` § "verify production data."
       Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
       so it isn't lost, build whenever it's prioritized. Bundled with the User Management Contact
       item above as one Phase (same delivery mechanism, one build).
-- [ ] **Phase 4: Support responder (admin side) — BLOCKED on this dashboard.** User-facing Support page
-      shipped (Item 3); admin reply tooling is still missing. Current wiring:
-      • **Submit side WORKS:** Support Write overlay (`support-compose.js`, channel `contact_page`)
-        writes to `support_requests` (`contacts.html` redirects to `support.html?compose=1`).
-      • **User read side WORKS:** `support.js` streams the user's own `support_requests` and renders
-        an admin reply when the record carries one (`mapSupportRecordToUnifiedMessage`).
-      • **MISSING = admin side:** no tool for an admin to read the `support_requests` queue and write
-        a response (`admin-dashboard.js` still has mock support data). Users can send but nothing
-        can reply until the dashboard adds a Support queue + reply writer (+ optional email notify).
-        Build with #8/#4.
+- [x] **Phase 4: Support responder (admin side) built end-to-end — shipped (2026-08-10).** Full
+      design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Support (Messages) — resolved design".
+      Built in 5 audited chapters, same pattern as Phase 2/3:
+      1. `firestore.rules`/`firestore.indexes.json`: `support_requests` admin update narrowed to a
+         field-restricted allow-list (`status`/`reply`/`assignedTo`/`priority`/`isReadByRequester`/
+         timestamps only — the requester's original submission content stays immutable, same
+         discipline as jobs.status/users.status locking in Phases 2/3). New `platform_broadcasts`
+         collection for Compose Public Message (any signed-in user can read; only admins can
+         create, with shape validation; immutable — "Unsend" is a real delete, not an edit). New
+         composite index (`status` ASC + `createdAt` DESC) for the New/Old admin queue queries.
+         Both direct client writes (no Cloud Function needed) — unlike `jobs.status`/`users.status`,
+         `support_requests`/`platform_broadcasts` never had a rules gap blocking `isAdmin()`.
+      2. `firebase-db.js`: `getSupportQueueNew`/`getSupportQueueOld` (paginated glance queues, no
+         live listener), `getSupportQueueCounts` (cheap `count()` aggregation tab badges),
+         `replyToSupportRequest`/`resolveSupportRequest` (in-platform-only reply — no email/push,
+         owner decision), `createPlatformBroadcast`/`getSentBroadcasts`/`deleteBroadcast`, and
+         `getPlatformBroadcastsForUser` (one-time fetch for the user-facing side, not a live
+         listener — broadcasts are rare enough that per-session-fresh is plenty).
+      3. `admin-dashboard.js`/`.html`: replaced the mock New/Old/Sent inbox (hardcoded sample
+         tickets + hardcoded stale topic dropdown with different/legacy option names) with the real
+         queue, wired Reply (floating modal) and Mark Resolved, topic filter now reads the real
+         shared taxonomy (`support-taxonomy.js`) instead of a separate hardcoded list, and wired
+         Compose Public Message + Sent tab + Unsend to the new `platform_broadcasts` collection.
+         Old mock-driven init functions (`initializeAdminMessages`/`initializeMessagesPagination`/
+         `initializeInboxToggle`/`initializePublicMessageOverlay`/`initializeInboxSearch`/
+         `initializeMessageOverlay`/`initializeReplyModal`, ~2,230 lines) are no longer called
+         anywhere and are dead — left in place rather than surgically deleted from an 8,000+ line
+         file under time pressure; tracked in the Dead Code Cleanup list below, same treatment as
+         the existing `support.js` item.
+      4. `support.js` (user-facing read side): `mapSupportRecordToUnifiedMessage` previously echoed
+         the requester's OWN submitted message back at them mislabeled as "GISUGO Support" content
+         (no `reply` field existed yet) — now surfaces the real admin reply as the headline content,
+         falls back to an honest "received, 24-48h" placeholder before one exists. Added real
+         broadcast reading (`ensureBroadcastMessagesLoaded`/`mapBroadcastRecordToUnifiedMessage`) —
+         previously 100% mock/commented-out, zero backend existed. Mapped broadcast category codes
+         to the unified inbox's legacy type-filter values (`system`/`notifications`/`updates`/
+         `promotions`) so the existing filter dropdown actually matches broadcasts — this filter
+         path was silently broken even in the original mock (never set `.topic` on public
+         messages), fixed as a side effect of wiring this for real.
+      5. Full-phase audit (this entry + architecture study), `node --check` clean on all 3 JS files,
+         zero duplicate function/variable declarations introduced, every referenced DOM id
+         cross-checked against the HTML.
 - [ ] **Phase 5: Settings must be server-backed (Firestore), NOT localStorage.** (2026-06-27) The admin
       settings object (`gisugo_admin_settings`) currently lives in per-browser `localStorage`,
       so global toggles behave inconsistently across browsers/devices. Concrete symptom found:
@@ -931,6 +963,18 @@ See `AGENTS.md` § "verify production data."
       load under the new signature logic self-heals automatically. Bumped
       `listing.js?v=20260805a` in all 56 category HTML files.
 - [ ] **Dead code cleanup (deferred 2026-08-03) — none of this is reachable/live, purely tidiness:**
+      - **`public/js/admin-dashboard.js` — ~2,230 lines of unreachable mock-era Messages/Support
+        functions (added 2026-08-10, Phase 4).** Two blocks left behind when the real Support
+        Center replaced them: `initializeAdminMessages`/`initializeCustomerMessages`/
+        `loadMessageDetails`/`populateMessageDetail`/`generateReplyThreadHTML`/`getFullMessageContent`/
+        `initializeReplySystem`/`markMessageResolved` etc. (old lines ~447–1269) and
+        `initializeReplyModal`/`initializeMessagesPagination`/`initializeInboxToggle`/
+        `initializePublicMessageOverlay`/`initializeInboxSearch`/`initializeMessageOverlay`/
+        `initializeUnsendConfirmation` etc. (old lines ~1963–3369). Confirmed unreachable — nothing
+        in `DOMContentLoaded` calls any of them anymore (replaced by a single
+        `initializeSupportCenter()`), and no HTML element ids they target collide with the new
+        Support Center code (cross-checked). Safe to delete, just needs someone to carefully carve
+        the two ranges out without touching the real "USER CHATS SYSTEM" section sitting in between them.
       - **`public/js/support.js` — ~1,400-line dead comment block (~lines 5027–6418).** A whole
         `LEGACY_APPLICATIONS` mock-data array (fake negotiation/counter-offer entries, still using
         old `paymentType: 'per_job'/'per_hour'` terms) sitting inside `/* ... */`, preceded by

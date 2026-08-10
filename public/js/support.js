@@ -800,7 +800,10 @@ async function initializeCustomerInterviewsTab() {
 
 async function initializeUnifiedMessagesTab() {
     console.log('📧 Initializing unified messages tab');
-    await ensureSupportResponsesRealtimeStream();
+    await Promise.allSettled([
+        ensureSupportResponsesRealtimeStream(),
+        ensureBroadcastMessagesLoaded()
+    ]);
     // Initialize unified admin messages functionality using customer data
     loadUnifiedMessages();
     setupMessageFiltering('unified');
@@ -10036,9 +10039,17 @@ GISUGO Referral Team`,
 
 function getMessagesByRole(role) {
     if (role === 'unified') {
-        return Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
+        const supportMessages = Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
             ? SUPPORT_RESPONSES_STREAM_STATE.messages
             : [];
+        const broadcastMessages = Array.isArray(BROADCAST_MESSAGES_STATE.messages)
+            ? BROADCAST_MESSAGES_STATE.messages
+            : [];
+        return [...supportMessages, ...broadcastMessages].sort((a, b) => {
+            const at = a?.timestamp instanceof Date ? a.timestamp.getTime() : 0;
+            const bt = b?.timestamp instanceof Date ? b.timestamp.getTime() : 0;
+            return bt - at;
+        });
     }
 
     return [];
@@ -10079,16 +10090,39 @@ function toDateFromSupportRecord(record) {
 
 function mapSupportRecordToUnifiedMessage(doc) {
     const data = doc?.data ? doc.data() : {};
-    const createdAtDate = toDateFromSupportRecord(data);
-    const rawMessage = String(data?.message || '').trim();
+    const rawUserMessage = String(data?.message || '').trim();
+    const replyMessage = String(data?.reply?.message || '').trim();
+    const hasReply = !!replyMessage;
+
+    // Once GISUGO Support replies (Admin Dashboard Phase 4), that reply is the
+    // headline content -- previously this echoed the requester's OWN submitted
+    // message back at them mislabeled as if it were the support team's answer,
+    // since no reply field existed yet at all.
+    const createdAtDate = (hasReply && data?.reply?.repliedAt && typeof data.reply.repliedAt.toDate === 'function')
+        ? data.reply.repliedAt.toDate()
+        : toDateFromSupportRecord(data);
+
+    let content;
+    let excerptSource;
+    if (hasReply) {
+        content = rawUserMessage
+            ? `${replyMessage}\n\n— Your original message —\n${rawUserMessage}`
+            : replyMessage;
+        excerptSource = replyMessage;
+    } else {
+        content = rawUserMessage
+            ? `We've received your request and will get back to you within 24-48 hours.\n\n— Your message —\n${rawUserMessage}`
+            : "We've received your request and will get back to you within 24-48 hours.";
+        excerptSource = rawUserMessage || 'No details provided.';
+    }
 
     return {
         id: `support_${doc.id}`,
         messageType: 'direct',
         topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
         subject: String(data?.subject || 'Support Request'),
-        excerpt: rawMessage ? `${rawMessage.slice(0, 120)}${rawMessage.length > 120 ? '...' : ''}` : 'No details provided.',
-        content: rawMessage || 'No details provided.',
+        excerpt: excerptSource.length > 120 ? `${excerptSource.slice(0, 120)}...` : excerptSource,
+        content,
         sender: {
             name: 'GISUGO Support',
             email: 'support@gisugo.com',
@@ -10099,6 +10133,74 @@ function mapSupportRecordToUnifiedMessage(doc) {
         hasAttachment: Boolean(data?.attachments?.photoUrl || data?.photoUrl),
         attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null
     };
+}
+
+// ----- Public broadcasts (Admin Dashboard Phase 4 "Compose Public Message") -----
+// One-time fetch per session, NOT a live listener -- broadcasts are rare
+// (a few a month at most), so a fresh-on-tab-open read is more than
+// adequate and far cheaper than every signed-in user holding open a
+// listener on this collection. See platform_broadcasts in firestore.rules
+// and getPlatformBroadcastsForUser() in firebase-db.js.
+const BROADCAST_MESSAGES_STATE = {
+    fetched: false,
+    messages: []
+};
+
+// Maps a platform_broadcasts.category (used for display labels via
+// getTopicLabel's publicLabels) to the short legacy code the unified type
+// filter dropdown actually uses (#unifiedMessageTypeFilter option values
+// in support.html: system/notifications/updates/promotions).
+const BROADCAST_CATEGORY_TO_FILTER_TOPIC = {
+    'important-notices': 'notifications',
+    'platform-updates': 'updates',
+    'system-updates': 'system',
+    'promotions': 'promotions'
+};
+
+function mapBroadcastRecordToUnifiedMessage(item) {
+    const data = item?.data || {};
+    const category = String(data.category || 'system-updates');
+    const messageText = String(data.message || '').trim();
+
+    let timestamp = new Date();
+    if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+        timestamp = data.createdAt.toDate();
+    } else if (Number.isFinite(data.createdAtMs)) {
+        timestamp = new Date(data.createdAtMs);
+    } else if (data.createdAtISO) {
+        timestamp = new Date(data.createdAtISO);
+    }
+
+    return {
+        id: `broadcast_${item.id}`,
+        messageType: 'public',
+        category,
+        topic: BROADCAST_CATEGORY_TO_FILTER_TOPIC[category] || 'system',
+        subject: String(data.subject || 'Announcement'),
+        excerpt: messageText.length > 120 ? `${messageText.slice(0, 120)}...` : messageText,
+        content: messageText,
+        sender: {
+            name: 'GISUGO Announcements',
+            email: 'announcements@gisugo.com',
+            avatar: 'public/users/User-11.jpg'
+        },
+        timestamp,
+        isRead: true,
+        hasAttachment: false,
+        attachmentName: null
+    };
+}
+
+async function ensureBroadcastMessagesLoaded() {
+    if (BROADCAST_MESSAGES_STATE.fetched) return;
+    if (typeof window.getPlatformBroadcastsForUser !== 'function') return;
+    try {
+        const items = await window.getPlatformBroadcastsForUser(30);
+        BROADCAST_MESSAGES_STATE.messages = items.map(mapBroadcastRecordToUnifiedMessage);
+        BROADCAST_MESSAGES_STATE.fetched = true;
+    } catch (error) {
+        console.error('❌ Failed to load broadcast messages:', error);
+    }
 }
 
 async function ensureSupportResponsesRealtimeStream() {

@@ -3357,6 +3357,696 @@ window.addEventListener('resize', () => {
     }
 });
 
+// ===== SUPPORT CENTER (Admin Dashboard Phase 4) =====
+// Real support_requests queue + reply + platform_broadcasts. Small paginated
+// "glance" lists, no live listener -- same cost pattern as Gig Moderation /
+// User Management. See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md
+// "Support (Messages) -- resolved design".
+
+let supportCurrentTab = 'new';
+let supportTickets = { new: [], old: [] };
+let supportLastDoc = { new: null, old: null };
+let supportHasMore = { new: false, old: false };
+let supportBroadcasts = [];
+let supportBroadcastsLastDoc = null;
+let supportBroadcastsHasMore = false;
+let supportSelectedTicketId = null;
+let supportSelectedBroadcastId = null;
+let supportActionInFlight = false;
+
+function initializeSupportCenter() {
+    console.log('📨 Initializing Support Center (Phase 4)');
+    populateSupportTopicFilterOptions();
+    initializeSupportTabButtons();
+    initializeSupportSearch();
+    initializeSupportReplyModal();
+    initializeSupportDetailButtons();
+    initializeSupportMobileOverlay();
+    initializeSupportComposeOverlay();
+    loadSupportTab('new', { reset: true });
+    refreshSupportTabCounts();
+    console.log('✅ Support Center initialized');
+}
+
+function populateSupportTopicFilterOptions() {
+    const dropdown = document.getElementById('topicFilter');
+    if (!dropdown) return;
+    const taxonomy = window.GISUGO_SUPPORT_TAXONOMY;
+    const topics = taxonomy ? taxonomy.supportResponseSublabels : [];
+    dropdown.innerHTML = `
+        <option value="all">All Topics</option>
+        ${topics.map((t) => `<option value="${escapeHtml(t.code)}">${escapeHtml(t.label)}</option>`).join('')}
+    `;
+}
+
+function initializeSupportTabButtons() {
+    document.getElementById('newInboxBtn')?.addEventListener('click', () => switchSupportTab('new'));
+    document.getElementById('oldInboxBtn')?.addEventListener('click', () => switchSupportTab('old'));
+    document.getElementById('sentInboxBtn')?.addEventListener('click', () => switchSupportTab('sent'));
+
+    document.getElementById('topicFilter')?.addEventListener('change', () => renderSupportList());
+
+    document.getElementById('loadMoreMessagesBtn')?.addEventListener('click', () => {
+        if (supportCurrentTab === 'sent') {
+            loadSupportSentTab({ reset: false });
+        } else {
+            loadSupportTab(supportCurrentTab, { reset: false });
+        }
+    });
+
+    // Event delegation: card list is re-rendered on every load, so bind once
+    // on the stable container instead of per-card.
+    document.getElementById('customerMessagesList')?.addEventListener('click', (e) => {
+        const ticketCard = e.target.closest('.customer-message-item[data-ticket-id]');
+        if (ticketCard) {
+            selectSupportTicket(ticketCard.getAttribute('data-ticket-id'));
+            return;
+        }
+        const broadcastCard = e.target.closest('.customer-message-item[data-broadcast-id]');
+        if (broadcastCard) {
+            selectSupportBroadcast(broadcastCard.getAttribute('data-broadcast-id'));
+        }
+    });
+}
+
+function switchSupportTab(tab) {
+    supportCurrentTab = tab;
+    document.getElementById('newInboxBtn')?.classList.toggle('active', tab === 'new');
+    document.getElementById('oldInboxBtn')?.classList.toggle('active', tab === 'old');
+    document.getElementById('sentInboxBtn')?.classList.toggle('active', tab === 'sent');
+
+    closeSupportDetail();
+
+    const searchInput = document.getElementById('messagesSearchInput');
+    if (searchInput) searchInput.value = '';
+
+    const topicFilterWrap = document.querySelector('.topic-filter');
+    if (topicFilterWrap) topicFilterWrap.style.display = tab === 'sent' ? 'none' : '';
+
+    // Compose Public Message stays visible on every tab -- it's a standalone
+    // action (write a new broadcast), not something scoped to the Sent tab.
+
+    if (tab === 'sent') {
+        if (!supportBroadcasts.length) {
+            loadSupportSentTab({ reset: true });
+        } else {
+            renderSupportList();
+        }
+    } else if (!supportTickets[tab].length) {
+        loadSupportTab(tab, { reset: true });
+    } else {
+        renderSupportList();
+    }
+}
+
+async function loadSupportTab(tab, options = {}) {
+    const { reset = false } = options;
+    const list = document.getElementById('customerMessagesList');
+    if (reset && list) {
+        list.innerHTML = supportEmptyStateHTML('Loading...', '');
+    }
+    const fetcher = tab === 'new' ? window.getSupportQueueNew : window.getSupportQueueOld;
+    if (typeof fetcher !== 'function') {
+        if (list) list.innerHTML = supportEmptyStateHTML('Support backend unavailable', 'Try refreshing the page.');
+        return;
+    }
+    const result = await fetcher(reset ? null : supportLastDoc[tab]);
+    supportTickets[tab] = reset ? result.tickets : supportTickets[tab].concat(result.tickets);
+    supportLastDoc[tab] = result.lastDoc;
+    supportHasMore[tab] = result.hasMore;
+    renderSupportList();
+}
+
+async function loadSupportSentTab(options = {}) {
+    const { reset = false } = options;
+    const fetcher = window.getSentBroadcasts;
+    if (typeof fetcher !== 'function') return;
+    const result = await fetcher(reset ? null : supportBroadcastsLastDoc);
+    supportBroadcasts = reset ? result.broadcasts : supportBroadcasts.concat(result.broadcasts);
+    supportBroadcastsLastDoc = result.lastDoc;
+    supportBroadcastsHasMore = result.hasMore;
+    renderSupportList();
+}
+
+async function refreshSupportTabCounts() {
+    if (typeof window.getSupportQueueCounts !== 'function') return;
+    const { newCount, oldCount } = await window.getSupportQueueCounts();
+    document.getElementById('newCountLabel') && (document.getElementById('newCountLabel').textContent = formatCount(newCount));
+    document.getElementById('oldCountLabel') && (document.getElementById('oldCountLabel').textContent = formatCount(oldCount));
+    document.getElementById('sentCountLabel') && (document.getElementById('sentCountLabel').textContent = formatCount(supportBroadcasts.length));
+    if (typeof updateNavigationMessageBadge === 'function') {
+        updateNavigationMessageBadge(newCount);
+    }
+}
+
+function renderSupportList() {
+    const list = document.getElementById('customerMessagesList');
+    if (!list) return;
+
+    if (supportCurrentTab === 'sent') {
+        renderSupportBroadcastList(list);
+        updateSupportPaginationUI();
+        return;
+    }
+
+    const topicFilter = document.getElementById('topicFilter')?.value || 'all';
+    const searchQuery = (document.getElementById('messagesSearchInput')?.value || '').trim().toLowerCase();
+
+    let items = supportTickets[supportCurrentTab] || [];
+    if (topicFilter !== 'all') {
+        items = items.filter((t) => String(t.data.categoryCode || '') === topicFilter);
+    }
+    if (searchQuery) {
+        items = items.filter((t) => {
+            const d = t.data;
+            return (d.subject || '').toLowerCase().includes(searchQuery)
+                || (d.message || '').toLowerCase().includes(searchQuery)
+                || (d.requester?.name || '').toLowerCase().includes(searchQuery)
+                || (d.requester?.email || '').toLowerCase().includes(searchQuery);
+        });
+    }
+
+    if (!items.length) {
+        list.innerHTML = supportEmptyStateHTML(
+            supportCurrentTab === 'new' ? 'No new support tickets' : 'No resolved tickets yet',
+            supportCurrentTab === 'new' ? 'New support requests will appear here.' : 'Replied and resolved tickets will appear here.'
+        );
+        updateSupportPaginationUI();
+        return;
+    }
+
+    list.innerHTML = items.map((t) => renderSupportTicketCard(t)).join('');
+    updateSupportPaginationUI();
+}
+
+function renderSupportBroadcastList(list) {
+    const searchQuery = (document.getElementById('messagesSearchInput')?.value || '').trim().toLowerCase();
+    let items = supportBroadcasts;
+    if (searchQuery) {
+        items = items.filter((b) => (b.data.subject || '').toLowerCase().includes(searchQuery)
+            || (b.data.message || '').toLowerCase().includes(searchQuery));
+    }
+    if (!items.length) {
+        list.innerHTML = supportEmptyStateHTML('No broadcasts sent yet', 'Use the ✉️ button above to compose one.');
+        return;
+    }
+    list.innerHTML = items.map((b) => renderSupportBroadcastCard(b)).join('');
+}
+
+const SUPPORT_BROADCAST_CATEGORY_LABELS = {
+    'important-notices': '🔴 Important Notices',
+    'platform-updates': '🔵 Platform Updates',
+    'system-updates': '⚙️ System Updates',
+    'promotions': '🎁 Promotions'
+};
+
+function renderSupportBroadcastCard(broadcast) {
+    const d = broadcast.data;
+    const category = String(d.category || 'system-updates');
+    const label = SUPPORT_BROADCAST_CATEGORY_LABELS[category] || category;
+    const subject = escapeHtml(d.subject || '');
+    const messageRaw = String(d.message || '').trim();
+    const excerpt = escapeHtml(messageRaw.length > 120 ? messageRaw.slice(0, 120) + '...' : messageRaw);
+    const timeLabel = formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO');
+
+    return `
+        <div class="customer-message-item" data-broadcast-id="${broadcast.id}" data-topic="public-message">
+            <div class="message-topic ${category}">${label}</div>
+            <div class="message-content-area">
+                <div class="message-header">
+                    <div class="message-sender">
+                        <div class="sender-avatar" style="background:#10b981;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;">📢</div>
+                        <div class="sender-info">
+                            <div class="sender-name">Public Announcement</div>
+                            <div class="sender-email">All Users</div>
+                        </div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-time">${timeLabel}</div>
+                    </div>
+                </div>
+                <div class="message-preview">
+                    <div class="message-subject">${subject}</div>
+                    <div class="message-excerpt">${excerpt}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderSupportTicketCard(ticket) {
+    const d = ticket.data;
+    const topicCode = String(d.categoryCode || 'other');
+    const topicClass = topicCode.replace(/_/g, '-');
+    const topicLabel = d.categoryLabel || topicCode;
+    const isUnread = d.status === 'pending';
+    const name = escapeHtml(d.requester?.name || 'Unknown');
+    const email = escapeHtml(d.requester?.email || '');
+    const timeLabel = formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO');
+    const subject = escapeHtml(d.subject || 'Support Request');
+    const excerptRaw = String(d.message || '').trim();
+    const excerpt = escapeHtml(excerptRaw.length > 120 ? excerptRaw.slice(0, 120) + '...' : excerptRaw) || 'No details provided.';
+    const hasAttachment = !!(d.attachments?.photoUrl || d.photoUrl);
+
+    return `
+        <div class="customer-message-item ${isUnread ? 'unread' : ''}" data-ticket-id="${ticket.id}" data-topic="${escapeHtml(topicCode)}">
+            <div class="message-topic ${topicClass}">${escapeHtml(topicLabel)}</div>
+            <div class="message-content-area">
+                <div class="message-header">
+                    <div class="message-sender">
+                        <img src="${supportInitialsAvatarUri(d.requester?.name)}" alt="${name}" class="sender-avatar">
+                        <div class="sender-info">
+                            <div class="sender-name">${name}</div>
+                            <div class="sender-email">${email}</div>
+                        </div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-time">${timeLabel}</div>
+                        ${hasAttachment ? '<div class="message-attachment" title="Has photo attachment">🖼️</div>' : ''}
+                    </div>
+                </div>
+                <div class="message-preview">
+                    <div class="message-subject">${subject}</div>
+                    <div class="message-excerpt">${excerpt}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function supportInitialsAvatarUri(name) {
+    const initial = String(name || '?').trim().charAt(0).toUpperCase() || '?';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#3b82f6"/><text x="32" y="42" font-size="28" font-family="Arial, sans-serif" fill="white" text-anchor="middle">${initial}</text></svg>`;
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+function formatSupportTime(data, tsField, msField, isoField) {
+    if (data[tsField]) {
+        const formatted = formatGigTimestamp(data[tsField]);
+        if (formatted) return formatted;
+    }
+    if (Number.isFinite(data[msField])) {
+        const formatted = formatGigTimestamp(new Date(data[msField]));
+        if (formatted) return formatted;
+    }
+    if (data[isoField]) {
+        const formatted = formatGigTimestamp(new Date(data[isoField]));
+        if (formatted) return formatted;
+    }
+    return '';
+}
+
+function supportEmptyStateHTML(title, subtitle) {
+    return `
+        <div class="no-message-selected" style="padding: 2rem 1rem;">
+            <div class="no-message-icon">💬</div>
+            <h4>${escapeHtml(title)}</h4>
+            ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}
+        </div>
+    `;
+}
+
+function updateSupportPaginationUI() {
+    const loadMoreBtn = document.getElementById('loadMoreMessagesBtn');
+    const stats = document.getElementById('messagesStats');
+    const hasMore = supportCurrentTab === 'sent' ? supportBroadcastsHasMore : supportHasMore[supportCurrentTab];
+    if (loadMoreBtn) loadMoreBtn.style.display = hasMore ? 'block' : 'none';
+    if (stats) {
+        const count = supportCurrentTab === 'sent' ? supportBroadcasts.length : (supportTickets[supportCurrentTab] || []).length;
+        stats.textContent = `Showing ${count} message${count === 1 ? '' : 's'}`;
+    }
+}
+
+// ----- Ticket detail (desktop panel + mobile overlay) -----
+
+function findSupportTicketById(ticketId) {
+    return (supportTickets.new.find((t) => t.id === ticketId))
+        || (supportTickets.old.find((t) => t.id === ticketId))
+        || null;
+}
+
+function selectSupportTicket(ticketId) {
+    const ticket = findSupportTicketById(ticketId);
+    if (!ticket) return;
+    supportSelectedTicketId = ticketId;
+    supportSelectedBroadcastId = null;
+
+    document.querySelectorAll('.customer-message-item').forEach((el) => el.classList.remove('selected'));
+    document.querySelector(`.customer-message-item[data-ticket-id="${ticketId}"]`)?.classList.add('selected');
+
+    if (window.innerWidth <= 887) {
+        showSupportOverlay(buildSupportDetailHeaderMeta(ticket), buildSupportDetailBodyHTML(ticket));
+    } else {
+        showSupportDetailDesktop(ticket);
+    }
+}
+
+function selectSupportBroadcast(broadcastId) {
+    const broadcast = supportBroadcasts.find((b) => b.id === broadcastId);
+    if (!broadcast) return;
+    supportSelectedBroadcastId = broadcastId;
+    supportSelectedTicketId = null;
+
+    document.querySelectorAll('.customer-message-item').forEach((el) => el.classList.remove('selected'));
+    document.querySelector(`.customer-message-item[data-broadcast-id="${broadcastId}"]`)?.classList.add('selected');
+
+    const d = broadcast.data;
+    const label = SUPPORT_BROADCAST_CATEGORY_LABELS[d.category] || d.category;
+    const meta = { name: 'Public Announcement', email: 'All Users', time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'), topic: label, avatar: null };
+    const body = `
+        <div class="detail-subject">${escapeHtml(d.subject || '')}</div>
+        <div class="detail-message-text">${escapeHtml(d.message || '').replace(/\n/g, '<br>')}</div>
+    `;
+
+    if (window.innerWidth <= 887) {
+        showSupportOverlay(meta, body, { isBroadcast: true });
+    } else {
+        applySupportDetailHeader(meta, { isBroadcast: true });
+        document.querySelector('#messageContent .message-detail-body').innerHTML = body;
+        document.getElementById('messageDetail').style.display = 'none';
+        document.getElementById('messageContent').style.display = 'block';
+    }
+}
+
+function buildSupportDetailHeaderMeta(ticket) {
+    const d = ticket.data;
+    return {
+        name: d.requester?.name || 'Unknown',
+        email: d.requester?.email || '',
+        time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'),
+        topic: d.categoryLabel || d.categoryCode || 'Other',
+        avatar: supportInitialsAvatarUri(d.requester?.name)
+    };
+}
+
+function buildSupportDetailBodyHTML(ticket) {
+    const d = ticket.data;
+    const messageHTML = escapeHtml(d.message || '').replace(/\n/g, '<br>');
+    const photoUrl = d.attachments?.photoUrl || d.photoUrl || null;
+
+    let replyHTML = '';
+    if (d.reply && d.reply.message) {
+        const replyBy = escapeHtml(d.reply.repliedBy?.adminName || 'Admin');
+        const replyText = escapeHtml(d.reply.message).replace(/\n/g, '<br>');
+        replyHTML = `
+            <div class="support-reply-block" style="margin-top:1.5rem; padding:1rem; border-left:3px solid #3b82f6; background:rgba(59,130,246,0.08); border-radius:6px;">
+                <div style="font-weight:600; color:#3b82f6; margin-bottom:0.5rem;">↩️ Reply from ${replyBy}</div>
+                <div>${replyText}</div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="detail-subject">${escapeHtml(d.subject || 'Support Request')}</div>
+        <div class="detail-message-text" id="detailMessageText">${messageHTML}</div>
+        ${photoUrl ? `
+        <div class="detail-attachment" id="detailAttachment" style="display: block;">
+            <div class="attachment-label">Attachment:</div>
+            <div class="attachment-file">
+                <img src="${photoUrl}" alt="Attachment" class="attachment-preview">
+                <div class="attachment-name">Photo attachment</div>
+            </div>
+        </div>` : ''}
+        ${replyHTML}
+        ${d.referenceId ? `<div style="margin-top:1rem; font-size:0.75rem; color:rgba(230,214,174,0.5);">Reference: ${escapeHtml(d.referenceId)}</div>` : ''}
+    `;
+}
+
+function applySupportDetailHeader(meta, options = {}) {
+    const avatarEl = document.getElementById('detailAvatar');
+    if (avatarEl) {
+        if (meta.avatar) {
+            avatarEl.src = meta.avatar;
+            avatarEl.style.display = '';
+        } else {
+            avatarEl.style.display = 'none';
+        }
+    }
+    document.getElementById('detailSenderName') && (document.getElementById('detailSenderName').textContent = meta.name);
+    document.getElementById('detailSenderEmail') && (document.getElementById('detailSenderEmail').textContent = meta.email);
+    document.getElementById('detailMessageTime') && (document.getElementById('detailMessageTime').textContent = meta.time);
+    document.getElementById('detailTopic') && (document.getElementById('detailTopic').textContent = meta.topic);
+
+    const replyBtn = document.getElementById('openReplyBtn');
+    const closeBtn = document.getElementById('closeMessageBtn');
+    if (replyBtn) replyBtn.style.display = options.isBroadcast ? 'none' : '';
+    if (closeBtn) closeBtn.textContent = options.isBroadcast ? 'Unsend' : 'Mark Resolved';
+}
+
+function showSupportDetailDesktop(ticket) {
+    applySupportDetailHeader(buildSupportDetailHeaderMeta(ticket));
+    const bodyEl = document.querySelector('#messageContent .message-detail-body');
+    if (bodyEl) bodyEl.innerHTML = buildSupportDetailBodyHTML(ticket);
+
+    document.getElementById('messageDetail').style.display = 'none';
+    document.getElementById('messageContent').style.display = 'block';
+}
+
+function closeSupportDetail() {
+    supportSelectedTicketId = null;
+    supportSelectedBroadcastId = null;
+    document.querySelectorAll('.customer-message-item.selected').forEach((el) => el.classList.remove('selected'));
+    const messageDetail = document.getElementById('messageDetail');
+    const messageContent = document.getElementById('messageContent');
+    if (messageDetail) messageDetail.style.display = 'block';
+    if (messageContent) messageContent.style.display = 'none';
+    document.getElementById('messageDetailOverlay')?.classList.remove('active', 'show');
+}
+
+function initializeSupportDetailButtons() {
+    document.getElementById('openReplyBtn')?.addEventListener('click', () => openSupportReplyModal());
+    document.getElementById('closeMessageBtn')?.addEventListener('click', () => handleSupportCloseAction());
+}
+
+function handleSupportCloseAction() {
+    if (supportSelectedBroadcastId) {
+        confirmUnsendSupportBroadcast(supportSelectedBroadcastId);
+        return;
+    }
+    if (supportSelectedTicketId) {
+        confirmResolveSupportTicket(supportSelectedTicketId);
+    }
+}
+
+function confirmResolveSupportTicket(ticketId) {
+    showSettingsConfirmation(
+        '✅ Mark as Resolved',
+        'This will close the ticket and move it to the Old tab. Continue?',
+        async () => {
+            if (supportActionInFlight) return;
+            supportActionInFlight = true;
+            const result = await window.resolveSupportRequest(ticketId);
+            supportActionInFlight = false;
+            if (result.success) {
+                showToast('Ticket marked as resolved', 'success', 2000);
+                closeSupportDetail();
+                supportTickets.new = supportTickets.new.filter((t) => t.id !== ticketId);
+                supportTickets.old = [];
+                supportLastDoc.old = null;
+                switchSupportTab('old');
+                refreshSupportTabCounts();
+            } else {
+                showToast(result.message || 'Could not resolve ticket', 'error', 2500);
+            }
+        }
+    );
+}
+
+function confirmUnsendSupportBroadcast(broadcastId) {
+    showSettingsConfirmation(
+        '🗑️ Unsend Broadcast',
+        'This will permanently delete this broadcast for all users. Continue?',
+        async () => {
+            if (supportActionInFlight) return;
+            supportActionInFlight = true;
+            const result = await window.deleteBroadcast(broadcastId);
+            supportActionInFlight = false;
+            if (result.success) {
+                showToast('Broadcast unsent', 'success', 2000);
+                closeSupportDetail();
+                supportBroadcasts = supportBroadcasts.filter((b) => b.id !== broadcastId);
+                renderSupportList();
+                refreshSupportTabCounts();
+            } else {
+                showToast(result.message || 'Could not unsend broadcast', 'error', 2500);
+            }
+        }
+    );
+}
+
+// ----- Reply modal (floating) -----
+
+function initializeSupportReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    const closeReplyModal = document.getElementById('closeReplyModal');
+    const cancelReplyBtn = document.getElementById('cancelReplyBtn');
+    const sendFloatingReplyBtn = document.getElementById('sendFloatingReplyBtn');
+
+    function closeModal() {
+        replyOverlay?.classList.remove('show');
+        const ta = document.getElementById('floatingReplyTextarea');
+        if (ta) ta.value = '';
+    }
+
+    closeReplyModal?.addEventListener('click', closeModal);
+    cancelReplyBtn?.addEventListener('click', closeModal);
+    replyOverlay?.addEventListener('click', (e) => {
+        if (e.target === replyOverlay) closeModal();
+    });
+
+    sendFloatingReplyBtn?.addEventListener('click', async () => {
+        const textarea = document.getElementById('floatingReplyTextarea');
+        const replyText = (textarea?.value || '').trim();
+        if (!replyText) {
+            showToast('Please enter a reply message.', 'error', 2000);
+            return;
+        }
+        if (!supportSelectedTicketId) {
+            showToast('No ticket selected.', 'error', 2000);
+            return;
+        }
+        if (supportActionInFlight) return;
+        supportActionInFlight = true;
+        sendFloatingReplyBtn.disabled = true;
+        const result = await window.replyToSupportRequest(supportSelectedTicketId, replyText);
+        sendFloatingReplyBtn.disabled = false;
+        supportActionInFlight = false;
+
+        if (result.success) {
+            showToast('Reply sent!', 'success', 2000);
+            closeModal();
+            const ticketId = supportSelectedTicketId;
+            closeSupportDetail();
+            supportTickets.new = supportTickets.new.filter((t) => t.id !== ticketId);
+            supportTickets.old = [];
+            supportLastDoc.old = null;
+            switchSupportTab('old');
+            refreshSupportTabCounts();
+        } else {
+            showToast(result.message || 'Reply failed', 'error', 2500);
+        }
+    });
+}
+
+function openSupportReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    const title = document.querySelector('.reply-modal-title');
+    if (title) title.textContent = 'Reply to Support Ticket';
+    replyOverlay?.classList.add('show');
+    document.getElementById('floatingReplyTextarea')?.focus();
+}
+
+// ----- Mobile overlay -----
+
+function initializeSupportMobileOverlay() {
+    document.getElementById('overlayCloseBtn')?.addEventListener('click', () => {
+        document.getElementById('messageDetailOverlay')?.classList.remove('active', 'show');
+    });
+    document.getElementById('overlayReplyBtn')?.addEventListener('click', () => openSupportReplyModal());
+    document.getElementById('overlayArchiveBtn')?.addEventListener('click', () => handleSupportCloseAction());
+}
+
+function showSupportOverlay(meta, bodyHTML, options = {}) {
+    const overlay = document.getElementById('messageDetailOverlay');
+    const body = overlay?.querySelector('.overlay-body');
+    if (!overlay || !body) return;
+
+    body.innerHTML = `
+        <div class="detail-sender" style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
+            ${meta.avatar ? `<img src="${meta.avatar}" alt="${escapeHtml(meta.name)}" class="detail-avatar">` : ''}
+            <div class="detail-sender-info">
+                <div class="detail-sender-name">${escapeHtml(meta.name)}</div>
+                <div class="detail-sender-email">${escapeHtml(meta.email)}</div>
+                <div class="detail-message-time">${escapeHtml(meta.time)}</div>
+            </div>
+        </div>
+        <div class="detail-topic" style="margin-bottom:1rem;">${escapeHtml(meta.topic)}</div>
+        ${bodyHTML}
+    `;
+
+    const replyBtn = document.getElementById('overlayReplyBtn');
+    const archiveBtn = document.getElementById('overlayArchiveBtn');
+    if (replyBtn) replyBtn.style.display = options.isBroadcast ? 'none' : '';
+    if (archiveBtn) archiveBtn.textContent = options.isBroadcast ? 'Unsend' : 'Mark Resolved';
+
+    overlay.classList.add('active', 'show');
+}
+
+// ----- Search -----
+
+function initializeSupportSearch() {
+    document.getElementById('messagesSearchInput')?.addEventListener('input', () => renderSupportList());
+}
+
+// ----- Compose Public Message (broadcast) -----
+
+function initializeSupportComposeOverlay() {
+    const overlay = document.getElementById('publicMessageOverlay');
+    const openBtn = document.getElementById('composePublicMessageBtn');
+    const closeBtn = document.getElementById('closePublicMessageModal');
+    const cancelBtn = document.getElementById('cancelPublicMessageBtn');
+    const sendBtn = document.getElementById('sendPublicMessageBtn');
+    const categorySelect = document.getElementById('publicCategorySelect');
+    const subjectInput = document.getElementById('publicSubjectInput');
+    const messageTextarea = document.getElementById('publicMessageTextarea');
+    const subjectCounter = document.getElementById('subjectCharCounter');
+    const messageCounter = document.getElementById('messageCharCounter');
+
+    function resetForm() {
+        if (categorySelect) categorySelect.value = '';
+        if (subjectInput) subjectInput.value = '';
+        if (messageTextarea) messageTextarea.value = '';
+        if (subjectCounter) subjectCounter.textContent = '0/100';
+        if (messageCounter) messageCounter.textContent = '0/1000';
+    }
+
+    function closeOverlay() {
+        overlay?.classList.remove('active', 'show');
+        resetForm();
+    }
+
+    openBtn?.addEventListener('click', () => overlay?.classList.add('active', 'show'));
+    closeBtn?.addEventListener('click', closeOverlay);
+    cancelBtn?.addEventListener('click', closeOverlay);
+
+    subjectInput?.addEventListener('input', () => {
+        if (subjectCounter) subjectCounter.textContent = `${subjectInput.value.length}/100`;
+    });
+    messageTextarea?.addEventListener('input', () => {
+        if (messageCounter) messageCounter.textContent = `${messageTextarea.value.length}/1000`;
+    });
+
+    sendBtn?.addEventListener('click', async () => {
+        const category = categorySelect?.value || '';
+        const subject = (subjectInput?.value || '').trim();
+        const message = (messageTextarea?.value || '').trim();
+
+        if (!category || !subject || !message) {
+            showToast('Please fill in category, subject, and message.', 'error', 2500);
+            return;
+        }
+        if (supportActionInFlight) return;
+        supportActionInFlight = true;
+        sendBtn.disabled = true;
+        const result = await window.createPlatformBroadcast(category, subject, message);
+        sendBtn.disabled = false;
+        supportActionInFlight = false;
+
+        if (result.success) {
+            showToast('Broadcast sent to all users!', 'success', 2000);
+            closeOverlay();
+            supportBroadcasts = [];
+            supportBroadcastsLastDoc = null;
+            if (supportCurrentTab === 'sent') {
+                loadSupportSentTab({ reset: true });
+            }
+            refreshSupportTabCounts();
+        } else {
+            showToast(result.message || 'Could not send broadcast', 'error', 2500);
+        }
+    });
+}
+
 // ===== TOAST NOTIFICATION SYSTEM =====
 function showToast(message, type = 'success', duration = 1500) {
     const toast = document.getElementById('toastNotification');

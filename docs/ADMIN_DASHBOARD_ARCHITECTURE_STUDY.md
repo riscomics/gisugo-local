@@ -312,6 +312,50 @@ explicit Ship, per standing rule):
 Was deliberately parked earlier in this study ("not releasing for real users until dashboard is
 good to go") — now resolved on request, same level of detail as the other three sections.
 
+### Implementation status (Phase 4, shipped 2026-08-10)
+
+- **Rules** (`firestore.rules`): `support_requests` admin update rule narrowed from "isAdmin() can
+  write anything" to a field-restricted allow-list (`status`/`reply`/`assignedTo`/`priority`/
+  `isReadByRequester`/timestamps) — the requester's original submission (`subject`/`message`/
+  `requester`/`categoryCode`/`referenceId`) is immutable once created, closing a gap where an admin
+  write could otherwise have silently altered a requester's own words. New
+  `platform_broadcasts/{broadcastId}` collection: any signed-in user can read; only admins can
+  create, with shape validation (`category` restricted to the 4 known values, subject ≤100 chars,
+  message ≤1000 chars, `sentBy.adminId` must match the caller); no update path at all — "Unsend" is
+  a real delete, matching the immutable-once-sent design decision.
+- **Indexes** (`firestore.indexes.json`): `support_requests` (`status` ASC, `createdAt` DESC) for
+  the admin New/Old queue queries (also covers the `status in [...]` Old-tab query — Firestore
+  treats `in` like a union of `==` for index purposes).
+- **Data access** (`firebase-db.js`): direct client Firestore calls, no Cloud Function — unlike
+  `jobs.status`/`users.status`, there was never a rules gap blocking `isAdmin()` here, so a callable
+  wrapper would have added latency/cost for no security benefit. `getSupportQueueNew`/
+  `getSupportQueueOld` (paginated, no live listener), `getSupportQueueCounts` (`count()`
+  aggregation for tab badges), `replyToSupportRequest`/`resolveSupportRequest`,
+  `createPlatformBroadcast`/`getSentBroadcasts`/`deleteBroadcast`, `getPlatformBroadcastsForUser`
+  (one-time fetch for the requester-facing side).
+- **Frontend — admin** (`admin-dashboard.js`/`.html`): New/Old/Sent tabs wired to real data,
+  replacing the hardcoded sample tickets and a stale topic dropdown that used different/legacy
+  option codes than the live compose form. Topic filter now reads
+  `GISUGO_SUPPORT_TAXONOMY.supportResponseSublabels` (the same shared list the public compose form
+  uses) instead of a separately-maintained hardcoded list. Reply uses the existing floating reply
+  modal; Mark Resolved and Unsend (broadcasts) both route through the shared
+  `showSettingsConfirmation` confirm dialog. Compose Public Message writes to
+  `platform_broadcasts`; Sent tab reads it back.
+- **Frontend — requester-facing** (`support.js`): `mapSupportRecordToUnifiedMessage` previously
+  showed the requester their OWN submitted message relabeled as if it were "GISUGO Support"
+  content, because no `reply` field existed yet to show instead. Now shows the real admin reply as
+  the headline once one exists (original message still included below it for context), or an
+  honest "received, we'll respond within 24-48h" placeholder before that. Broadcast reading
+  (`ensureBroadcastMessagesLoaded`) is new — the old broadcast display code was 100% inside a dead
+  comment block with no backing collection at all. A pre-existing bug in that same dead mock was
+  fixed as a side effect: broadcasts never set a `.topic` field, so the unified inbox's type-filter
+  dropdown (`system`/`notifications`/`updates`/`promotions`) could never actually match a broadcast
+  message even by design — now mapped correctly via `BROADCAST_CATEGORY_TO_FILTER_TOPIC`.
+- **Known follow-up, not a blocker:** replacing the old mock-era Messages functions in
+  `admin-dashboard.js` (now fully unreachable, ~2,230 lines) is tracked as a dead-code cleanup item
+  in `docs/V1_HARDENING_TASKLIST.md`, not deleted during this pass to keep the Phase 4 diff focused
+  and reviewable.
+
 - **Architecture:** small paginated queue on `support_requests`, same cost pattern as
   Reported/Suspended — no live listener. Submit side and user-read side already work today; only
   the admin queue + reply-writer is missing.

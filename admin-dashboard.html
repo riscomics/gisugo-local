@@ -2051,173 +2051,27 @@
                             </div>
                         </div>
 
-                        <!-- Topic Filter -->
+                        <!-- Topic Filter: options populated by populateSupportTopicFilterOptions()
+                             from the shared public/js/support-taxonomy.js taxonomy, not a
+                             hardcoded/stale list. -->
                         <div class="topic-filter">
                             <select class="topic-dropdown" id="topicFilter">
                                 <option value="all">All Topics</option>
-                                <option value="general">General Inquiry</option>
-                                <option value="website-issues">Website Issues</option>
-                                <option value="complaints-disputes">Complaints & Disputes</option>
-                                <option value="feature-request">Feature Request</option>
-                                <option value="bug-report">Bug Report</option>
-                                <option value="account-issues">Account Issues</option>
-                                <option value="safety-security">Safety & Security</option>
-                                <option value="payment-billing">Payment & Billing</option>
-                                <option value="other">Other</option>
                             </select>
                         </div>
 
                         <!-- Scrollable Messages Container -->
                         <div class="messages-list-container">
-                            <!-- Messages List -->
-                            <div class="customer-messages-list" id="customerMessagesList">
-                            <!-- Sample Customer Messages -->
-                            <div class="customer-message-item unread" data-message-id="msg_001" data-topic="account-issues">
-                                <div class="message-topic account-issues">Account Issues</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <img src="public/users/User-02.jpg" alt="Maria Santos" class="sender-avatar">
-                                            <div class="sender-info">
-                                                <div class="sender-name">Maria Santos</div>
-                                                <div class="sender-email">maria.santos@email.com</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">2 hours ago</div>
-                                            <div class="message-attachment" title="Has photo attachment">🖼️</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">Cannot access my G-Coins wallet</div>
-                                        <div class="message-excerpt">Hi, I've been trying to access my G-Coins wallet for the past 2 days but it keeps showing an error...</div>
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- Messages List: populated by renderSupportList() from real
+                                 support_requests (New/Old) or platform_broadcasts (Sent) --
+                                 see initializeSupportCenter() in admin-dashboard.js. -->
+                            <div class="customer-messages-list" id="customerMessagesList"></div>
 
-                            <div class="customer-message-item" data-message-id="msg_002" data-topic="complaints-disputes">
-                                <div class="message-topic complaints-disputes">Complaints & Disputes</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <img src="public/users/User-03.jpg" alt="Juan Dela Cruz" class="sender-avatar">
-                                            <div class="sender-info">
-                                                <div class="sender-name">Juan Dela Cruz</div>
-                                                <div class="sender-email">juan.delacruz@email.com</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">5 hours ago</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">Worker didn't show up for scheduled job</div>
-                                        <div class="message-excerpt">I hired someone for cleaning but they never showed up. I tried contacting them multiple times...</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="customer-message-item unread" data-message-id="msg_003" data-topic="feature-request">
-                                <div class="message-topic feature-request">Feature Request</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <img src="public/users/User-04.jpg" alt="Ana Rodriguez" class="sender-avatar">
-                                            <div class="sender-info">
-                                                <div class="sender-name">Ana Rodriguez</div>
-                                                <div class="sender-email">ana.rodriguez@email.com</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">1 day ago</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">Suggestion: Add rating system for customers</div>
-                                        <div class="message-excerpt">It would be great if workers could also rate customers to help build trust on both sides...</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Sample Sent Public Messages (initially hidden, shown when SENT tab is active) -->
-                            <div class="customer-message-item" data-message-id="pub_001" data-topic="public-message">
-                                <div class="message-topic important-notices">🔴 Important Notices</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <div class="sender-avatar" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;">
-                                                📢
-                                            </div>
-                                            <div class="sender-info">
-                                                <div class="sender-name">Public Announcement</div>
-                                                <div class="sender-email">All Users</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">2 hours ago</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">Scheduled Maintenance: December 15, 2025</div>
-                                        <div class="message-excerpt">Dear GISUGO users, we will be performing scheduled system maintenance on December 15, 2025, from 2:00 AM to 6:00 AM PHT. During this time...</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="customer-message-item" data-message-id="pub_002" data-topic="public-message">
-                                <div class="message-topic platform-updates">🔵 Platform Updates</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <div class="sender-avatar" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;">
-                                                📢
-                                            </div>
-                                            <div class="sender-info">
-                                                <div class="sender-name">Public Announcement</div>
-                                                <div class="sender-email">All Users</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">1 day ago</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">New Features: Enhanced Job Matching & In-App Chat</div>
-                                        <div class="message-excerpt">We're excited to announce new features that will improve your GISUGO experience! Starting today, you'll have access to AI-powered job matching...</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="customer-message-item" data-message-id="pub_003" data-topic="public-message">
-                                <div class="message-topic promotions">🎁 Promotions</div>
-                                <div class="message-content-area">
-                                    <div class="message-header">
-                                        <div class="message-sender">
-                                            <div class="sender-avatar" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;">
-                                                📢
-                                            </div>
-                                            <div class="sender-info">
-                                                <div class="sender-name">Public Announcement</div>
-                                                <div class="sender-email">All Users</div>
-                                            </div>
-                                        </div>
-                                        <div class="message-meta">
-                                            <div class="message-time">3 days ago</div>
-                                        </div>
-                                    </div>
-                                    <div class="message-preview">
-                                        <div class="message-subject">Holiday Special: Get 20% Bonus G-Coins!</div>
-                                        <div class="message-excerpt">Celebrate the holidays with GISUGO! For a limited time, receive 20% bonus G-Coins on all top-ups of ₱500 or more. Offer valid until December 31...</div>
-                                    </div>
-                                </div>
-                            </div>
-                            </div>
-                            
                             <!-- Pagination Controls -->
                             <div class="messages-pagination">
                                 <div class="loading-indicator" id="messagesLoading">Loading more messages...</div>
-                                <button class="load-more-btn" id="loadMoreMessagesBtn">Load More Messages</button>
-                                <div class="messages-stats" id="messagesStats">Showing 20 of 156 messages</div>
+                                <button class="load-more-btn" id="loadMoreMessagesBtn" style="display: none;">Load More Messages</button>
+                                <div class="messages-stats" id="messagesStats">Showing 0 messages</div>
                             </div>
                         </div>
                     </div>
@@ -2232,103 +2086,35 @@
                             </div>
                         </div>
 
-                        <!-- Message Detail Content (hidden initially) -->
+                        <!-- Message Detail Content (hidden initially). Header IDs below are
+                             targeted directly by applySupportDetailHeader() in
+                             admin-dashboard.js; .message-detail-body's innerHTML is fully
+                             replaced per-ticket by buildSupportDetailBodyHTML() -- the
+                             placeholder text here is never actually shown. -->
                         <div class="message-content" id="messageContent" style="display: none;">
                             <!-- Fixed Header -->
                             <div class="message-detail-header">
                                 <div class="detail-sender">
-                                    <img src="public/users/User-02.jpg" alt="Sender" class="detail-avatar" id="detailAvatar">
+                                    <img src="" alt="Sender" class="detail-avatar" id="detailAvatar">
                                     <div class="detail-sender-info">
-                                        <div class="detail-sender-name" id="detailSenderName">Maria Santos</div>
-                                        <div class="detail-sender-email" id="detailSenderEmail">maria.santos@email.com</div>
-                                        <div class="detail-message-time" id="detailMessageTime">2 hours ago</div>
+                                        <div class="detail-sender-name" id="detailSenderName"></div>
+                                        <div class="detail-sender-email" id="detailSenderEmail"></div>
+                                        <div class="detail-message-time" id="detailMessageTime"></div>
                                     </div>
                                 </div>
                                 <div class="detail-topic-section">
-                                    <div class="detail-topic" id="detailTopic">Account Issues</div>
+                                    <div class="detail-topic" id="detailTopic"></div>
                                     <div class="detail-actions">
                                         <button class="detail-reply-btn" id="openReplyBtn">Reply</button>
-                                        <button class="detail-close-btn" id="closeMessageBtn">Close</button>
+                                        <button class="detail-close-btn" id="closeMessageBtn">Mark Resolved</button>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- Scrollable Content -->
                             <div class="message-content-inner">
-                                <div class="message-detail-body">
-                                <div class="detail-subject" id="detailSubject">Cannot access my G-Coins wallet</div>
-                                <div class="detail-message-text" id="detailMessageText">
-                                    Hi GISUGO Support Team,<br><br>
-                                    I hope this message finds you well. I am writing to report a critical issue that I've been experiencing with my G-Coins wallet for the past 2 days, and I'm quite frustrated with the situation.<br><br>
-                                    
-                                    <strong>THE PROBLEM:</strong><br>
-                                    Every time I try to access my G-Coins wallet through the app or website, I keep getting an error message that says "Connection timeout - Unable to load wallet data". This happens consistently regardless of what I try to do.<br><br>
-                                    
-                                    <strong>WHAT I'VE ALREADY TRIED:</strong><br>
-                                    1. Refreshed the page multiple times (at least 20+ times)<br>
-                                    2. Cleared my entire browser cache and cookies<br>
-                                    3. Tried using different browsers (Chrome, Firefox, Safari)<br>
-                                    4. Logged out and logged back in several times<br>
-                                    5. Restarted my phone and computer<br>
-                                    6. Checked my internet connection (it's working fine for everything else)<br>
-                                    7. Tried accessing the wallet at different times of the day<br>
-                                    8. Updated my app to the latest version<br>
-                                    9. Disabled all browser extensions<br>
-                                    10. Tried using incognito/private browsing mode<br><br>
-                                    
-                                    <strong>URGENT SITUATION:</strong><br>
-                                    This is becoming quite urgent because I have several pending transactions that I need to complete:<br><br>
-                                    - I hired Ana Rodriguez for a deep cleaning service of my 3-bedroom house<br>
-                                    - She's supposed to come tomorrow morning at 9 AM<br>
-                                    - I promised to pay her ₱800 through G-Coins as agreed<br>
-                                    - I also have a plumber (Miguel Torres) scheduled for Thursday who expects G-Coins payment<br>
-                                    - My current G-Coins balance should be ₱2,450 from my recent top-up<br><br>
-                                    
-                                    <strong>IMPACT ON MY TRUST:</strong><br>
-                                    As a long-time GISUGO user (member since 2022), I've always trusted your platform for my household service needs. This wallet issue is really affecting my ability to hire workers and is making me look unreliable to the service providers I've booked.<br><br>
-                                    
-                                    <strong>TECHNICAL DETAILS:</strong><br>
-                                    - Device: iPhone 13 Pro (iOS 17.2)<br>
-                                    - App Version: GISUGO v3.4.2<br>
-                                    - Browser: Safari 17.2 (also tried Chrome 119)<br>
-                                    - Internet: Globe Fiber 100 Mbps (stable connection)<br>
-                                    - Location: Quezon City, Philippines<br><br>
-                                    
-                                    <strong>ADDITIONAL CONCERNS:</strong><br>
-                                    I'm also worried about the security of my funds. Is my ₱2,450 balance safe? Are other users experiencing this issue? Could this be a broader system problem?<br><br>
-                                    
-                                    I've attached a screenshot showing the exact error message I'm seeing. You'll notice that the wallet section just shows a loading spinner that eventually times out.<br><br>
-                                    
-                                    <strong>REQUESTED ACTIONS:</strong><br>
-                                    1. Please investigate what's causing this wallet access issue<br>
-                                    2. Confirm that my G-Coins balance (₱2,450) is secure<br>
-                                    3. Provide an estimated timeline for when this will be resolved<br>
-                                    4. If possible, manually process my payment to Ana Rodriguez (₱800) for tomorrow's cleaning<br>
-                                    5. Consider providing compensation for the inconvenience this has caused<br><br>
-                                    
-                                    I really hope you can resolve this quickly. I've been recommending GISUGO to friends and family, but issues like this make it difficult to maintain confidence in the platform.<br><br>
-                                    
-                                    Please respond as soon as possible. I'm available at this email or my mobile number +63 917 123 4567.<br><br>
-                                    
-                                    Thank you for your immediate attention to this matter.<br><br>
-                                    
-                                    Frustrated but hopeful,<br>
-                                    Maria Santos<br>
-                                    GISUGO User ID: MS789456<br>
-                                    Account created: March 15, 2022<br><br>
-                                    
-                                    P.S. - I've also noticed that the "Transaction History" button in the wallet section has been grayed out for the past week. Is this related to the same issue?
-                                </div>
-                                
-                                <div class="detail-attachment" id="detailAttachment" style="display: block;">
-                                    <div class="attachment-label">Attachment:</div>
-                                    <div class="attachment-file">
-                                        <img src="" alt="Attachment" class="attachment-preview" id="attachmentPreview">
-                                        <div class="attachment-name" id="attachmentName">screenshot.jpg</div>
-                                    </div>
-                                </div>
+                                <div class="message-detail-body"></div>
                             </div>
-                        </div>
                         </div>
                     </div>
                 </div>
@@ -3850,6 +3636,7 @@
     <script src="public/js/firebase-auth.js"></script>
     <script src="public/js/firebase-db.js"></script>
     <script src="public/js/firebase-storage.js"></script>
+    <script src="public/js/support-taxonomy.js"></script>
     
     <!-- App Config (Dev/Production Mode) -->
     <script src="public/js/app-config.js"></script>
