@@ -442,7 +442,7 @@
     <script src="public/js/firebase-config.js?v=20260627a"></script>
     <script src="public/js/firebase-auth.js?v=17"></script>
     <script src="public/js/push-notifications.js?v=9"></script>
-    <script src="public/js/firebase-db.js?v=63"></script>
+    <script src="public/js/firebase-db.js?v=65"></script>
     <script src="public/js/firebase-storage.js?v=2"></script>
     
     <script src="public/js/menu.js"></script>
@@ -489,7 +489,15 @@
       let homeMessagesUnreadOverride = null;
       let isNavigatingAway = false; // Track if user is navigating to another page
       const HOME_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
+      // Admin Dashboard Phase 5: source of truth is now Firestore
+      // (platform_settings/general), not per-browser localStorage -- this key
+      // is kept only as a same-device CACHE of that doc so the homepage can
+      // still render instantly without waiting on a network round trip.
+      // See refreshHomeVideoSettingFromFirestore() below and
+      // docs/V1_HARDENING_TASKLIST.md Phase 5.
       const HOME_ADMIN_SETTINGS_KEY = 'gisugo_admin_settings';
+      const HOME_ADMIN_SETTINGS_CACHE_MS = 60 * 60 * 1000; // 1 hour -- rarely-changed global toggle, not worth a Firestore read on every single pageview
+      let homeVideoCurrentUserRef = null; // remembered so the async Firestore refresh can re-apply once it resolves
       // G2: gate chat_threads unread while Messages is menu-hidden (Alerts badge = notifications only).
       const HOME_CHAT_UNREAD_ENABLED = false;
 
@@ -504,7 +512,43 @@
         }
       }
 
+      // Keeps the local cache fresh from Firestore in the background (at most
+      // once per hour per device) and re-applies video visibility if the
+      // fetched value differs from what the instant cached render used.
+      // Fails silently -- this is a cosmetic toggle, never worth blocking or
+      // erroring the homepage over.
+      async function refreshHomeVideoSettingFromFirestore() {
+        try {
+          if (typeof getPlatformSettings !== 'function') return;
+          let cached = null;
+          try {
+            const raw = localStorage.getItem(HOME_ADMIN_SETTINGS_KEY);
+            cached = raw ? JSON.parse(raw) : null;
+          } catch (_) {
+            cached = null;
+          }
+          const isFresh = cached && typeof cached._fetchedAt === 'number'
+            && (Date.now() - cached._fetchedAt) < HOME_ADMIN_SETTINGS_CACHE_MS;
+          if (isFresh) return;
+
+          const settings = await getPlatformSettings({ showHomepageVideoForLoggedIn: false });
+          const previousValue = getHomeVideoSettingAllowLoggedIn();
+          const freshValue = settings.showHomepageVideoForLoggedIn === true;
+          localStorage.setItem(HOME_ADMIN_SETTINGS_KEY, JSON.stringify({
+            showHomepageVideoForLoggedIn: freshValue,
+            _fetchedAt: Date.now()
+          }));
+
+          if (freshValue !== previousValue) {
+            applyHomeVideoVisibility(homeVideoCurrentUserRef);
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not refresh homepage video setting from Firestore:', error);
+        }
+      }
+
       function applyHomeVideoVisibility(user) {
+        homeVideoCurrentUserRef = user;
         const videoSection = document.getElementById('homeVideoSection');
         const videoAccentLine = document.getElementById('homeVideoAccentLine');
         if (!videoSection) return;
@@ -798,6 +842,12 @@
           console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
         }
         // ────────────────────────────────────────────────────────────────
+
+        // Background-refresh the homepage video admin setting from Firestore
+        // (at most once/hour/device) -- keeps the localStorage cache used
+        // above from ever drifting stale for long, without adding a Firestore
+        // read to every single homepage pageview.
+        refreshHomeVideoSettingFromFirestore();
 
         if (typeof firebase !== 'undefined' && firebase.auth) {
           authUnsubscribe = firebase.auth().onAuthStateChanged(async function(user) {

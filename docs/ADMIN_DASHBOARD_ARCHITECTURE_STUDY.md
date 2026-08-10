@@ -27,7 +27,7 @@ Instead:
 | User Management | Resolved — see below | Studied 2026-07-26 |
 | Gig Moderation | Resolved — see below | Studied 2026-07-26 |
 | Messages (Support admin reply) | Wire as a paged queue — cheapest, most-blocked, highest-value piece | Resolved 2026-07-27 |
-| Settings | Wire as one small Firestore doc, replaces `localStorage` | Already scoped in tasklist, not detailed here |
+| Settings | Wire as one small Firestore doc, replaces `localStorage` | **Shipped 2026-08-10 (Phase 5)** — see below |
 | Ad Placement | Wire per existing `AD_PHASE3_WIRING.md` plan — config reads only | Already scoped |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
 | Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
@@ -384,6 +384,44 @@ good to go") — now resolved on request, same level of detail as the other thre
 - **No extra "who's handling this" locking mechanism needed.** A reply is visible directly in the
   ticket thread the moment it's written — that visibility alone is enough to avoid double-replies,
   even with multiple admins. Matches how the mock already displays it.
+
+### Implementation status (Phase 5, shipped 2026-08-10)
+
+- **Pre-build audit (full repo grep, all 47 `DEFAULT_SETTINGS` keys):** only `showHomepageVideoForLoggedIn`
+  has a real consumer anywhere in the app (`index.html`'s `getHomeVideoSettingAllowLoggedIn()`). The
+  other 46 fields, plus the Technical Warning Composer and Maintenance Mode Composer (separate
+  `techWarningData`/`maintenanceData` localStorage keys), are dashboard-only UI scaffolding with zero
+  enforcement anywhere in the frontend or `functions/index.js`. Server-backing the storage fixes the
+  cross-browser-consistency bug this phase was meant to fix regardless — it just doesn't make the
+  other 46 fields functional, which is why Chapter 6 (honest-labeling) exists.
+- **Rules** (`firestore.rules`): new `platform_settings/general` doc, **public read** (`if true`) —
+  deliberately not `isAdmin()`-gated, because `index.html`'s homepage video gate has to read this for
+  logged-out visitors too, and none of the ~47 fields are sensitive. Write is `isSuperAdmin()`-gated,
+  same tier as granting/revoking other admins (`/admins` collection) — the owner's admin doc already
+  has `role: 'super_admin'` from the Phase 3 bootstrap script.
+- **Data access** (`firebase-db.js`): `getPlatformSettings(defaults)` (one-time read, auto-seeds the
+  doc with `defaults` on first-ever read if missing, fails open to `defaults` on any error) and
+  `savePlatformSettings(settings)`. No live listener — this is a manual Save/Reset panel.
+- **Frontend — admin** (`admin-dashboard.js`): `loadSettings`/`saveSettings`/`resetSettings` swapped
+  off `localStorage` onto Firestore; `loadSettings`/`initializeSystemSettings` are now `async` so the
+  maintenance-mode initial-state check still runs after the real value loads. Save/Reset now surface
+  an error toast on a failed write instead of silently no-oping. Added a `⚠️` enforcement notice at
+  the top of the Settings panel and a `🟢 Live` badge on the one field that's actually wired, so the
+  UI itself doesn't imply the other 46 do anything yet.
+- **Frontend — real consumer** (`index.html`): `getHomeVideoSettingAllowLoggedIn()` still reads a
+  local cache synchronously for an instant render, but that cache is now sourced from Firestore with
+  a 1-hour TTL (`refreshHomeVideoSettingFromFirestore()`), not `localStorage` as the source of truth —
+  avoids a Firestore read on every single homepage pageview while keeping a real admin change live
+  everywhere within an hour. `firebase-db.js` bumped to `?v=65` across all 9 consumer pages to avoid
+  stale-cache staggering.
+- **One-time seed** (`scripts/seed-platform-settings.js`): Admin-SDK script (dry-run by default,
+  `--apply` to write) run once before shipping to seed `platform_settings/general` with
+  `DEFAULT_SETTINGS` — avoids every anonymous homepage visitor's first read hitting a missing doc and
+  attempting (and failing, permission-denied) to self-seed it before an admin ever opens Settings.
+- **Not touched / explicitly out of scope this phase:** wiring the Technical Warning / Maintenance
+  Mode composers to an actual public banner, and wiring any of the other 46 decorative fields to real
+  enforcement — both are new feature work for whenever they're prioritized, not part of "move the
+  storage layer."
 
 ## Open items
 

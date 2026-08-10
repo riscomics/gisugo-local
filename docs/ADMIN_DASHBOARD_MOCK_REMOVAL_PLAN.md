@@ -156,6 +156,9 @@ same stat cards a future Firestore listener would update.
 These localStorage keys hold real operational settings and must keep working exactly as they do today.
 Migrating them to Firestore is a separate future task, out of scope here:
 - `gisugo_admin_settings` (Settings panel — commission rate, feature toggles, payout config, etc.)
+  — **migrated to Firestore `platform_settings/general` in Admin Dashboard Phase 5 (2026-08-10)**,
+  see `docs/V1_HARDENING_TASKLIST.md` Phase 5. `techWarningData`/`maintenanceData` below were
+  explicitly left on localStorage in that same pass (no public-facing consumer exists for either yet).
 - `techWarningData` (Settings — technical warning banner composer)
 - `maintenanceData` (Settings — maintenance mode scheduler)
 - `gisugo_admin_ad_settings_v1` (Ad Placement panel config)

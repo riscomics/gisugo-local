@@ -629,6 +629,22 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // PLATFORM SETTINGS (Admin Dashboard — Phase 5)
+    // ═══════════════════════════════════════════════════════════════
+    match /platform_settings/{docId} {
+      // PUBLIC read (not admin-gated): some fields here are consumed by
+      // public-facing pages for every visitor, e.g. index.html's homepage
+      // video gate (`showHomepageVideoForLoggedIn`) runs for logged-out
+      // visitors too. None of these ~47 fields are sensitive (they are
+      // admin config toggles/thresholds, not secrets), so open read is safe.
+      allow read: if true;
+
+      // Only a super admin can change platform-wide settings — same "full
+      // admin powers" tier as granting/revoking other admins (see isSuperAdmin()).
+      allow write: if isSuperAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT
     // ═══════════════════════════════════════════════════════════════
     match /{document=**} {

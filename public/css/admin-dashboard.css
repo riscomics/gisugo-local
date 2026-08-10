@@ -430,6 +430,42 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Admin Dashboard Phase 5 -- honest-labeling notice: most Settings controls
+   save to Firestore but aren't wired to real enforcement yet. See
+   docs/V1_HARDENING_TASKLIST.md Phase 5. */
+.settings-enforcement-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 8px;
+    color: #e2c97e;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.settings-enforcement-icon {
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.setting-live-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    vertical-align: middle;
+}
+
 /* ===== STATS GRID ===== */
 .stats-grid {
     display: grid;

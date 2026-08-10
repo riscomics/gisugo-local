@@ -4817,6 +4817,79 @@ window.getSentBroadcasts = getSentBroadcasts;
 window.deleteBroadcast = deleteBroadcast;
 window.getPlatformBroadcastsForUser = getPlatformBroadcastsForUser;
 
+// ============================================================================
+// PLATFORM SETTINGS (Admin Dashboard Phase 5)
+// ============================================================================
+// Single doc (platform_settings/general) replacing the old per-browser
+// localStorage(gisugo_admin_settings). One-time reads/writes, no live
+// listener — this is a manual Save/Reset panel, not something that needs to
+// react to another admin's edits in real time. Public read (see
+// firestore.rules) because index.html's homepage-video gate has to read this
+// for logged-out visitors too; write is isSuperAdmin()-gated.
+//
+// NOTE (audit, 2026-08-10): of the ~47 fields in this doc, only
+// `showHomepageVideoForLoggedIn` has a real consumer anywhere in the app.
+// The rest are dashboard-only UI scaffolding with no enforcement yet — moving
+// them here fixes the cross-browser-consistency bug, it does not make them
+// functional. See docs/V1_HARDENING_TASKLIST.md Phase 5.
+const PLATFORM_SETTINGS_DOC_PATH = ['platform_settings', 'general'];
+
+/**
+ * Read the shared platform settings doc. If it doesn't exist yet (first ever
+ * load), seeds it with `defaults` so every future read/write has a doc to
+ * work against. Returns a plain object of settings values, or `defaults` on
+ * any failure (fails open to the same DEFAULT_SETTINGS the caller already
+ * has, never blocks the dashboard from rendering).
+ */
+async function getPlatformSettings(defaults = {}) {
+  const db = getFirestore();
+  if (!db) return { ...defaults };
+  try {
+    const ref = db.collection(PLATFORM_SETTINGS_DOC_PATH[0]).doc(PLATFORM_SETTINGS_DOC_PATH[1]);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      // First ever read — seed the doc so it exists for subsequent reads/writes.
+      try {
+        await ref.set({ ...defaults, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } catch (seedError) {
+        // Non-fatal — a non-admin visitor (e.g. index.html) can't write (rules
+        // are isSuperAdmin()-only); just fall back to defaults for this read.
+        console.warn('⚠️ Could not seed platform_settings/general (likely non-admin reader):', seedError.message);
+      }
+      return { ...defaults };
+    }
+    return { ...defaults, ...snap.data() };
+  } catch (error) {
+    console.error('❌ Error loading platform settings:', error);
+    return { ...defaults };
+  }
+}
+
+/**
+ * Overwrite the shared platform settings doc. Admin-only (enforced by
+ * firestore.rules isSuperAdmin()) — callers should already be gating the
+ * Settings UI to admins before this is ever reachable.
+ */
+async function savePlatformSettings(settings) {
+  const db = getFirestore();
+  if (!db) return false;
+  try {
+    const ref = db.collection(PLATFORM_SETTINGS_DOC_PATH[0]).doc(PLATFORM_SETTINGS_DOC_PATH[1]);
+    await ref.set({
+      ...settings,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null
+    }, { merge: false });
+    return true;
+  } catch (error) {
+    console.error('❌ Error saving platform settings:', error);
+    return false;
+  }
+}
+
+window.getPlatformSettings = getPlatformSettings;
+window.savePlatformSettings = savePlatformSettings;
+
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
  * Cloud Function-maintained aggregate doc (see functions/index.js

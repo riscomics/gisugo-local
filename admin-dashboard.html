@@ -2863,6 +2863,12 @@
                 <div class="section-header">
                     <h1 class="section-title">System Settings</h1>
                     <p class="section-subtitle">Configure platform settings and features</p>
+                    <div class="settings-enforcement-notice">
+                        <span class="settings-enforcement-icon">⚠️</span>
+                        <span>Settings here save to the database, but most controls aren't wired to live
+                        enforcement yet — only fields marked <strong>🟢 Live</strong> currently affect the
+                        platform. The rest are staged for future build phases (see the hardening tasklist).</span>
+                    </div>
                 </div>
                 
                 <div class="settings-container">
@@ -3379,7 +3385,7 @@
                         <div class="category-content">
                             <div class="setting-row">
                                 <div class="setting-info">
-                                    <label class="setting-label">Homepage Video for Logged-in Users</label>
+                                    <label class="setting-label">Homepage Video for Logged-in Users <span class="setting-live-badge" title="This setting is actively read and enforced by index.html">🟢 Live</span></label>
                                     <span class="setting-description">ON: show for both visitors and logged-in users. OFF: visitors only.</span>
                                 </div>
                                 <label class="toggle-switch">

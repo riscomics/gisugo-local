@@ -340,13 +340,59 @@ See `AGENTS.md` § "verify production data."
       5. Full-phase audit (this entry + architecture study), `node --check` clean on all 3 JS files,
          zero duplicate function/variable declarations introduced, every referenced DOM id
          cross-checked against the HTML.
-- [ ] **Phase 5: Settings must be server-backed (Firestore), NOT localStorage.** (2026-06-27) The admin
-      settings object (`gisugo_admin_settings`) currently lives in per-browser `localStorage`,
-      so global toggles behave inconsistently across browsers/devices. Concrete symptom found:
-      the homepage intro-video gate (`showHomepageVideoForLoggedIn`, read in `index.html`
-      `getHomeVideoSettingAllowLoggedIn()`) shows the video to logged-in users only on browsers
-      where the dashboard had been opened. When wiring the dashboard, move these settings to
-      Firestore and have `index.html` read the shared value. Until then, cosmetic only — deferred.
+- [x] **Phase 5: Settings must be server-backed (Firestore), NOT localStorage — shipped (2026-08-10).**
+      (originally flagged 2026-06-27) The admin settings object (`gisugo_admin_settings`) used to live
+      in per-browser `localStorage`, so global toggles behaved inconsistently across browsers/devices.
+      **Pre-build audit finding:** only **1 of the 47** settings had any real consumer anywhere in the
+      app — `showHomepageVideoForLoggedIn`, read by `index.html`'s `getHomeVideoSettingAllowLoggedIn()`.
+      The other 46 (System Status suspend-toggles, User Management thresholds, Gig Moderation price
+      limits, Financial Controls/commission/G-Coin, Communication Controls, Security, Notifications,
+      Performance, and 4 of 5 Feature Toggles) are dashboard-only UI scaffolding with zero enforcement
+      anywhere in the frontend or `functions/index.js`. The Technical Warning Composer and Maintenance
+      Mode Composer also save to their own separate, equally-unread localStorage keys (`techWarningData`,
+      `maintenanceData`) — same category of decorative mock, left as-is (out of scope for this phase,
+      no public-facing banner/gate exists yet for either). Moving storage to Firestore fixes the real
+      cross-browser-consistency bug regardless of how many settings are currently enforced, but
+      "server-backed" ≠ "functional" for 46 of 47 — tracked honestly in the dashboard UI itself (see
+      Chapter 6) instead of silently implying otherwise.
+      **Built in 6 audited chapters, same pattern as Phases 2-4:**
+      1. Audit (above).
+      2. `firestore.rules`: new `platform_settings/general` doc — **public read** (`allow read: if true`,
+         needed because `index.html`'s video gate runs for logged-out homepage visitors too, not just
+         admins), **`isSuperAdmin()`-only write** (same "full admin powers" tier as granting/revoking
+         other admins — the owner's admin doc already has `role: 'super_admin'` from the Phase 3
+         bootstrap script, so no migration needed). No index needed — single-doc `get()`, not a query.
+      3. `firebase-db.js`: `getPlatformSettings(defaults)` (one-time read, auto-seeds the doc with
+         `defaults` on first-ever read if missing, fails open to `defaults` on any error — never blocks
+         dashboard/homepage load) and `savePlatformSettings(settings)`.
+      4. `admin-dashboard.js`: `loadSettings()`/`saveSettings()`/`resetSettings()` swapped from
+         `localStorage.getItem/setItem/removeItem(SETTINGS_STORAGE_KEY)` onto the new Firestore
+         functions (`loadSettings`/`initializeSystemSettings` now `async`, awaited so the maintenance-mode
+         initial-state check still sees the real loaded value). Save/Reset now show an error toast if the
+         Firestore write fails instead of silently "succeeding" locally. No UI/markup redesign — same 9
+         category panels, same ~47 fields. Dead `SETTINGS_STORAGE_KEY` constant removed.
+      5. `index.html`: `getHomeVideoSettingAllowLoggedIn()` still reads a local cache for an instant,
+         non-blocking render (no visitor should wait on a network round trip just to see the homepage),
+         but that cache is now a **1-hour Firestore cache**, not the source of truth — a new
+         `refreshHomeVideoSettingFromFirestore()` revalidates it in the background at most once/hour/device
+         via `getPlatformSettings()` and re-applies video visibility only if the fetched value actually
+         differs, so a real admin change is live everywhere within an hour without adding a Firestore read
+         to every single homepage pageview. `firebase-db.js` bumped to `?v=65` across all 9 pages that
+         load it (`index`/`support`/`jobs`/`profile`/`alerts`/`new-post2`/`dynamic-job`/`messages`/
+         `my-applications`) to avoid any browser serving a stale cached copy missing the new functions.
+         One-time `scripts/seed-platform-settings.js` (dry-run by default, `--apply` to write) run via
+         the Admin SDK to seed `platform_settings/general` with `DEFAULT_SETTINGS` *before* shipping —
+         avoids every anonymous homepage visitor's first read hitting a missing doc and attempting (and
+         failing, permission-denied) to self-seed it before any admin ever opens the Settings tab.
+      6. Honest-labeling pass: added a `⚠️` notice at the top of the Settings panel explaining most
+         controls aren't wired to live enforcement yet, plus a `🟢 Live` badge on the one field that is
+         (Homepage Video for Logged-in Users) — same "don't imply fake behavior is real" discipline as
+         the `₱0` Revenue placeholder and the Permaban "not built yet" toast. No fields hidden or
+         removed; future phases can wire individual ones for real as needed.
+      7. Full-phase audit (this entry), `node --check` clean on `firebase-db.js`/`admin-dashboard.js`,
+         inline `<script>` in `index.html` parse-checked, `firestore.rules` brace-balanced with exactly
+         one `platform_settings` match block, zero duplicate function declarations, `git diff --stat`
+         reviewed file-by-file to confirm only the intended 15 files changed.
 - [ ] **Phase 6: Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
       Track C sections (with Gig Moderation, User Management, Overview, Support, Settings)
       since the 2026-07-27 architecture study; "already scoped from earlier tasklist work"

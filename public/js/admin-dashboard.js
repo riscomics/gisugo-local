@@ -6222,9 +6222,12 @@ function initializeDropdownFilters() {
 }
 
 // ===== SYSTEM SETTINGS =====
-const SETTINGS_STORAGE_KEY = 'gisugo_admin_settings';
+// Source of truth is Firestore (platform_settings/general), not localStorage
+// -- see loadSettings()/saveSettings() below and firebase-db.js
+// getPlatformSettings()/savePlatformSettings() (Admin Dashboard Phase 5).
 
-// Default settings values
+// Default settings values -- also used to seed platform_settings/general on
+// its very first read, and as the fallback if Firestore is unreachable.
 const DEFAULT_SETTINGS = {
     // System Status
     suspendGigs: false,
@@ -6292,11 +6295,13 @@ const DEFAULT_SETTINGS = {
     darkMode: true
 };
 
-function initializeSystemSettings() {
+async function initializeSystemSettings() {
     console.log('⚙️ Initializing System Settings...');
     
-    // Load saved settings or use defaults
-    loadSettings();
+    // Load saved settings from Firestore (or defaults) -- awaited so the
+    // maintenance-mode initial-state check below sees the real loaded value,
+    // not whatever the HTML checkbox happened to default to.
+    await loadSettings();
     
     // Initialize collapsible categories
     initializeCollapsibleCategories();
@@ -6360,34 +6365,40 @@ function initializeCollapsibleCategories() {
     console.log('✅ Collapsible categories initialized (all collapsed by default)');
 }
 
-function loadSettings() {
-    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    const settings = savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS;
-    
+// Settings now live in Firestore (platform_settings/general), not per-browser
+// localStorage (Admin Dashboard Phase 5) -- fixes global toggles behaving
+// inconsistently across browsers/devices. See docs/V1_HARDENING_TASKLIST.md
+// Phase 5. `getPlatformSettings`/`savePlatformSettings` are defined in
+// firebase-db.js; both fail safe (fall back to DEFAULT_SETTINGS / log +
+// return false) if Firestore is unreachable so this never blocks dashboard load.
+async function loadSettings() {
+    const settings = await getPlatformSettings(DEFAULT_SETTINGS);
+
     // Apply settings to form elements
-    Object.keys(settings).forEach(key => {
+    Object.keys(DEFAULT_SETTINGS).forEach(key => {
         const element = document.getElementById(key);
         if (!element) return;
-        
+        const value = Object.prototype.hasOwnProperty.call(settings, key) ? settings[key] : DEFAULT_SETTINGS[key];
+
         if (element.type === 'checkbox') {
-            element.checked = settings[key];
+            element.checked = value;
         } else if (element.type === 'number' || element.type === 'text' || element.type === 'datetime-local') {
-            element.value = settings[key];
+            element.value = value;
         } else if (element.tagName === 'SELECT') {
-            element.value = settings[key];
+            element.value = value;
         } else if (element.tagName === 'TEXTAREA') {
-            element.value = settings[key];
+            element.value = value;
         }
     });
-    
-    console.log('📥 Settings loaded from storage');
+
+    console.log('📥 Settings loaded from Firestore (platform_settings/general)');
 }
 
 function saveSettings() {
     showSettingsConfirmation(
         '💾 Save All Settings',
         'This will save all current settings. Continue?',
-        () => {
+        async () => {
             const settings = {};
             
             // Collect all settings from form elements
@@ -6407,14 +6418,15 @@ function saveSettings() {
                     settings[key] = element.value;
                 }
             });
-            
-            // Save to localStorage
-            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-            
-            console.log('💾 Settings saved:', settings);
-            
-            // Show success feedback
-            showSettingsSaveConfirmation();
+
+            const success = await savePlatformSettings(settings);
+            if (success) {
+                console.log('💾 Settings saved to Firestore:', settings);
+                showSettingsSaveConfirmation();
+            } else {
+                console.error('❌ Failed to save settings to Firestore');
+                showToast('Failed to save settings — check your connection and try again.', 'error');
+            }
         }
     );
 }
@@ -6423,12 +6435,16 @@ function resetSettings() {
     showSettingsConfirmation(
         '↺ Reset to Defaults',
         'This will reset all settings to their default values. This action cannot be undone.',
-        () => {
-            // Clear saved settings
-            localStorage.removeItem(SETTINGS_STORAGE_KEY);
-            
-            // Reload default settings
-            loadSettings();
+        async () => {
+            const success = await savePlatformSettings(DEFAULT_SETTINGS);
+            if (!success) {
+                console.error('❌ Failed to reset settings in Firestore');
+                showToast('Failed to reset settings — check your connection and try again.', 'error');
+                return;
+            }
+
+            // Reload defaults into the form
+            await loadSettings();
             
             console.log('🔄 Settings reset to defaults');
             
