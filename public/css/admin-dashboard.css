@@ -2318,6 +2318,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .message-topic.bug-report { background: #e74c3c; }
 .message-topic.safety-security { background: #e17055; }
 .message-topic.payment-billing { background: #00b894; }
+.message-topic.partners-sponsors { background: #a78bfa; }
 .message-topic.other { background: #636e72; }
 
 /* Public Message Categories */

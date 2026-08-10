@@ -24,29 +24,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize search functionality
     initializeSearch();
     
-    // Initialize admin messages system
-    initializeAdminMessages();
+    // Initialize Support Center (Admin Dashboard Phase 4) -- real
+    // support_requests queue + reply + platform_broadcasts, replaces the
+    // old mock-driven initializeAdminMessages()/initializeMessagesPagination()/
+    // initializeInboxToggle()/initializePublicMessageOverlay()/
+    // initializeInboxSearch()/initializeMessageOverlay()/initializeReplyModal()
+    // call chain (those functions are now unreachable dead code -- left in
+    // place rather than surgically deleted from an 8000+ line file under
+    // time pressure; tracked as a cleanup follow-up in V1_HARDENING_TASKLIST.md,
+    // same treatment as the existing support.js dead-code item).
+    initializeSupportCenter();
     
     // Initialize user chats system
     initializeUserChats();
-    
-    // Initialize reply modal system
-    initializeReplyModal();
-    
-    // Initialize messages pagination
-    initializeMessagesPagination();
-    
-    // Initialize inbox toggle system
-    initializeInboxToggle();
-    
-    // Initialize public message compose overlay
-    initializePublicMessageOverlay();
-    
-    // Initialize inbox search
-    initializeInboxSearch();
-    
-    // Initialize message overlay system
-    initializeMessageOverlay();
     
     // Initialize gig moderation system
     initializeGigModeration();

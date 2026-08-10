@@ -4551,6 +4551,272 @@ window.searchUsersByNamePrefix = searchUsersByNamePrefix;
 window.getUserModerationExtras = getUserModerationExtras;
 window.callAdminModerateUser = callAdminModerateUser;
 
+// ============================================================================
+// SUPPORT CENTER (Admin Dashboard Phase 4)
+// ============================================================================
+// Small paginated queue on support_requests, same cost pattern as Gig
+// Moderation/User Management — no live listener on the admin side (the
+// requester's OWN support.js already live-listens to just their own
+// tickets, which is cheap and unrelated to this). Replies + broadcasts are
+// direct client writes (no Cloud Function) because firestore.rules already
+// grants isAdmin() a scoped, field-restricted update path — unlike
+// jobs.status/users.status, nothing here needed a rules workaround.
+const SUPPORT_QUEUE_PAGE_SIZE = 20;
+
+/**
+ * New/unanswered tickets, oldest first (FIFO — first come, first served).
+ */
+async function getSupportQueueNew(startAfterDoc = null) {
+  const db = getFirestore();
+  if (!db) return { tickets: [], lastDoc: null, hasMore: false };
+  try {
+    let query = db.collection('support_requests')
+      .where('status', '==', 'pending')
+      .orderBy('createdAt', 'asc')
+      .limit(SUPPORT_QUEUE_PAGE_SIZE);
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+    const snap = await query.get();
+    return {
+      tickets: snap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      lastDoc: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === SUPPORT_QUEUE_PAGE_SIZE
+    };
+  } catch (error) {
+    console.error('❌ Error loading New support queue (admin):', error);
+    return { tickets: [], lastDoc: null, hasMore: false };
+  }
+}
+
+/**
+ * Replied/resolved tickets, most recently touched first.
+ */
+async function getSupportQueueOld(startAfterDoc = null) {
+  const db = getFirestore();
+  if (!db) return { tickets: [], lastDoc: null, hasMore: false };
+  try {
+    let query = db.collection('support_requests')
+      .where('status', 'in', ['replied', 'resolved'])
+      .orderBy('createdAt', 'desc')
+      .limit(SUPPORT_QUEUE_PAGE_SIZE);
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+    const snap = await query.get();
+    return {
+      tickets: snap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      lastDoc: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === SUPPORT_QUEUE_PAGE_SIZE
+    };
+  } catch (error) {
+    console.error('❌ Error loading Old support queue (admin):', error);
+    return { tickets: [], lastDoc: null, hasMore: false };
+  }
+}
+
+/**
+ * Cheap tab-count badges via count() aggregation — never fetches full docs
+ * just to count them (same pattern as getUserModerationExtras).
+ */
+async function getSupportQueueCounts() {
+  const db = getFirestore();
+  const empty = { newCount: 0, oldCount: 0 };
+  if (!db) return empty;
+  try {
+    const [newResult, oldResult] = await Promise.allSettled([
+      db.collection('support_requests').where('status', '==', 'pending').count().get(),
+      db.collection('support_requests').where('status', 'in', ['replied', 'resolved']).count().get()
+    ]);
+    return {
+      newCount: newResult.status === 'fulfilled' ? (newResult.value.data().count || 0) : 0,
+      oldCount: oldResult.status === 'fulfilled' ? (oldResult.value.data().count || 0) : 0
+    };
+  } catch (error) {
+    console.error('❌ Error loading support queue counts (admin):', error);
+    return empty;
+  }
+}
+
+/**
+ * Write an admin reply directly onto the ticket (in-platform only — no
+ * email/push, owner decision). Sets status to 'replied' and flips
+ * isReadByRequester back to false so the requester's Support inbox shows
+ * it as unread, since support.js already live-streams their own tickets.
+ * @param {string} requestId
+ * @param {string} replyMessage
+ */
+async function replyToSupportRequest(requestId, replyMessage) {
+  const db = getFirestore();
+  const safeId = String(requestId || '').trim();
+  const safeMessage = String(replyMessage || '').trim();
+  if (!db || !safeId || !safeMessage) return { success: false, message: 'Missing ticket or reply text' };
+
+  try {
+    const admin = window.currentAdmin || {};
+    const now = new Date();
+    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('support_requests').doc(safeId).update({
+      status: 'replied',
+      reply: {
+        message: safeMessage,
+        repliedBy: { adminId: admin.uid || null, adminName: admin.name || 'Admin' },
+        repliedAt: serverTimestamp
+      },
+      isReadByRequester: false,
+      updatedAt: serverTimestamp,
+      updatedAtISO: now.toISOString(),
+      updatedAtMs: now.getTime(),
+      lastUpdatedAt: serverTimestamp,
+      lastUpdatedAtISO: now.toISOString(),
+      lastUpdatedAtMs: now.getTime()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ replyToSupportRequest failed:', error);
+    return { success: false, message: error.message || 'Reply failed' };
+  }
+}
+
+/**
+ * Mark a ticket resolved without necessarily replying (e.g. already handled
+ * out of band, or a duplicate/spam ticket). Does not touch an existing
+ * reply if one was already sent.
+ * @param {string} requestId
+ */
+async function resolveSupportRequest(requestId) {
+  const db = getFirestore();
+  const safeId = String(requestId || '').trim();
+  if (!db || !safeId) return { success: false, message: 'Missing ticket id' };
+
+  try {
+    const now = new Date();
+    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection('support_requests').doc(safeId).update({
+      status: 'resolved',
+      updatedAt: serverTimestamp,
+      updatedAtISO: now.toISOString(),
+      updatedAtMs: now.getTime(),
+      lastUpdatedAt: serverTimestamp,
+      lastUpdatedAtISO: now.toISOString(),
+      lastUpdatedAtMs: now.getTime()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ resolveSupportRequest failed:', error);
+    return { success: false, message: error.message || 'Resolve failed' };
+  }
+}
+
+/**
+ * Send a broadcast to all users (Compose Public Message). Read by every
+ * user who opens their inbox — one document, not fanned out per recipient.
+ * @param {'important-notices'|'platform-updates'|'system-updates'|'promotions'} category
+ * @param {string} subject
+ * @param {string} message
+ */
+async function createPlatformBroadcast(category, subject, message) {
+  const db = getFirestore();
+  const safeSubject = String(subject || '').trim();
+  const safeMessage = String(message || '').trim();
+  if (!db || !safeSubject || !safeMessage) return { success: false, message: 'Missing subject or message' };
+
+  try {
+    const admin = window.currentAdmin || {};
+    const now = new Date();
+    const docRef = await db.collection('platform_broadcasts').add({
+      category,
+      subject: safeSubject,
+      message: safeMessage,
+      sentBy: { adminId: admin.uid || null, adminName: admin.name || 'Admin' },
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAtISO: now.toISOString(),
+      createdAtMs: now.getTime()
+    });
+    return { success: true, id: docRef.id };
+  } catch (error) {
+    console.error('❌ createPlatformBroadcast failed:', error);
+    return { success: false, message: error.message || 'Send failed' };
+  }
+}
+
+/**
+ * Broadcasts sent so far, newest first — feeds the admin dashboard's SENT
+ * tab. Small glance list, no live listener (broadcasts are rare).
+ */
+async function getSentBroadcasts(startAfterDoc = null) {
+  const db = getFirestore();
+  if (!db) return { broadcasts: [], lastDoc: null, hasMore: false };
+  try {
+    let query = db.collection('platform_broadcasts')
+      .orderBy('createdAt', 'desc')
+      .limit(SUPPORT_QUEUE_PAGE_SIZE);
+    if (startAfterDoc) {
+      query = query.startAfter(startAfterDoc);
+    }
+    const snap = await query.get();
+    return {
+      broadcasts: snap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
+      lastDoc: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+      hasMore: snap.docs.length === SUPPORT_QUEUE_PAGE_SIZE
+    };
+  } catch (error) {
+    console.error('❌ Error loading sent broadcasts (admin):', error);
+    return { broadcasts: [], lastDoc: null, hasMore: false };
+  }
+}
+
+/**
+ * "Unsend" a broadcast — a real delete (broadcasts are immutable, no update
+ * path in firestore.rules), not a hide/soft-delete.
+ * @param {string} broadcastId
+ */
+async function deleteBroadcast(broadcastId) {
+  const db = getFirestore();
+  const safeId = String(broadcastId || '').trim();
+  if (!db || !safeId) return { success: false, message: 'Missing broadcast id' };
+  try {
+    await db.collection('platform_broadcasts').doc(safeId).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('❌ deleteBroadcast failed:', error);
+    return { success: false, message: error.message || 'Unsend failed' };
+  }
+}
+
+/**
+ * Broadcasts for the user-facing Support/Messages inbox (support.js) — a
+ * one-time fetch, NOT a live listener (broadcasts are rare enough that a
+ * fresh-on-page-open read is more than adequate, and a live listener
+ * across every signed-in user would be needlessly expensive for something
+ * that changes maybe a few times a month).
+ * @param {number} [limit=30]
+ */
+async function getPlatformBroadcastsForUser(limit = 30) {
+  const db = getFirestore();
+  if (!db) return [];
+  try {
+    const snap = await db.collection('platform_broadcasts')
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+  } catch (error) {
+    console.error('❌ Error loading broadcasts (user):', error);
+    return [];
+  }
+}
+
+window.getSupportQueueNew = getSupportQueueNew;
+window.getSupportQueueOld = getSupportQueueOld;
+window.getSupportQueueCounts = getSupportQueueCounts;
+window.replyToSupportRequest = replyToSupportRequest;
+window.resolveSupportRequest = resolveSupportRequest;
+window.createPlatformBroadcast = createPlatformBroadcast;
+window.getSentBroadcasts = getSentBroadcasts;
+window.deleteBroadcast = deleteBroadcast;
+window.getPlatformBroadcastsForUser = getPlatformBroadcastsForUser;
+
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
  * Cloud Function-maintained aggregate doc (see functions/index.js

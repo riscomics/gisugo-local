@@ -575,13 +575,45 @@ service cloud.firestore {
           || (!isAuthenticated() && request.resource.data.requester.userId == null)
         );
 
-      // Admin can manage lifecycle fields. Requesters can only mark as read.
-      allow update: if isAdmin()
+      // Admin can manage lifecycle/reply fields only -- NOT the requester's original
+      // submission content (subject/message/requester/categoryCode/referenceId stay
+      // immutable once created, same discipline as jobs.status locking in Phase 2).
+      // Requesters can only mark their own ticket as read.
+      allow update: if (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+            ['status', 'reply', 'assignedTo', 'priority', 'isReadByRequester',
+             'updatedAt', 'updatedAtISO', 'updatedAtMs', 'lastUpdatedAt',
+             'lastUpdatedAtISO', 'lastUpdatedAtMs']))
         || (isAuthenticated()
             && resource.data.requester is map
             && resource.data.requester.userId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReadByRequester', 'updatedAt', 'updatedAtISO', 'updatedAtMs']));
 
+      allow delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // PLATFORM BROADCASTS (Admin → All Users, e.g. System/Platform Updates, Promotions)
+    // ═══════════════════════════════════════════════════════════════
+    match /platform_broadcasts/{broadcastId} {
+      // Any signed-in user can read broadcasts in their Support/Messages inbox.
+      allow read: if isAuthenticated();
+
+      // Only admins can send one, and only with a valid shape. Immutable once sent
+      // (no update path) -- "Unsend" is a real delete, not an edit.
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasAll(['category', 'subject', 'message', 'sentBy', 'createdAt'])
+        && request.resource.data.category in ['important-notices', 'platform-updates', 'system-updates', 'promotions']
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 100
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 1000
+        && request.resource.data.sentBy is map
+        && request.resource.data.sentBy.adminId == request.auth.uid;
+
+      allow update: if false;
       allow delete: if isAdmin();
     }
 
