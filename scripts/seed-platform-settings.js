@@ -100,7 +100,7 @@ const DEFAULT_SETTINGS = {
   searchResultsPerPage: 20,
   dataRetentionPeriod: 365,
   backupFrequency: 'daily',
-  showHomepageVideoForLoggedIn: false,
+  // showHomepageVideoForLoggedIn removed 2026-08-11 -- see admin-dashboard.js DEFAULT_SETTINGS
   featuredGigs: true,
   reviewsSystem: true,
   directMessaging: false,

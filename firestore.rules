@@ -632,12 +632,16 @@ service cloud.firestore {
     // PLATFORM SETTINGS (Admin Dashboard — Phase 5)
     // ═══════════════════════════════════════════════════════════════
     match /platform_settings/{docId} {
-      // PUBLIC read (not admin-gated): some fields here are consumed by
-      // public-facing pages for every visitor, e.g. index.html's homepage
-      // video gate (`showHomepageVideoForLoggedIn`) runs for logged-out
-      // visitors too. None of these ~47 fields are sensitive (they are
-      // admin config toggles/thresholds, not secrets), so open read is safe.
-      allow read: if true;
+      // Admin-only read (tightened 2026-08-11): this used to be public read
+      // because index.html's homepage video gate (`showHomepageVideoForLoggedIn`)
+      // read this doc for every visitor, logged in or not. That field/feature
+      // was removed (replaced by a zero-cost code-level video swap in
+      // index.html — see HOME_VIDEO_LOGGED_OUT/HOME_VIDEO_LOGGED_IN there), so
+      // there is no longer any public-facing consumer of this doc — only the
+      // Admin Dashboard reads it now. Narrowed to isAdmin(), same tier as
+      // platform_analytics, since these are internal config values with no
+      // remaining reason for anonymous/public exposure.
+      allow read: if isAdmin();
 
       // Only a super admin can change platform-wide settings — same "full
       // admin powers" tier as granting/revoking other admins (see isSuperAdmin()).

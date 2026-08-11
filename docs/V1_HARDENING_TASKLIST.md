@@ -425,6 +425,46 @@ See `AGENTS.md` § "verify production data."
          across 2+ sort fields the way single-field indexes are. Fix: added a second composite index,
          (status ASC, createdAt ASC), specifically for the New-tab query. Verified post-deploy (index
          build took ~3 min) via a direct Admin SDK query matching the exact client-side query shape.
+      4. **Follow-up (2026-08-11, same day): homepage video toggle was STILL not updating reliably**
+         after fix #1 above (`source: 'server'`) — owner tested across Chrome/Edge/incognito and found
+         a browser that had already loaded the homepage once would keep showing whatever value was
+         true at that *first* load, ignoring all later toggle changes, for up to an hour; a brand-new
+         browser/incognito profile always showed the current true value. Real root cause: a **client-side
+         1-hour localStorage cache TTL** (`HOME_ADMIN_SETTINGS_CACHE_MS`) that made
+         `refreshHomeVideoSettingFromFirestore()` skip its Firestore read entirely if the cache was
+         under an hour old — `source: 'server'` was correct but never even ran during that window. Fix:
+         removed the TTL/freshness check entirely; every homepage pageview now always re-validates
+         against Firestore in the background (instant cached value still paints first, corrected a
+         moment later if wrong). Cost is one extra tiny single-doc read per homepage pageview — judged
+         negligible at current traffic, and "always eventually correct within seconds" was worth more
+         here than saving that one read. Also added a spinning hourglass + disabled state to the
+         Save/Reset Settings buttons (`admin-dashboard.js`/`.css`) since the Firestore write now has a
+         visible ~1-3s delay the old instant-localStorage version never had. Owner retested and
+         confirmed fixed across repeated toggles in the same session/browser.
+- [x] **"Homepage Video for Logged-in Users" toggle replaced with a code-level video/thumbnail
+      swap — shipped (2026-08-11).** Same-day follow-up discussion after the fix above: instead of
+      hiding/showing one video for logged-in users (the only setting with real enforcement out of
+      all 47 from Phase 5), owner opted to show a **different** video + thumbnail to logged-in
+      users vs. visitors — more useful, and since owner doesn't expect to change either video often,
+      hardcoded directly in `index.html` instead of Firestore. Net effect: the ONE real Firestore
+      read Phase 5 added to every homepage pageview is now gone entirely (not just cheaper —
+      zero), because which video/thumbnail to show is decided from the login state the homepage
+      already computes for free (same signal the nav menu uses), no database call involved.
+      Changes: `index.html` — removed `refreshHomeVideoSettingFromFirestore()`,
+      `getHomeVideoSettingAllowLoggedIn()`, and the show/hide branch in the old
+      `applyHomeVideoVisibility()`; added `HOME_VIDEO_LOGGED_OUT`/`HOME_VIDEO_LOGGED_IN` constants
+      (youtubeId + thumbnail path each, both currently identical to the pre-existing single video/
+      thumbnail — no visual change yet, just future-ready) with an explicit "FUTURE AGENT" comment
+      explaining the two-line edit needed to point either one at real different content later; new
+      `applyHomeVideoForAuthState()` now only swaps the thumbnail `<img src>`, video section itself
+      is unconditionally visible. `admin-dashboard.html`/`.js` — removed the toggle row and its
+      `DEFAULT_SETTINGS` key. `firestore.rules` — `platform_settings/{docId}` read narrowed from
+      public (`allow read: if true`) to `isAdmin()`-only, since removing this field means **no
+      remaining public-facing consumer** of that doc (confirmed via `grep` — only
+      `admin-dashboard.js` calls `getPlatformSettings()` now); same tier as `platform_analytics`.
+      `firebase-db.js`/`scripts/seed-platform-settings.js` comments updated to match. The other 46
+      settings fields are unaffected — this only removes the one field/toggle that had a real
+      consumer; Settings panel now honestly shows zero `🟢 Live` badges since none remain.
 - [ ] **Phase 6: Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
       Track C sections (with Gig Moderation, User Management, Overview, Support, Settings)
       since the 2026-07-27 architecture study; "already scoped from earlier tasklist work"

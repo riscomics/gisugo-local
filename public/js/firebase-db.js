@@ -4873,19 +4873,21 @@ async function getPlatformSettings(defaults = {}) {
     // previously (Gigs Manager edits not reflecting on the listing page in
     // the same browser) that a plain `.get()` can serve an IndexedDB-cached
     // snapshot from an earlier tab/pageview instead of the true current
-    // value. A toggle an admin just flipped is exactly the case where that
-    // staleness is most visible/confusing, and this doc is read rarely
-    // enough (once per dashboard load, once/hour per homepage device) that
-    // always paying for a server round trip costs nothing meaningful.
+    // value. A setting an admin just changed is exactly the case where that
+    // staleness is most visible/confusing, and this doc is only read once
+    // per Admin Dashboard load (no public page reads it as of 2026-08-11 --
+    // see firestore.rules), so always paying for a server round trip costs
+    // nothing meaningful.
     const snap = await ref.get({ source: 'server' });
     if (!snap.exists) {
       // First ever read — seed the doc so it exists for subsequent reads/writes.
       try {
         await ref.set({ ...defaults, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       } catch (seedError) {
-        // Non-fatal — a non-admin visitor (e.g. index.html) can't write (rules
-        // are isSuperAdmin()-only); just fall back to defaults for this read.
-        console.warn('⚠️ Could not seed platform_settings/general (likely non-admin reader):', seedError.message);
+        // Non-fatal — read rules are isAdmin()-only and write rules are
+        // isSuperAdmin()-only; a regular (non-super) admin viewing Settings
+        // could hit this on a still-unseeded doc. Just fall back to defaults.
+        console.warn('⚠️ Could not seed platform_settings/general (likely non-super-admin reader):', seedError.message);
       }
       return { ...defaults };
     }

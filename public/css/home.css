@@ -227,7 +227,9 @@ section {
   box-shadow: 0 2px 12px rgba(16, 185, 129, 0.6), 
               inset 0 1px 0 rgba(255, 255, 255, 0.5),
               inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  animation: metalShimmer 4s ease-in-out infinite;
+  /* Shimmer animation disabled 2026-08-11 -- too much motion on the homepage
+     alongside other animated effects (owner request). Keyframe left in place
+     below in case it's wanted again later. */
 }
 
 @keyframes metalShimmer {
@@ -701,8 +703,9 @@ section {
   box-shadow: 0 2px 12px rgba(16, 185, 129, 0.6), 
               inset 0 1px 0 rgba(255, 255, 255, 0.5),
               inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  animation: metalShimmer 4s ease-in-out infinite;
-  animation-delay: 2s; /* Offset from header line */
+  /* Shimmer animation disabled 2026-08-11 -- too much motion on the homepage
+     alongside other animated effects (owner request). Keyframe left in place
+     below in case it's wanted again later. */
 }
 
 /* Enhanced Desktop Styles */
@@ -1198,8 +1201,9 @@ section {
   box-shadow: 0 2px 12px rgba(16, 185, 129, 0.6), 
               inset 0 1px 0 rgba(255, 255, 255, 0.5),
               inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  animation: metalShimmer 4s ease-in-out infinite;
-  animation-delay: 2s; /* Offset from header line */
+  /* Shimmer animation disabled 2026-08-11 -- too much motion on the homepage
+     alongside other animated effects (owner request). Keyframe left in place
+     below in case it's wanted again later. */
 }
 
 /* Header Styles - Modern Dark Theme */
@@ -2205,7 +2209,9 @@ section {
   box-shadow: 0 2px 12px rgba(16, 185, 129, 0.6), 
               inset 0 1px 0 rgba(255, 255, 255, 0.5),
               inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  animation: metalShimmer 4s ease-in-out infinite;
+  /* Shimmer animation disabled 2026-08-11 -- too much motion on the homepage
+     alongside other animated effects (owner request). Keyframe left in place
+     below in case it's wanted again later. */
 }
 
 /* Keep existing media queries but override only if needed for extremes */

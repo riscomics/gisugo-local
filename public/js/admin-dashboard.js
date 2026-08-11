@@ -6288,7 +6288,9 @@ const DEFAULT_SETTINGS = {
     backupFrequency: 'daily',
     
     // Feature Toggles
-    showHomepageVideoForLoggedIn: false, // OFF = visitors only, ON = both visitors + logged-in users
+    // "showHomepageVideoForLoggedIn" removed 2026-08-11 -- replaced by a
+    // code-level video+thumbnail swap in index.html (see
+    // HOME_VIDEO_LOGGED_OUT/HOME_VIDEO_LOGGED_IN there), no longer a setting.
     featuredGigs: true,
     reviewsSystem: true,
     directMessaging: false,

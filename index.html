@@ -449,15 +449,41 @@
     
     <!-- Video Player Script -->
     <script>
+      // Homepage video: two hardcoded videos + thumbnails, picked by login
+      // state (already known for free via Firebase auth -- no Firestore read
+      // needed). Replaces the old Admin Dashboard "Homepage Video for
+      // Logged-in Users" on/off toggle (removed 2026-08-11) -- that toggle
+      // only hid/showed one video for logged-in users; this shows a DIFFERENT
+      // video+thumbnail to logged-in users instead, for zero extra cost.
+      // See docs/V1_HARDENING_TASKLIST.md Phase 5 addendum.
+      const HOME_VIDEO_LOGGED_OUT = {
+        youtubeId: 'ptHyvEeevR8',
+        thumbnail: 'public/images/GISUGO-BANNER-horizontal.jpg'
+      };
+      // FUTURE AGENT: to switch what logged-in users see, just edit the two
+      // values below (youtubeId = the YouTube video ID from its URL, e.g.
+      // youtube.com/watch?v=XXXXXXXXXXX or youtu.be/XXXXXXXXXXX; thumbnail =
+      // path to a custom cover image under public/images/). Currently
+      // identical to HOME_VIDEO_LOGGED_OUT on purpose (no separate logged-in
+      // video/thumbnail exists yet) -- changing these two lines is the ENTIRE
+      // change needed, nothing else in this file needs to be touched.
+      const HOME_VIDEO_LOGGED_IN = {
+        youtubeId: 'ptHyvEeevR8',
+        thumbnail: 'public/images/GISUGO-BANNER-horizontal.jpg'
+      };
+
+      let homeVideoIsLoggedIn = false; // kept in sync by applyHomeVideoForAuthState(); read by playVideo()
+
       function playVideo() {
         const overlay = document.querySelector('.video-thumbnail-overlay');
         const iframe = document.getElementById('youtube-player');
-        
+        const config = homeVideoIsLoggedIn ? HOME_VIDEO_LOGGED_IN : HOME_VIDEO_LOGGED_OUT;
+
         // Hide the custom thumbnail overlay
         overlay.style.display = 'none';
-        
+
         // Load YouTube video with autoplay and show iframe
-        iframe.src = 'https://www.youtube.com/embed/ptHyvEeevR8?autoplay=1&loop=1&playlist=ptHyvEeevR8&rel=0&modestbranding=1';
+        iframe.src = `https://www.youtube.com/embed/${config.youtubeId}?autoplay=1&loop=1&playlist=${config.youtubeId}&rel=0&modestbranding=1`;
         iframe.style.display = 'block';
       }
 
@@ -489,87 +515,23 @@
       let homeMessagesUnreadOverride = null;
       let isNavigatingAway = false; // Track if user is navigating to another page
       const HOME_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
-      // Admin Dashboard Phase 5: source of truth is now Firestore
-      // (platform_settings/general), not per-browser localStorage -- this key
-      // is kept only so the homepage can render an instant first paint (no
-      // network wait) before refreshHomeVideoSettingFromFirestore()'s real
-      // read resolves a moment later. See docs/V1_HARDENING_TASKLIST.md Phase 5.
-      //
-      // FIX (2026-08-11): this used to skip the Firestore read entirely if the
-      // cache was under 1 hour old, to save a read on every homepage
-      // pageview. In practice that meant a browser that had already loaded
-      // the homepage once would keep showing its FIRST-EVER value for up to
-      // an hour no matter how many times the admin toggled + saved in
-      // between -- confusing during testing and just wrong for anyone
-      // browsing during that window. Removed the TTL: every pageview now
-      // always re-checks Firestore (still non-blocking -- the cached value
-      // paints immediately, the real read just corrects it a moment later
-      // if it was wrong). This is one tiny single-doc read per homepage
-      // pageview, not per user session -- negligible cost at this site's
-      // traffic, and cheap enough that "always correct" beats "save a read".
-      const HOME_ADMIN_SETTINGS_KEY = 'gisugo_admin_settings';
-      let homeVideoCurrentUserRef = null; // remembered so the async Firestore refresh can re-apply once it resolves
       // G2: gate chat_threads unread while Messages is menu-hidden (Alerts badge = notifications only).
       const HOME_CHAT_UNREAD_ENABLED = false;
 
-      function getHomeVideoSettingAllowLoggedIn() {
-        try {
-          const raw = localStorage.getItem(HOME_ADMIN_SETTINGS_KEY);
-          if (!raw) return false;
-          const parsed = JSON.parse(raw);
-          return Boolean(parsed && parsed.showHomepageVideoForLoggedIn === true);
-        } catch (_) {
-          return false;
-        }
-      }
-
-      // Always re-checks Firestore for the real current value (see FIX note
-      // above) and re-applies video visibility if it differs from what the
-      // instant cached render used. Fails silently -- this is a cosmetic
-      // toggle, never worth blocking or erroring the homepage over.
-      async function refreshHomeVideoSettingFromFirestore() {
-        try {
-          if (typeof getPlatformSettings !== 'function') return;
-
-          const settings = await getPlatformSettings({ showHomepageVideoForLoggedIn: false });
-          const previousValue = getHomeVideoSettingAllowLoggedIn();
-          const freshValue = settings.showHomepageVideoForLoggedIn === true;
-          localStorage.setItem(HOME_ADMIN_SETTINGS_KEY, JSON.stringify({
-            showHomepageVideoForLoggedIn: freshValue
-          }));
-
-          if (freshValue !== previousValue) {
-            applyHomeVideoVisibility(homeVideoCurrentUserRef);
-          }
-        } catch (error) {
-          console.warn('⚠️ Could not refresh homepage video setting from Firestore:', error);
-        }
-      }
-
-      function applyHomeVideoVisibility(user) {
-        homeVideoCurrentUserRef = user;
-        const videoSection = document.getElementById('homeVideoSection');
-        const videoAccentLine = document.getElementById('homeVideoAccentLine');
-        if (!videoSection) return;
-        const isLoggedIn = !!(user && user.uid);
-        const allowLoggedInVideo = getHomeVideoSettingAllowLoggedIn();
-        const shouldShowVideo = !isLoggedIn || allowLoggedInVideo;
-
-        videoSection.style.display = shouldShowVideo ? '' : 'none';
-        if (videoAccentLine) {
-          videoAccentLine.style.display = shouldShowVideo ? '' : 'none';
-        }
-
-        if (!shouldShowVideo) {
-          const overlay = document.querySelector('.video-thumbnail-overlay');
-          const iframe = document.getElementById('youtube-player');
-          if (iframe) {
-            iframe.src = '';
-            iframe.style.display = 'none';
-          }
-          if (overlay) {
-            overlay.style.display = '';
-          }
+      // Swaps the video thumbnail to match the given login state (video
+      // section itself is always visible now -- see HOME_VIDEO_LOGGED_OUT/
+      // HOME_VIDEO_LOGGED_IN above). Called once instantly with a cached
+      // guess, then again with the real Firebase-confirmed state a moment
+      // later -- if the guess was right nothing visibly changes; if wrong,
+      // the thumbnail swaps once. No network/Firestore call, so this is free
+      // and safe to call as often as auth state changes.
+      function applyHomeVideoForAuthState(user) {
+        homeVideoIsLoggedIn = !!(user && user.uid);
+        const thumbnailImg = document.querySelector('.video-thumbnail-overlay .custom-thumbnail');
+        if (!thumbnailImg) return;
+        const config = homeVideoIsLoggedIn ? HOME_VIDEO_LOGGED_IN : HOME_VIDEO_LOGGED_OUT;
+        if (thumbnailImg.getAttribute('src') !== config.thumbnail) {
+          thumbnailImg.src = config.thumbnail;
         }
       }
 
@@ -837,16 +799,10 @@
           // logged-out visit until Firebase's real check below catches up) -- shows a small
           // spinning indicator so the user doesn't mistake it for the final state.
           updateHomeMenu(cachedAuth === 'true', false);
-          applyHomeVideoVisibility(cachedAuth === 'true' ? { uid: 'cached' } : null);
+          applyHomeVideoForAuthState(cachedAuth === 'true' ? { uid: 'cached' } : null);
           console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
         }
         // ────────────────────────────────────────────────────────────────
-
-        // Background-refresh the homepage video admin setting from Firestore
-        // (at most once/hour/device) -- keeps the localStorage cache used
-        // above from ever drifting stale for long, without adding a Firestore
-        // read to every single homepage pageview.
-        refreshHomeVideoSettingFromFirestore();
 
         if (typeof firebase !== 'undefined' && firebase.auth) {
           authUnsubscribe = firebase.auth().onAuthStateChanged(async function(user) {
@@ -877,7 +833,7 @@
             
             // Now update menu with confirmed auth state
             updateHomeMenu(!!user, true);
-            applyHomeVideoVisibility(user);
+            applyHomeVideoForAuthState(user);
           });
           startHomeCounterListener();
           startHomeChatCounterListener();
@@ -885,7 +841,7 @@
           // Firebase not available - show logged out state
           console.warn('⚠️ Firebase not available');
           updateHomeMenu(undefined, true);
-          applyHomeVideoVisibility(null);
+          applyHomeVideoForAuthState(null);
         }
       });
 
