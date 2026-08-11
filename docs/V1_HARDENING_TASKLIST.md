@@ -393,6 +393,38 @@ See `AGENTS.md` § "verify production data."
          inline `<script>` in `index.html` parse-checked, `firestore.rules` brace-balanced with exactly
          one `platform_settings` match block, zero duplicate function declarations, `git diff --stat`
          reviewed file-by-file to confirm only the intended 15 files changed.
+- [x] **Post-Phase-4/5 manual testing bugfix batch — shipped (2026-08-11).** Owner manually tested
+      Phase 4 + Phase 5 per the request above; found 3 real bugs, all fixed same session:
+      1. **Homepage video toggle didn't actually show/hide the video** despite the setting being
+         correctly saved and synced in Firestore (verified via Admin SDK — the write path was never
+         the problem). Root cause: `getPlatformSettings()`'s `.get()` call was using Firestore's
+         default "server-if-online-else-cache" read mode; this app runs with multi-tab offline
+         persistence enabled, and a `.get()` from a fresh tab/page can return an IndexedDB-cached
+         snapshot instead of the true current value — the same class of staleness previously seen
+         with Gigs Manager edits not reflecting on the listing page in the same browser. Fix: force
+         `{ source: 'server' }` on this read. Cheap to do unconditionally since this doc is read at
+         most once per dashboard load / once per hour per homepage device.
+      2. **Support inbox tab badges (New/Old counts) and User Management's "Gigs Listed"/
+         "Applications" stat both silently showed 0**, always, since Phase 3/4 shipped —
+         `TypeError: db.collection(...).where(...).count is not a function` in the browser console.
+         Root cause, confirmed by directly inspecting the actual `firebase-firestore-compat.js`
+         v10.7.0 bundle served to the browser: the **compat/namespaced client SDK does not implement
+         Firestore's count() aggregation at all** — `getCountFromServer` only exists in the modular
+         SDK, and this codebase is 100% compat/namespaced everywhere. `getSupportQueueCounts()`
+         (Phase 4) and `getUserModerationExtras()` (Phase 3) both called `.where(...).count().get()`,
+         which threw every time, silently swallowed by `Promise.allSettled` → always fell back to 0.
+         Fix: swapped both to a plain `.get()` + `.size`. Slightly more read cost than a true
+         aggregate count, but both collections are small/naturally bounded (a support queue, one
+         user's own gigs/applications) so the difference is negligible — judged not worth introducing
+         the modular SDK into an otherwise 100%-compat codebase just for these two counts.
+      3. **Admin Support queue "New" tab threw `FAILED_PRECONDITION: query requires an index`** even
+         though a `support_requests` (status ASC, createdAt DESC) index was already deployed in
+         Phase 4. Root cause: the New-tab query explicitly sorts `createdAt` **ascending** ("oldest
+         first, FIFO"), while the deployed index was built descending (correct for the *Old*-tab
+         query, which does need descending) — composite indexes are not direction-interchangeable
+         across 2+ sort fields the way single-field indexes are. Fix: added a second composite index,
+         (status ASC, createdAt ASC), specifically for the New-tab query. Verified post-deploy (index
+         build took ~3 min) via a direct Admin SDK query matching the exact client-side query shape.
 - [ ] **Phase 6: Ad Placement dashboard section — not yet built.** Listed as one of the 6 real
       Track C sections (with Gig Moderation, User Management, Overview, Support, Settings)
       since the 2026-07-27 architecture study; "already scoped from earlier tasklist work"
