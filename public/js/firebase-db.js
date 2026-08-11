@@ -4491,9 +4491,20 @@ async function searchUsersByNamePrefix(prefix) {
  * getGigReportsForJob's "fetch on demand" pattern:
  *  - region/IP come from security_metadata (admin-only collection; the
  *    owner-safe mirror on user_private only has region, not IP)
- *  - gigsListed/applications use Firestore count() aggregation queries,
- *    which bill as ~1 read regardless of how many docs match — much
- *    cheaper than fetching full documents just to count them.
+ *  - gigsListed/applications use a plain `.get()` + `.size` (see fix note
+ *    below for why, not the count() aggregation these were originally
+ *    written for). One user's own gigs/applications is a small, naturally
+ *    bounded set, so the extra per-document read cost here is negligible.
+ *
+ * FIX (2026-08-11): this originally called Firestore's count() aggregation
+ * (`.where(...).count().get()`), which bills as ~1 read regardless of match
+ * count -- cheaper in theory, but confirmed (by inspecting the actual
+ * firebase-firestore-compat.js v10.7.0 bundle) that the COMPAT/namespaced
+ * client SDK does not implement count() at all (`getCountFromServer` is
+ * modular-SDK-only) -- every call silently threw a TypeError, caught by
+ * Promise.allSettled, so this panel has shown 0/0 since Phase 3 shipped.
+ * Swapped to a real `.get()` here instead of chasing a modular-SDK bridge
+ * for two low-stakes display numbers.
  */
 async function getUserModerationExtras(uid) {
   const db = getFirestore();
@@ -4503,8 +4514,8 @@ async function getUserModerationExtras(uid) {
 
   const [securityResult, gigsCountResult, appsCountResult] = await Promise.allSettled([
     db.collection('security_metadata').doc(safeUid).get(),
-    db.collection('jobs').where('posterId', '==', safeUid).count().get(),
-    db.collection('applications').where('applicantId', '==', safeUid).count().get()
+    db.collection('jobs').where('posterId', '==', safeUid).get(),
+    db.collection('applications').where('applicantId', '==', safeUid).get()
   ]);
 
   let region = null;
@@ -4520,8 +4531,8 @@ async function getUserModerationExtras(uid) {
   return {
     region,
     ipAddress,
-    gigsListed: gigsCountResult.status === 'fulfilled' ? (gigsCountResult.value.data().count || 0) : 0,
-    applications: appsCountResult.status === 'fulfilled' ? (appsCountResult.value.data().count || 0) : 0
+    gigsListed: gigsCountResult.status === 'fulfilled' ? gigsCountResult.value.size : 0,
+    applications: appsCountResult.status === 'fulfilled' ? appsCountResult.value.size : 0
   };
 }
 
@@ -4616,8 +4627,18 @@ async function getSupportQueueOld(startAfterDoc = null) {
 }
 
 /**
- * Cheap tab-count badges via count() aggregation — never fetches full docs
- * just to count them (same pattern as getUserModerationExtras).
+ * Cheap-ish tab-count badges for the New/Old queue tabs.
+ *
+ * FIX (2026-08-11): originally used Firestore's count() aggregation
+ * (`.where(...).count().get()`), which bills as ~1 read regardless of match
+ * count. Confirmed (by inspecting the actual firebase-firestore-compat.js
+ * v10.7.0 bundle served to the browser) that the COMPAT/namespaced client
+ * SDK does not implement count() at all -- `getCountFromServer` only exists
+ * in the modular SDK. Every call silently threw a TypeError, caught here by
+ * Promise.allSettled, so both tab badges have shown 0 since Phase 4 shipped.
+ * Swapped to a real `.get()` + `.size` -- support_requests is a small,
+ * naturally bounded queue (not "every gig ever posted"), so the extra
+ * per-document read cost vs. a true aggregate count is negligible.
  */
 async function getSupportQueueCounts() {
   const db = getFirestore();
@@ -4625,12 +4646,12 @@ async function getSupportQueueCounts() {
   if (!db) return empty;
   try {
     const [newResult, oldResult] = await Promise.allSettled([
-      db.collection('support_requests').where('status', '==', 'pending').count().get(),
-      db.collection('support_requests').where('status', 'in', ['replied', 'resolved']).count().get()
+      db.collection('support_requests').where('status', '==', 'pending').get(),
+      db.collection('support_requests').where('status', 'in', ['replied', 'resolved']).get()
     ]);
     return {
-      newCount: newResult.status === 'fulfilled' ? (newResult.value.data().count || 0) : 0,
-      oldCount: oldResult.status === 'fulfilled' ? (oldResult.value.data().count || 0) : 0
+      newCount: newResult.status === 'fulfilled' ? newResult.value.size : 0,
+      oldCount: oldResult.status === 'fulfilled' ? oldResult.value.size : 0
     };
   } catch (error) {
     console.error('❌ Error loading support queue counts (admin):', error);
@@ -4846,7 +4867,17 @@ async function getPlatformSettings(defaults = {}) {
   if (!db) return { ...defaults };
   try {
     const ref = db.collection(PLATFORM_SETTINGS_DOC_PATH[0]).doc(PLATFORM_SETTINGS_DOC_PATH[1]);
-    const snap = await ref.get();
+    // FIX (2026-08-11): force a real server round-trip, not the default
+    // "server-if-online-else-cache" behavior. This app runs with multi-tab
+    // offline persistence enabled (see firebase-config.js) -- confirmed
+    // previously (Gigs Manager edits not reflecting on the listing page in
+    // the same browser) that a plain `.get()` can serve an IndexedDB-cached
+    // snapshot from an earlier tab/pageview instead of the true current
+    // value. A toggle an admin just flipped is exactly the case where that
+    // staleness is most visible/confusing, and this doc is read rarely
+    // enough (once per dashboard load, once/hour per homepage device) that
+    // always paying for a server round trip costs nothing meaningful.
+    const snap = await ref.get({ source: 'server' });
     if (!snap.exists) {
       // First ever read — seed the doc so it exists for subsequent reads/writes.
       try {
