@@ -1648,6 +1648,13 @@ body.admin-dashboard::-webkit-scrollbar {
     transform: translateY(0);
 }
 
+.settings-save-btn:disabled,
+.settings-reset-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .btn-icon {
     font-size: 1.25rem;
 }
@@ -1757,6 +1764,15 @@ body.admin-dashboard::-webkit-scrollbar {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Admin Dashboard Phase 5 fix (2026-08-11): Save/Reset Settings write to
+   Firestore now (not instant localStorage), so there's a real network delay
+   -- show a spinning hourglass on the button while the write is in flight
+   instead of leaving it looking unresponsive. */
+.settings-btn-spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
 }
 
 /* ===== DEV MODE PANEL ===== */

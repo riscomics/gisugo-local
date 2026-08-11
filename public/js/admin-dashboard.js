@@ -6419,7 +6419,23 @@ function saveSettings() {
                 }
             });
 
+            // Fix (2026-08-11): this write is a real Firestore round trip now
+            // (not instant localStorage), so show a spinner instead of
+            // leaving the button looking unresponsive for the ~1-3s it takes.
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            const originalHtml = saveBtn ? saveBtn.innerHTML : '';
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="btn-icon settings-btn-spinner">⏳</span><span class="btn-text">Saving...</span>';
+            }
+
             const success = await savePlatformSettings(settings);
+
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml; // restore before showSettingsSaveConfirmation() captures its own "original" state
+            }
+
             if (success) {
                 console.log('💾 Settings saved to Firestore:', settings);
                 showSettingsSaveConfirmation();
@@ -6436,7 +6452,20 @@ function resetSettings() {
         '↺ Reset to Defaults',
         'This will reset all settings to their default values. This action cannot be undone.',
         async () => {
+            const resetBtn = document.getElementById('resetSettingsBtn');
+            const originalResetHtml = resetBtn ? resetBtn.innerHTML : '';
+            if (resetBtn) {
+                resetBtn.disabled = true;
+                resetBtn.innerHTML = '<span class="btn-icon settings-btn-spinner">⏳</span><span class="btn-text">Resetting...</span>';
+            }
+
             const success = await savePlatformSettings(DEFAULT_SETTINGS);
+
+            if (resetBtn) {
+                resetBtn.disabled = false;
+                resetBtn.innerHTML = originalResetHtml;
+            }
+
             if (!success) {
                 console.error('❌ Failed to reset settings in Firestore');
                 showToast('Failed to reset settings — check your connection and try again.', 'error');
