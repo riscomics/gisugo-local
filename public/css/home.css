@@ -2048,18 +2048,16 @@ section {
   100% { background-position: 100% center; }
 }
 
-.category-header.tier-basic,
-.category-header.tier-skilled,
-.category-header.tier-trades,
-.category-header.tier-support,
-.category-header.tier-construction,
-.category-header.tier-daily,
-.category-header.tier-hospitality,
-.category-header.tier-creative,
-.category-header.tier-professional {
-  background-size: 200% 200%;
-  animation: tierShimmer 8s ease-in-out infinite alternate !important;
-}
+/* Shimmer disabled 2026-08-11 -- owner request to reduce continuous repaint
+   work on budget Android devices (animating background-position forces a
+   repaint every frame, unlike a transform/opacity animation). Gradient itself
+   is untouched -- each .tier-* class's own linear-gradient (defined earlier
+   in this file) still renders in full as a static image, just no longer
+   panning. The old rule here only added background-size:200%/the animation on
+   top of those gradients -- removed entirely (not just set to `none`) since
+   the 200% sizing was solely needed for the pan effect; at default 100% size
+   the full authored gradient shows correctly on its own. Keyframe left in
+   place above in case this is wanted again later. */
 
 /* Desktop Media Query - Must come after base styles */
 @media (min-width: 1100px) {
