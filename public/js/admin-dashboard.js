@@ -3638,7 +3638,6 @@ function renderSupportTicketCard(ticket) {
             <div class="message-content-area">
                 <div class="message-header">
                     <div class="message-sender">
-                        <img src="${supportInitialsAvatarUri(d.requester?.name)}" alt="${name}" class="sender-avatar">
                         <div class="sender-info">
                             <div class="sender-name">${name}</div>
                             <div class="sender-email">${email}</div>
@@ -3656,12 +3655,6 @@ function renderSupportTicketCard(ticket) {
             </div>
         </div>
     `;
-}
-
-function supportInitialsAvatarUri(name) {
-    const initial = String(name || '?').trim().charAt(0).toUpperCase() || '?';
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" rx="32" fill="#3b82f6"/><text x="32" y="42" font-size="28" font-family="Arial, sans-serif" fill="white" text-anchor="middle">${initial}</text></svg>`;
-    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 function formatSupportTime(data, tsField, msField, isoField) {
@@ -3736,7 +3729,7 @@ function selectSupportBroadcast(broadcastId) {
 
     const d = broadcast.data;
     const label = SUPPORT_BROADCAST_CATEGORY_LABELS[d.category] || d.category;
-    const meta = { name: 'Public Announcement', email: 'All Users', time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'), topic: label, topicClass: 'general', avatar: null };
+    const meta = { name: 'Public Announcement', email: 'All Users', time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'), topic: label, topicClass: 'general' };
     const body = `
         <div class="detail-subject">${escapeHtml(d.subject || '')}</div>
         <div class="detail-message-text">${escapeHtml(d.message || '').replace(/\n/g, '<br>')}</div>
@@ -3759,8 +3752,7 @@ function buildSupportDetailHeaderMeta(ticket) {
         email: d.requester?.email || '',
         time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'),
         topic: d.categoryLabel || d.categoryCode || 'Other',
-        topicClass: String(d.categoryCode || 'other').replace(/_/g, '-'),
-        avatar: supportInitialsAvatarUri(d.requester?.name)
+        topicClass: String(d.categoryCode || 'other').replace(/_/g, '-')
     };
 }
 
@@ -3798,15 +3790,6 @@ function buildSupportDetailBodyHTML(ticket) {
 }
 
 function applySupportDetailHeader(meta, options = {}) {
-    const avatarEl = document.getElementById('detailAvatar');
-    if (avatarEl) {
-        if (meta.avatar) {
-            avatarEl.src = meta.avatar;
-            avatarEl.style.display = '';
-        } else {
-            avatarEl.style.display = 'none';
-        }
-    }
     document.getElementById('detailSenderName') && (document.getElementById('detailSenderName').textContent = meta.name);
     document.getElementById('detailSenderEmail') && (document.getElementById('detailSenderEmail').textContent = meta.email);
     document.getElementById('detailMessageTime') && (document.getElementById('detailMessageTime').textContent = meta.time);
@@ -3984,17 +3967,6 @@ function showSupportOverlay(meta, bodyHTML, options = {}) {
     const body = overlay?.querySelector('.overlay-body');
     if (!overlay || !body) return;
 
-    const avatarEl = document.getElementById('overlayDetailAvatar');
-    if (avatarEl) {
-        if (meta.avatar) {
-            avatarEl.src = meta.avatar;
-            avatarEl.alt = meta.name || '';
-            avatarEl.style.display = '';
-        } else {
-            avatarEl.removeAttribute('src');
-            avatarEl.style.display = 'none';
-        }
-    }
     const nameEl = document.getElementById('overlayDetailName');
     if (nameEl) nameEl.textContent = meta.name || 'Message Details';
     const emailEl = document.getElementById('overlayDetailEmail');
