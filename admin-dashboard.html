@@ -2125,7 +2125,21 @@
                 <div class="overlay-content">
                     <div class="overlay-header">
                         <button class="overlay-close-btn" id="overlayCloseBtn">✕</button>
-                        <h3>Message Details</h3>
+                        <div class="overlay-header-content">
+                            <div class="overlay-header-layout">
+                                <img id="overlayDetailAvatar" class="overlay-avatar" src="" alt="" style="display: none;">
+                                <div class="overlay-sender-details">
+                                    <div class="overlay-name-row">
+                                        <h3 class="detail-sender-name" id="overlayDetailName">Message Details</h3>
+                                    </div>
+                                    <div class="overlay-email-time-row">
+                                        <p class="detail-sender-email" id="overlayDetailEmail"></p>
+                                        <span class="detail-timestamp" id="overlayDetailTime"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="message-topic topic-pill" id="overlayDetailTopic" style="display: none;"></div>
+                        </div>
                     </div>
                     <div class="overlay-body">
                         <!-- Content will be populated by JavaScript -->

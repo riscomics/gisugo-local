@@ -5370,6 +5370,29 @@ body.admin-dashboard::-webkit-scrollbar {
     margin-bottom: 1.5rem;
 }
 
+/* Support ticket detail overlay (2026-08-12 redesign): the header now
+   carries sender name/email/time/topic (reusing the layout classes above),
+   so the body only needs to hold the actual message content and gets
+   real padding instead of sitting flush against the card edges. */
+.message-detail-overlay .overlay-body {
+    padding: 1.5rem;
+}
+
+.message-topic.topic-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    margin: 0;
+}
+
+.message-detail-overlay .detail-attachment {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0 0 1.5rem 0;
+}
+
 /* Responsive overlay header for smaller screens */
 @media (max-width: 500px) {
     .overlay-avatar {

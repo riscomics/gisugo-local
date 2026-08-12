@@ -3716,7 +3716,7 @@ function selectSupportBroadcast(broadcastId) {
 
     const d = broadcast.data;
     const label = SUPPORT_BROADCAST_CATEGORY_LABELS[d.category] || d.category;
-    const meta = { name: 'Public Announcement', email: 'All Users', time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'), topic: label, avatar: null };
+    const meta = { name: 'Public Announcement', email: 'All Users', time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'), topic: label, topicClass: 'general', avatar: null };
     const body = `
         <div class="detail-subject">${escapeHtml(d.subject || '')}</div>
         <div class="detail-message-text">${escapeHtml(d.message || '').replace(/\n/g, '<br>')}</div>
@@ -3739,6 +3739,7 @@ function buildSupportDetailHeaderMeta(ticket) {
         email: d.requester?.email || '',
         time: formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO'),
         topic: d.categoryLabel || d.categoryCode || 'Other',
+        topicClass: String(d.categoryCode || 'other').replace(/_/g, '-'),
         avatar: supportInitialsAvatarUri(d.requester?.name)
     };
 }
@@ -3963,18 +3964,36 @@ function showSupportOverlay(meta, bodyHTML, options = {}) {
     const body = overlay?.querySelector('.overlay-body');
     if (!overlay || !body) return;
 
-    body.innerHTML = `
-        <div class="detail-sender" style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-            ${meta.avatar ? `<img src="${meta.avatar}" alt="${escapeHtml(meta.name)}" class="detail-avatar">` : ''}
-            <div class="detail-sender-info">
-                <div class="detail-sender-name">${escapeHtml(meta.name)}</div>
-                <div class="detail-sender-email">${escapeHtml(meta.email)}</div>
-                <div class="detail-message-time">${escapeHtml(meta.time)}</div>
-            </div>
-        </div>
-        <div class="detail-topic" style="margin-bottom:1rem;">${escapeHtml(meta.topic)}</div>
-        ${bodyHTML}
-    `;
+    const avatarEl = document.getElementById('overlayDetailAvatar');
+    if (avatarEl) {
+        if (meta.avatar) {
+            avatarEl.src = meta.avatar;
+            avatarEl.alt = meta.name || '';
+            avatarEl.style.display = '';
+        } else {
+            avatarEl.removeAttribute('src');
+            avatarEl.style.display = 'none';
+        }
+    }
+    const nameEl = document.getElementById('overlayDetailName');
+    if (nameEl) nameEl.textContent = meta.name || 'Message Details';
+    const emailEl = document.getElementById('overlayDetailEmail');
+    if (emailEl) emailEl.textContent = meta.email || '';
+    const timeEl = document.getElementById('overlayDetailTime');
+    if (timeEl) timeEl.textContent = meta.time || '';
+
+    const topicEl = document.getElementById('overlayDetailTopic');
+    if (topicEl) {
+        if (meta.topic) {
+            topicEl.textContent = meta.topic;
+            topicEl.className = `message-topic topic-pill ${meta.topicClass || ''}`.trim();
+            topicEl.style.display = '';
+        } else {
+            topicEl.style.display = 'none';
+        }
+    }
+
+    body.innerHTML = bodyHTML;
 
     const replyBtn = document.getElementById('overlayReplyBtn');
     const archiveBtn = document.getElementById('overlayArchiveBtn');
