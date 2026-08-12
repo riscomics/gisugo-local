@@ -3416,12 +3416,8 @@ function initializeSupportTabButtons() {
 
     // Event delegation: card list is re-rendered on every load, so bind once
     // on the stable container instead of per-card.
-    const messagesListEl = document.getElementById('customerMessagesList');
-    console.log('🔎 [diag] customerMessagesList found at bind-time:', !!messagesListEl);
-    messagesListEl?.addEventListener('click', (e) => {
-        console.log('🔎 [diag] customerMessagesList click, target:', e.target);
+    document.getElementById('customerMessagesList')?.addEventListener('click', (e) => {
         const ticketCard = e.target.closest('.customer-message-item[data-ticket-id]');
-        console.log('🔎 [diag] matched ticketCard:', ticketCard, 'ticketId:', ticketCard?.getAttribute('data-ticket-id'));
         if (ticketCard) {
             selectSupportTicket(ticketCard.getAttribute('data-ticket-id'));
             return;
@@ -3695,7 +3691,6 @@ function findSupportTicketById(ticketId) {
 
 function selectSupportTicket(ticketId) {
     const ticket = findSupportTicketById(ticketId);
-    console.log('🔎 [diag] selectSupportTicket:', ticketId, 'found:', !!ticket, 'supportTickets.new length:', supportTickets.new.length);
     if (!ticket) return;
     supportSelectedTicketId = ticketId;
     supportSelectedBroadcastId = null;
@@ -3819,7 +3814,11 @@ function closeSupportDetail() {
     const messageContent = document.getElementById('messageContent');
     if (messageDetail) messageDetail.style.display = 'block';
     if (messageContent) messageContent.style.display = 'none';
-    document.getElementById('messageDetailOverlay')?.classList.remove('active', 'show');
+    const overlayEl = document.getElementById('messageDetailOverlay');
+    if (overlayEl) {
+        overlayEl.classList.remove('active', 'show');
+        overlayEl.style.display = 'none';
+    }
 }
 
 function initializeSupportDetailButtons() {
@@ -3949,7 +3948,11 @@ function openSupportReplyModal() {
 
 function initializeSupportMobileOverlay() {
     document.getElementById('overlayCloseBtn')?.addEventListener('click', () => {
-        document.getElementById('messageDetailOverlay')?.classList.remove('active', 'show');
+        const overlayEl = document.getElementById('messageDetailOverlay');
+        if (overlayEl) {
+            overlayEl.classList.remove('active', 'show');
+            overlayEl.style.display = 'none';
+        }
     });
     document.getElementById('overlayReplyBtn')?.addEventListener('click', () => openSupportReplyModal());
     document.getElementById('overlayArchiveBtn')?.addEventListener('click', () => handleSupportCloseAction());
@@ -3978,7 +3981,14 @@ function showSupportOverlay(meta, bodyHTML, options = {}) {
     if (replyBtn) replyBtn.style.display = options.isBroadcast ? 'none' : '';
     if (archiveBtn) archiveBtn.textContent = options.isBroadcast ? 'Unsend' : 'Mark Resolved';
 
+    // FIX (2026-08-12): the CSS for #messageDetailOverlay only defines a
+    // `display: none` default plus a `[style*="flex"]` visible-state
+    // selector -- there is no `.active`/`.show` class rule at all. Adding
+    // those classes (the old code below) silently did nothing, so the
+    // overlay was fully built with the ticket's data but never actually
+    // shown. Set the inline display directly, matching the CSS's own hook.
     overlay.classList.add('active', 'show');
+    overlay.style.display = 'flex';
 }
 
 // ----- Search -----
