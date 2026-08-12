@@ -3383,9 +3383,29 @@ function initializeSupportCenter() {
     initializeSupportDetailButtons();
     initializeSupportMobileOverlay();
     initializeSupportComposeOverlay();
+    initializeSupportAttachmentLightbox();
     loadSupportTab('new', { reset: true });
     refreshSupportTabCounts();
     console.log('✅ Support Center initialized');
+}
+
+// Support ticket attachment previews (desktop panel + mobile overlay both
+// render a `.attachment-preview[data-lightbox-url]` thumbnail) reuse the
+// existing #imageLightboxOverlay -- built for verification photos, but a
+// generic image-in-a-box modal so it works fine here too. One delegated
+// listener covers both render targets since they share the same markup.
+function initializeSupportAttachmentLightbox() {
+    document.addEventListener('click', (e) => {
+        const img = e.target.closest('.attachment-preview[data-lightbox-url]');
+        if (!img) return;
+        const overlay = document.getElementById('imageLightboxOverlay');
+        const lightboxImage = document.getElementById('lightboxImage');
+        const lightboxLabel = document.getElementById('lightboxLabel');
+        if (!overlay || !lightboxImage) return;
+        lightboxImage.src = img.getAttribute('data-lightbox-url');
+        if (lightboxLabel) lightboxLabel.textContent = 'Support Ticket Attachment';
+        overlay.classList.add('active');
+    });
 }
 
 function populateSupportTopicFilterOptions() {
@@ -3768,8 +3788,8 @@ function buildSupportDetailBodyHTML(ticket) {
         <div class="detail-attachment" id="detailAttachment" style="display: block;">
             <div class="attachment-label">Attachment:</div>
             <div class="attachment-file">
-                <img src="${photoUrl}" alt="Attachment" class="attachment-preview">
-                <div class="attachment-name">Photo attachment</div>
+                <img src="${photoUrl}" alt="Attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(photoUrl)}" style="cursor: zoom-in;">
+                <div class="attachment-name">Photo attachment (click to enlarge)</div>
             </div>
         </div>` : ''}
         ${replyHTML}

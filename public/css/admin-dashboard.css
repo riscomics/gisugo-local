@@ -5380,6 +5380,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .message-topic.topic-pill {
     display: inline-block;
+    align-self: flex-start;
     border-radius: 999px;
     padding: 0.35rem 0.9rem;
     margin: 0;
