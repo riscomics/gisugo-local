@@ -10126,7 +10126,11 @@ function mapSupportRecordToUnifiedMessage(doc) {
         sender: {
             name: 'GISUGO Support',
             email: 'support@gisugo.com',
-            avatar: 'public/users/User-11.jpg'
+            // FIX (2026-08-12): was a random mock user headshot (User-11.jpg) --
+            // real support replies should show the GISUGO brand, not an
+            // arbitrary stranger's photo. Same emblem used in the site header
+            // and Admin Dashboard sidebar.
+            avatar: 'public/images/Gisugo-emblem.png'
         },
         timestamp: createdAtDate,
         isRead: Boolean(data?.isReadByRequester || data?.read),
@@ -10979,7 +10983,13 @@ const MESSAGE_FILTER_CLEANUPS = new Map();
 
     // Setup message filtering functionality
     function setupMessageFiltering(role) {
-        refreshSupportMockDataEnabledCache();
+        // FIX (2026-08-12): this called refreshSupportMockDataEnabledCache(),
+        // a function that was never defined anywhere in this file (leftover
+        // from an earlier mock-data cleanup pass that removed the function
+        // but missed this call site). It threw a ReferenceError on every
+        // call, before any of the New/Old tab click listeners below got
+        // attached -- silently breaking Old-tab access and New->Old tab
+        // transitions ever since. Just removing the dead call.
 
         const existingCleanup = MESSAGE_FILTER_CLEANUPS.get(role);
         if (typeof existingCleanup === 'function') {
