@@ -2871,6 +2871,52 @@ body.admin-dashboard::-webkit-scrollbar {
     background: #5a6578;
 }
 
+.reply-photo-preview {
+    margin-top: 1rem;
+    position: relative;
+    display: inline-block;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reply-preview-image {
+    max-width: 200px;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+.reply-photo-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reply-photo-remove:hover {
+    background: rgba(255, 0, 0, 0.8);
+}
+
+.reply-photo-hint {
+    display: block;
+    margin-top: 0.5rem;
+    color: #a0aec0;
+    font-size: 0.75rem;
+}
+
 .reply-modal-footer {
     background: #2d3748;
     padding: 1rem 1.5rem;

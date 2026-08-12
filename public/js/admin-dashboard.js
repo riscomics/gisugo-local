@@ -3548,8 +3548,8 @@ function renderSupportList() {
 
     if (!items.length) {
         list.innerHTML = supportEmptyStateHTML(
-            supportCurrentTab === 'new' ? 'No new support tickets' : 'No resolved tickets yet',
-            supportCurrentTab === 'new' ? 'New support requests will appear here.' : 'Replied and resolved tickets will appear here.'
+            supportCurrentTab === 'new' ? 'No open support tickets' : 'No resolved tickets yet',
+            supportCurrentTab === 'new' ? 'New and awaiting-resolution requests will appear here.' : 'Resolved tickets will appear here.'
         );
         updateSupportPaginationUI();
         return;
@@ -3766,10 +3766,16 @@ function buildSupportDetailBodyHTML(ticket) {
     if (d.reply && d.reply.message) {
         const replyBy = escapeHtml(d.reply.repliedBy?.adminName || 'Admin');
         const replyText = escapeHtml(d.reply.message).replace(/\n/g, '<br>');
+        const replyPhotoUrl = d.reply.photoUrl || null;
         replyHTML = `
             <div class="support-reply-block" style="margin-top:1.5rem; padding:1rem; border-left:3px solid #3b82f6; background:rgba(59,130,246,0.08); border-radius:6px;">
                 <div style="font-weight:600; color:#3b82f6; margin-bottom:0.5rem;">↩️ Reply from ${replyBy}</div>
                 <div>${replyText}</div>
+                ${replyPhotoUrl ? `
+                <div class="attachment-file" style="margin-top:0.75rem;">
+                    <img src="${replyPhotoUrl}" alt="Reply attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(replyPhotoUrl)}" style="cursor: zoom-in;">
+                    <div class="attachment-name">Photo attachment (click to enlarge)</div>
+                </div>` : ''}
             </div>
         `;
     }
@@ -3903,16 +3909,36 @@ function confirmUnsendSupportBroadcast(broadcastId) {
 
 // ----- Reply modal (floating) -----
 
+// FIX (2026-08-12): the "Add Photo" button/input here was real markup that
+// was never actually wired to anything -- selecting a file did nothing, and
+// the send handler below never read it, so any photo silently vanished on
+// send. This variable + the handlers in initializeSupportReplyModal() are
+// the actual wiring, mirroring the same pattern already used for the
+// original ticket's photo upload (uploadSupportPhoto -> thumb + full).
+let supportReplyPhotoFile = null;
+
 function initializeSupportReplyModal() {
     const replyOverlay = document.getElementById('replyOverlay');
     const closeReplyModal = document.getElementById('closeReplyModal');
     const cancelReplyBtn = document.getElementById('cancelReplyBtn');
     const sendFloatingReplyBtn = document.getElementById('sendFloatingReplyBtn');
+    const photoInput = document.getElementById('floatingReplyAttachment');
+    const photoPreview = document.getElementById('floatingReplyPhotoPreview');
+    const photoPreviewImg = document.getElementById('floatingReplyPhotoPreviewImg');
+    const photoRemoveBtn = document.getElementById('floatingReplyPhotoRemoveBtn');
+
+    function clearReplyPhoto() {
+        supportReplyPhotoFile = null;
+        if (photoInput) photoInput.value = '';
+        if (photoPreview) photoPreview.style.display = 'none';
+        if (photoPreviewImg) photoPreviewImg.src = '';
+    }
 
     function closeModal() {
         replyOverlay?.classList.remove('show');
         const ta = document.getElementById('floatingReplyTextarea');
         if (ta) ta.value = '';
+        clearReplyPhoto();
     }
 
     closeReplyModal?.addEventListener('click', closeModal);
@@ -3920,6 +3946,32 @@ function initializeSupportReplyModal() {
     replyOverlay?.addEventListener('click', (e) => {
         if (e.target === replyOverlay) closeModal();
     });
+
+    photoInput?.addEventListener('change', () => {
+        const file = photoInput.files && photoInput.files[0];
+        if (!file) return;
+        const maxSize = 5 * 1024 * 1024;
+        const allowed = ['image/jpeg', 'image/png', 'image/gif'];
+        if (file.size > maxSize) {
+            showToast('Photo must be under 5MB', 'error', 2500);
+            photoInput.value = '';
+            return;
+        }
+        if (!allowed.includes(file.type)) {
+            showToast('Only JPG, PNG, and GIF files are supported', 'error', 2500);
+            photoInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (photoPreviewImg) photoPreviewImg.src = e.target.result;
+            if (photoPreview) photoPreview.style.display = 'inline-block';
+            supportReplyPhotoFile = file;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    photoRemoveBtn?.addEventListener('click', clearReplyPhoto);
 
     sendFloatingReplyBtn?.addEventListener('click', async () => {
         const textarea = document.getElementById('floatingReplyTextarea');
@@ -3935,20 +3987,45 @@ function initializeSupportReplyModal() {
         if (supportActionInFlight) return;
         supportActionInFlight = true;
         sendFloatingReplyBtn.disabled = true;
-        const result = await window.replyToSupportRequest(supportSelectedTicketId, replyText);
+
+        let photoMeta = null;
+        if (supportReplyPhotoFile) {
+            const ticketForUpload = findSupportTicketById(supportSelectedTicketId);
+            const requesterId = ticketForUpload?.data?.requester?.userId || null;
+            const uploadResult = await window.uploadSupportPhoto(
+                `${supportSelectedTicketId}_reply_${Date.now()}`,
+                supportReplyPhotoFile,
+                requesterId
+            );
+            if (!uploadResult.success) {
+                sendFloatingReplyBtn.disabled = false;
+                supportActionInFlight = false;
+                showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed', 'error', 2500);
+                return;
+            }
+            photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+        }
+
+        const result = await window.replyToSupportRequest(supportSelectedTicketId, replyText, photoMeta);
         sendFloatingReplyBtn.disabled = false;
         supportActionInFlight = false;
 
         if (result.success) {
             showToast('Reply sent!', 'success', 2000);
             closeModal();
+            // FIX (2026-08-12): replying no longer moves the ticket to Old --
+            // it stays in New (just no longer bold/pending) until an admin
+            // explicitly clicks Mark Resolved. Update the in-memory copy so
+            // the list re-render reflects the new status without a re-fetch,
+            // then re-select it so the header re-evaluates the Mark Resolved
+            // button (still shown -- replied isn't resolved) and the
+            // resolved-only Old tab stays untouched.
             const ticketId = supportSelectedTicketId;
-            closeSupportDetail();
-            supportTickets.new = supportTickets.new.filter((t) => t.id !== ticketId);
-            supportTickets.old = [];
-            supportLastDoc.old = null;
-            switchSupportTab('old');
+            const ticket = findSupportTicketById(ticketId);
+            if (ticket) ticket.data.status = 'replied';
+            renderSupportList();
             refreshSupportTabCounts();
+            if (ticket) selectSupportTicket(ticketId);
         } else {
             showToast(result.message || 'Reply failed', 'error', 2500);
         }

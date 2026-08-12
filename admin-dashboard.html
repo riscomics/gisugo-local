@@ -3604,7 +3604,12 @@
                         <span>📷</span>
                         <span>Add Photo</span>
                     </label>
-                    <input type="file" id="floatingReplyAttachment" accept="image/*" style="display: none;">
+                    <input type="file" id="floatingReplyAttachment" accept="image/jpeg,image/png,image/gif" style="display: none;">
+                    <div class="reply-photo-preview" id="floatingReplyPhotoPreview" style="display: none;">
+                        <img class="reply-preview-image" id="floatingReplyPhotoPreviewImg" alt="Photo preview">
+                        <button type="button" class="reply-photo-remove" id="floatingReplyPhotoRemoveBtn">✕</button>
+                    </div>
+                    <small class="reply-photo-hint">Optional. Max 5MB — JPG, PNG, or GIF.</small>
                 </div>
             </div>
             <div class="reply-modal-footer">

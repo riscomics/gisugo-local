@@ -4577,13 +4577,23 @@ const SUPPORT_QUEUE_PAGE_SIZE = 20;
 /**
  * New/unanswered tickets, oldest first (FIFO — first come, first served).
  */
+/**
+ * FIX (2026-08-12): New = "not yet resolved" (pending OR replied), not just
+ * "never touched". Previously any reply immediately moved a ticket to Old,
+ * which made 'replied' and 'resolved' indistinguishable there (both just
+ * "in Old") -- there was no way to tell "still needs a final close-out"
+ * apart from "actually done". Now a ticket only leaves New once an admin
+ * explicitly clicks Mark Resolved; replying just updates its status in
+ * place (still-bold-pending vs. already-replied styling is handled by the
+ * UI). Ordered most-recent-first per owner request.
+ */
 async function getSupportQueueNew(startAfterDoc = null) {
   const db = getFirestore();
   if (!db) return { tickets: [], lastDoc: null, hasMore: false };
   try {
     let query = db.collection('support_requests')
-      .where('status', '==', 'pending')
-      .orderBy('createdAt', 'asc')
+      .where('status', 'in', ['pending', 'replied'])
+      .orderBy('createdAt', 'desc')
       .limit(SUPPORT_QUEUE_PAGE_SIZE);
     if (startAfterDoc) {
       query = query.startAfter(startAfterDoc);
@@ -4601,14 +4611,15 @@ async function getSupportQueueNew(startAfterDoc = null) {
 }
 
 /**
- * Replied/resolved tickets, most recently touched first.
+ * Resolved tickets only (see getSupportQueueNew for why 'replied' no longer
+ * lives here), most recently touched first.
  */
 async function getSupportQueueOld(startAfterDoc = null) {
   const db = getFirestore();
   if (!db) return { tickets: [], lastDoc: null, hasMore: false };
   try {
     let query = db.collection('support_requests')
-      .where('status', 'in', ['replied', 'resolved'])
+      .where('status', '==', 'resolved')
       .orderBy('createdAt', 'desc')
       .limit(SUPPORT_QUEUE_PAGE_SIZE);
     if (startAfterDoc) {
@@ -4646,8 +4657,8 @@ async function getSupportQueueCounts() {
   if (!db) return empty;
   try {
     const [newResult, oldResult] = await Promise.allSettled([
-      db.collection('support_requests').where('status', '==', 'pending').get(),
-      db.collection('support_requests').where('status', 'in', ['replied', 'resolved']).get()
+      db.collection('support_requests').where('status', 'in', ['pending', 'replied']).get(),
+      db.collection('support_requests').where('status', '==', 'resolved').get()
     ]);
     return {
       newCount: newResult.status === 'fulfilled' ? newResult.value.size : 0,
@@ -4666,8 +4677,11 @@ async function getSupportQueueCounts() {
  * it as unread, since support.js already live-streams their own tickets.
  * @param {string} requestId
  * @param {string} replyMessage
+ * @param {{url: string, thumbUrl: string}|null} [photoMeta] optional photo
+ *   attached to the reply (2026-08-12: uploadSupportPhoto already returns
+ *   both a full-size and thumb URL, mirroring the original ticket photo).
  */
-async function replyToSupportRequest(requestId, replyMessage) {
+async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) {
   const db = getFirestore();
   const safeId = String(requestId || '').trim();
   const safeMessage = String(replyMessage || '').trim();
@@ -4682,7 +4696,9 @@ async function replyToSupportRequest(requestId, replyMessage) {
       reply: {
         message: safeMessage,
         repliedBy: { adminId: admin.uid || null, adminName: admin.name || 'Admin' },
-        repliedAt: serverTimestamp
+        repliedAt: serverTimestamp,
+        photoUrl: photoMeta?.url || null,
+        photoThumbUrl: photoMeta?.thumbUrl || null
       },
       isReadByRequester: false,
       updatedAt: serverTimestamp,
