@@ -3416,8 +3416,12 @@ function initializeSupportTabButtons() {
 
     // Event delegation: card list is re-rendered on every load, so bind once
     // on the stable container instead of per-card.
-    document.getElementById('customerMessagesList')?.addEventListener('click', (e) => {
+    const messagesListEl = document.getElementById('customerMessagesList');
+    console.log('🔎 [diag] customerMessagesList found at bind-time:', !!messagesListEl);
+    messagesListEl?.addEventListener('click', (e) => {
+        console.log('🔎 [diag] customerMessagesList click, target:', e.target);
         const ticketCard = e.target.closest('.customer-message-item[data-ticket-id]');
+        console.log('🔎 [diag] matched ticketCard:', ticketCard, 'ticketId:', ticketCard?.getAttribute('data-ticket-id'));
         if (ticketCard) {
             selectSupportTicket(ticketCard.getAttribute('data-ticket-id'));
             return;
@@ -3691,6 +3695,7 @@ function findSupportTicketById(ticketId) {
 
 function selectSupportTicket(ticketId) {
     const ticket = findSupportTicketById(ticketId);
+    console.log('🔎 [diag] selectSupportTicket:', ticketId, 'found:', !!ticket, 'supportTickets.new length:', supportTickets.new.length);
     if (!ticket) return;
     supportSelectedTicketId = ticketId;
     supportSelectedBroadcastId = null;
