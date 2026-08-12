@@ -2408,6 +2408,15 @@ body.admin-dashboard::-webkit-scrollbar {
     margin-top: 0.25rem;
 }
 
+.message-attachment-thumb {
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    margin-top: 0.25rem;
+}
+
 /* ===== CENTER PANEL: Message Detail & Reply ===== */
 .messages-center-panel {
     background: #363f4f;

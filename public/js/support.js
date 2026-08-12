@@ -10135,7 +10135,13 @@ function mapSupportRecordToUnifiedMessage(doc) {
         timestamp: createdAtDate,
         isRead: Boolean(data?.isReadByRequester || data?.read),
         hasAttachment: Boolean(data?.attachments?.photoUrl || data?.photoUrl),
-        attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null
+        attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null,
+        // FIX (2026-08-12): carry the real photo URLs through so the detail/
+        // overlay views can show the actual attached photo instead of a fake
+        // generic filename label. Falls back to the full-size URL if a
+        // thumb wasn't generated (e.g. an older ticket from before this fix).
+        attachmentPhotoUrl: data?.attachments?.photoUrl || data?.photoUrl || null,
+        attachmentPhotoThumbUrl: data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null
     };
 }
 
@@ -10621,14 +10627,24 @@ function generateMessageDetailHTML(message, role) {
                 <div class="detail-subject">${message.subject}</div>
                 <div class="detail-message-text">${message.content.replace(/\n/g, '<br>')}</div>
                 
-                ${message.hasAttachment ? `
+                ${message.hasAttachment ? (
+                    message.attachmentPhotoUrl
+                        ? `
+                    <div class="detail-attachment">
+                        <div class="attachment-label">Attachment:</div>
+                        <a href="${message.attachmentPhotoUrl}" target="_blank" rel="noopener" class="attachment-photo-link">
+                            <img src="${message.attachmentPhotoUrl}" alt="Attached photo" class="attachment-photo-preview">
+                        </a>
+                    </div>
+                    ` : `
                     <div class="detail-attachment">
                         <div class="attachment-label">Attachment:</div>
                         <div class="attachment-file">
                             <div class="attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
                         </div>
                     </div>
-                ` : ''}
+                    `
+                ) : ''}
                 
                 ${replyThreadHTML.trim() === '' ? replyThreadHTML : ''}
             </div>
@@ -10662,14 +10678,24 @@ function generateOverlayMessageHTML(message, role) {
             <div class="overlay-subject">${message.subject}</div>
             <div class="overlay-message-text">${message.content.replace(/\n/g, '<br>')}</div>
             
-            ${message.hasAttachment ? `
+            ${message.hasAttachment ? (
+                message.attachmentPhotoUrl
+                    ? `
+                <div class="overlay-attachment">
+                    <div class="overlay-attachment-label">Attachment:</div>
+                    <a href="${message.attachmentPhotoUrl}" target="_blank" rel="noopener" class="attachment-photo-link">
+                        <img src="${message.attachmentPhotoUrl}" alt="Attached photo" class="attachment-photo-preview">
+                    </a>
+                </div>
+                ` : `
                 <div class="overlay-attachment">
                     <div class="overlay-attachment-label">Attachment:</div>
                     <div class="overlay-attachment-file">
                         <div class="overlay-attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
                     </div>
                 </div>
-            ` : ''}
+                `
+            ) : ''}
             
             ${generateReplyThreadHTML(message.id).trim() === '' ? generateReplyThreadHTML(message.id) : ''}
         </div>

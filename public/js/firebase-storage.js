@@ -359,10 +359,16 @@ async function uploadJobPhotoOffline(jobId, file) {
 
 /**
  * Upload a support/contact attachment photo
+ * FIX (2026-08-12): now uploads TWO variants, matching the same thumb/full
+ * split already used for chat photos (see createChatThumbnail/
+ * createCompressedChatImage in support.js) instead of one oversized
+ * 1200px/quality-0.8 image. Thumb is for list-row previews, full is for
+ * the ticket detail view -- neither needs to be as large as a job listing
+ * photo since it's a single support attachment, not marketplace content.
  * @param {string} referenceId - Support request reference id
  * @param {File} file - Image file to upload
  * @param {string|null} requesterId - Optional requester UID
- * @returns {Promise<Object>} - Result with download URL
+ * @returns {Promise<Object>} - Result with download URLs for both variants
  */
 async function uploadSupportPhoto(referenceId, file, requesterId = null) {
   const validation = validateFile(file, 'job');
@@ -378,31 +384,43 @@ async function uploadSupportPhoto(referenceId, file, requesterId = null) {
   try {
     console.log('📤 Uploading support photo...');
 
-    const compressedBlob = await compressImage(file);
+    const [thumbBlob, fullBlob] = await Promise.all([
+      compressImage(file, { maxWidth: 100, maxHeight: 100, quality: 0.6 }),
+      compressImage(file, { maxWidth: 720, maxHeight: 720, quality: 0.75 })
+    ]);
+
     const safeReferenceId = String(referenceId || `support_${Date.now()}`).replace(/[^\w-]/g, '_');
     const safeRequesterId = requesterId ? String(requesterId).replace(/[^\w-]/g, '_') : null;
     const requesterBucket = safeRequesterId
       ? safeRequesterId
       : `guest/${getSupportGuestSessionId()}`;
-    const filePath = `${STORAGE_CONFIG.paths.supportPhotos}/${requesterBucket}/${safeReferenceId}.jpg`;
-    const fileRef = storage.ref().child(filePath);
+    const basePath = `${STORAGE_CONFIG.paths.supportPhotos}/${requesterBucket}/${safeReferenceId}`;
+    const thumbPath = `${basePath}_thumb.jpg`;
+    const fullPath = `${basePath}_full.jpg`;
 
-    const snapshot = await fileRef.put(compressedBlob, {
-      contentType: 'image/jpeg',
-      customMetadata: {
-        referenceId: String(referenceId || ''),
-        requesterId: String(requesterId || ''),
-        uploadedAt: new Date().toISOString()
-      }
-    });
+    const customMetadata = {
+      referenceId: String(referenceId || ''),
+      requesterId: String(requesterId || ''),
+      uploadedAt: new Date().toISOString()
+    };
 
-    const downloadUrl = await snapshot.ref.getDownloadURL();
+    const [thumbSnapshot, fullSnapshot] = await Promise.all([
+      storage.ref().child(thumbPath).put(thumbBlob, { contentType: 'image/jpeg', customMetadata }),
+      storage.ref().child(fullPath).put(fullBlob, { contentType: 'image/jpeg', customMetadata })
+    ]);
 
-    console.log('✅ Support photo uploaded:', downloadUrl);
+    const [thumbUrl, fullUrl] = await Promise.all([
+      thumbSnapshot.ref.getDownloadURL(),
+      fullSnapshot.ref.getDownloadURL()
+    ]);
+
+    console.log('✅ Support photo uploaded (thumb + full):', fullUrl);
     return {
       success: true,
-      url: downloadUrl,
-      path: filePath
+      url: fullUrl,
+      path: fullPath,
+      thumbUrl,
+      thumbPath
     };
   } catch (error) {
     console.error('❌ Support photo upload error:', error);
@@ -415,12 +433,20 @@ async function uploadSupportPhoto(referenceId, file, requesterId = null) {
 
 async function uploadSupportPhotoOffline(referenceId, file) {
   try {
-    const compressedBlob = await compressImage(file);
-    const dataUrl = await blobToDataUrl(compressedBlob);
+    const [thumbBlob, fullBlob] = await Promise.all([
+      compressImage(file, { maxWidth: 100, maxHeight: 100, quality: 0.6 }),
+      compressImage(file, { maxWidth: 720, maxHeight: 720, quality: 0.75 })
+    ]);
+    const [dataUrl, thumbDataUrl] = await Promise.all([
+      blobToDataUrl(fullBlob),
+      blobToDataUrl(thumbBlob)
+    ]);
     return {
       success: true,
       url: dataUrl,
       path: `local_support_${referenceId || Date.now()}`,
+      thumbUrl: thumbDataUrl,
+      thumbPath: `local_support_thumb_${referenceId || Date.now()}`,
       isLocal: true
     };
   } catch (error) {

@@ -973,6 +973,44 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
+- [ ] **DEFERRED (decided 2026-08-12): replace the in-app Support ticket system with Email/WhatsApp
+      deep-links — NOT built now, only when scaling makes the current system's limits actually
+      matter.** Current decision: **keep the existing Firestore-backed `support_requests` ticket
+      system** (Admin Dashboard queue, reply, status tracking) as-is, with the photo-attachment
+      change below. This alternative was fully discussed and explicitly shelved, not forgotten:
+      - **The idea:** retire `support_requests` entirely. `support.html` becomes a "Contact Us"
+        screen offering **Email** (`mailto:`) and **WhatsApp** (`wa.me/<official number>?text=…`)
+        options, exactly mirroring the existing `contact-reveal.js` Call/Text/WhatsApp/Viber
+        pattern already used for gig applicant contact — tap a link, it opens the user's own
+        email/WhatsApp app with a prefilled message, and the entire conversation happens inside
+        that app from then on. No ticket, no reply-inside-GISUGO concept, no notification-of-reply
+        problem (there's nothing to notify — the "reply" already arrives in their WhatsApp/email).
+      - **Why this is genuinely viable, not just an easy way out:** zero backend cost — this is the
+        free `wa.me`/`mailto:` deep-link mechanism already shipped, not the paid WhatsApp Business
+        API (no Meta App Review, no per-conversation fee, no third-party BSP). Matches how PH users
+        actually prefer to communicate (WhatsApp/Viber over email) more closely than the ticket form.
+      - **Why it's deferred, not adopted:** it would forfeit everything Phase 4 built — ticket
+        history tied to the account, status tracking (pending/replied/resolved), topic tagging, and
+        the Admin Dashboard's Support queue as a tool (it would have nothing left to manage for
+        whichever contact method wins). It also requires a human actively monitoring a real,
+        official WhatsApp number/email inbox — an operational commitment, not just a code change.
+        `support@gisugo.com` shown in the UI today is **decorative only** — confirmed 2026-08-12,
+        no mailbox is wired to it, nothing has ever sent there from the app.
+      - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
+        (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
+        adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
+- [ ] **QUEUED NEXT (after Support photo-conversion below): gig/job listing photo bandwidth
+      optimization.** Confirmed 2026-08-12 via code audit: `uploadJobPhoto()` produces exactly ONE
+      image — 1200×1200 max, JPEG quality 0.8 — and that same file is what's stored in the job's
+      `thumbnail` field and shown on every listing card. The field name is misleading; there is no
+      actual small thumbnail. Every browse of every gig card downloads the full-size photo meant
+      for the detail view. By contrast, the (currently dormant) chat photo system already does this
+      correctly: a 100px/60%-quality thumbnail for list views + a separate 720px/75%-quality
+      full-size for detail — proof the pattern already exists in this codebase, just never applied
+      to job photos. This is the dominant Firestore/Storage cost driver at real scale (every
+      session, every user, every card — not a rare action like filing a support ticket), and pairs
+      with the still-open "CDN/cache layer in front of Storage-served images" question from the
+      2026-08-12 cost-modeling discussion. Not started — queued as the next build after Support.
 - [x] **Phone tray tap → Alerts (LOCKED 2026-07-20 — shipped + user-confirmed in phone retests).**
       **Implementation:** push payload switched to **data-only** (no top-level `notification`)
       in `buildPushPayloadFromNotification`, so the SW displays the tray entry itself and its

@@ -3607,6 +3607,10 @@ function renderSupportTicketCard(ticket) {
     const excerptRaw = String(d.message || '').trim();
     const excerpt = escapeHtml(excerptRaw.length > 120 ? excerptRaw.slice(0, 120) + '...' : excerptRaw) || 'No details provided.';
     const hasAttachment = !!(d.attachments?.photoUrl || d.photoUrl);
+    // Prefer the small thumb (2026-08-12: uploadSupportPhoto now generates
+    // one) for the list-row preview; older tickets from before this fix only
+    // have the single full-size photoUrl, so fall back to that.
+    const attachmentThumbUrl = d.attachments?.photoThumbUrl || d.attachments?.photoUrl || d.photoUrl || null;
 
     return `
         <div class="customer-message-item ${isUnread ? 'unread' : ''}" data-ticket-id="${ticket.id}" data-topic="${escapeHtml(topicCode)}">
@@ -3622,7 +3626,7 @@ function renderSupportTicketCard(ticket) {
                     </div>
                     <div class="message-meta">
                         <div class="message-time">${timeLabel}</div>
-                        ${hasAttachment ? '<div class="message-attachment" title="Has photo attachment">🖼️</div>' : ''}
+                        ${hasAttachment ? `<img src="${attachmentThumbUrl}" alt="Has photo attachment" title="Has photo attachment" class="message-attachment-thumb">` : ''}
                     </div>
                 </div>
                 <div class="message-preview">

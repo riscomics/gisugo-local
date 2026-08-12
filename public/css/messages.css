@@ -8096,6 +8096,19 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.attachment-photo-link {
+    display: inline-block;
+}
+
+.attachment-photo-preview {
+    max-width: 220px;
+    max-height: 220px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: block;
+    cursor: zoom-in;
+}
+
 /* ===== OVERLAY STYLING (DASHBOARD-INSPIRED) ===== */
 
 /* Message Detail Overlay - Fixed DOM structure positioning */

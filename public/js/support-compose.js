@@ -307,7 +307,12 @@
       if (!uploadResult.success) {
         throw new Error((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed');
       }
-      return { url: uploadResult.url || null, path: uploadResult.path || null };
+      return {
+        url: uploadResult.url || null,
+        path: uploadResult.path || null,
+        thumbUrl: uploadResult.thumbUrl || null,
+        thumbPath: uploadResult.thumbPath || null
+      };
     }
     throw new Error('Photo upload backend unavailable');
   }
@@ -346,6 +351,7 @@
     isSubmitting = true;
     setComposeBusy(true);
     let uploadedPhotoPathForCleanup = null;
+    let uploadedPhotoThumbPathForCleanup = null;
 
     try {
       const userId = getCurrentUserId();
@@ -367,12 +373,17 @@
       const referenceId = generateReferenceId();
       let uploadedPhotoUrl = null;
       let uploadedPhotoPath = null;
+      let uploadedPhotoThumbUrl = null;
+      let uploadedPhotoThumbPath = null;
 
       if (uploadedPhoto) {
         const uploadMeta = await uploadComposePhoto(uploadedPhoto, referenceId, userId);
         uploadedPhotoUrl = uploadMeta.url;
         uploadedPhotoPath = uploadMeta.path || null;
+        uploadedPhotoThumbUrl = uploadMeta.thumbUrl || null;
+        uploadedPhotoThumbPath = uploadMeta.thumbPath || null;
         uploadedPhotoPathForCleanup = uploadedPhotoPath;
+        uploadedPhotoThumbPathForCleanup = uploadedPhotoThumbPath;
       }
 
       const now = new Date();
@@ -392,7 +403,9 @@
         },
         attachments: {
           photoUrl: uploadedPhotoUrl || null,
-          photoPath: uploadedPhotoPath || null
+          photoPath: uploadedPhotoPath || null,
+          photoThumbUrl: uploadedPhotoThumbUrl || null,
+          photoThumbPath: uploadedPhotoThumbPath || null
         },
         status: 'pending',
         priority: 'normal',
@@ -415,6 +428,7 @@
 
       await submitSupportRequest(contactData);
       uploadedPhotoPathForCleanup = null;
+      uploadedPhotoThumbPathForCleanup = null;
 
       resetComposeForm();
       closeSupportComposeModal({ force: true });
@@ -425,8 +439,13 @@
       );
     } catch (error) {
       console.error('Support compose submit failed:', error);
-      if (uploadedPhotoPathForCleanup && typeof global.deleteFile === 'function') {
-        try { await global.deleteFile(uploadedPhotoPathForCleanup); } catch (_) { /* ignore */ }
+      if (typeof global.deleteFile === 'function') {
+        if (uploadedPhotoPathForCleanup) {
+          try { await global.deleteFile(uploadedPhotoPathForCleanup); } catch (_) { /* ignore */ }
+        }
+        if (uploadedPhotoThumbPathForCleanup) {
+          try { await global.deleteFile(uploadedPhotoThumbPathForCleanup); } catch (_) { /* ignore */ }
+        }
       }
       showComposeStatus('error', 'Could not send', error.message || 'Please try again.');
     } finally {
