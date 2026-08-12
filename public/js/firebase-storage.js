@@ -384,9 +384,15 @@ async function uploadSupportPhoto(referenceId, file, requesterId = null) {
   try {
     console.log('📤 Uploading support photo...');
 
+    // FIX (2026-08-12): 720px was fine for a small inline preview, but the
+    // admin dashboard's attachment viewer opens this in a near-fullscreen
+    // lightbox (up to 90vw/90vh) -- on most monitors that's well beyond
+    // 720px, so the browser was visibly upscaling/blurring it. Support
+    // tickets are rare (nowhere near gig-card browsing volume), so the
+    // extra bytes from bumping to 1200px/0.85 are negligible.
     const [thumbBlob, fullBlob] = await Promise.all([
       compressImage(file, { maxWidth: 100, maxHeight: 100, quality: 0.6 }),
-      compressImage(file, { maxWidth: 720, maxHeight: 720, quality: 0.75 })
+      compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 })
     ]);
 
     const safeReferenceId = String(referenceId || `support_${Date.now()}`).replace(/[^\w-]/g, '_');
@@ -435,7 +441,7 @@ async function uploadSupportPhotoOffline(referenceId, file) {
   try {
     const [thumbBlob, fullBlob] = await Promise.all([
       compressImage(file, { maxWidth: 100, maxHeight: 100, quality: 0.6 }),
-      compressImage(file, { maxWidth: 720, maxHeight: 720, quality: 0.75 })
+      compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 })
     ]);
     const [dataUrl, thumbDataUrl] = await Promise.all([
       blobToDataUrl(fullBlob),

@@ -3711,10 +3711,11 @@ function selectSupportTicket(ticketId) {
     document.querySelectorAll('.customer-message-item').forEach((el) => el.classList.remove('selected'));
     document.querySelector(`.customer-message-item[data-ticket-id="${ticketId}"]`)?.classList.add('selected');
 
+    const isResolved = ticket.data?.status === 'resolved';
     if (window.innerWidth <= 887) {
-        showSupportOverlay(buildSupportDetailHeaderMeta(ticket), buildSupportDetailBodyHTML(ticket));
+        showSupportOverlay(buildSupportDetailHeaderMeta(ticket), buildSupportDetailBodyHTML(ticket), { isResolved });
     } else {
-        showSupportDetailDesktop(ticket);
+        showSupportDetailDesktop(ticket, { isResolved });
     }
 }
 
@@ -3798,11 +3799,25 @@ function applySupportDetailHeader(meta, options = {}) {
     const replyBtn = document.getElementById('openReplyBtn');
     const closeBtn = document.getElementById('closeMessageBtn');
     if (replyBtn) replyBtn.style.display = options.isBroadcast ? 'none' : '';
-    if (closeBtn) closeBtn.textContent = options.isBroadcast ? 'Unsend' : 'Mark Resolved';
+    if (closeBtn) {
+        if (options.isBroadcast) {
+            closeBtn.textContent = 'Unsend';
+            closeBtn.style.display = '';
+        } else if (options.isResolved) {
+            // FIX (2026-08-12): an already-resolved ticket (viewed from the Old
+            // tab) has nowhere left to move -- showing "Mark Resolved" here just
+            // re-runs the same "move to Old tab" confirmation on a ticket that's
+            // already there, which is confusing busywork with no real effect.
+            closeBtn.style.display = 'none';
+        } else {
+            closeBtn.textContent = 'Mark Resolved';
+            closeBtn.style.display = '';
+        }
+    }
 }
 
-function showSupportDetailDesktop(ticket) {
-    applySupportDetailHeader(buildSupportDetailHeaderMeta(ticket));
+function showSupportDetailDesktop(ticket, options = {}) {
+    applySupportDetailHeader(buildSupportDetailHeaderMeta(ticket), options);
     const bodyEl = document.querySelector('#messageContent .message-detail-body');
     if (bodyEl) bodyEl.innerHTML = buildSupportDetailBodyHTML(ticket);
 
@@ -3990,7 +4005,17 @@ function showSupportOverlay(meta, bodyHTML, options = {}) {
     const replyBtn = document.getElementById('overlayReplyBtn');
     const archiveBtn = document.getElementById('overlayArchiveBtn');
     if (replyBtn) replyBtn.style.display = options.isBroadcast ? 'none' : '';
-    if (archiveBtn) archiveBtn.textContent = options.isBroadcast ? 'Unsend' : 'Mark Resolved';
+    if (archiveBtn) {
+        if (options.isBroadcast) {
+            archiveBtn.textContent = 'Unsend';
+            archiveBtn.style.display = '';
+        } else if (options.isResolved) {
+            archiveBtn.style.display = 'none';
+        } else {
+            archiveBtn.textContent = 'Mark Resolved';
+            archiveBtn.style.display = '';
+        }
+    }
 
     // FIX (2026-08-12): the CSS for #messageDetailOverlay only defines a
     // `display: none` default plus a `[style*="flex"]` visible-state
