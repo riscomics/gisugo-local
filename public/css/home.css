@@ -1697,8 +1697,9 @@ section {
   50% { margin-top: 4px; }
 }
 
+/* Must outrank grid layout rules (incl. hero sizing) so collapsing always wins */
 .category-grid-collapsible.is-collapsed {
-  display: none;
+  display: none !important;
 }
 
 #exploreOtherServicesContainer {

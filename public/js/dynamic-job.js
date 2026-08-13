@@ -761,6 +761,10 @@ const extrasConfig = {
   tailor: {
     field1: { label: "Location:" },
     field2: { label: "Garment:" }
+  },
+  pila: {
+    field1: { label: "Location:" },
+    field2: { label: "Position:" }
   }
 };
 

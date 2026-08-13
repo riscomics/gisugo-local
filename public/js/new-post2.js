@@ -341,7 +341,8 @@ const extrasConfig = {
   realtor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
   solicitor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
   aircon: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
-  tourguide: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  tourguide: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  pila: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
@@ -539,9 +540,9 @@ function getCategoryDisplayName(category) {
   const categoryMap = {
     hatod: 'Transporter Jobs',
     hakot: 'Movers Jobs',
-    kompra: 'Kompra Jobs',
-    luto: 'Luto Jobs',
-    hugas: 'Hugas Jobs',
+    kompra: 'Shopper Jobs',
+    luto: 'Cook Jobs',
+    hugas: 'Washer Jobs',
     laba: 'Laba Jobs',
     limpyo: 'Basic Cleaner Jobs',
     tindera: 'Tindera Jobs',
@@ -582,7 +583,8 @@ function getCategoryDisplayName(category) {
     marketer: 'Marketer Jobs',
     solicitor: 'Solicitor Jobs',
     aircon: 'AC Cleaner Jobs',
-    tourguide: 'Tour Guide Jobs'
+    tourguide: 'Tour Guide Jobs',
+    pila: 'Line-Up Jobs'
   };
   return categoryMap[category] || category;
 }
@@ -964,12 +966,12 @@ function buildJobCategoryGrid(categoryDropdown) {
     {
       title: '🏠 Home Services',
       items: [
-        { value: 'hugas', icon: '🍽️', color: '#06b6d4', label: 'Hugas' },
+        { value: 'hugas', icon: '🍽️', color: '#06b6d4', label: 'Washer' },
         { value: 'laba', icon: '👕', color: '#8b5cf6', label: 'Laba' },
-        { value: 'luto', icon: '🍳', color: '#f97316', label: 'Luto' },
-        { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Kompra' },
+        { value: 'luto', icon: '🍳', color: '#f97316', label: 'Cook' },
+        { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Shopper' },
         { value: 'barber', icon: '💇🏻', color: '#3b82f6', label: 'Barber' },
-        { value: 'bantay', icon: '👁️', color: '#10b981', label: 'Bantay' },
+        { value: 'pila', icon: '🧍🏻', color: '#0ea5e9', label: 'Line-Up' },
         { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' },
         { value: 'massage', icon: '💆🏻‍♀️', color: '#a855f7', label: 'Massager' },
         { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' }
@@ -2496,13 +2498,14 @@ function showEditForm(jobData, category) {
   const categoryCards = {
     'hatod': { label: 'Transporter (Delivery)', icon: '📦' },
     'hakot': { label: 'Movers (Moving/Hauling)', icon: '🚚' },
-    'kompra': { label: 'Kompra (Shopping)', icon: '🛒' },
-    'luto': { label: 'Luto (Cooking)', icon: '🍳' },
-    'hugas': { label: 'Hugas (Dishwashing)', icon: '🍽️' },
+    'kompra': { label: 'Shopper (Shopping)', icon: '🛒' },
+    'luto': { label: 'Cook (Cooking)', icon: '🍳' },
+    'hugas': { label: 'Washer (Dishwashing)', icon: '🍽️' },
     'laba': { label: 'Laba (Laundry)', icon: '👕' },
     'limpyo': { label: 'Basic Cleaner (Cleaning)', icon: '🧹' },
     'tindera': { label: 'Tindera (Store Help)', icon: '🏪' },
     'bantay': { label: 'Bantay (Babysitting/Caregiving)', icon: '👶' },
+    'pila': { label: 'Line-Up (Queue Standing)', icon: '🧍🏻' },
     'painter': { label: 'Painter', icon: '🎨' },
     'carpenter': { label: 'Carpenter', icon: '🔨' },
     'plumber': { label: 'Plumber', icon: '🔧' },
@@ -3205,13 +3208,14 @@ function populateFormWithJobData(jobData, category, mode) {
   const categoryCards = {
     'hatod': { label: 'Transporter', icon: 'motorcycle', color: '#3498db' },
     'hakot': { label: 'Movers', icon: 'truck', color: '#e74c3c' },
-    'kompra': { label: 'Kompra', icon: 'shopping_cart', color: '#2ecc71' },
-    'luto': { label: 'Luto', icon: 'restaurant', color: '#f39c12' },
-    'hugas': { label: 'Hugas', icon: 'cleaning_services', color: '#9b59b6' },
+    'kompra': { label: 'Shopper', icon: 'shopping_cart', color: '#2ecc71' },
+    'luto': { label: 'Cook', icon: 'restaurant', color: '#f39c12' },
+    'hugas': { label: 'Washer', icon: 'cleaning_services', color: '#9b59b6' },
     'laba': { label: 'Laba', icon: 'local_laundry_service', color: '#1abc9c' },
     'limpyo': { label: 'Basic Cleaner', icon: 'home', color: '#16a085' },
     'tindera': { label: 'Tindera', icon: 'store', color: '#d35400' },
     'bantay': { label: 'Bantay', icon: 'person', color: '#c0392b' },
+    'pila': { label: 'Line-Up', icon: 'person', color: '#0ea5e9' },
     'painter': { label: 'Painter', icon: 'format_paint', color: '#8e44ad' },
     'carpenter': { label: 'Carpenter', icon: 'construction', color: '#d35400' },
     'plumber': { label: 'Plumber', icon: 'plumbing', color: '#3498db' },

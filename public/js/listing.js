@@ -3560,12 +3560,12 @@ function initJobcatButtonAutoResize() {
     { emoji: '🏡', label: 'Realtor', page: 'realtor.html', section: 'retail' },
 
     // HOME SERVICES
-    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'home' },
+    { emoji: '🍽️', label: 'Washer', page: 'hugas.html', section: 'home' },
     { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'home' },
-    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'home' },
-    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'home' },
+    { emoji: '🍳', label: 'Cook', page: 'luto.html', section: 'home' },
+    { emoji: '🛒', label: 'Shopper', page: 'kompra.html', section: 'home' },
     { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'home' },
-    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'home' },
+    { emoji: '🧍🏻', label: 'Line-Up', page: 'pila.html', section: 'home' },
     { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'home' },
     { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'home' },
     { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'home' },
