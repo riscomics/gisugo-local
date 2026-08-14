@@ -3989,7 +3989,15 @@ function initializeSupportReplyModal() {
         }
         if (supportActionInFlight) return;
         supportActionInFlight = true;
+        const originalSendHtml = sendFloatingReplyBtn.innerHTML;
         sendFloatingReplyBtn.disabled = true;
+        sendFloatingReplyBtn.innerHTML = '<span class="settings-btn-spinner">⏳</span> Sending...';
+
+        function restoreSendBtn() {
+            sendFloatingReplyBtn.disabled = false;
+            sendFloatingReplyBtn.innerHTML = originalSendHtml;
+            supportActionInFlight = false;
+        }
 
         let photoMeta = null;
         if (supportReplyPhotoFile) {
@@ -4004,8 +4012,7 @@ function initializeSupportReplyModal() {
                 uploaderId
             );
             if (!uploadResult.success) {
-                sendFloatingReplyBtn.disabled = false;
-                supportActionInFlight = false;
+                restoreSendBtn();
                 showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed', 'error', 2500);
                 return;
             }
@@ -4013,8 +4020,7 @@ function initializeSupportReplyModal() {
         }
 
         const result = await window.replyToSupportRequest(supportSelectedTicketId, replyText, photoMeta);
-        sendFloatingReplyBtn.disabled = false;
-        supportActionInFlight = false;
+        restoreSendBtn();
 
         if (result.success) {
             showToast('Reply sent!', 'success', 2000);

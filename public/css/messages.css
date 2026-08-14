@@ -5631,6 +5631,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   100% { transform: rotate(360deg); }
 }
 
+.reply-send-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
 /* Photo Message Styles */
 .message-photo {
   margin-top: 8px;

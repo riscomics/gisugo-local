@@ -11319,7 +11319,17 @@ async function sendReply() {
         return;
     }
     if (sendBtn && sendBtn.disabled) return;
-    if (sendBtn) sendBtn.disabled = true;
+    const originalSendHtml = sendBtn ? sendBtn.innerHTML : '';
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="reply-send-spinner">⏳</span> Sending...';
+    }
+
+    function restoreSendBtn() {
+        if (!sendBtn) return;
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = originalSendHtml;
+    }
 
     let photoMeta = null;
     if (replyPhotoFile && typeof window.uploadSupportPhoto === 'function') {
@@ -11330,7 +11340,7 @@ async function sendReply() {
             requesterId
         );
         if (!uploadResult.success) {
-            if (sendBtn) sendBtn.disabled = false;
+            restoreSendBtn();
             showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed');
             return;
         }
@@ -11338,7 +11348,7 @@ async function sendReply() {
     }
 
     const result = await window.appendSupportUserMessage(ticketId, replyText, photoMeta);
-    if (sendBtn) sendBtn.disabled = false;
+    restoreSendBtn();
     if (!result.success) {
         showToast(result.message || 'Reply failed');
         return;
