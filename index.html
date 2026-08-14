@@ -423,7 +423,7 @@
     <!-- Static Share Ad Spot -->
     <section class="home-static-ad-section" aria-label="Sponsored share ad">
       <button class="home-static-ad-card" type="button" onclick="openHomeShareAd()">
-        <img src="public/images/sharebanner.jpg" alt="Share GisuGo with your network" class="home-static-ad-image">
+        <img src="public/images/sharebanner.jpg" alt="Share GisuGo with your network" class="home-static-ad-image" loading="lazy" decoding="async">
       </button>
     </section>
 
@@ -464,13 +464,13 @@
       // FUTURE AGENT: to switch what logged-in users see, just edit the two
       // values below (youtubeId = the YouTube video ID from its URL, e.g.
       // youtube.com/watch?v=XXXXXXXXXXX or youtu.be/XXXXXXXXXXX; thumbnail =
-      // path to a custom cover image under public/images/). Currently
-      // identical to HOME_VIDEO_LOGGED_OUT on purpose (no separate logged-in
-      // video/thumbnail exists yet) -- changing these two lines is the ENTIRE
-      // change needed, nothing else in this file needs to be touched.
+      // path to a custom cover image under public/images/). The thumbnail now
+      // differs from HOME_VIDEO_LOGGED_OUT; youtubeId is still shared because
+      // no separate logged-in video exists yet -- changing these two lines is
+      // the ENTIRE change needed, nothing else in this file needs to be touched.
       const HOME_VIDEO_LOGGED_IN = {
         youtubeId: 'ptHyvEeevR8',
-        thumbnail: 'public/images/GISUGO-BANNER-horizontal.jpg'
+        thumbnail: 'public/images/GISUGO-BANNER-horizontal2.jpg'
       };
 
       let homeVideoIsLoggedIn = false; // kept in sync by applyHomeVideoForAuthState(); read by playVideo()

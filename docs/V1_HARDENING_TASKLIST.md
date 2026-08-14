@@ -1194,6 +1194,99 @@ See `AGENTS.md` § "verify production data."
         box. The list container already had `overflow-y: auto`/`max-height` before this change (same
         treatment large city lists already got), so it's functional, just a longer scroll. Add a
         type-to-filter search box if this becomes a real usability complaint.
+- [ ] **Homepage cold-load audit + logged-in menu delay — INVESTIGATED, measured, DEFERRED
+      (decided 2026-08-14). Ship as-is. Do not re-litigate before launch.** Originating report: the
+      homepage felt slow on a hard refresh with all site data cleared, on a premium phone with fast
+      internet. **Never reproduced** — the user could not replicate it afterwards on 5G and
+      attributed it to a mobile browser-app hiccup after clearing all data without fully closing the
+      app. Full measurement pass was done anyway; findings below so nobody re-runs it.
+      - **Measured cold-load (live gisugo.com, cache disabled, via CDP):** desktop TTFB 137ms /
+        FCP 252ms / DOMContentLoaded 354ms / load 359ms. Simulated 4G (5 Mbps, 50ms latency):
+        FCP 356ms / **DCL 1,786ms** / **load 4,180ms**. That 4.2s is pure transfer arithmetic
+        (2.39 MB ≈ 19.1 megabits ÷ 5 Mbps ≈ 3.8s), not a stall — nothing is "bogging down."
+      - **Total first-load weight ≈ 2.39 MB**, of which **2,102 KB is images (88%)**:
+        `sharebanner.jpg` 954 KB, `GISUGO-BANNER-horizontal.jpg` 516 KB, `Gisugo-emblem.png` 198 KB,
+        `Kompra.png` 136, `Limpyo.png` 134, `Solicitor.png` 86, `Hatod.png` 78. Remainder: Firebase
+        compat SDK from gstatic 263 KB gzipped (app 9.1 / auth 133.1 / firestore 98.5 / storage 12.7
+        / messaging 9.8 — note these report `transferSize` 0 in Resource Timing because gstatic sends
+        no `Timing-Allow-Origin`, so any future measurement must add them manually), own JS 71 KB,
+        HTML+CSS ~10 KB.
+      - **Oversized-asset targets if ever done (owner was going to handle these manually):**
+        `sharebanner.jpg` is 1536×940 displayed at 357×219 → resize **720×440 q80 (~80 KB)**.
+        `GISUGO-BANNER-horizontal.jpg` is 1050×581 displayed at 390×219 → **780×432 q80 (~70 KB)**.
+        `Gisugo-emblem.png` is 616×676 for a logo displayed at 50–140px → **280×280 (~25 KB)**.
+        Those three alone would take the page 2.39 MB → ~0.9 MB. The 4 hero card PNGs (78–136 KB)
+        are **fine — deliberately left alone**, recompressing them buys ~0.1s and risks the artwork.
+        (Distinct from the gig/job listing photo bandwidth item above, which is Storage-served user
+        uploads, not static homepage assets.)
+      - **`loading="lazy" decoding="async"` added to the share ad `<img>` (`index.html` ~L426),
+        KEPT 2026-08-14 — but it does NOT remove 954 KB from first load.** Measured on an emulated
+        390×844 phone with Explore collapsed: the ad sits at offsetTop **814** against an 844px
+        fold, i.e. inside the initial viewport, so the browser fetches it during initial load and is
+        right to. On desktop it's 217px below the fold, still inside Chrome's preload margin. The
+        attribute only lowers fetch priority (stops it competing with logo/hero) and genuinely defers
+        once Explore is expanded and the page gets long. Real fix for that file is the resize above.
+      - **Ruled out, with evidence — do not re-investigate:** (1) *Shimmer removal is innocent* —
+        `home.css:2052` documents the rule being removed entirely; the `tierShimmer` keyframe above
+        it is unreferenced dead CSS with zero runtime cost. (2) *No script blocks images* — images
+        start at 145ms, scripts at 146ms; the preload scanner finds `<img>` tags during HTML parse
+        and the Firebase tags are at end-of-body. (3) *No data fetches for a logged-out visitor* —
+        zero XHR/fetch/beacon/WebSocket entries over a 6s observation window; both homepage
+        listeners bail when there's no user, and the heavy `chat_threads` query (up to 50 docs) is
+        hard-disabled at `index.html:520` (`HOME_CHAT_UNREAD_ENABLED = false`). (4) *Service worker
+        is not intercepting* — `firebase-messaging-sw.js` is active and controlling the page but has
+        no `fetch` handler and no Cache Storage use. (5) *CPU/JS parse is not a bottleneck* — at 4x
+        CPU throttle with bytes cached, FCP 328ms and full load 426ms. (6) *Deferred Explore images
+        work correctly* — all 24 Personal/Professional `<img>` remain 1px-GIF placeholders with the
+        grids at height 0 until the shelf opens.
+      - **Logged-in menu delay — diagnosed, NOT fixed, mitigation already exists.** Symptom: after
+        logging in the user is redirected to the homepage and the menu shows visitor options for
+        ~1–2s before swapping to logged-in options. **Cause:** `gisugo_menu_auth` is written at
+        exactly ONE site — `index.html:812`, inside the homepage's own `onAuthStateChanged`. No login
+        path writes it (`login.html:884` → `handleAuthRedirect` at `firebase-auth.js:2114` →
+        `index.html`; also `firebase-auth.js:939` for the OAuth same-tab redirect, and
+        `sign-up.js:517`/`:529` after signup). So a visitor session leaves the cache at `'false'`,
+        and after a fresh login the homepage's optimistic render paints the **visitor** menu.
+        Compounding it, that render sits inside the `DOMContentLoaded` handler at `index.html:780`,
+        which waits on all 11 synchronous script tags (measured 1,786ms on 4G) — so the "instant
+        menu render from cache" is not instant on mobile.
+      - **Why it's deferred: the ⌛ mitigation already covers this exact case.** `verifyingBadge` is
+        present in **both** branches of `updateHomeMenu` — logged-in at `index.html:977` and
+        logged-out at `index.html:997` — so the user sees the spinning hourglass next to "Menu"
+        telling them the state is unconfirmed, and it always resolves to the correct menu. The
+        proposed fix would touch `handleAuthRedirect`, the single funnel for every login path which
+        also decides home-vs-`sign-up.html` routing and already carries scar tissue from past
+        wrong-routing incidents, plus a parallel change in `sign-up.js`. **Purely cosmetic payoff,
+        highest-consequence function in the auth flow, days before launch → not worth it.**
+      - **The proposed fix, if ever revisited (3 parts, in this order):** (1) write
+        `localStorage.setItem('gisugo_menu_auth', 'true')` in `handleAuthRedirect` before it
+        navigates — reachability verified, that one write covers both live login paths — plus the
+        same at the `sign-up.js` home redirects. (2) Write `'false'` in `logoutUser` at
+        `firebase-auth.js:1578`, next to the existing `gisugo_current_user` removal; today logout
+        leaves it `'true'`, so the next homepage load briefly renders the logged-in menu (inverse of
+        the same bug, also covered by the ⌛). (3) Optional latency half: hoist the cache render out
+        of `DOMContentLoaded` into an inline script placed *before* the Firebase tags (~L434, after
+        all body markup, so it cannot delay images — every `<img>` is above L433 and the script
+        makes no network requests). `updateHomeMenu` (`index.html:941`) was verified safe to hoist:
+        it only touches `firebase` in a `typeof`-guarded fallback at `:949-951` that the cache path
+        (explicit `forcedState`) never reaches. **Note:** part 1 alone is the actual fix for the
+        reported symptom; part 3 only moves a correct menu from ~1.8s to ~300ms.
+      - **Two other things share that `DOMContentLoaded` gate** (relevant only if part 3 is ever
+        done): `initializeCollapsibleCategorySections()` at `index.html:789`, so tapping "EXPLORE
+        OTHER GIG CATEGORIES" does nothing until DCL (~1.8s on 4G — a silently failing tap users
+        will repeat); and the `ios-safari` class at `index.html:785`, which gates the Explore-title
+        wrapping fix. That CSS is scoped to `@media (min-width: 360px) and (max-width: 390px)`
+        (`home.css:1631-1652`), so the late-applied class can reflow that title on iPhone 7/SE-width
+        Safari **only** — not iPhones generally. The class check touches only `document.documentElement`
+        and could move to an inline `<head>` script as a trivial standalone fix.
+      - **Config gap noted, not acted on:** `firebase.json` has no `headers` block, so there is no
+        long-lived `Cache-Control` on static assets. Irrelevant to the cleared-cache scenario that
+        prompted this, but repeat visitors revalidate more than necessary. CSS/JS already carry `?v=`
+        cache-busting, so they'd be safe to mark immutable for a year if this is ever tuned.
+      - **Misleading comment to fix whenever this file is next touched:** `index.html:792` claims
+        "Firebase stores the auth token in localStorage under this key." It does not — the app writes
+        `gisugo_menu_auth` itself at `:812`. That wrong comment is plausibly why the login-side write
+        was never added in the first place.
 
 ## Track G — Authentication / mobile OAuth login
 - [x] **Facebook Login taken live + made to work across mobile browsers** (2026-07-12/13, deployed).
