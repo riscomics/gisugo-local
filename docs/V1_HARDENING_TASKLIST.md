@@ -1226,6 +1226,28 @@ See `AGENTS.md` § "verify production data."
         right to. On desktop it's 217px below the fold, still inside Chrome's preload margin. The
         attribute only lowers fetch priority (stops it competing with logo/hero) and genuinely defers
         once Explore is expanded and the page gets long. Real fix for that file is the resize above.
+      - **Homepage video thumbnail: both login states deliberately share ONE file (2026-08-14).**
+        Briefly shipped with `HOME_VIDEO_LOGGED_IN` pointing at `GISUGO-BANNER-horizontal2.jpg` while
+        `HOME_VIDEO_LOGGED_OUT` and the `<img>` at `index.html:285` still used
+        `GISUGO-BANNER-horizontal.jpg`. Owner immediately observed the predicted **~2s thumbnail
+        swap after login**, and it also meant logged-in users downloaded **both** banners
+        (538 KB + 668 KB ≈ 1.2 MB). **Owner decision: the homepage shows exactly ONE thumbnail,
+        always, regardless of which video plays behind it — and `GISUGO-BANNER-horizontal.jpg` is
+        the permanent slot for it, so future cover art is a FILE REPLACEMENT, not a new filename +
+        code change.** The `<img src>` at `index.html:285` and both configs are all back on that one
+        file, so `applyHomeVideoForAuthState()` finds `src` already correct and never swaps — exactly
+        one banner per visit, no flash (verified by measurement: forcing the logged-in path triggers
+        0 extra downloads). `GISUGO-BANNER-horizontal2.jpg` was committed in `19abd30` and is now
+        **unreferenced** — safe to delete, or keep as the source art to copy over the canonical file.
+        ⚠️ **Coupling to know about:** `GISUGO-BANNER-horizontal.jpg` is also used by
+        `landing.html:34`, so replacing that file changes the landing page image too. If the homepage
+        ever needs art that landing must NOT share, that's the moment to split filenames — and the
+        `<img src>` must move with it. **Two different thumbnails are structurally possible but
+        inherently cost a visible swap + a second download for whichever state doesn't match the
+        hardcoded `<img src>`** — that is a property of the design, not a bug to fix. `youtubeId` is
+        still shared (no second video exists); splitting *that* alone is free because the video only
+        loads on click, well after auth confirms. `GISUGO-BANNER-horizontal.jpg` is still live on
+        `landing.html:34` — do not delete it.
       - **Ruled out, with evidence — do not re-investigate:** (1) *Shimmer removal is innocent* —
         `home.css:2052` documents the rule being removed entirely; the `tierShimmer` keyframe above
         it is unreferenced dead CSS with zero runtime cost. (2) *No script blocks images* — images

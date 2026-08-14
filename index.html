@@ -457,20 +457,29 @@
       // only hid/showed one video for logged-in users; this shows a DIFFERENT
       // video+thumbnail to logged-in users instead, for zero extra cost.
       // See docs/V1_HARDENING_TASKLIST.md Phase 5 addendum.
+      // OWNER DECISION (2026-08-14): the homepage shows exactly ONE thumbnail,
+      // always -- regardless of which video plays behind it. `GISUGO-BANNER-
+      // horizontal.jpg` is the permanent slot for it: to change the cover art,
+      // REPLACE THAT FILE, don't add a new filename and repoint these configs.
+      // Both configs and the <img> above must stay on the same file so
+      // applyHomeVideoForAuthState() finds src already correct and never swaps
+      // it -- that's what keeps it to one download and no visible flash. Using
+      // two different thumbnails was tried and reverted: it cost a ~2s swap
+      // after login plus a second image download. See V1_HARDENING_TASKLIST
+      // Track E. Only `youtubeId` is meant to differ by login state.
       const HOME_VIDEO_LOGGED_OUT = {
         youtubeId: 'ptHyvEeevR8',
         thumbnail: 'public/images/GISUGO-BANNER-horizontal.jpg'
       };
-      // FUTURE AGENT: to switch what logged-in users see, just edit the two
-      // values below (youtubeId = the YouTube video ID from its URL, e.g.
-      // youtube.com/watch?v=XXXXXXXXXXX or youtu.be/XXXXXXXXXXX; thumbnail =
-      // path to a custom cover image under public/images/). The thumbnail now
-      // differs from HOME_VIDEO_LOGGED_OUT; youtubeId is still shared because
-      // no separate logged-in video exists yet -- changing these two lines is
-      // the ENTIRE change needed, nothing else in this file needs to be touched.
+      // FUTURE AGENT: to give logged-in users a different video, edit ONLY
+      // youtubeId below (the ID from the YouTube URL, e.g.
+      // youtube.com/watch?v=XXXXXXXXXXX or youtu.be/XXXXXXXXXXX). That is free
+      // and safe -- the video loads on click, long after auth is confirmed.
+      // Leave `thumbnail` matching HOME_VIDEO_LOGGED_OUT and the <img> above,
+      // per the owner decision noted there.
       const HOME_VIDEO_LOGGED_IN = {
         youtubeId: 'ptHyvEeevR8',
-        thumbnail: 'public/images/GISUGO-BANNER-horizontal2.jpg'
+        thumbnail: 'public/images/GISUGO-BANNER-horizontal.jpg'
       };
 
       let homeVideoIsLoggedIn = false; // kept in sync by applyHomeVideoForAuthState(); read by playVideo()
