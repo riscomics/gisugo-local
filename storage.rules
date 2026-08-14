@@ -47,18 +47,16 @@ service firebase.storage {
       allow read, write, delete: if isAuthenticated();
     }
 
-    // Support ticket attachment photos (uploaded via support.html's "Contact
-    // Us" compose form -- see uploadSupportPhoto() in firebase-storage.js).
-    // FIX (2026-08-12): this path had no rule at all, so every upload hit
-    // the catch-all deny below and failed silently -- support tickets with a
-    // photo attached could never actually send. Path is
-    // support_photos/{requesterId}/{referenceId}.jpg where requesterId is
-    // the submitter's own uid (the compose form requires login before
-    // submitting, so this is never a guest/anonymous uid in practice).
-    // Owner can read/write their own; admin can read for the Support queue.
-    match /support_photos/{requesterId}/{allPaths=**} {
-      allow read: if isOwner(requesterId) || isAdmin();
-      allow write, delete: if isOwner(requesterId) || isAdmin();
+    // Support ticket photos. Path is support_photos/{uploaderId}/...
+    // Write: only the signed-in uploader's own folder (user compose AND
+    // admin reply). Do not depend on isAdmin() here -- Storage's
+    // firestore.exists(admins/{uid}) was still 403ing live on 2026-08-14
+    // after that lookup was added. Read: any signed-in user, so the other
+    // party can see the photo in the thread (download URLs are already
+    // stored on the ticket).
+    match /support_photos/{uploaderId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write, delete: if isOwner(uploaderId);
     }
 
     // Chat photos (strict participant-scoped access)

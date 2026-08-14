@@ -3993,12 +3993,15 @@ function initializeSupportReplyModal() {
 
         let photoMeta = null;
         if (supportReplyPhotoFile) {
-            const ticketForUpload = findSupportTicketById(supportSelectedTicketId);
-            const requesterId = ticketForUpload?.data?.requester?.userId || null;
+            // Upload into the ADMIN's own support_photos/{uid}/ folder so
+            // Storage isOwner() passes. Putting it under the ticket user's
+            // uid was a 403: admin is not that owner, and isAdmin() in
+            // storage.rules was not granting access (2026-08-14).
+            const uploaderId = (window.currentAdmin && window.currentAdmin.uid) || null;
             const uploadResult = await window.uploadSupportPhoto(
                 `${supportSelectedTicketId}_reply_${Date.now()}`,
                 supportReplyPhotoFile,
-                requesterId
+                uploaderId
             );
             if (!uploadResult.success) {
                 sendFloatingReplyBtn.disabled = false;
