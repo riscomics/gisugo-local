@@ -9,8 +9,14 @@ service firebase.storage {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Same source of truth as firestore.rules: an admins/{uid} doc.
+    // The old custom-claim check (request.auth.token.admin == true) was
+    // never stamped on login, so every Storage isAdmin() path was dead --
+    // including admin reply photos on support_photos/{requesterId}/...
+    // (admin is not the requester, so isOwner() also fails).
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.admin == true;
+      return isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
     }
 
     // Public profile photos (marketplace-facing avatars)
