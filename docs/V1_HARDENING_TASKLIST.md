@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-24
+> Status: **Active** · Last updated: 2026-08-14
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -110,6 +110,26 @@ See `AGENTS.md` § "verify production data."
       `super_admin`. Prerequisite for Track C.
 
 ## Track C — Admin Dashboard (linchpin)
+
+### Phase roster (macro — updated 2026-08-14)
+Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
+that the whole dashboard section is finished forever. **Next build:** Phase 10. Phases 6–9
+and 11 are parked, not cancelled.
+
+| Phase | What it actually was | Status |
+|---|---|---|
+| 1 | Overview counters (users / reported / gigs analytics). Storage / activity / traffic cards were **never** in this phase — see 7. | Shipped |
+| 2 | Gig Moderation queues (suspend / reinstate / ignore / delete). Admin **Contact** button was **never** in this phase — see 8. | Shipped |
+| 3 | User Management (suspend / reinstate). **Permanently Ban** and **Contact** were **never** in this phase — see 8 / 9. | Shipped |
+| 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. User Reply is still fake; no real thread. Follow-up is 10. | Shipped (admin half only) |
+| 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
+| 6 | Ad Placement dashboard section. | Not built |
+| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
+| 8 | Admin **Contact** on Gig Moderation + User Management (reuse `chat_threads`, not Support tickets). Both Send Message buttons are still mocks. | Not built |
+| 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
+| 10 | Support thread engine (chat *pattern*, not `chat_threads`) → test on current UI → shelf like chat → public Email form + WhatsApp button. | Documented, not started — **next** |
+| 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
+
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
       collections for a number/feed — small counter docs (Cloud Function–maintained) feed
@@ -286,6 +306,72 @@ See `AGENTS.md` § "verify production data."
         but the UI should treat it as a serious/rare action (extra confirmation step).
       • No Data Privacy Act concern under this option — nothing is deleted, so no retention
         conflict.
+- [ ] **Phase 10: Support thread engine — build, test, shelf; then public Email + WhatsApp
+      door. DECIDED 2026-08-14. Not started.** New phase (Phase 4 stays closed). Owner decision
+      after the 2026-08-12/14 channel discussion: email + an official WhatsApp number will be
+      the **live** way people reach GISUGO. In-app support is still worth owning so a later
+      "use the desk" decision is a flag flip, not a rewrite — same shelf pattern as chat
+      (`MENU_CHAT_UNREAD_ENABLED = false`: engine stays, public door closed).
+      **What this is not:** dumping tickets into `chat_threads` / `chat_messages`. Chat is
+      two users + a `jobId`; only those two can read; guests cannot write; there is no
+      topic / New / Old / resolve. Support keeps `support_requests`. "Use the chat engine"
+      means copy the append-only message list + last-activity pattern, not the inbox.
+      **Live conversation (after shelf):** Support page becomes Contact Us — a form that
+      actually delivers to `support@gisugo.com` (today that address is decorative; the
+      current form only writes Firestore), plus a WhatsApp **button** that opens `wa.me/…`.
+      The number lives in config, never as visible page text (spam harvest). Number is
+      **pending** — button stays disabled until it exists. No hybrid: users are not told
+      to start in-app and continue on WhatsApp.
+      **Shelf rule:** hide Reply / in-app back-and-forth in the **same ship** as the Email
+      + WhatsApp door. Do not leave a working Reply live on production while "about to
+      swap." Fake `support.js` `sendReply()` → `messageStates` (never Firestore) must die
+      either by becoming the real append (during test) or by being removed at shelf.
+      **Test bar (honest, short):** user → admin → user → admin, photo both ways, Mark
+      Resolved moves to Old. Do not block the shelf on push/badge polish — that waits
+      until business opens the in-app desk.
+      **Supersedes** the 2026-08-12 "defer Email/WhatsApp until scale" line in Track E
+      (that entry is kept as history and pointed here).
+      **Microtasklist — do not start Chapter 1 until owner says go. Audit after each
+      chapter before the next. Chapters 5+6 ship together.**
+      1. **Schema + rules + callable.** `support_requests` gets a `messages[]` list
+         (sender, text, photo thumb/full, timestamp) and `lastSender: 'user'|'admin'`.
+         Existing single `reply` object is migrated into the list on read/write so old
+         tickets still render. Users cannot write `messages` from the client (rules).
+         User append goes through a callable so history cannot be tampered. Admin append
+         can stay a privileged client write or the same callable. No `chat_threads` row,
+         no `jobId`, no site-wide chat listener.
+      2. **Admin dashboard thread.** `replyToSupportRequest` appends instead of
+         overwriting `reply`. Detail panel renders the list (same overlay chrome, topic
+         pill, Mark Resolved). Reply photo already uploaded via `uploadSupportPhoto` —
+         store it on the new message item. `lastSender = 'admin'`. Ticket stays in New
+         until resolved.
+      3. **User-facing thread + real Reply.** Replace concatenated
+         `— Your original message —` blob with the same list. Rip fake `sendReply()` /
+         in-memory `messageStates.replies`. Wire **Your Response** + photo to the
+         callable. `lastSender = 'user'`. Same Support page, same modal — no Messages
+         menu.
+      4. **Test pass.** Confirm the loop on the current UI (the test harness). Fix only
+         what breaks the loop. Then stop — no extra polish.
+      5. **Shelf flag.** Feature flag off (chat-style). Hide Reply and any "we'll reply
+         in-app" copy. Engine stays in repo. Broadcasts stay. Ticket compose used for
+         the test can be gated the same way.
+      6. **Public door (same ship as 5).** Contact form → real send to
+         `support@gisugo.com` (mailbox must exist; this is a new send path, not a rename
+         of the Firestore form). WhatsApp button → `wa.me`, number in config, not
+         plastered on the page; disabled while pending. Same pattern as
+         `contact-reveal.js` (tap opens the app, number is not page text).
+      7. **Full-phase audit.** Syntax, rules, no leftover fake Reply path, flag actually
+         off on production, Email/WhatsApp is the only public conversation door.
+- [ ] **Phase 11: Settings product — wire or remove leftover controls. Not started,
+      not next (parked behind Phase 10).** Phase 5 only moved storage. The Settings
+      panel still presents System Status, User Management thresholds, Gig Moderation
+      limits, Financial / G-Coin, Communication, Security, Notifications, Performance,
+      and Feature Toggles as if they do something. Confirmed 2026-08-11: **zero** of
+      those fields are read by live app or Cloud Functions. Maintenance Mode and
+      Technical Warning composers still write unread `localStorage` keys
+      (`maintenanceData`, `techWarningData`). This phase is a field-by-field pass:
+      keep + enforce, or hide/remove so the UI does not imply fake power. Do not
+      reopen Phase 5. Do not start until owner prioritizes it.
 - [ ] **Phase 8: Wire "Gig Moderation → Contact" admin messaging (Send Message button is
       currently a mock).** Confirmed 2026-08-09: the button/overlay itself is real and always shown
       in the Gig Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
@@ -298,8 +384,11 @@ See `AGENTS.md` § "verify production data."
       Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
       so it isn't lost, build whenever it's prioritized. Bundled with the User Management Contact
       item above as one Phase (same delivery mechanism, one build).
-- [x] **Phase 4: Support responder (admin side) built end-to-end — shipped (2026-08-10).** Full
-      design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Support (Messages) — resolved design".
+- [x] **Phase 4: Support responder (admin side only) — shipped (2026-08-10).**
+      Admin queue + one-slot `reply` + Mark Resolved + broadcasts. **Not** a complete
+      support product: user-facing Reply is still a fake in-memory write; tickets cannot
+      hold a real back-and-forth. That leftover is Phase 10, not a reopen of this phase.
+      Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Support (Messages) — resolved design".
       Built in 5 audited chapters, same pattern as Phase 2/3:
       1. `firestore.rules`/`firestore.indexes.json`: `support_requests` admin update narrowed to a
          field-restricted allow-list (`status`/`reply`/`assignedTo`/`priority`/`isReadByRequester`/
@@ -340,7 +429,10 @@ See `AGENTS.md` § "verify production data."
       5. Full-phase audit (this entry + architecture study), `node --check` clean on all 3 JS files,
          zero duplicate function/variable declarations introduced, every referenced DOM id
          cross-checked against the HTML.
-- [x] **Phase 5: Settings must be server-backed (Firestore), NOT localStorage — shipped (2026-08-10).**
+- [x] **Phase 5: Settings storage only (`localStorage` → Firestore) — shipped (2026-08-10).**
+      **Not a complete Settings product.** This phase moved the cabinet. It did not wire,
+      hide, or delete the leftover controls. After the homepage-video toggle was removed
+      (2026-08-11), **zero** Settings fields are live. Remaining product work is Phase 11.
       (originally flagged 2026-06-27) The admin settings object (`gisugo_admin_settings`) used to live
       in per-browser `localStorage`, so global toggles behaved inconsistently across browsers/devices.
       **Pre-build audit finding:** only **1 of the 47** settings had any real consumer anywhere in the
@@ -973,11 +1065,17 @@ See `AGENTS.md` § "verify production data."
       `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining Direct follow-ups live in BUILD_PLAN
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
-- [ ] **DEFERRED (decided 2026-08-12): replace the in-app Support ticket system with Email/WhatsApp
-      deep-links — NOT built now, only when scaling makes the current system's limits actually
-      matter.** Current decision: **keep the existing Firestore-backed `support_requests` ticket
-      system** (Admin Dashboard queue, reply, status tracking) as-is, with the photo-attachment
-      change below. This alternative was fully discussed and explicitly shelved, not forgotten:
+- [x] **SUPERSEDED 2026-08-14 (was: DEFERRED 2026-08-12 replace in-app Support with Email/WhatsApp).**
+      The 2026-08-12 write-up below is kept as history. Live decision is now **Phase 10** in
+      Track C: build + test the in-app thread engine, shelf it like chat, then put Email +
+      WhatsApp in front as the public door. Do not treat this 08-12 "keep tickets, defer
+      Email/WhatsApp until scale" line as current.
+      Original 2026-08-12 text (historical): replace the in-app Support ticket system with
+      Email/WhatsApp deep-links — NOT built now, only when scaling makes the current system's
+      limits actually matter. Then-current decision: **keep the existing Firestore-backed
+      `support_requests` ticket system** (Admin Dashboard queue, reply, status tracking) as-is,
+      with the photo-attachment change below. This alternative was fully discussed and
+      explicitly shelved, not forgotten:
       - **The idea:** retire `support_requests` entirely. `support.html` becomes a "Contact Us"
         screen offering **Email** (`mailto:`) and **WhatsApp** (`wa.me/<official number>?text=…`)
         options, exactly mirroring the existing `contact-reveal.js` Call/Text/WhatsApp/Viber
@@ -999,8 +1097,10 @@ See `AGENTS.md` § "verify production data."
       - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
-- [ ] **QUEUED NEXT (after Support photo-conversion below): gig/job listing photo bandwidth
-      optimization.** Confirmed 2026-08-12 via code audit: `uploadJobPhoto()` produces exactly ONE
+- [ ] **QUEUED NEXT (after Phase 10 Support thread engine + shelf + Email/WhatsApp door):
+      gig/job listing photo bandwidth optimization.** Support photo-conversion (thumb + full)
+      already shipped 2026-08-12. Phase 10 is now the Support follow-up in front of this.
+      Confirmed 2026-08-12 via code audit: `uploadJobPhoto()` produces exactly ONE
       image — 1200×1200 max, JPEG quality 0.8 — and that same file is what's stored in the job's
       `thumbnail` field and shown on every listing card. The field name is misleading; there is no
       actual small thumbnail. Every browse of every gig card downloads the full-size photo meant

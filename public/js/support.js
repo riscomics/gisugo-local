@@ -10090,58 +10090,40 @@ function toDateFromSupportRecord(record) {
 
 function mapSupportRecordToUnifiedMessage(doc) {
     const data = doc?.data ? doc.data() : {};
-    const rawUserMessage = String(data?.message || '').trim();
-    const replyMessage = String(data?.reply?.message || '').trim();
-    const hasReply = !!replyMessage;
+    const thread = (typeof window.normalizeSupportMessages === 'function')
+        ? window.normalizeSupportMessages(data)
+        : [];
+    const lastEntry = thread.length ? thread[thread.length - 1] : null;
+    const lastText = String(lastEntry?.message || data?.message || '').trim();
+    const lastPhoto = thread.some((entry) => !!(entry.photoUrl || entry.photoThumbUrl));
 
-    // Once GISUGO Support replies (Admin Dashboard Phase 4), that reply is the
-    // headline content -- previously this echoed the requester's OWN submitted
-    // message back at them mislabeled as if it were the support team's answer,
-    // since no reply field existed yet at all.
-    const createdAtDate = (hasReply && data?.reply?.repliedAt && typeof data.reply.repliedAt.toDate === 'function')
-        ? data.reply.repliedAt.toDate()
-        : toDateFromSupportRecord(data);
-
-    let content;
-    let excerptSource;
-    if (hasReply) {
-        content = rawUserMessage
-            ? `${replyMessage}\n\n— Your original message —\n${rawUserMessage}`
-            : replyMessage;
-        excerptSource = replyMessage;
-    } else {
-        content = rawUserMessage
-            ? `We've received your request and will get back to you within 24-48 hours.\n\n— Your message —\n${rawUserMessage}`
-            : "We've received your request and will get back to you within 24-48 hours.";
-        excerptSource = rawUserMessage || 'No details provided.';
+    let createdAtDate = toDateFromSupportRecord(data);
+    if (lastEntry?.createdAtMs) {
+        createdAtDate = new Date(lastEntry.createdAtMs);
+    } else if (lastEntry?.createdAtISO) {
+        createdAtDate = new Date(lastEntry.createdAtISO);
     }
 
     return {
         id: `support_${doc.id}`,
+        supportRequestId: doc.id,
         messageType: 'direct',
         topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
         subject: String(data?.subject || 'Support Request'),
-        excerpt: excerptSource.length > 120 ? `${excerptSource.slice(0, 120)}...` : excerptSource,
-        content,
+        excerpt: lastText.length > 120 ? `${lastText.slice(0, 120)}...` : (lastText || 'No details provided.'),
+        content: lastText,
+        thread,
         sender: {
             name: 'GISUGO Support',
             email: 'support@gisugo.com',
-            // FIX (2026-08-12): was a random mock user headshot (User-11.jpg) --
-            // real support replies should show the GISUGO brand, not an
-            // arbitrary stranger's photo. Same emblem used in the site header
-            // and Admin Dashboard sidebar.
             avatar: 'public/images/Gisugo-emblem.png'
         },
         timestamp: createdAtDate,
         isRead: Boolean(data?.isReadByRequester || data?.read),
-        hasAttachment: Boolean(data?.attachments?.photoUrl || data?.photoUrl),
-        attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null,
-        // FIX (2026-08-12): carry the real photo URLs through so the detail/
-        // overlay views can show the actual attached photo instead of a fake
-        // generic filename label. Falls back to the full-size URL if a
-        // thumb wasn't generated (e.g. an older ticket from before this fix).
-        attachmentPhotoUrl: data?.attachments?.photoUrl || data?.photoUrl || null,
-        attachmentPhotoThumbUrl: data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null
+        hasAttachment: lastPhoto || Boolean(data?.attachments?.photoUrl || data?.photoUrl),
+        attachmentName: lastPhoto || data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null,
+        attachmentPhotoUrl: lastEntry?.photoUrl || data?.attachments?.photoUrl || data?.photoUrl || null,
+        attachmentPhotoThumbUrl: lastEntry?.photoThumbUrl || data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null
     };
 }
 
@@ -10592,12 +10574,34 @@ function generateReplyThreadHTML(messageId) {
 }
 
 // Generate message detail HTML (for desktop window)
+function renderSupportThreadHTML(thread) {
+    if (!Array.isArray(thread) || !thread.length) return '';
+    return thread.map((entry) => {
+        const isAdmin = entry.sender === 'admin';
+        const who = escapeHtml(isAdmin ? (entry.senderName || 'GISUGO Support') : 'You');
+        const text = escapeHtml(entry.message || '').replace(/\n/g, '<br>');
+        const photoUrl = entry.photoUrl || null;
+        return `
+            <div class="support-thread-entry" style="margin:0.75rem 0; padding:0.85rem; border-left:3px solid ${isAdmin ? '#3b82f6' : '#e6d6ae'}; background:${isAdmin ? 'rgba(59,130,246,0.08)' : 'rgba(230,214,174,0.08)'}; border-radius:6px;">
+                <div style="font-weight:600; margin-bottom:0.4rem;">${isAdmin ? '↩️' : '👤'} ${who}</div>
+                <div>${text}</div>
+                ${photoUrl ? `
+                <div class="detail-attachment" style="margin-top:0.75rem;">
+                    <a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener" class="attachment-photo-link">
+                        <img src="${escapeHtml(photoUrl)}" alt="Attached photo" class="attachment-photo-preview">
+                    </a>
+                </div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
 function generateMessageDetailHTML(message, role) {
     const timeAgo = formatTimeAgo(message.timestamp);
     const topicLabel = getTopicLabel(message.topic);
-    
-    // Get reply thread HTML
-    const replyThreadHTML = generateReplyThreadHTML(message.id);
+    const threadHTML = Array.isArray(message.thread) && message.thread.length
+        ? renderSupportThreadHTML(message.thread)
+        : '';
     
     return `
         <div class="message-detail-header">
@@ -10620,33 +10624,8 @@ function generateMessageDetailHTML(message, role) {
         
         <div class="message-content-inner">
             <div class="message-detail-body">
-                ${replyThreadHTML.trim() !== '' ? replyThreadHTML : ''}
-                
-                ${replyThreadHTML.trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
-                
-                <div class="detail-subject">${message.subject}</div>
-                <div class="detail-message-text">${message.content.replace(/\n/g, '<br>')}</div>
-                
-                ${message.hasAttachment ? (
-                    message.attachmentPhotoUrl
-                        ? `
-                    <div class="detail-attachment">
-                        <div class="attachment-label">Attachment:</div>
-                        <a href="${message.attachmentPhotoUrl}" target="_blank" rel="noopener" class="attachment-photo-link">
-                            <img src="${message.attachmentPhotoUrl}" alt="Attached photo" class="attachment-photo-preview">
-                        </a>
-                    </div>
-                    ` : `
-                    <div class="detail-attachment">
-                        <div class="attachment-label">Attachment:</div>
-                        <div class="attachment-file">
-                            <div class="attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
-                        </div>
-                    </div>
-                    `
-                ) : ''}
-                
-                ${replyThreadHTML.trim() === '' ? replyThreadHTML : ''}
+                <div class="detail-subject">${escapeHtml(message.subject || '')}</div>
+                ${threadHTML || `<div class="detail-message-text">${escapeHtml(message.content || '').replace(/\n/g, '<br>')}</div>`}
             </div>
         </div>
     `;
@@ -10656,6 +10635,9 @@ function generateMessageDetailHTML(message, role) {
 function generateOverlayMessageHTML(message, role) {
     const timeAgo = formatTimeAgo(message.timestamp);
     const topicLabel = getTopicLabel(message.topic);
+    const threadHTML = Array.isArray(message.thread) && message.thread.length
+        ? renderSupportThreadHTML(message.thread)
+        : '';
     
     return `
         <div class="overlay-message-header">
@@ -10671,33 +10653,8 @@ function generateOverlayMessageHTML(message, role) {
         </div>
         
         <div class="overlay-message-content">
-            ${generateReplyThreadHTML(message.id).trim() !== '' ? generateReplyThreadHTML(message.id) : ''}
-            
-            ${generateReplyThreadHTML(message.id).trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
-            
-            <div class="overlay-subject">${message.subject}</div>
-            <div class="overlay-message-text">${message.content.replace(/\n/g, '<br>')}</div>
-            
-            ${message.hasAttachment ? (
-                message.attachmentPhotoUrl
-                    ? `
-                <div class="overlay-attachment">
-                    <div class="overlay-attachment-label">Attachment:</div>
-                    <a href="${message.attachmentPhotoUrl}" target="_blank" rel="noopener" class="attachment-photo-link">
-                        <img src="${message.attachmentPhotoUrl}" alt="Attached photo" class="attachment-photo-preview">
-                    </a>
-                </div>
-                ` : `
-                <div class="overlay-attachment">
-                    <div class="overlay-attachment-label">Attachment:</div>
-                    <div class="overlay-attachment-file">
-                        <div class="overlay-attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
-                    </div>
-                </div>
-                `
-            ) : ''}
-            
-            ${generateReplyThreadHTML(message.id).trim() === '' ? generateReplyThreadHTML(message.id) : ''}
+            <div class="overlay-subject">${escapeHtml(message.subject || '')}</div>
+            ${threadHTML || `<div class="overlay-message-text">${escapeHtml(message.content || '').replace(/\n/g, '<br>')}</div>`}
         </div>
     `;
 }
@@ -11335,9 +11292,9 @@ function closeReplyModal() {
 }
 
 // Send reply
-function sendReply() {
+async function sendReply() {
     const replyTextarea = document.getElementById('floatingReplyTextarea');
-    const attachmentInput = document.getElementById('floatingReplyAttachment');
+    const sendBtn = document.getElementById('sendFloatingReplyBtn');
     
     if (!replyTextarea || !currentReplyMessage || !currentReplyRole) return;
     
@@ -11352,37 +11309,52 @@ function sendReply() {
         showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
         return;
     }
+
+    const ticketId = currentReplyMessage.supportRequestId
+        || (String(currentReplyMessage.id || '').startsWith('support_')
+            ? String(currentReplyMessage.id).slice('support_'.length)
+            : '');
+    if (!ticketId || typeof window.appendSupportUserMessage !== 'function') {
+        showToast('This message cannot be replied to here.');
+        return;
+    }
+    if (sendBtn && sendBtn.disabled) return;
+    if (sendBtn) sendBtn.disabled = true;
+
+    let photoMeta = null;
+    if (replyPhotoFile && typeof window.uploadSupportPhoto === 'function') {
+        const requesterId = getCurrentUserId() || null;
+        const uploadResult = await window.uploadSupportPhoto(
+            `${ticketId}_user_${Date.now()}`,
+            replyPhotoFile,
+            requesterId
+        );
+        if (!uploadResult.success) {
+            if (sendBtn) sendBtn.disabled = false;
+            showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed');
+            return;
+        }
+        photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+    }
+
+    const result = await window.appendSupportUserMessage(ticketId, replyText, photoMeta);
+    if (sendBtn) sendBtn.disabled = false;
+    if (!result.success) {
+        showToast(result.message || 'Reply failed');
+        return;
+    }
     
     // Use customer data for unified messages
     const actualRole = currentReplyRole === 'unified' ? 'customer' : currentReplyRole;
-    
-    // Initialize message state if it doesn't exist
+
     if (!messageStates[currentReplyMessage.id]) {
         messageStates[currentReplyMessage.id] = {
             status: 'new',
             isReplied: false,
-            isRead: false,
+            isRead: true,
             replies: []
         };
     }
-    
-    // Add user reply to the thread (like dashboard)
-    const replyData = {
-        type: 'user_reply',
-        content: replyText,
-        timestamp: new Date().toISOString(),
-        author: 'You',
-        avatar: 'public/users/Peter-J-Ang-User-01.jpg' // Use proper user avatar
-    };
-    
-    // Add photo attachment if present
-    if (replyPhotoData) {
-        replyData.hasPhoto = true;
-        replyData.photoData = replyPhotoData;
-        console.log('📷 Adding photo to reply:', replyPhotoData);
-    }
-    
-    messageStates[currentReplyMessage.id].replies.push(replyData);
     
     // Mark as replied
     messageStates[currentReplyMessage.id].isReplied = true;
@@ -11418,6 +11390,7 @@ function sendReply() {
     
     // Clear reply data
     replyPhotoData = null;
+    replyPhotoFile = null;
     
     // Refresh the message list and display immediately
     if (currentReplyRole === 'unified') {
@@ -11626,6 +11599,7 @@ function initializeReplyModal() {
 
 // Global variable to store uploaded photo data
 let replyPhotoData = null;
+let replyPhotoFile = null;
 
 // Handle reply photo upload
 function handleReplyPhotoUpload(event) {
@@ -11645,6 +11619,7 @@ function handleReplyPhotoUpload(event) {
     }
     
     console.log('📷 Processing reply photo...');
+    replyPhotoFile = file;
     
     // Process image using the same compression as chat
     processChatImage(file, (processedImage) => {
@@ -11693,6 +11668,7 @@ window.removeReplyPhoto = function() {
     }
     
     replyPhotoData = null;
+    replyPhotoFile = null;
     console.log('🗑️ Reply photo removed');
 }
 

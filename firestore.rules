@@ -578,12 +578,16 @@ service cloud.firestore {
       // Admin can manage lifecycle/reply fields only -- NOT the requester's original
       // submission content (subject/message/requester/categoryCode/referenceId stay
       // immutable once created, same discipline as jobs.status locking in Phase 2).
+      // Phase 10: `messages` + `lastSender` are the thread engine. Admins may
+      // write them from the dashboard. Requesters still cannot -- user appends
+      // go through the appendSupportUserMessage callable (Admin SDK), so a
+      // client cannot rewrite earlier entries in the list.
       // Requesters can only mark their own ticket as read.
       allow update: if (isAdmin()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-            ['status', 'reply', 'assignedTo', 'priority', 'isReadByRequester',
-             'updatedAt', 'updatedAtISO', 'updatedAtMs', 'lastUpdatedAt',
-             'lastUpdatedAtISO', 'lastUpdatedAtMs']))
+            ['status', 'reply', 'messages', 'lastSender', 'assignedTo', 'priority',
+             'isReadByRequester', 'updatedAt', 'updatedAtISO', 'updatedAtMs',
+             'lastUpdatedAt', 'lastUpdatedAtISO', 'lastUpdatedAtMs']))
         || (isAuthenticated()
             && resource.data.requester is map
             && resource.data.requester.userId == request.auth.uid

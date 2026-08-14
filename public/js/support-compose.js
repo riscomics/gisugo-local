@@ -408,6 +408,17 @@
           photoThumbPath: uploadedPhotoThumbPath || null
         },
         status: 'pending',
+        lastSender: 'user',
+        messages: [{
+          sender: 'user',
+          senderId: userId,
+          senderName: formData.userName,
+          message: formData.message,
+          photoUrl: uploadedPhotoUrl || null,
+          photoThumbUrl: uploadedPhotoThumbUrl || null,
+          createdAtISO: now.toISOString(),
+          createdAtMs: now.getTime()
+        }],
         priority: 'normal',
         assignedTo: null,
         isReadByRequester: false,

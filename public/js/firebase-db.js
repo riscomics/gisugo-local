@@ -4691,8 +4691,30 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
     const admin = window.currentAdmin || {};
     const now = new Date();
     const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
-    await db.collection('support_requests').doc(safeId).update({
+    const ticketRef = db.collection('support_requests').doc(safeId);
+    const snap = await ticketRef.get();
+    if (!snap.exists) return { success: false, message: 'Ticket not found' };
+
+    const data = snap.data() || {};
+    const thread = normalizeSupportMessages(data);
+    const adminEntry = {
+      sender: 'admin',
+      senderId: admin.uid || null,
+      senderName: admin.name || 'Admin',
+      message: safeMessage,
+      photoUrl: photoMeta?.url || null,
+      photoThumbUrl: photoMeta?.thumbUrl || null,
+      createdAtISO: now.toISOString(),
+      createdAtMs: now.getTime()
+    };
+    thread.push(adminEntry);
+
+    await ticketRef.update({
       status: 'replied',
+      lastSender: 'admin',
+      messages: thread,
+      // Keep the one-slot `reply` in sync so the pre-Phase-10 user inbox
+      // still shows the latest admin answer until Chapter 3 swaps that UI.
       reply: {
         message: safeMessage,
         repliedBy: { adminId: admin.uid || null, adminName: admin.name || 'Admin' },
@@ -4708,7 +4730,7 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
       lastUpdatedAtISO: now.toISOString(),
       lastUpdatedAtMs: now.getTime()
     });
-    return { success: true };
+    return { success: true, messages: thread };
   } catch (error) {
     console.error('❌ replyToSupportRequest failed:', error);
     return { success: false, message: error.message || 'Reply failed' };
@@ -4742,6 +4764,93 @@ async function resolveSupportRequest(requestId) {
   } catch (error) {
     console.error('❌ resolveSupportRequest failed:', error);
     return { success: false, message: error.message || 'Resolve failed' };
+  }
+}
+
+/**
+ * Phase 10: turn a ticket doc into an ordered thread. New tickets write
+ * `messages[]` on create. Older tickets only have `message` + optional
+ * one-slot `reply` — those are synthesized here so Chapter 2/3 can render
+ * one list without a migration script.
+ * @param {Object} data
+ * @returns {Array<Object>}
+ */
+function normalizeSupportMessages(data) {
+  if (Array.isArray(data?.messages) && data.messages.length) {
+    return data.messages.slice();
+  }
+  const messages = [];
+  const original = String(data?.message || '').trim();
+  if (original) {
+    messages.push({
+      sender: 'user',
+      senderId: data?.requester?.userId || data?.userId || null,
+      senderName: String(data?.requester?.name || data?.userName || 'User'),
+      message: original,
+      photoUrl: data?.attachments?.photoUrl || data?.photoUrl || null,
+      photoThumbUrl: data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null,
+      createdAtISO: data?.createdAtISO || null,
+      createdAtMs: Number(data?.createdAtMs) || 0
+    });
+  }
+  const replyMessage = String(data?.reply?.message || '').trim();
+  if (replyMessage) {
+    let replyIso = data?.reply?.repliedAtISO || null;
+    let replyMs = Number(data?.reply?.repliedAtMs) || 0;
+    const repliedAt = data?.reply?.repliedAt;
+    if (repliedAt && typeof repliedAt.toDate === 'function') {
+      const asDate = repliedAt.toDate();
+      replyIso = asDate.toISOString();
+      replyMs = asDate.getTime();
+    }
+    messages.push({
+      sender: 'admin',
+      senderId: data?.reply?.repliedBy?.adminId || null,
+      senderName: String(data?.reply?.repliedBy?.adminName || 'Admin'),
+      message: replyMessage,
+      photoUrl: data?.reply?.photoUrl || null,
+      photoThumbUrl: data?.reply?.photoThumbUrl || data?.reply?.photoUrl || null,
+      createdAtISO: replyIso,
+      createdAtMs: replyMs
+    });
+  }
+  return messages;
+}
+
+/**
+ * @param {Object} data
+ * @returns {'user'|'admin'}
+ */
+function getSupportLastSender(data) {
+  if (data?.lastSender === 'user' || data?.lastSender === 'admin') return data.lastSender;
+  const messages = normalizeSupportMessages(data);
+  if (!messages.length) return 'user';
+  return messages[messages.length - 1].sender === 'admin' ? 'admin' : 'user';
+}
+
+/**
+ * User follow-up on their own ticket. Admin SDK write via callable — the
+ * client is not allowed to update `messages` (see firestore.rules).
+ * @param {string} requestId
+ * @param {string} message
+ * @param {{url?: string, thumbUrl?: string}|null} [photoMeta]
+ */
+async function appendSupportUserMessage(requestId, message, photoMeta = null) {
+  const safeId = String(requestId || '').trim();
+  const safeMessage = String(message || '').trim();
+  if (!safeId || !safeMessage) return { success: false, message: 'Missing ticket or reply text' };
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('appendSupportUserMessage');
+    const result = await callable({
+      requestId: safeId,
+      message: safeMessage,
+      photoUrl: photoMeta?.url || null,
+      photoThumbUrl: photoMeta?.thumbUrl || null
+    });
+    return { success: true, message: result?.data?.message || null };
+  } catch (error) {
+    console.error('❌ appendSupportUserMessage failed:', error);
+    return { success: false, message: error.message || 'Reply failed' };
   }
 }
 
@@ -4849,6 +4958,9 @@ window.getSupportQueueOld = getSupportQueueOld;
 window.getSupportQueueCounts = getSupportQueueCounts;
 window.replyToSupportRequest = replyToSupportRequest;
 window.resolveSupportRequest = resolveSupportRequest;
+window.normalizeSupportMessages = normalizeSupportMessages;
+window.getSupportLastSender = getSupportLastSender;
+window.appendSupportUserMessage = appendSupportUserMessage;
 window.createPlatformBroadcast = createPlatformBroadcast;
 window.getSentBroadcasts = getSentBroadcasts;
 window.deleteBroadcast = deleteBroadcast;

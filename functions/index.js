@@ -2062,3 +2062,141 @@ exports.executeBanCascadeOnUserSuspend = onDocumentWritten(
     logger.log("Ban cascade complete", { userId });
   }
 );
+
+// ============================================================================
+// SUPPORT THREAD — user append (Phase 10 Chapter 1)
+// ============================================================================
+// Users cannot write support_requests.messages from the client (rules). This
+// callable is the only user write path: verify they own the ticket, seed the
+// list from the legacy single `reply` field if needed, then append one item.
+// Admin replies stay a privileged client write (Chapter 2) using the same
+// list shape. Not chat_threads — no jobId, no site-wide listener.
+const SUPPORT_THREAD_MAX_MESSAGES = 50;
+const SUPPORT_MESSAGE_MAX_CHARS = 5000;
+
+function sanitizeSupportPhotoUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return null;
+  if (url.length > 2000) return null;
+  if (!url.startsWith("https://")) return null;
+  return url;
+}
+
+function legacySupportMessagesFromTicket(data) {
+  const messages = [];
+  const original = String(data?.message || "").trim();
+  if (original) {
+    messages.push({
+      sender: "user",
+      senderId: data?.requester?.userId || data?.userId || null,
+      senderName: String(data?.requester?.name || data?.userName || "User"),
+      message: original,
+      photoUrl: data?.attachments?.photoUrl || data?.photoUrl || null,
+      photoThumbUrl: data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null,
+      createdAtISO: data?.createdAtISO || null,
+      createdAtMs: Number(data?.createdAtMs) || 0
+    });
+  }
+  const replyMessage = String(data?.reply?.message || "").trim();
+  if (replyMessage) {
+    let replyIso = data?.reply?.repliedAtISO || null;
+    let replyMs = Number(data?.reply?.repliedAtMs) || 0;
+    const repliedAt = data?.reply?.repliedAt;
+    if (repliedAt && typeof repliedAt.toDate === "function") {
+      const asDate = repliedAt.toDate();
+      replyIso = asDate.toISOString();
+      replyMs = asDate.getTime();
+    }
+    messages.push({
+      sender: "admin",
+      senderId: data?.reply?.repliedBy?.adminId || null,
+      senderName: String(data?.reply?.repliedBy?.adminName || "Admin"),
+      message: replyMessage,
+      photoUrl: data?.reply?.photoUrl || null,
+      photoThumbUrl: data?.reply?.photoThumbUrl || data?.reply?.photoUrl || null,
+      createdAtISO: replyIso,
+      createdAtMs: replyMs
+    });
+  }
+  return messages;
+}
+
+exports.appendSupportUserMessage = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const requestId = String(request.data?.requestId || "").trim();
+    const messageText = String(request.data?.message || "").trim();
+    const photoUrl = sanitizeSupportPhotoUrl(request.data?.photoUrl);
+    const photoThumbUrl = sanitizeSupportPhotoUrl(request.data?.photoThumbUrl) || photoUrl;
+
+    if (!requestId) {
+      throw new HttpsError("invalid-argument", "requestId is required.");
+    }
+    if (!messageText) {
+      throw new HttpsError("invalid-argument", "Message text is required.");
+    }
+    if (messageText.length > SUPPORT_MESSAGE_MAX_CHARS) {
+      throw new HttpsError("invalid-argument", `Message must be ${SUPPORT_MESSAGE_MAX_CHARS} characters or fewer.`);
+    }
+
+    const ticketRef = db.collection("support_requests").doc(requestId);
+    const now = new Date();
+    let appended = null;
+
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ticketRef);
+      if (!snap.exists) {
+        throw new HttpsError("not-found", "Support ticket not found.");
+      }
+      const data = snap.data() || {};
+      const ownerId = data?.requester?.userId || data?.userId || "";
+      if (!ownerId || ownerId !== uid) {
+        throw new HttpsError("permission-denied", "You can only reply to your own support ticket.");
+      }
+
+      const existing = Array.isArray(data.messages) && data.messages.length
+        ? data.messages.slice()
+        : legacySupportMessagesFromTicket(data);
+
+      if (existing.length >= SUPPORT_THREAD_MAX_MESSAGES) {
+        throw new HttpsError("resource-exhausted", "This conversation has reached its message limit.");
+      }
+
+      appended = {
+        sender: "user",
+        senderId: uid,
+        senderName: String(request.auth.token?.name || data?.requester?.name || "You"),
+        message: messageText,
+        photoUrl,
+        photoThumbUrl,
+        createdAtISO: now.toISOString(),
+        createdAtMs: now.getTime()
+      };
+      existing.push(appended);
+
+      const updates = {
+        messages: existing,
+        lastSender: "user",
+        isReadByRequester: true,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAtISO: now.toISOString(),
+        updatedAtMs: now.getTime(),
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastUpdatedAtISO: now.toISOString(),
+        lastUpdatedAtMs: now.getTime()
+      };
+      // Follow-up after resolve returns the ticket to New (status replied).
+      if (String(data.status || "") === "resolved") {
+        updates.status = "replied";
+      }
+      tx.update(ticketRef, updates);
+    });
+
+    return { success: true, message: appended };
+  }
+);

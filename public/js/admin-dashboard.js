@@ -3619,12 +3619,19 @@ function renderSupportTicketCard(ticket) {
     const topicCode = String(d.categoryCode || 'other');
     const topicClass = topicCode.replace(/_/g, '-');
     const topicLabel = d.categoryLabel || topicCode;
-    const isUnread = d.status === 'pending';
+    const lastSender = (typeof window.getSupportLastSender === 'function')
+        ? window.getSupportLastSender(d)
+        : (d.lastSender || (d.status === 'pending' ? 'user' : 'admin'));
+    const isUnread = lastSender === 'user';
     const name = escapeHtml(d.requester?.name || 'Unknown');
     const email = escapeHtml(d.requester?.email || '');
     const timeLabel = formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO');
     const subject = escapeHtml(d.subject || 'Support Request');
-    const excerptRaw = String(d.message || '').trim();
+    const thread = (typeof window.normalizeSupportMessages === 'function')
+        ? window.normalizeSupportMessages(d)
+        : [];
+    const lastText = thread.length ? String(thread[thread.length - 1].message || '').trim() : '';
+    const excerptRaw = lastText || String(d.message || '').trim();
     const excerpt = escapeHtml(excerptRaw.length > 120 ? excerptRaw.slice(0, 120) + '...' : excerptRaw) || 'No details provided.';
     const hasAttachment = !!(d.attachments?.photoUrl || d.photoUrl);
     // Prefer the small thumb (2026-08-12: uploadSupportPhoto now generates
@@ -3759,39 +3766,35 @@ function buildSupportDetailHeaderMeta(ticket) {
 
 function buildSupportDetailBodyHTML(ticket) {
     const d = ticket.data;
-    const messageHTML = escapeHtml(d.message || '').replace(/\n/g, '<br>');
-    const photoUrl = d.attachments?.photoUrl || d.photoUrl || null;
+    const thread = (typeof window.normalizeSupportMessages === 'function')
+        ? window.normalizeSupportMessages(d)
+        : [];
 
-    let replyHTML = '';
-    if (d.reply && d.reply.message) {
-        const replyBy = escapeHtml(d.reply.repliedBy?.adminName || 'Admin');
-        const replyText = escapeHtml(d.reply.message).replace(/\n/g, '<br>');
-        const replyPhotoUrl = d.reply.photoUrl || null;
-        replyHTML = `
-            <div class="support-reply-block" style="margin-top:1.5rem; padding:1rem; border-left:3px solid #3b82f6; background:rgba(59,130,246,0.08); border-radius:6px;">
-                <div style="font-weight:600; color:#3b82f6; margin-bottom:0.5rem;">↩️ Reply from ${replyBy}</div>
-                <div>${replyText}</div>
-                ${replyPhotoUrl ? `
+    const threadHTML = thread.map((entry) => {
+        const isAdmin = entry.sender === 'admin';
+        const who = escapeHtml(isAdmin ? (entry.senderName || 'Admin') : (entry.senderName || 'User'));
+        const text = escapeHtml(entry.message || '').replace(/\n/g, '<br>');
+        const photoUrl = entry.photoUrl || null;
+        const border = isAdmin ? '#3b82f6' : '#e6d6ae';
+        const bg = isAdmin ? 'rgba(59,130,246,0.08)' : 'rgba(230,214,174,0.08)';
+        const labelColor = isAdmin ? '#3b82f6' : '#e6d6ae';
+        const prefix = isAdmin ? '↩️' : '👤';
+        return `
+            <div class="support-thread-entry" style="margin-top:1rem; padding:1rem; border-left:3px solid ${border}; background:${bg}; border-radius:6px;">
+                <div style="font-weight:600; color:${labelColor}; margin-bottom:0.5rem;">${prefix} ${who}</div>
+                <div>${text}</div>
+                ${photoUrl ? `
                 <div class="attachment-file" style="margin-top:0.75rem;">
-                    <img src="${replyPhotoUrl}" alt="Reply attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(replyPhotoUrl)}" style="cursor: zoom-in;">
+                    <img src="${photoUrl}" alt="Attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(photoUrl)}" style="cursor: zoom-in;">
                     <div class="attachment-name">Photo attachment (click to enlarge)</div>
                 </div>` : ''}
             </div>
         `;
-    }
+    }).join('');
 
     return `
         <div class="detail-subject">${escapeHtml(d.subject || 'Support Request')}</div>
-        <div class="detail-message-text" id="detailMessageText">${messageHTML}</div>
-        ${photoUrl ? `
-        <div class="detail-attachment" id="detailAttachment" style="display: block;">
-            <div class="attachment-label">Attachment:</div>
-            <div class="attachment-file">
-                <img src="${photoUrl}" alt="Attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(photoUrl)}" style="cursor: zoom-in;">
-                <div class="attachment-name">Photo attachment (click to enlarge)</div>
-            </div>
-        </div>` : ''}
-        ${replyHTML}
+        <div class="detail-message-text" id="detailMessageText">${threadHTML || '<div>No message content.</div>'}</div>
         ${d.referenceId ? `<div style="margin-top:1rem; font-size:0.75rem; color:rgba(230,214,174,0.5);">Reference: ${escapeHtml(d.referenceId)}</div>` : ''}
     `;
 }
@@ -4022,7 +4025,11 @@ function initializeSupportReplyModal() {
             // resolved-only Old tab stays untouched.
             const ticketId = supportSelectedTicketId;
             const ticket = findSupportTicketById(ticketId);
-            if (ticket) ticket.data.status = 'replied';
+            if (ticket) {
+                ticket.data.status = 'replied';
+                ticket.data.lastSender = 'admin';
+                if (result.messages) ticket.data.messages = result.messages;
+            }
             renderSupportList();
             refreshSupportTabCounts();
             if (ticket) selectSupportTicket(ticketId);
