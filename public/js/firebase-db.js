@@ -4573,6 +4573,7 @@ window.callAdminModerateUser = callAdminModerateUser;
 // grants isAdmin() a scoped, field-restricted update path — unlike
 // jobs.status/users.status, nothing here needed a rules workaround.
 const SUPPORT_QUEUE_PAGE_SIZE = 20;
+const SUPPORT_THREAD_MAX_MESSAGES = 50;
 
 /**
  * New/unanswered tickets, oldest first (FIFO — first come, first served).
@@ -4697,6 +4698,9 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
 
     const data = snap.data() || {};
     const thread = normalizeSupportMessages(data);
+    if (thread.length >= SUPPORT_THREAD_MAX_MESSAGES) {
+      return { success: false, message: 'This conversation has reached its message limit.' };
+    }
     const adminEntry = {
       sender: 'admin',
       senderId: admin.uid || null,

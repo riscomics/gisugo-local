@@ -3633,11 +3633,12 @@ function renderSupportTicketCard(ticket) {
     const lastText = thread.length ? String(thread[thread.length - 1].message || '').trim() : '';
     const excerptRaw = lastText || String(d.message || '').trim();
     const excerpt = escapeHtml(excerptRaw.length > 120 ? excerptRaw.slice(0, 120) + '...' : excerptRaw) || 'No details provided.';
-    const hasAttachment = !!(d.attachments?.photoUrl || d.photoUrl);
-    // Prefer the small thumb (2026-08-12: uploadSupportPhoto now generates
-    // one) for the list-row preview; older tickets from before this fix only
+    const lastPhoto = [...thread].reverse().find((entry) => !!(entry.photoThumbUrl || entry.photoUrl));
+    const hasAttachment = !!(lastPhoto || d.attachments?.photoUrl || d.photoUrl);
+    // Prefer the small thumb for the list-row preview; older tickets only
     // have the single full-size photoUrl, so fall back to that.
-    const attachmentThumbUrl = d.attachments?.photoThumbUrl || d.attachments?.photoUrl || d.photoUrl || null;
+    const attachmentThumbUrl = lastPhoto?.photoThumbUrl || lastPhoto?.photoUrl
+        || d.attachments?.photoThumbUrl || d.attachments?.photoUrl || d.photoUrl || null;
 
     return `
         <div class="customer-message-item ${isUnread ? 'unread' : ''}" data-ticket-id="${ticket.id}" data-topic="${escapeHtml(topicCode)}">
@@ -3774,7 +3775,8 @@ function buildSupportDetailBodyHTML(ticket) {
         const isAdmin = entry.sender === 'admin';
         const who = escapeHtml(isAdmin ? (entry.senderName || 'Admin') : (entry.senderName || 'User'));
         const text = escapeHtml(entry.message || '').replace(/\n/g, '<br>');
-        const photoUrl = entry.photoUrl || null;
+        const thumbUrl = entry.photoThumbUrl || entry.photoUrl || null;
+        const fullUrl = entry.photoUrl || entry.photoThumbUrl || null;
         const border = isAdmin ? '#3b82f6' : '#e6d6ae';
         const bg = isAdmin ? 'rgba(59,130,246,0.08)' : 'rgba(230,214,174,0.08)';
         const labelColor = isAdmin ? '#3b82f6' : '#e6d6ae';
@@ -3783,9 +3785,9 @@ function buildSupportDetailBodyHTML(ticket) {
             <div class="support-thread-entry" style="margin-top:1rem; padding:1rem; border-left:3px solid ${border}; background:${bg}; border-radius:6px;">
                 <div style="font-weight:600; color:${labelColor}; margin-bottom:0.5rem;">${prefix} ${who}</div>
                 <div>${text}</div>
-                ${photoUrl ? `
+                ${thumbUrl ? `
                 <div class="attachment-file" style="margin-top:0.75rem;">
-                    <img src="${photoUrl}" alt="Attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(photoUrl)}" style="cursor: zoom-in;">
+                    <img src="${escapeHtml(thumbUrl)}" alt="Attachment" class="attachment-preview" data-lightbox-url="${escapeHtml(fullUrl)}" style="cursor: zoom-in;">
                     <div class="attachment-name">Photo attachment (click to enlarge)</div>
                 </div>` : ''}
             </div>
@@ -3919,6 +3921,7 @@ function confirmUnsendSupportBroadcast(broadcastId) {
 // the actual wiring, mirroring the same pattern already used for the
 // original ticket's photo upload (uploadSupportPhoto -> thumb + full).
 let supportReplyPhotoFile = null;
+let supportReplyPhotoPreviewUrl = null;
 
 function initializeSupportReplyModal() {
     const replyOverlay = document.getElementById('replyOverlay');
@@ -3932,6 +3935,10 @@ function initializeSupportReplyModal() {
 
     function clearReplyPhoto() {
         supportReplyPhotoFile = null;
+        if (supportReplyPhotoPreviewUrl) {
+            URL.revokeObjectURL(supportReplyPhotoPreviewUrl);
+            supportReplyPhotoPreviewUrl = null;
+        }
         if (photoInput) photoInput.value = '';
         if (photoPreview) photoPreview.style.display = 'none';
         if (photoPreviewImg) photoPreviewImg.src = '';
@@ -3965,13 +3972,14 @@ function initializeSupportReplyModal() {
             photoInput.value = '';
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (photoPreviewImg) photoPreviewImg.src = e.target.result;
-            if (photoPreview) photoPreview.style.display = 'inline-block';
-            supportReplyPhotoFile = file;
-        };
-        reader.readAsDataURL(file);
+        if (supportReplyPhotoPreviewUrl) {
+            URL.revokeObjectURL(supportReplyPhotoPreviewUrl);
+            supportReplyPhotoPreviewUrl = null;
+        }
+        supportReplyPhotoPreviewUrl = URL.createObjectURL(file);
+        if (photoPreviewImg) photoPreviewImg.src = supportReplyPhotoPreviewUrl;
+        if (photoPreview) photoPreview.style.display = 'inline-block';
+        supportReplyPhotoFile = file;
     });
 
     photoRemoveBtn?.addEventListener('click', clearReplyPhoto);
@@ -3999,7 +4007,18 @@ function initializeSupportReplyModal() {
             supportActionInFlight = false;
         }
 
+        const selectedTicket = findSupportTicketById(supportSelectedTicketId);
+        const existingThread = (typeof window.normalizeSupportMessages === 'function' && selectedTicket)
+            ? window.normalizeSupportMessages(selectedTicket.data)
+            : [];
+        if (existingThread.length >= 50) {
+            restoreSendBtn();
+            showToast('This conversation has reached its message limit.', 'error', 2500);
+            return;
+        }
+
         let photoMeta = null;
+        let uploadedPhotoForCleanup = null;
         if (supportReplyPhotoFile) {
             // Upload into the ADMIN's own support_photos/{uid}/ folder so
             // Storage isOwner() passes. Putting it under the ticket user's
@@ -4017,6 +4036,7 @@ function initializeSupportReplyModal() {
                 return;
             }
             photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+            uploadedPhotoForCleanup = uploadResult;
         }
 
         const result = await window.replyToSupportRequest(supportSelectedTicketId, replyText, photoMeta);
@@ -4043,6 +4063,9 @@ function initializeSupportReplyModal() {
             refreshSupportTabCounts();
             if (ticket) selectSupportTicket(ticketId);
         } else {
+            if (uploadedPhotoForCleanup && typeof window.cleanupSupportPhotoUpload === 'function') {
+                await window.cleanupSupportPhotoUpload(uploadedPhotoForCleanup);
+            }
             showToast(result.message || 'Reply failed', 'error', 2500);
         }
     });

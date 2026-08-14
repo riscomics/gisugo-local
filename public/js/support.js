@@ -10119,6 +10119,7 @@ function mapSupportRecordToUnifiedMessage(doc) {
             avatar: 'public/images/Gisugo-emblem.png'
         },
         timestamp: createdAtDate,
+        supportStatus: String(data?.status || 'pending'),
         isRead: Boolean(data?.isReadByRequester || data?.read),
         hasAttachment: lastPhoto || Boolean(data?.attachments?.photoUrl || data?.photoUrl),
         attachmentName: lastPhoto || data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null,
@@ -10126,6 +10127,30 @@ function mapSupportRecordToUnifiedMessage(doc) {
         attachmentPhotoThumbUrl: lastEntry?.photoThumbUrl || data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null
     };
 }
+
+function pickOpenSupportTicketFromList(messages) {
+    if (!Array.isArray(messages)) return null;
+    return messages.find((msg) => {
+        const status = String(msg.supportStatus || '');
+        return status === 'pending' || status === 'replied';
+    }) || null;
+}
+
+async function findOpenSupportTicket() {
+    if (SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot) {
+        return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages);
+    }
+    try {
+        await ensureSupportResponsesRealtimeStream();
+    } catch (_) { /* ignore */ }
+    const deadline = Date.now() + 2500;
+    while (!SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages);
+}
+
+window.findOpenSupportTicket = findOpenSupportTicket;
 
 // ----- Public broadcasts (Admin Dashboard Phase 4 "Compose Public Message") -----
 // One-time fetch per session, NOT a live listener -- broadcasts are rare
@@ -10580,16 +10605,15 @@ function renderSupportThreadHTML(thread) {
         const isAdmin = entry.sender === 'admin';
         const who = escapeHtml(isAdmin ? (entry.senderName || 'GISUGO Support') : 'You');
         const text = escapeHtml(entry.message || '').replace(/\n/g, '<br>');
-        const photoUrl = entry.photoUrl || null;
+        const thumbUrl = entry.photoThumbUrl || entry.photoUrl || null;
+        const fullUrl = entry.photoUrl || entry.photoThumbUrl || null;
         return `
             <div class="support-thread-entry" style="margin:0.75rem 0; padding:0.85rem; border-left:3px solid ${isAdmin ? '#3b82f6' : '#e6d6ae'}; background:${isAdmin ? 'rgba(59,130,246,0.08)' : 'rgba(230,214,174,0.08)'}; border-radius:6px;">
                 <div style="font-weight:600; margin-bottom:0.4rem;">${isAdmin ? '↩️' : '👤'} ${who}</div>
                 <div>${text}</div>
-                ${photoUrl ? `
+                ${thumbUrl ? `
                 <div class="detail-attachment" style="margin-top:0.75rem;">
-                    <a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener" class="attachment-photo-link">
-                        <img src="${escapeHtml(photoUrl)}" alt="Attached photo" class="attachment-photo-preview">
-                    </a>
+                    <img src="${escapeHtml(thumbUrl)}" alt="Attached photo" class="attachment-photo-preview" data-lightbox-url="${escapeHtml(fullUrl)}" style="cursor:zoom-in;">
                 </div>` : ''}
             </div>
         `;
@@ -11331,7 +11355,15 @@ async function sendReply() {
         sendBtn.innerHTML = originalSendHtml;
     }
 
+    const existingThread = Array.isArray(currentReplyMessage.thread) ? currentReplyMessage.thread : [];
+    if (existingThread.length >= 50) {
+        restoreSendBtn();
+        showToast('This conversation has reached its message limit.');
+        return;
+    }
+
     let photoMeta = null;
+    let uploadedPhotoForCleanup = null;
     if (replyPhotoFile && typeof window.uploadSupportPhoto === 'function') {
         const requesterId = getCurrentUserId() || null;
         const uploadResult = await window.uploadSupportPhoto(
@@ -11345,11 +11377,15 @@ async function sendReply() {
             return;
         }
         photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+        uploadedPhotoForCleanup = uploadResult;
     }
 
     const result = await window.appendSupportUserMessage(ticketId, replyText, photoMeta);
     restoreSendBtn();
     if (!result.success) {
+        if (uploadedPhotoForCleanup && typeof window.cleanupSupportPhotoUpload === 'function') {
+            await window.cleanupSupportPhotoUpload(uploadedPhotoForCleanup);
+        }
         showToast(result.message || 'Reply failed');
         return;
     }
@@ -11392,15 +11428,7 @@ async function sendReply() {
         textareaElement.value = '';
     }
     
-    // Clear photo preview if exists
-    const photoPreview = document.getElementById('replyPhotoPreview');
-    if (photoPreview) {
-        photoPreview.style.display = 'none';
-    }
-    
-    // Clear reply data
-    replyPhotoData = null;
-    replyPhotoFile = null;
+    window.removeReplyPhoto();
     
     // Refresh the message list and display immediately
     if (currentReplyRole === 'unified') {
@@ -11552,14 +11580,7 @@ function closeReplyModal() {
         modalTextarea.value = '';
     }
     
-    // Clear photo preview if exists
-    const photoPreview = document.getElementById('replyPhotoPreview');
-    if (photoPreview) {
-        photoPreview.style.display = 'none';
-    }
-    
-    // Clear photo data
-    replyPhotoData = null;
+    window.removeReplyPhoto();
     
     // Reset current reply variables
     currentReplyMessage = null;
@@ -11595,6 +11616,18 @@ function initializeReplyModal() {
     if (photoInput) {
         photoInput.addEventListener('change', handleReplyPhotoUpload);
     }
+
+    if (!window.__gisugoSupportPhotoLightboxBound) {
+        window.__gisugoSupportPhotoLightboxBound = true;
+        document.addEventListener('click', (e) => {
+            const img = e.target.closest('.attachment-photo-preview[data-lightbox-url]');
+            if (!img) return;
+            e.preventDefault();
+            if (typeof showPhotoLightbox === 'function') {
+                showPhotoLightbox(img.getAttribute('data-lightbox-url'));
+            }
+        });
+    }
     
     // Close modal when clicking outside
     const replyOverlay = document.getElementById('replyOverlay');
@@ -11607,50 +11640,40 @@ function initializeReplyModal() {
     }
 }
 
-// Global variable to store uploaded photo data
-let replyPhotoData = null;
 let replyPhotoFile = null;
+let replyPhotoPreviewUrl = null;
 
-// Handle reply photo upload
+function revokeReplyPhotoPreview() {
+    if (replyPhotoPreviewUrl) {
+        URL.revokeObjectURL(replyPhotoPreviewUrl);
+        replyPhotoPreviewUrl = null;
+    }
+    const previewImage = document.getElementById('replyPreviewImage');
+    if (previewImage) previewImage.src = '';
+}
+
+// Preview only. Compression happens once in uploadSupportPhoto on send.
 function handleReplyPhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    // Validate file type
     if (!isAllowedImageFile(file)) {
         showToast('Please select a valid image file');
+        event.target.value = '';
         return;
     }
     
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
         showToast('Image file is too large. Please select a file under 10MB.');
+        event.target.value = '';
         return;
     }
     
-    console.log('📷 Processing reply photo...');
+    revokeReplyPhotoPreview();
     replyPhotoFile = file;
-    
-    // Process image using the same compression as chat
-    processChatImage(file, (processedImage) => {
-        // Store processed image data
-        replyPhotoData = {
-            thumbnailUrl: processedImage.thumbnailURL,
-            fullSizeUrl: processedImage.fullSizeURL,
-            dimensions: processedImage.dimensions,
-            aspectRatio: processedImage.aspectRatio,
-            fileSizes: processedImage.fileSizes
-        };
-        
-        // Show preview
-        showReplyPhotoPreview(processedImage.thumbnailURL);
-        
-        console.log('✅ Reply photo processed and ready');
-    }, (error) => {
-        // Error callback - clear file input on error
-        event.target.value = '';
-        console.error('❌ Reply photo processing failed:', error);
-    });
+    replyPhotoPreviewUrl = URL.createObjectURL(file);
+    showReplyPhotoPreview(replyPhotoPreviewUrl);
+    console.log('📷 Reply photo ready');
 }
 
 // Show photo preview in reply modal
@@ -11677,7 +11700,7 @@ window.removeReplyPhoto = function() {
         photoInput.value = '';
     }
     
-    replyPhotoData = null;
+    revokeReplyPhotoPreview();
     replyPhotoFile = null;
     console.log('🗑️ Reply photo removed');
 }

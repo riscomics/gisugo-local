@@ -597,6 +597,20 @@ async function deleteFile(filePath) {
 }
 
 /**
+ * Drop a just-uploaded support photo pair if the ticket write failed.
+ * Compose already did this; user/admin reply did not (2026-08-14).
+ */
+async function cleanupSupportPhotoUpload(uploadResult) {
+  if (!uploadResult) return;
+  const paths = [uploadResult.path, uploadResult.thumbPath].filter(Boolean);
+  for (const path of paths) {
+    try {
+      await deleteFile(path);
+    } catch (_) { /* ignore */ }
+  }
+}
+
+/**
  * Delete a photo from Storage by URL (helper for photo replacement)
  * @param {string} photoUrl - Full Storage URL to delete
  * @returns {Promise<Object>} - Result object
@@ -777,6 +791,7 @@ window.uploadJobPhoto = uploadJobPhoto;
 window.uploadSupportPhoto = uploadSupportPhoto;
 window.uploadVerificationDocuments = uploadVerificationDocuments;
 window.deleteFile = deleteFile;
+window.cleanupSupportPhotoUpload = cleanupSupportPhotoUpload;
 window.deletePhotoFromStorageUrl = deletePhotoFromStorageUrl;
 window.blobToDataUrl = blobToDataUrl;
 window.dataUrlToFile = dataUrlToFile;

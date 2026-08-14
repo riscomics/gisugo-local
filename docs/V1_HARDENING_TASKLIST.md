@@ -113,21 +113,22 @@ See `AGENTS.md` § "verify production data."
 
 ### Phase roster (macro — updated 2026-08-14)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
-that the whole dashboard section is finished forever. **Next build:** Phase 10. Phases 6–9
-and 11 are parked, not cancelled.
+that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
+(Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not next and not
+an agent task. Phases 6–9 and 11 stay parked until owner picks one.
 
 | Phase | What it actually was | Status |
 |---|---|---|
 | 1 | Overview counters (users / reported / gigs analytics). Storage / activity / traffic cards were **never** in this phase — see 7. | Shipped |
 | 2 | Gig Moderation queues (suspend / reinstate / ignore / delete). Admin **Contact** button was **never** in this phase — see 8. | Shipped |
 | 3 | User Management (suspend / reinstate). **Permanently Ban** and **Contact** were **never** in this phase — see 8 / 9. | Shipped |
-| 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. User Reply is still fake; no real thread. Follow-up is 10. | Shipped (admin half only) |
+| 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement dashboard section. | Not built |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
 | 8 | Admin **Contact** on Gig Moderation + User Management (reuse `chat_threads`, not Support tickets). Both Send Message buttons are still mocks. | Not built |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
-| 10 | Support thread engine (chat *pattern*, not `chat_threads`) → test on current UI → shelf like chat → public Email form + WhatsApp button. | Documented, not started — **next** |
+| 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
@@ -306,11 +307,15 @@ and 11 are parked, not cancelled.
         but the UI should treat it as a serious/rare action (extra confirmation step).
       • No Data Privacy Act concern under this option — nothing is deleted, so no retention
         conflict.
-- [ ] **Phase 10: Support thread engine — build, test, shelf; then public Email + WhatsApp
-      door. DECIDED 2026-08-14. Not started.** New phase (Phase 4 stays closed). Owner decision
-      after the 2026-08-12/14 channel discussion: email + an official WhatsApp number will be
-      the **live** way people reach GISUGO. In-app support is still worth owning so a later
-      "use the desk" decision is a flag flip, not a rewrite — same shelf pattern as chat
+- [ ] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14). Not shelving yet.**
+      New phase (Phase 4 stays closed). Owner confirmed the test loop (text + photo both
+      ways, Mark Resolved, hourglass). **Leave the in-app desk on.** Do not flip a shelf
+      flag, hide Reply, or put Email/WhatsApp in front until the owner does that work and
+      updates these docs. Chapters 5–7 stay written below as the later swap plan, not as
+      the next agent build.
+      Original 2026-08-14 intent (still the later swap, not current): email + an official
+      WhatsApp number will eventually be the public door; in-app support stays in repo so
+      a later "use the desk" decision is a flag flip — same shelf pattern as chat
       (`MENU_CHAT_UNREAD_ENABLED = false`: engine stays, public door closed).
       **What this is not:** dumping tickets into `chat_threads` / `chat_messages`. Chat is
       two users + a `jobId`; only those two can read; guests cannot write; there is no
@@ -331,39 +336,40 @@ and 11 are parked, not cancelled.
       until business opens the in-app desk.
       **Supersedes** the 2026-08-12 "defer Email/WhatsApp until scale" line in Track E
       (that entry is kept as history and pointed here).
-      **Microtasklist — do not start Chapter 1 until owner says go. Audit after each
-      chapter before the next. Chapters 5+6 ship together.**
-      1. **Schema + rules + callable.** `support_requests` gets a `messages[]` list
+      **Microtasklist — Chapters 1–4 done and live. Do not start 5–6 until the owner
+      shelves. Chapters 5+6 still ship together when that happens.**
+      1. **[x] Schema + rules + callable.** `support_requests` gets a `messages[]` list
          (sender, text, photo thumb/full, timestamp) and `lastSender: 'user'|'admin'`.
          Existing single `reply` object is migrated into the list on read/write so old
          tickets still render. Users cannot write `messages` from the client (rules).
          User append goes through a callable so history cannot be tampered. Admin append
          can stay a privileged client write or the same callable. No `chat_threads` row,
          no `jobId`, no site-wide chat listener.
-      2. **Admin dashboard thread.** `replyToSupportRequest` appends instead of
+      2. **[x] Admin dashboard thread.** `replyToSupportRequest` appends instead of
          overwriting `reply`. Detail panel renders the list (same overlay chrome, topic
          pill, Mark Resolved). Reply photo already uploaded via `uploadSupportPhoto` —
          store it on the new message item. `lastSender = 'admin'`. Ticket stays in New
          until resolved.
-      3. **User-facing thread + real Reply.** Replace concatenated
+      3. **[x] User-facing thread + real Reply.** Replace concatenated
          `— Your original message —` blob with the same list. Rip fake `sendReply()` /
          in-memory `messageStates.replies`. Wire **Your Response** + photo to the
          callable. `lastSender = 'user'`. Same Support page, same modal — no Messages
          menu.
-      4. **Test pass.** Confirm the loop on the current UI (the test harness). Fix only
-         what breaks the loop. Then stop — no extra polish.
-      5. **Shelf flag.** Feature flag off (chat-style). Hide Reply and any "we'll reply
+      4. **[x] Test pass.** Confirm the loop on the current UI (the test harness). Fix only
+         what breaks the loop. Then stop — no extra polish. Owner: all checks good
+         2026-08-14. Left live.
+      5. **Shelf flag (parked — owner).** Feature flag off (chat-style). Hide Reply and any "we'll reply
          in-app" copy. Engine stays in repo. Broadcasts stay. Ticket compose used for
          the test can be gated the same way.
-      6. **Public door (same ship as 5).** Contact form → real send to
+      6. **Public door (parked — owner; same ship as 5).** Contact form → real send to
          `support@gisugo.com` (mailbox must exist; this is a new send path, not a rename
          of the Firestore form). WhatsApp button → `wa.me`, number in config, not
          plastered on the page; disabled while pending. Same pattern as
          `contact-reveal.js` (tap opens the app, number is not page text).
-      7. **Full-phase audit.** Syntax, rules, no leftover fake Reply path, flag actually
+      7. **Full-phase audit (after owner shelf).** Syntax, rules, no leftover fake Reply path, flag actually
          off on production, Email/WhatsApp is the only public conversation door.
 - [ ] **Phase 11: Settings product — wire or remove leftover controls. Not started,
-      not next (parked behind Phase 10).** Phase 5 only moved storage. The Settings
+      not next (parked; owner picks).** Phase 5 only moved storage. The Settings
       panel still presents System Status, User Management thresholds, Gig Moderation
       limits, Financial / G-Coin, Communication, Security, Notifications, Performance,
       and Feature Toggles as if they do something. Confirmed 2026-08-11: **zero** of
@@ -1066,10 +1072,10 @@ and 11 are parked, not cancelled.
       deferred backlog (reveal counter on Admin Dashboard, hire-overlay dead-code cleanup).
       • **Bigger threads still open:** chat as premium tier; ToS/Privacy rewrite for Direct stance.
 - [x] **SUPERSEDED 2026-08-14 (was: DEFERRED 2026-08-12 replace in-app Support with Email/WhatsApp).**
-      The 2026-08-12 write-up below is kept as history. Live decision is now **Phase 10** in
-      Track C: build + test the in-app thread engine, shelf it like chat, then put Email +
-      WhatsApp in front as the public door. Do not treat this 08-12 "keep tickets, defer
-      Email/WhatsApp until scale" line as current.
+      The 2026-08-12 write-up below is kept as history. **2026-08-14:** Phase 10 Chapters 1–4
+      shipped and the in-app desk is **left live**. Shelf + Email/WhatsApp is owner-owned
+      later — do not hide Reply. Do not treat this 08-12 "keep tickets, defer
+      Email/WhatsApp until scale" line as a reason to rip the live thread.
       Original 2026-08-12 text (historical): replace the in-app Support ticket system with
       Email/WhatsApp deep-links — NOT built now, only when scaling makes the current system's
       limits actually matter. Then-current decision: **keep the existing Firestore-backed
@@ -1097,9 +1103,9 @@ and 11 are parked, not cancelled.
       - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
-- [ ] **QUEUED NEXT (after Phase 10 Support thread engine + shelf + Email/WhatsApp door):
+- [ ] **QUEUED (after owner shelves Phase 10 + Email/WhatsApp door — not next):
       gig/job listing photo bandwidth optimization.** Support photo-conversion (thumb + full)
-      already shipped 2026-08-12. Phase 10 is now the Support follow-up in front of this.
+      already shipped 2026-08-12. Phase 10 engine is live; this gig-card work is still parked.
       Confirmed 2026-08-12 via code audit: `uploadJobPhoto()` produces exactly ONE
       image — 1200×1200 max, JPEG quality 0.8 — and that same file is what's stored in the job's
       `thumbnail` field and shown on every listing card. The field name is misleading; there is no

@@ -5,6 +5,7 @@
 (function initSupportCompose(global) {
   let isSubmitting = false;
   let uploadedPhoto = null;
+  let composePhotoPreviewUrl = null;
   let composeInitialized = false;
 
   function getSharedSupportTopics() {
@@ -211,12 +212,41 @@
     void preloadComposeUserData();
   }
 
+  function revokeComposePhotoPreview() {
+    if (composePhotoPreviewUrl) {
+      URL.revokeObjectURL(composePhotoPreviewUrl);
+      composePhotoPreviewUrl = null;
+    }
+    const img = document.getElementById('composePhotoPreviewImg');
+    if (img) img.src = '';
+  }
+
   function removeComposePhoto() {
     const photoInput = document.getElementById('composePhotoInput');
     const preview = document.getElementById('composePhotoPreview');
     if (photoInput) photoInput.value = '';
     if (preview) preview.style.display = 'none';
+    revokeComposePhotoPreview();
     uploadedPhoto = null;
+  }
+
+  async function getOpenSupportTicket() {
+    if (typeof global.findOpenSupportTicket === 'function') {
+      try {
+        return await global.findOpenSupportTicket();
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function showOpenTicketBlocked() {
+    showComposeStatus(
+      'error',
+      'Ticket already open',
+      'You already have an open support request. Reply on that thread instead of starting a new one.'
+    );
   }
 
   function validateComposeField(field) {
@@ -348,10 +378,15 @@
       return;
     }
 
+    const openTicket = await getOpenSupportTicket();
+    if (openTicket) {
+      showOpenTicketBlocked();
+      return;
+    }
+
     isSubmitting = true;
     setComposeBusy(true);
-    let uploadedPhotoPathForCleanup = null;
-    let uploadedPhotoThumbPathForCleanup = null;
+    let uploadedPhotoForCleanup = null;
 
     try {
       const userId = getCurrentUserId();
@@ -382,8 +417,7 @@
         uploadedPhotoPath = uploadMeta.path || null;
         uploadedPhotoThumbUrl = uploadMeta.thumbUrl || null;
         uploadedPhotoThumbPath = uploadMeta.thumbPath || null;
-        uploadedPhotoPathForCleanup = uploadedPhotoPath;
-        uploadedPhotoThumbPathForCleanup = uploadedPhotoThumbPath;
+        uploadedPhotoForCleanup = uploadMeta;
       }
 
       const now = new Date();
@@ -438,8 +472,7 @@
       };
 
       await submitSupportRequest(contactData);
-      uploadedPhotoPathForCleanup = null;
-      uploadedPhotoThumbPathForCleanup = null;
+      uploadedPhotoForCleanup = null;
 
       resetComposeForm();
       closeSupportComposeModal({ force: true });
@@ -450,12 +483,14 @@
       );
     } catch (error) {
       console.error('Support compose submit failed:', error);
-      if (typeof global.deleteFile === 'function') {
-        if (uploadedPhotoPathForCleanup) {
-          try { await global.deleteFile(uploadedPhotoPathForCleanup); } catch (_) { /* ignore */ }
+      if (uploadedPhotoForCleanup && typeof global.cleanupSupportPhotoUpload === 'function') {
+        try { await global.cleanupSupportPhotoUpload(uploadedPhotoForCleanup); } catch (_) { /* ignore */ }
+      } else if (typeof global.deleteFile === 'function' && uploadedPhotoForCleanup) {
+        if (uploadedPhotoForCleanup.path) {
+          try { await global.deleteFile(uploadedPhotoForCleanup.path); } catch (_) { /* ignore */ }
         }
-        if (uploadedPhotoThumbPathForCleanup) {
-          try { await global.deleteFile(uploadedPhotoThumbPathForCleanup); } catch (_) { /* ignore */ }
+        if (uploadedPhotoForCleanup.thumbPath) {
+          try { await global.deleteFile(uploadedPhotoForCleanup.thumbPath); } catch (_) { /* ignore */ }
         }
       }
       showComposeStatus('error', 'Could not send', error.message || 'Please try again.');
@@ -465,7 +500,12 @@
     }
   }
 
-  function openSupportComposeModal() {
+  async function openSupportComposeModal() {
+    const openTicket = await getOpenSupportTicket();
+    if (openTicket) {
+      showOpenTicketBlocked();
+      return;
+    }
     const overlay = document.getElementById('composeOverlay');
     if (!overlay) return;
     initializeSupportCompose();
@@ -524,15 +564,13 @@
           photoInput.value = '';
           return;
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.getElementById('composePhotoPreviewImg');
-          const preview = document.getElementById('composePhotoPreview');
-          if (img) img.src = e.target.result;
-          if (preview) preview.style.display = 'block';
-          uploadedPhoto = file;
-        };
-        reader.readAsDataURL(file);
+        revokeComposePhotoPreview();
+        composePhotoPreviewUrl = URL.createObjectURL(file);
+        const img = document.getElementById('composePhotoPreviewImg');
+        const preview = document.getElementById('composePhotoPreview');
+        if (img) img.src = composePhotoPreviewUrl;
+        if (preview) preview.style.display = 'block';
+        uploadedPhoto = file;
       });
     }
 
@@ -563,7 +601,7 @@
     try {
       const params = new URLSearchParams(global.location.search || '');
       if (params.get('compose') === '1') {
-        openSupportComposeModal();
+        void openSupportComposeModal();
         params.delete('compose');
         const query = params.toString();
         const nextUrl = `${global.location.pathname}${query ? `?${query}` : ''}${global.location.hash || ''}`;
