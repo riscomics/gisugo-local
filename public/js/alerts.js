@@ -829,8 +829,8 @@ async function initializeCustomerMessagesTab() {
 }
 
 // Source-of-truth alert types currently emitted by backend flows (jobs.js + firebase-db.js).
-const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided'];
-const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received', 'worker_banned_gig_reopened'];
+const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided', 'support_admin_message'];
+const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received', 'worker_banned_gig_reopened', 'support_admin_message'];
 
 // Retained for compatibility with legacy datasets and planned interview workflow.
 // NOTE: No current producer emits this type in the active backend flow.
@@ -854,9 +854,9 @@ const ALERT_READ_HIDE_AFTER_DAYS = 50;
 
 function tAlertLang(key) {
     const copy = {
-        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open' },
-        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots' },
-        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots' }
+        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open', gisugoMessage: 'Message from GISUGO' },
+        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots', gisugoMessage: 'Mensahe gikan sa GISUGO' },
+        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots', gisugoMessage: 'Mensahe mula sa GISUGO' }
     };
     return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
 }
@@ -892,7 +892,10 @@ function getLocalizedAlertMessage(notif, type) {
             worker_banned_gig_reopened: `Worker account revoked — your gig "${jobTitle}" has been opened again on the market.`,
             application_not_selected_batch: slotsEn,
             application_rejected_batch: slotsEn,
-            application_slots_reopened_batch: slotsEn
+            application_slots_reopened_batch: slotsEn,
+            support_admin_message: jobTitle && jobTitle !== 'Gig'
+                ? `GISUGO sent you a message about "${jobTitle}". Open Support to read and reply.`
+                : 'GISUGO sent you a message. Open Support to read and reply.'
         },
         bisaya: {
             offer_sent: `Na-offeran ka sa gig "${jobTitle}"! Tan-awa sa Gigs Manager > Offered para modawat o modili.`,
@@ -909,7 +912,10 @@ function getLocalizedAlertMessage(notif, type) {
             worker_banned_gig_reopened: `Gi-revoke ang account sa worker — nabuksan na usab ang imong gig nga "${jobTitle}" sa market.`,
             application_not_selected_batch: slotsBi,
             application_rejected_batch: slotsBi,
-            application_slots_reopened_batch: slotsBi
+            application_slots_reopened_batch: slotsBi,
+            support_admin_message: jobTitle && jobTitle !== 'Gig'
+                ? `Nagdala ang GISUGO og mensahe bahin sa "${jobTitle}". Ablihi ang Support aron mabasa ug motubag.`
+                : 'Nagdala ang GISUGO og mensahe. Ablihi ang Support aron mabasa ug motubag.'
         },
         tagalog: {
             offer_sent: `May offer ka sa gig na "${jobTitle}"! Tingnan sa Gigs Manager > Offered para tanggapin o tanggihan.`,
@@ -926,7 +932,10 @@ function getLocalizedAlertMessage(notif, type) {
             worker_banned_gig_reopened: `Binawi ang account ng worker — nabuksan muli ang gig mong "${jobTitle}" sa market.`,
             application_not_selected_batch: slotsTl,
             application_rejected_batch: slotsTl,
-            application_slots_reopened_batch: slotsTl
+            application_slots_reopened_batch: slotsTl,
+            support_admin_message: jobTitle && jobTitle !== 'Gig'
+                ? `May mensahe ang GISUGO tungkol sa "${jobTitle}". Buksan ang Support para basahin at sagutin.`
+                : 'May mensahe ang GISUGO. Buksan ang Support para basahin at sagutin.'
         }
     };
     return localeMap[currentAlertsLang]?.[type] || localeMap.english[type] || notif.message || '';
@@ -1387,6 +1396,14 @@ async function handleNotificationTypeNavigation(notificationItem) {
             {
                 const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
                 openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'support_admin_message':
+            {
+                const ticketId = String(notificationItem.dataset.supportRequestId || '').trim();
+                window.location.href = ticketId
+                    ? `support.html?ticket=${encodeURIComponent(ticketId)}`
+                    : 'support.html';
             }
             return true;
         default:
@@ -3520,6 +3537,8 @@ function generateNotificationHTML(notification) {
     
     if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
     if (transformed.jobTitle) dataAttributes.push(`data-job-title="${transformed.jobTitle}"`);
+    const supportRequestId = transformed.supportRequestId || transformed.relatedDocuments?.supportRequestId;
+    if (supportRequestId) dataAttributes.push(`data-support-request-id="${supportRequestId}"`);
     // REMOVED: applicationId data attribute - applications moved to jobs.html
     if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
     if (transformed.userId) dataAttributes.push(`data-user-id="${transformed.userId}"`);
@@ -3644,6 +3663,11 @@ function transformFirebaseNotification(notif) {
             icon = '🔓';
             iconClass = 'success-icon';
             title = tAlertLang('slotsOpen');
+            break;
+        case 'support_admin_message':
+            icon = '📬';
+            iconClass = 'message-icon';
+            title = tAlertLang('gisugoMessage');
             break;
     }
     

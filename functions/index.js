@@ -43,7 +43,8 @@ const CRITICAL_PUSH_NOTIFICATION_TYPES = new Set([
   "application_received",
   "application_slots_reopened_batch",
   "feedback_received",
-  "worker_feedback_received"
+  "worker_feedback_received",
+  "support_admin_message"
 ]);
 
 function inferNotificationRoleForCounter(notification = {}) {
@@ -144,13 +145,15 @@ function buildPushPayloadFromNotification(notification = {}) {
     application_not_selected_batch: "Application Slots Open",
     application_rejected_batch: "Application Slots Open",
     application_slots_reopened_batch: "Application Slots Open",
-    interview_request: "Interview Request"
+    interview_request: "Interview Request",
+    support_admin_message: "Message from GISUGO"
   };
   const title = String(notification.title || fallbackTitleMap[type] || "GISUGO Alert");
   const role = inferNotificationRoleForCounter(notification);
-  const alertsLink = role === "customer"
+  const explicitLink = String(notification.link || "").trim();
+  const alertsLink = explicitLink || (role === "customer"
     ? "/alerts.html?role=customer"
-    : "/alerts.html?role=worker";
+    : "/alerts.html?role=worker");
 
   // Data-only payload (no top-level `notification`): with a notification payload the FCM SDK
   // inside the service worker auto-displays the tray entry and its own click handler intercepts
@@ -2211,6 +2214,44 @@ exports.appendSupportUserMessage = onCall(
 const ADMIN_SUPPORT_SOURCES = new Set(["admin_gig_contact", "admin_user_contact"]);
 const ADMIN_SUPPORT_TOPIC_CODE = "admin_contact";
 const ADMIN_SUPPORT_TOPIC_LABEL = "Message from GISUGO";
+const SUPPORT_ADMIN_NOTIFICATION_TYPE = "support_admin_message";
+
+function buildSupportAdminNotificationMessage(jobTitle) {
+  const title = String(jobTitle || "").trim();
+  if (title) return `GISUGO sent you a message about "${title}".`;
+  return "GISUGO sent you a message. Open Support to read and reply.";
+}
+
+async function writeSupportAdminNotification({
+  recipientId,
+  requestId,
+  jobId,
+  jobTitle,
+  role
+}) {
+  const safeRecipient = String(recipientId || "").trim();
+  const safeRequestId = String(requestId || "").trim();
+  if (!safeRecipient || !safeRequestId) return null;
+  const safeRole = role === "customer" ? "customer" : "worker";
+  const safeJobId = String(jobId || "").trim();
+  const safeJobTitle = String(jobTitle || "").trim();
+  const now = admin.firestore.Timestamp.now();
+  const ref = await db.collection("notifications").add({
+    recipientId: safeRecipient,
+    type: SUPPORT_ADMIN_NOTIFICATION_TYPE,
+    role: safeRole,
+    jobId: safeJobId,
+    jobTitle: safeJobTitle,
+    message: buildSupportAdminNotificationMessage(safeJobTitle),
+    title: ADMIN_SUPPORT_TOPIC_LABEL,
+    supportRequestId: safeRequestId,
+    link: `/support.html?ticket=${encodeURIComponent(safeRequestId)}`,
+    createdAt: now,
+    read: false,
+    actionRequired: false
+  });
+  return ref.id;
+}
 
 function buildAdminSupportReferenceId() {
   const date = new Date();
@@ -2254,6 +2295,7 @@ exports.createOrAppendAdminSupportMessage = onCall(
     }
 
     let jobTitle = "";
+    let notifyRole = "worker";
     if (source === "admin_gig_contact") {
       if (!jobId) {
         throw new HttpsError("invalid-argument", "jobId is required for gig contact.");
@@ -2272,6 +2314,7 @@ exports.createOrAppendAdminSupportMessage = onCall(
         );
       }
       jobTitle = String(job.title || "").trim();
+      notifyRole = targetUserId === posterId ? "customer" : "worker";
     } else {
       const userSnap = await db.collection("users").doc(targetUserId).get();
       if (!userSnap.exists) {
@@ -2354,6 +2397,22 @@ exports.createOrAppendAdminSupportMessage = onCall(
           lastUpdatedAtMs: now.getTime()
         });
       });
+      try {
+        await writeSupportAdminNotification({
+          recipientId: targetUserId,
+          requestId: openDoc.id,
+          jobId,
+          jobTitle,
+          role: notifyRole
+        });
+      } catch (error) {
+        logger.error("Support admin notification failed", {
+          action: "appended",
+          requestId: openDoc.id,
+          recipientId: targetUserId,
+          error: String(error)
+        });
+      }
       return { success: true, action: "appended", requestId: openDoc.id };
     }
 
@@ -2402,6 +2461,22 @@ exports.createOrAppendAdminSupportMessage = onCall(
       photoUrl: photoUrl || null
     };
     const docRef = await db.collection("support_requests").add(created);
+    try {
+      await writeSupportAdminNotification({
+        recipientId: targetUserId,
+        requestId: docRef.id,
+        jobId,
+        jobTitle,
+        role: notifyRole
+      });
+    } catch (error) {
+      logger.error("Support admin notification failed", {
+        action: "created",
+        requestId: docRef.id,
+        recipientId: targetUserId,
+        error: String(error)
+      });
+    }
     return { success: true, action: "created", requestId: docRef.id };
   }
 );

@@ -1946,7 +1946,8 @@ const NOTIF_PUSH_TYPE_KEYS = [
   'offer_sent',
   'contract_voided',
   'job_completed',
-  'interview_request'
+  'interview_request',
+  'support_admin_message'
 ];
 
 function getNotificationSettingsOverlay() {

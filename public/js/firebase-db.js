@@ -3661,6 +3661,12 @@ async function createNotification(recipientId, notificationData) {
       actionRequired: notificationData.actionRequired || false,
       dedupeKey: dedupeKey || null
     };
+    const extraTitle = String(notificationData.title || '').trim();
+    const extraSupportRequestId = String(notificationData.supportRequestId || '').trim();
+    const extraLink = String(notificationData.link || '').trim();
+    if (extraTitle) notification.title = extraTitle;
+    if (extraSupportRequestId) notification.supportRequestId = extraSupportRequestId;
+    if (extraLink) notification.link = extraLink;
 
     let notifRef;
     if (dedupeKey) {
@@ -4672,10 +4678,10 @@ async function getSupportQueueCounts() {
 }
 
 /**
- * Write an admin reply directly onto the ticket (in-platform only — no
- * email/push, owner decision). Sets status to 'replied' and flips
- * isReadByRequester back to false so the requester's Support inbox shows
- * it as unread, since support.js already live-streams their own tickets.
+ * Write an admin reply directly onto the ticket. Sets status to 'replied'
+ * and flips isReadByRequester back to false so the requester's Support
+ * inbox shows it as unread. Also writes a support_admin_message
+ * notification so menu / Alerts / tray fire (Phase 8 Chapter 5).
  * @param {string} requestId
  * @param {string} replyMessage
  * @param {{url: string, thumbUrl: string}|null} [photoMeta] optional photo
@@ -4734,6 +4740,28 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
       lastUpdatedAtISO: now.toISOString(),
       lastUpdatedAtMs: now.getTime()
     });
+    const requesterId = String(data?.requester?.userId || data?.userId || '').trim();
+    if (requesterId) {
+      const ticketJobId = String(data.jobId || '').trim();
+      const ticketJobTitle = String(data.jobTitle || '').trim();
+      try {
+        await createNotification(requesterId, {
+          type: 'support_admin_message',
+          role: 'worker',
+          jobId: ticketJobId,
+          jobTitle: ticketJobTitle,
+          title: 'Message from GISUGO',
+          message: ticketJobTitle
+            ? `GISUGO sent you a message about "${ticketJobTitle}".`
+            : 'GISUGO sent you a message. Open Support to read and reply.',
+          actionRequired: false,
+          supportRequestId: safeId,
+          link: `/support.html?ticket=${encodeURIComponent(safeId)}`
+        });
+      } catch (notifyError) {
+        console.warn('⚠️ Support reply notification failed:', notifyError);
+      }
+    }
     return { success: true, messages: thread };
   } catch (error) {
     console.error('❌ replyToSupportRequest failed:', error);
@@ -5037,6 +5065,32 @@ window.getSupportQueueOld = getSupportQueueOld;
 window.getSupportQueueCounts = getSupportQueueCounts;
 window.replyToSupportRequest = replyToSupportRequest;
 window.markSupportRequestReadByRequester = markSupportRequestReadByRequester;
+
+async function markSupportAdminNotificationsRead(supportRequestId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeId = String(supportRequestId || '').trim();
+  if (!db || !currentUser || !safeId) return { success: false };
+  try {
+    const snap = await db.collection('notifications')
+      .where('recipientId', '==', currentUser.uid)
+      .where('read', '==', false)
+      .get();
+    const updates = snap.docs
+      .filter((doc) => {
+        const data = doc.data() || {};
+        return String(data.type || '') === 'support_admin_message'
+          && String(data.supportRequestId || '') === safeId;
+      })
+      .map((doc) => doc.ref.update({ read: true }));
+    if (updates.length) await Promise.all(updates);
+    return { success: true, updated: updates.length };
+  } catch (error) {
+    console.warn('⚠️ markSupportAdminNotificationsRead failed:', error);
+    return { success: false };
+  }
+}
+window.markSupportAdminNotificationsRead = markSupportAdminNotificationsRead;
 window.resolveSupportRequest = resolveSupportRequest;
 window.normalizeSupportMessages = normalizeSupportMessages;
 window.getSupportLastSender = getSupportLastSender;

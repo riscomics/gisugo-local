@@ -2198,8 +2198,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         hideMessagesPageLoadingOverlay();
     }, 6000);
 
+    const ticketParam = String(new URLSearchParams(window.location.search || '').get('ticket') || '').trim();
     const wantsCompose = new URLSearchParams(window.location.search || '').get('compose') === '1';
-    const supportRedirectTarget = wantsCompose ? 'support.html?compose=1' : 'support.html';
+    const supportRedirectTarget = ticketParam
+        ? `support.html?ticket=${encodeURIComponent(ticketParam)}`
+        : (wantsCompose ? 'support.html?compose=1' : 'support.html');
 
     if (typeof window.requireVerifiedEmailForPage === 'function') {
         const accessAllowed = await window.requireVerifiedEmailForPage({
@@ -2235,6 +2238,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (typeof window.maybeOpenComposeFromUrl === 'function') {
         window.maybeOpenComposeFromUrl();
     }
+    void maybeOpenSupportTicketFromUrl();
 
     window.addEventListener('beforeunload', guardedExecuteAllCleanups);
 
@@ -10156,6 +10160,44 @@ async function findOpenSupportTicket(topicCode) {
 
 window.findOpenSupportTicket = findOpenSupportTicket;
 
+async function findSupportTicketMessageById(ticketId) {
+    const safeId = String(ticketId || '').trim();
+    if (!safeId) return null;
+    const pick = (messages) => (Array.isArray(messages) ? messages : [])
+        .find((msg) => String(msg.supportRequestId || '') === safeId) || null;
+    const existing = pick(SUPPORT_RESPONSES_STREAM_STATE.messages);
+    if (existing) return existing;
+    try {
+        await ensureSupportResponsesRealtimeStream();
+    } catch (_) { /* ignore */ }
+    const deadline = Date.now() + 2500;
+    while (!SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return pick(SUPPORT_RESPONSES_STREAM_STATE.messages);
+}
+
+async function maybeOpenSupportTicketFromUrl() {
+    const ticketId = String(new URLSearchParams(window.location.search || '').get('ticket') || '').trim();
+    if (!ticketId) return;
+    const message = await findSupportTicketMessageById(ticketId);
+    if (!message) return;
+    const tabName = isMessageClosed(message) ? 'old' : 'new';
+    const tabBtn = document.querySelector(`#unified-messages-content .inbox-tab-btn[data-tab="${tabName}"]`);
+    if (tabBtn && !tabBtn.classList.contains('active')) {
+        tabBtn.click();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    const item = document.querySelector(`#unified-messages-content [data-message-id="${message.id}"]`);
+    if (item) {
+        item.click();
+        return;
+    }
+    if (typeof showMessageDetail === 'function') {
+        showMessageDetail(message, 'unified');
+    }
+}
+
 // ----- Public broadcasts (Admin Dashboard Phase 4 "Compose Public Message") -----
 // One-time fetch per session, NOT a live listener -- broadcasts are rare
 // (a few a month at most), so a fresh-on-tab-open read is more than
@@ -10889,6 +10931,9 @@ function closeMessage(messageId, role) {
         message.isRead = true;
         if (message.supportRequestId && typeof window.markSupportRequestReadByRequester === 'function') {
             void window.markSupportRequestReadByRequester(message.supportRequestId);
+            if (typeof window.markSupportAdminNotificationsRead === 'function') {
+                void window.markSupportAdminNotificationsRead(message.supportRequestId);
+            }
         } else {
             persistBroadcastClosed(messageId);
         }
