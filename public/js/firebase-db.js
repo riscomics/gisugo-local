@@ -4878,6 +4878,41 @@ async function appendSupportUserMessage(requestId, message, photoMeta = null) {
 }
 
 /**
+ * Admin Contact (Phase 8): create or append a Support ticket owned by the
+ * target user. Server verifies admin + legal recipient.
+ * @param {{ targetUserId: string, message: string, source: string, jobId?: string, photoMeta?: {url?: string, thumbUrl?: string}|null }} opts
+ */
+async function createOrAppendAdminSupportMessage(opts = {}) {
+  const targetUserId = String(opts.targetUserId || '').trim();
+  const message = String(opts.message || '').trim();
+  const source = String(opts.source || '').trim();
+  const jobId = String(opts.jobId || '').trim();
+  const photoMeta = opts.photoMeta || null;
+  if (!targetUserId || !message || !source) {
+    return { success: false, message: 'Missing recipient or message' };
+  }
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('createOrAppendAdminSupportMessage');
+    const result = await callable({
+      targetUserId,
+      message,
+      source,
+      jobId: jobId || null,
+      photoUrl: photoMeta?.url || null,
+      photoThumbUrl: photoMeta?.thumbUrl || null
+    });
+    return {
+      success: true,
+      action: result?.data?.action || null,
+      requestId: result?.data?.requestId || null
+    };
+  } catch (error) {
+    console.error('❌ createOrAppendAdminSupportMessage failed:', error);
+    return { success: false, message: error.message || 'Send failed' };
+  }
+}
+
+/**
  * Send a broadcast to all users (Compose Public Message). Read by every
  * user who opens their inbox — one document, not fanned out per recipient.
  * @param {'important-notices'|'platform-updates'|'system-updates'|'promotions'} category
@@ -4985,6 +5020,7 @@ window.resolveSupportRequest = resolveSupportRequest;
 window.normalizeSupportMessages = normalizeSupportMessages;
 window.getSupportLastSender = getSupportLastSender;
 window.appendSupportUserMessage = appendSupportUserMessage;
+window.createOrAppendAdminSupportMessage = createOrAppendAdminSupportMessage;
 window.createPlatformBroadcast = createPlatformBroadcast;
 window.getSentBroadcasts = getSentBroadcasts;
 window.deleteBroadcast = deleteBroadcast;

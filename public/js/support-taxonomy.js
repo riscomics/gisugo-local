@@ -14,11 +14,18 @@
     Object.freeze({ code: 'other', label: 'Other' }),
   ]);
 
+  const ADMIN_CONTACT_TOPIC = Object.freeze({
+    code: 'admin_contact',
+    label: 'Message from GISUGO'
+  });
+
   const SUPPORT_TAXONOMY = Object.freeze({
     // Compose modal Topic (was publicContactTopics — now unified).
     publicContactTopics: SHARED_SUPPORT_TOPICS,
     // Inbox filter: All Messages → Support Responses → these subtypes.
-    supportResponseSublabels: SHARED_SUPPORT_TOPICS,
+    // admin_contact is admin-originated (Phase 8); not offered on the user compose form.
+    supportResponseSublabels: Object.freeze([...SHARED_SUPPORT_TOPICS, ADMIN_CONTACT_TOPIC]),
+    adminContactTopic: ADMIN_CONTACT_TOPIC,
     // Legacy contact codes → unified codes (for old support_requests docs).
     legacyContactTopicMap: Object.freeze({
       general_inquiry: 'other',

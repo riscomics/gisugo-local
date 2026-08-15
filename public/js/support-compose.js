@@ -230,10 +230,10 @@
     uploadedPhoto = null;
   }
 
-  async function getOpenSupportTicket() {
+  async function getOpenSupportTicket(topicCode) {
     if (typeof global.findOpenSupportTicket === 'function') {
       try {
-        return await global.findOpenSupportTicket();
+        return await global.findOpenSupportTicket(topicCode);
       } catch (_) {
         return null;
       }
@@ -241,11 +241,14 @@
     return null;
   }
 
-  function showOpenTicketBlocked() {
+  function showOpenTicketBlocked(topicLabel) {
+    const topic = String(topicLabel || '').trim();
     showComposeStatus(
       'error',
       'Ticket already open',
-      'You already have an open support request. Reply on that thread instead of starting a new one.'
+      topic
+        ? `You already have an open ${topic} request. Reply on that thread instead of starting another.`
+        : 'You already have an open support request on this topic. Reply on that thread instead of starting another.'
     );
   }
 
@@ -299,10 +302,18 @@
 
   function setComposeBusy(busy) {
     const sendBtn = document.getElementById('sendComposeBtn');
-    if (!sendBtn) return;
-    sendBtn.disabled = !!busy;
-    sendBtn.textContent = busy ? 'Sending...' : 'Send Message';
-    sendBtn.style.opacity = busy ? '0.7' : '1';
+    if (sendBtn) {
+      sendBtn.disabled = !!busy;
+      sendBtn.innerHTML = busy
+        ? '<span class="reply-send-spinner">⌛</span> Sending...'
+        : 'Send Message';
+      sendBtn.style.opacity = busy ? '0.7' : '1';
+    }
+    const hourglass = document.getElementById('composeSendHourglass');
+    if (hourglass) {
+      hourglass.classList.toggle('is-visible', !!busy);
+      hourglass.setAttribute('aria-hidden', busy ? 'false' : 'true');
+    }
   }
 
   function showComposeStatus(kind, title, message) {
@@ -378,9 +389,10 @@
       return;
     }
 
-    const openTicket = await getOpenSupportTicket();
+    const categoryCode = document.getElementById('composeTopic')?.value || '';
+    const openTicket = await getOpenSupportTicket(categoryCode);
     if (openTicket) {
-      showOpenTicketBlocked();
+      showOpenTicketBlocked(getTopicDisplayName(categoryCode));
       return;
     }
 
@@ -394,7 +406,6 @@
         throw new Error('Please log in to send a support request.');
       }
 
-      const categoryCode = document.getElementById('composeTopic').value;
       const categoryLabel = getTopicDisplayName(categoryCode);
       // Topic replaces the old Subject field — store the topic label as subject for admin/inbox.
       const formData = {
@@ -501,11 +512,6 @@
   }
 
   async function openSupportComposeModal() {
-    const openTicket = await getOpenSupportTicket();
-    if (openTicket) {
-      showOpenTicketBlocked();
-      return;
-    }
     const overlay = document.getElementById('composeOverlay');
     if (!overlay) return;
     initializeSupportCompose();

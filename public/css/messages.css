@@ -8434,6 +8434,28 @@ body:has(.selection-controls[style*="display: flex"]) {
     flex-direction: column;
     border: 2px solid rgba(16, 185, 129, 0.5);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.send-hourglass-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    z-index: 20;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+}
+.send-hourglass-overlay.is-visible {
+    display: flex;
+}
+.send-hourglass-icon {
+    display: inline-block;
+    font-size: 3rem;
+    line-height: 1;
+    animation: spin 1s linear infinite;
+    transform-origin: center center;
 }
 
 .reply-modal-header {

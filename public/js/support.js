@@ -10127,17 +10127,20 @@ function mapSupportRecordToUnifiedMessage(doc) {
     };
 }
 
-function pickOpenSupportTicketFromList(messages) {
+function pickOpenSupportTicketFromList(messages, topicCode) {
     if (!Array.isArray(messages)) return null;
+    const wantedTopic = String(topicCode || '').trim();
     return messages.find((msg) => {
         const status = String(msg.supportStatus || '');
-        return status === 'pending' || status === 'replied';
+        if (status !== 'pending' && status !== 'replied') return false;
+        if (!wantedTopic) return true;
+        return String(msg.topic || '') === wantedTopic;
     }) || null;
 }
 
-async function findOpenSupportTicket() {
+async function findOpenSupportTicket(topicCode) {
     if (SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot) {
-        return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages);
+        return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages, topicCode);
     }
     try {
         await ensureSupportResponsesRealtimeStream();
@@ -10146,7 +10149,7 @@ async function findOpenSupportTicket() {
     while (!SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages);
+    return pickOpenSupportTicketFromList(SUPPORT_RESPONSES_STREAM_STATE.messages, topicCode);
 }
 
 window.findOpenSupportTicket = findOpenSupportTicket;
@@ -11371,13 +11374,23 @@ async function sendReply() {
     const originalSendHtml = sendBtn ? sendBtn.innerHTML : '';
     if (sendBtn) {
         sendBtn.disabled = true;
-        sendBtn.innerHTML = '<span class="reply-send-spinner">⏳</span> Sending...';
+        sendBtn.innerHTML = '<span class="reply-send-spinner">⌛</span> Sending...';
+    }
+    const replyHourglass = document.getElementById('supportReplySendHourglass');
+    if (replyHourglass) {
+        replyHourglass.classList.add('is-visible');
+        replyHourglass.setAttribute('aria-hidden', 'false');
     }
 
     function restoreSendBtn() {
-        if (!sendBtn) return;
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = originalSendHtml;
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalSendHtml;
+        }
+        if (replyHourglass) {
+            replyHourglass.classList.remove('is-visible');
+            replyHourglass.setAttribute('aria-hidden', 'true');
+        }
     }
 
     const existingThread = Array.isArray(currentReplyMessage.thread) ? currentReplyMessage.thread : [];

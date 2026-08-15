@@ -3999,12 +3999,21 @@ function initializeSupportReplyModal() {
         supportActionInFlight = true;
         const originalSendHtml = sendFloatingReplyBtn.innerHTML;
         sendFloatingReplyBtn.disabled = true;
-        sendFloatingReplyBtn.innerHTML = '<span class="settings-btn-spinner">⏳</span> Sending...';
+        sendFloatingReplyBtn.innerHTML = '<span class="settings-btn-spinner">⌛</span> Sending...';
+        const replyHourglass = document.getElementById('adminReplySendHourglass');
+        if (replyHourglass) {
+            replyHourglass.classList.add('is-visible');
+            replyHourglass.setAttribute('aria-hidden', 'false');
+        }
 
         function restoreSendBtn() {
             sendFloatingReplyBtn.disabled = false;
             sendFloatingReplyBtn.innerHTML = originalSendHtml;
             supportActionInFlight = false;
+            if (replyHourglass) {
+                replyHourglass.classList.remove('is-visible');
+                replyHourglass.setAttribute('aria-hidden', 'true');
+            }
         }
 
         const selectedTicket = findSupportTicketById(supportSelectedTicketId);
@@ -4370,6 +4379,7 @@ function normalizeGigForDisplay(jobId, job) {
         status: data.status || 'active',
         reportCount: Number(data.reportCount) || 0,
         hiredWorker,
+        hiredWorkerId: data.hiredWorkerId ? String(data.hiredWorkerId) : '',
         suspendedBy,
         // Populated on demand (async) only when the detail panel/overlay for
         // this specific gig is opened -- see loadGigReportsIntoCurrentGig().
@@ -5052,10 +5062,24 @@ async function confirmDeleteGig() {
     console.log(`🗑️ Gig ${gigId} permanently deleted`);
 }
 
+function populateContactGigRecipients() {
+    const select = document.getElementById('contactRecipientSelect');
+    if (!select || !currentGigData) return;
+    const posterName = currentGigData.posterName || 'Gig Poster';
+    const hiredId = String(currentGigData.hiredWorkerId || '').trim();
+    const hiredName = (currentGigData.hiredWorker && currentGigData.hiredWorker.workerName) || 'Hired Worker';
+    select.innerHTML = `
+        <option value="">Select recipient...</option>
+        <option value="poster">${escapeHtml(posterName)} (Gig Poster)</option>
+        ${hiredId
+            ? `<option value="hired-worker">${escapeHtml(hiredName)} (Hired Worker)</option>`
+            : '<option value="hired-worker" disabled>Hired Worker (none on this gig)</option>'}
+    `;
+}
+
 function handleContactGig() {
     if (!currentGigData) return;
-    
-    // Show contact overlay
+    populateContactGigRecipients();
     const contactOverlay = document.getElementById('contactGigOverlay');
     if (contactOverlay) {
         contactOverlay.classList.add('show');
@@ -5067,89 +5091,153 @@ function handleCloseGig() {
     clearGigDetail();
 }
 
+let contactGigPhotoFile = null;
+let contactGigPhotoPreviewUrl = null;
+
+function clearContactGigPhoto() {
+    contactGigPhotoFile = null;
+    if (contactGigPhotoPreviewUrl) {
+        URL.revokeObjectURL(contactGigPhotoPreviewUrl);
+        contactGigPhotoPreviewUrl = null;
+    }
+    const previewContainer = document.getElementById('contactAttachmentPreview');
+    const previewImage = document.getElementById('contactPreviewImage');
+    const attachInput = document.getElementById('contactAttachmentInput');
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (previewImage) previewImage.src = '';
+    if (attachInput) attachInput.value = '';
+}
+
 function initializeContactGigOverlay() {
-    // Close button
     document.getElementById('closeContactGigModal')?.addEventListener('click', closeContactGigOverlay);
-    
-    // Cancel button
     document.getElementById('cancelContactBtn')?.addEventListener('click', closeContactGigOverlay);
-    
-    // Attach photo button
+
     const attachBtn = document.getElementById('contactAttachBtn');
     const attachInput = document.getElementById('contactAttachmentInput');
-    
     if (attachBtn && attachInput) {
         attachBtn.addEventListener('click', function() {
             attachInput.click();
         });
-        
-        attachInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const previewContainer = document.getElementById('contactAttachmentPreview');
-                    const previewImage = document.getElementById('contactPreviewImage');
-                    
-                    if (previewImage && previewContainer) {
-                        previewImage.src = event.target.result;
-                        previewContainer.style.display = 'block';
-                    }
-                };
-                reader.readAsDataURL(file);
+        attachInput.addEventListener('change', function() {
+            const file = attachInput.files && attachInput.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showToast('Only image attachments are supported', 'error', 2500);
+                attachInput.value = '';
+                return;
             }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Photo must be under 5MB', 'error', 2500);
+                attachInput.value = '';
+                return;
+            }
+            if (contactGigPhotoPreviewUrl) URL.revokeObjectURL(contactGigPhotoPreviewUrl);
+            contactGigPhotoFile = file;
+            contactGigPhotoPreviewUrl = URL.createObjectURL(file);
+            const previewContainer = document.getElementById('contactAttachmentPreview');
+            const previewImage = document.getElementById('contactPreviewImage');
+            if (previewImage) previewImage.src = contactGigPhotoPreviewUrl;
+            if (previewContainer) previewContainer.style.display = 'block';
         });
     }
-    
-    // Remove attachment button
-    document.getElementById('removeContactAttachment')?.addEventListener('click', function() {
-        const previewContainer = document.getElementById('contactAttachmentPreview');
-        const attachInput = document.getElementById('contactAttachmentInput');
-        const previewImage = document.getElementById('contactPreviewImage');
-        
-        if (previewContainer) {
-            previewContainer.style.display = 'none';
+
+    document.getElementById('removeContactAttachment')?.addEventListener('click', clearContactGigPhoto);
+
+    const sendBtn = document.getElementById('sendContactMessageBtn');
+    sendBtn?.addEventListener('click', async function() {
+        if (!currentGigData) {
+            showToast('No gig selected.', 'error', 2000);
+            return;
         }
-        if (previewImage) {
-            previewImage.src = '';
-        }
-        if (attachInput) {
-            attachInput.value = '';
-        }
-    });
-    
-    // Send Message button
-    document.getElementById('sendContactMessageBtn')?.addEventListener('click', function() {
-        const recipient = document.getElementById('contactRecipientSelect').value;
-        const message = document.getElementById('contactMessageInput').value.trim();
-        const attachInput = document.getElementById('contactAttachmentInput');
-        const hasAttachment = attachInput && attachInput.files.length > 0;
-        
+        const recipient = document.getElementById('contactRecipientSelect')?.value;
+        const message = (document.getElementById('contactMessageInput')?.value || '').trim();
         if (!recipient) {
-            alert('Please select a recipient');
+            showToast('Please select a recipient', 'error', 2000);
             return;
         }
-        
         if (!message) {
-            alert('Please enter a message');
+            showToast('Please enter a message', 'error', 2000);
             return;
         }
-        
-        // Close contact overlay
-        closeContactGigOverlay();
-        
-        // Show success toast
-        const attachmentText = hasAttachment ? ' with attachment' : '';
-        showToast(`Message sent to ${recipient}${attachmentText}`, 'success');
-        
-        console.log(`💬 Message sent to: ${recipient}`);
-        console.log(`📝 Message: ${message}`);
-        if (hasAttachment) {
-            console.log(`📎 Attachment: ${attachInput.files[0].name}`);
+
+        let targetUserId = '';
+        if (recipient === 'poster') {
+            targetUserId = String(currentGigData.posterId || '').trim();
+        } else if (recipient === 'hired-worker') {
+            targetUserId = String(currentGigData.hiredWorkerId || '').trim();
+        }
+        if (!targetUserId) {
+            showToast(recipient === 'hired-worker'
+                ? 'This gig has no hired worker.'
+                : 'This gig has no poster id.', 'error', 2500);
+            return;
+        }
+        if (typeof window.createOrAppendAdminSupportMessage !== 'function') {
+            showToast('Support send is unavailable.', 'error', 2500);
+            return;
+        }
+        if (gigModerationActionInFlight) return;
+        gigModerationActionInFlight = true;
+        const originalSendHtml = sendBtn.innerHTML;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="settings-btn-spinner">⌛</span> Sending...';
+        const contactHourglass = document.getElementById('contactGigSendHourglass');
+        if (contactHourglass) {
+            contactHourglass.classList.add('is-visible');
+            contactHourglass.setAttribute('aria-hidden', 'false');
+        }
+
+        let uploadedPhotoForCleanup = null;
+        try {
+            let photoMeta = null;
+            if (contactGigPhotoFile && typeof window.uploadSupportPhoto === 'function') {
+                const uploaderId = (window.currentAdmin && window.currentAdmin.uid) || null;
+                const uploadResult = await window.uploadSupportPhoto(
+                    `${currentGigData.gigId}_contact_${Date.now()}`,
+                    contactGigPhotoFile,
+                    uploaderId
+                );
+                if (!uploadResult.success) {
+                    showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed', 'error', 2500);
+                    return;
+                }
+                photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+                uploadedPhotoForCleanup = uploadResult;
+            }
+
+            const result = await window.createOrAppendAdminSupportMessage({
+                targetUserId,
+                message,
+                source: 'admin_gig_contact',
+                jobId: currentGigData.gigId,
+                photoMeta
+            });
+            if (!result.success) {
+                if (uploadedPhotoForCleanup && typeof window.cleanupSupportPhotoUpload === 'function') {
+                    await window.cleanupSupportPhotoUpload(uploadedPhotoForCleanup);
+                }
+                showToast(result.message || 'Send failed', 'error', 2500);
+                return;
+            }
+
+            const who = recipient === 'hired-worker'
+                ? ((currentGigData.hiredWorker && currentGigData.hiredWorker.workerName) || 'hired worker')
+                : (currentGigData.posterName || 'gig poster');
+            showToast(result.action === 'appended'
+                ? `Added to ${who}'s open Support thread`
+                : `Message sent to ${who}`, 'success', 2500);
+            closeContactGigOverlay();
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalSendHtml;
+            gigModerationActionInFlight = false;
+            if (contactHourglass) {
+                contactHourglass.classList.remove('is-visible');
+                contactHourglass.setAttribute('aria-hidden', 'true');
+            }
         }
     });
-    
-    // Close on background click
+
     document.getElementById('contactGigOverlay')?.addEventListener('click', function(e) {
         if (e.target === this) {
             closeContactGigOverlay();
@@ -5165,18 +5253,11 @@ function closeContactGigOverlay() {
     }
     
     // Reset form
-    document.getElementById('contactRecipientSelect').value = '';
-    document.getElementById('contactMessageInput').value = '';
-    document.getElementById('contactAttachmentInput').value = '';
-    
-    const previewContainer = document.getElementById('contactAttachmentPreview');
-    const previewImage = document.getElementById('contactPreviewImage');
-    if (previewContainer) {
-        previewContainer.style.display = 'none';
-    }
-    if (previewImage) {
-        previewImage.src = '';
-    }
+    const recipientSelect = document.getElementById('contactRecipientSelect');
+    const messageInput = document.getElementById('contactMessageInput');
+    if (recipientSelect) recipientSelect.value = '';
+    if (messageInput) messageInput.value = '';
+    clearContactGigPhoto();
 }
 
 function initializeConfirmationOverlays() {

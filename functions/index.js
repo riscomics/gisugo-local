@@ -2200,3 +2200,208 @@ exports.appendSupportUserMessage = onCall(
     return { success: true, message: appended };
   }
 );
+
+// ============================================================================
+// SUPPORT — admin Contact (Phase 8)
+// ============================================================================
+// Admins cannot client-create a support_requests doc owned by someone else
+// (create requires requester.userId == auth.uid). This callable creates or
+// appends as the target user after verifying the caller is an admin and the
+// target is a legal recipient (gig poster / hired worker, or a user-mgmt uid).
+const ADMIN_SUPPORT_SOURCES = new Set(["admin_gig_contact", "admin_user_contact"]);
+const ADMIN_SUPPORT_TOPIC_CODE = "admin_contact";
+const ADMIN_SUPPORT_TOPIC_LABEL = "Message from GISUGO";
+
+function buildAdminSupportReferenceId() {
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  const stamp = Date.now().toString().slice(-4);
+  return `ADMIN-${y}${m}${d}-${stamp}`;
+}
+
+exports.createOrAppendAdminSupportMessage = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const adminDoc = await db.collection("admins").doc(uid).get();
+    if (!adminDoc.exists) {
+      throw new HttpsError("permission-denied", "Admin access required.");
+    }
+
+    const targetUserId = String(request.data?.targetUserId || "").trim();
+    const messageText = String(request.data?.message || "").trim();
+    const source = String(request.data?.source || "").trim();
+    const jobId = String(request.data?.jobId || "").trim();
+    const photoUrl = sanitizeSupportPhotoUrl(request.data?.photoUrl);
+    const photoThumbUrl = sanitizeSupportPhotoUrl(request.data?.photoThumbUrl) || photoUrl;
+
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "targetUserId is required.");
+    }
+    if (!messageText) {
+      throw new HttpsError("invalid-argument", "Message text is required.");
+    }
+    if (messageText.length > SUPPORT_MESSAGE_MAX_CHARS) {
+      throw new HttpsError("invalid-argument", `Message must be ${SUPPORT_MESSAGE_MAX_CHARS} characters or fewer.`);
+    }
+    if (!ADMIN_SUPPORT_SOURCES.has(source)) {
+      throw new HttpsError("invalid-argument", "source must be admin_gig_contact or admin_user_contact.");
+    }
+
+    let jobTitle = "";
+    if (source === "admin_gig_contact") {
+      if (!jobId) {
+        throw new HttpsError("invalid-argument", "jobId is required for gig contact.");
+      }
+      const jobSnap = await db.collection("jobs").doc(jobId).get();
+      if (!jobSnap.exists) {
+        throw new HttpsError("not-found", "Gig not found.");
+      }
+      const job = jobSnap.data() || {};
+      const posterId = String(job.posterId || "").trim();
+      const hiredId = String(job.hiredWorkerId || "").trim();
+      if (targetUserId !== posterId && targetUserId !== hiredId) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Recipient must be this gig's poster or hired worker."
+        );
+      }
+      jobTitle = String(job.title || "").trim();
+    } else {
+      const userSnap = await db.collection("users").doc(targetUserId).get();
+      if (!userSnap.exists) {
+        throw new HttpsError("not-found", "User not found.");
+      }
+    }
+
+    const targetSnap = await db.collection("users").doc(targetUserId).get();
+    const target = targetSnap.exists ? (targetSnap.data() || {}) : {};
+    const targetName = String(target.fullName || target.name || "User").trim() || "User";
+    const targetEmail = String(target.email || "").trim();
+    const adminName = String(
+      request.auth.token?.name || request.auth.token?.email || adminDoc.data()?.label || "Admin"
+    );
+
+    let storedMessage = messageText;
+    if (jobTitle && !storedMessage.toLowerCase().includes(jobTitle.toLowerCase())) {
+      storedMessage = `Regarding gig "${jobTitle}":\n\n${messageText}`;
+    }
+
+    const openSnap = await db.collection("support_requests")
+      .where("requester.userId", "==", targetUserId)
+      .orderBy("createdAt", "desc")
+      .limit(20)
+      .get();
+    const openDoc = openSnap.docs.find((doc) => {
+      const data = doc.data() || {};
+      const status = String(data.status || "");
+      if (status !== "pending" && status !== "replied") return false;
+      const topic = String(data.categoryCode || data.topic || "");
+      return topic === ADMIN_SUPPORT_TOPIC_CODE;
+    });
+
+    const now = new Date();
+    const adminEntry = {
+      sender: "admin",
+      senderId: uid,
+      senderName: adminName,
+      message: storedMessage,
+      photoUrl,
+      photoThumbUrl,
+      createdAtISO: now.toISOString(),
+      createdAtMs: now.getTime()
+    };
+
+    if (openDoc) {
+      const ticketRef = openDoc.ref;
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ticketRef);
+        if (!snap.exists) {
+          throw new HttpsError("not-found", "Support ticket not found.");
+        }
+        const data = snap.data() || {};
+        const existing = Array.isArray(data.messages) && data.messages.length
+          ? data.messages.slice()
+          : legacySupportMessagesFromTicket(data);
+        if (existing.length >= SUPPORT_THREAD_MAX_MESSAGES) {
+          throw new HttpsError("resource-exhausted", "This conversation has reached its message limit.");
+        }
+        existing.push(adminEntry);
+        tx.update(ticketRef, {
+          messages: existing,
+          lastSender: "admin",
+          status: "replied",
+          isReadByRequester: false,
+          reply: {
+            message: storedMessage,
+            repliedBy: { adminId: uid, adminName },
+            repliedAt: admin.firestore.FieldValue.serverTimestamp(),
+            photoUrl,
+            photoThumbUrl
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAtISO: now.toISOString(),
+          updatedAtMs: now.getTime(),
+          lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          lastUpdatedAtISO: now.toISOString(),
+          lastUpdatedAtMs: now.getTime()
+        });
+      });
+      return { success: true, action: "appended", requestId: openDoc.id };
+    }
+
+    const subject = jobTitle
+      ? `${ADMIN_SUPPORT_TOPIC_LABEL} — ${jobTitle}`.slice(0, 200)
+      : ADMIN_SUPPORT_TOPIC_LABEL;
+    const referenceId = buildAdminSupportReferenceId();
+    const created = {
+      source,
+      messageType: "support_request",
+      channel: "admin_dashboard",
+      categoryCode: ADMIN_SUPPORT_TOPIC_CODE,
+      categoryLabel: ADMIN_SUPPORT_TOPIC_LABEL,
+      subject,
+      message: storedMessage,
+      requester: {
+        userId: targetUserId,
+        guestSessionId: null,
+        name: targetName,
+        email: targetEmail
+      },
+      attachments: {
+        photoUrl: photoUrl || null,
+        photoThumbUrl: photoThumbUrl || null
+      },
+      status: "replied",
+      lastSender: "admin",
+      messages: [adminEntry],
+      priority: "normal",
+      assignedTo: null,
+      isReadByRequester: false,
+      referenceId,
+      jobId: jobId || null,
+      jobTitle: jobTitle || null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAtISO: now.toISOString(),
+      updatedAtISO: now.toISOString(),
+      lastUpdatedAtISO: now.toISOString(),
+      createdAtMs: now.getTime(),
+      updatedAtMs: now.getTime(),
+      lastUpdatedAtMs: now.getTime(),
+      topic: ADMIN_SUPPORT_TOPIC_CODE,
+      userName: targetName,
+      userEmail: targetEmail,
+      userId: targetUserId,
+      photoUrl: photoUrl || null
+    };
+    const docRef = await db.collection("support_requests").add(created);
+    return { success: true, action: "created", requestId: docRef.id };
+  }
+);

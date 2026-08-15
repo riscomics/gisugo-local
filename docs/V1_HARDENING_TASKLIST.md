@@ -111,11 +111,11 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-14)
+### Phase roster (macro — updated 2026-08-15)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
-(Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not next and not
-an agent task. Phases 6–9 and 11 stay parked until owner picks one.
+(Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
+**Phase 8 Chapters 1–2 coded 2026-08-15, not shipped.** Next: Ship (functions + hosting), then owner Chapter 3 gig test. Chapter 4 (User Management Contact) not started. Phases 6, 7, 9, 11 stay parked.
 
 | Phase | What it actually was | Status |
 |---|---|---|
@@ -126,7 +126,7 @@ an agent task. Phases 6–9 and 11 stay parked until owner picks one.
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement dashboard section. | Not built |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
-| 8 | Admin **Contact** on Gig Moderation + User Management (reuse `chat_threads`, not Support tickets). Both Send Message buttons are still mocks. | Not built |
+| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact wired (Ch 1–2); User Management Contact still a mock (Ch 4). | Ch 1–2 coded, not shipped — **next is Ship + Ch 3 test** |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
@@ -281,15 +281,54 @@ an agent task. Phases 6–9 and 11 stay parked until owner picks one.
       silently removed the card locally without touching the real account). What it should
       actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
       dedicated task below.
-- [ ] **Phase 8: Wire "User Management → Contact" admin messaging (Send Message button is
-      currently a mock).** Same known gap as the Gig Moderation Contact item below, same fix, not
-      duplicated effort — one messaging build should wire both Contact buttons at once. Deliberately
-      NOT merged into Phase 4 (Support): Support reads/replies inside the ticket-based
-      `support_requests` collection, while Contact needs the live `chat_threads`/`chat_messages`
-      system used by regular gig chat — different backend, different recipient-resolution logic
-      (gig's poster/worker vs. a Suspended-tab user), different UI surface. Combining them would
-      bloat Phase 4's scope and delay the more urgent piece (users can already submit support
-      tickets with zero admin reply today).
+- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Ch 1–2 coded, not shipped.**
+      Supersedes the 2026-08-09 "reuse `chat_threads`" line (that plan is stale: chat is
+      shelved, requires `jobId` + exactly 2 participants, Messages is hidden). Contact is
+      admin writing *out* about a gig or a person; it uses the Phase 10 Support engine
+      already live — not a new inbox, not group chat, not Support tickets-as-chat-dump.
+      **Locked product:**
+      • One Send = one recipient = one Support conversation. No group chat.
+      • Gig Contact recipients: **poster** or **hired worker** only. Strip **All Applicants**.
+      • Hired Worker is enabled only when the already-loaded gig has `hiredWorkerId`
+        (set only after the poster actually Hires). No extra read. No hire → option
+        hidden/disabled before the admin types. Send still refuses a missing id.
+      • If both sides need the message, admin sends twice (two tickets / two users).
+      • Lands in that user's Support → **New** (`isReadByRequester: false`,
+        `lastSender: 'admin'`). They Reply; admin continues in Admin → Messages.
+      • One open thread **per topic**. User Feature Request / Account Issues / etc.
+        stay their own tickets. Gig Contact only joins or creates the
+        `admin_contact` / "Message from GISUGO" thread — it never appends into a
+        user-topic ticket. User can Reply on that GISUGO thread immediately;
+        Mark Resolved is not required to reply. Write stays available so they
+        can still open a different topic.
+      • Gig SUSPEND is already live (Phase 2). Not this phase. Phase 9 is Permanently
+        Ban User (Auth disable), not gig suspend.
+      **Why a callable:** `support_requests` create requires `requester.userId == auth.uid`.
+      An admin cannot client-write a ticket owned by the poster/worker. Admin SDK
+      callable creates or appends.
+      **Microtasklist**
+      1. **[coded 2026-08-15, not shipped]** Callable + taxonomy.
+         `createOrAppendAdminSupportMessage` (asia-southeast1): admin check; gig
+         target must be poster or `hiredWorkerId`; user-mgmt target must exist;
+         append only an open `admin_contact` ticket else create owned by the target
+         (`lastSender: 'admin'`, `isReadByRequester: false`, status `replied`).
+         Topic `admin_contact` / "Message from GISUGO". Photo URLs https-only,
+         50-message cap. No rules change — Admin SDK bypasses create lock;
+         users still cannot client-write `messages`.
+      2. **[coded 2026-08-15, not shipped]** Gig Contact UI. All Applicants
+         stripped. Hired Worker gated on loaded `hiredWorkerId`. Send →
+         `uploadSupportPhoto` + orphan cleanup + callable. Hourglass. Toast
+         only after real success. Names from the loaded gig.
+      3. **Test pass (gig) — owner, after Ship.** Poster-only gig: Hired Worker
+         disabled; send to poster → their Support New → they Reply → admin
+         sees it. Gig with hire: send to worker only → worker's New, not the
+         poster's. Send-to-both = two sends. Open-ticket user gets an append,
+         not a second ticket. Photo both ways. No extra gig read on Contact open.
+      4. **User Management Contact.** Same callable, no recipient dropdown (the
+         open user is the target). Same Support landing. Same open-ticket append.
+         **Not started** — User Management Send is still the old fake toast.
+      5. **Full-phase audit.** Syntax, rules, no leftover fake toast-send, no
+         `chat_threads` write from these buttons, flag/docs match live behavior.
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
       NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
       though it touches User Management — same rule as everything else post-Phase-3: new work
@@ -378,18 +417,10 @@ an agent task. Phases 6–9 and 11 stay parked until owner picks one.
       (`maintenanceData`, `techWarningData`). This phase is a field-by-field pass:
       keep + enforce, or hide/remove so the UI does not imply fake power. Do not
       reopen Phase 5. Do not start until owner prioritizes it.
-- [ ] **Phase 8: Wire "Gig Moderation → Contact" admin messaging (Send Message button is
-      currently a mock).** Confirmed 2026-08-09: the button/overlay itself is real and always shown
-      in the Gig Moderation detail panel (`admin-dashboard.html`/`.js`, `contactGigOverlay` /
-      `initializeContactGigOverlay()`), but clicking Send Message only shows a toast + logs to
-      console — no message is actually created or delivered. Needs: pick a delivery mechanism (most
-      likely reuse the existing `chat_threads`/`chat_messages` system so it lands in the
-      poster's/worker's regular Messages inbox, tagged as coming from an admin re: this gig, rather
-      than inventing a parallel admin-only inbox) + wire the Recipient dropdown to the gig's actual
-      poster/hired worker + wire the optional photo attachment. Not part of Phase 2 (Gig
-      Moderation's read/suspend/reinstate/ignore/delete actions don't depend on it) — tracked here
-      so it isn't lost, build whenever it's prioritized. Bundled with the User Management Contact
-      item above as one Phase (same delivery mechanism, one build).
+- [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
+      That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
+      (Contact → `support_requests` Support thread). The overlays are still mocks
+      until that microtasklist ships.
 - [x] **Phase 4: Support responder (admin side only) — shipped (2026-08-10).**
       Admin queue + one-slot `reply` + Mark Resolved + broadcasts. **Not** a complete
       support product: user-facing Reply is still a fake in-memory write; tickets cannot
