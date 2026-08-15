@@ -2287,10 +2287,7 @@ exports.createOrAppendAdminSupportMessage = onCall(
       request.auth.token?.name || request.auth.token?.email || adminDoc.data()?.label || "Admin"
     );
 
-    let storedMessage = messageText;
-    if (jobTitle && !storedMessage.toLowerCase().includes(jobTitle.toLowerCase())) {
-      storedMessage = `Regarding gig "${jobTitle}":\n\n${messageText}`;
-    }
+    const storedMessage = messageText;
 
     const openSnap = await db.collection("support_requests")
       .where("requester.userId", "==", targetUserId)
@@ -2302,7 +2299,12 @@ exports.createOrAppendAdminSupportMessage = onCall(
       const status = String(data.status || "");
       if (status !== "pending" && status !== "replied") return false;
       const topic = String(data.categoryCode || data.topic || "");
-      return topic === ADMIN_SUPPORT_TOPIC_CODE;
+      if (topic !== ADMIN_SUPPORT_TOPIC_CODE) return false;
+      const ticketJobId = String(data.jobId || "").trim();
+      if (source === "admin_gig_contact") {
+        return !!jobId && ticketJobId === jobId;
+      }
+      return !ticketJobId;
     });
 
     const now = new Date();
@@ -2355,9 +2357,7 @@ exports.createOrAppendAdminSupportMessage = onCall(
       return { success: true, action: "appended", requestId: openDoc.id };
     }
 
-    const subject = jobTitle
-      ? `${ADMIN_SUPPORT_TOPIC_LABEL} — ${jobTitle}`.slice(0, 200)
-      : ADMIN_SUPPORT_TOPIC_LABEL;
+    const subject = (jobTitle || "").slice(0, 200);
     const referenceId = buildAdminSupportReferenceId();
     const created = {
       source,

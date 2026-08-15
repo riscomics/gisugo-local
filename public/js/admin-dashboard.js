@@ -3626,7 +3626,9 @@ function renderSupportTicketCard(ticket) {
     const name = escapeHtml(d.requester?.name || 'Unknown');
     const email = escapeHtml(d.requester?.email || '');
     const timeLabel = formatSupportTime(d, 'createdAt', 'createdAtMs', 'createdAtISO');
-    const subject = escapeHtml(d.subject || 'Support Request');
+    const subject = escapeHtml((typeof window.displaySupportSubject === 'function')
+        ? (window.displaySupportSubject(d.subject, d.categoryLabel) || d.jobTitle || '')
+        : (d.subject || ''));
     const thread = (typeof window.normalizeSupportMessages === 'function')
         ? window.normalizeSupportMessages(d)
         : [];
@@ -3795,7 +3797,12 @@ function buildSupportDetailBodyHTML(ticket) {
     }).join('');
 
     return `
-        <div class="detail-subject">${escapeHtml(d.subject || 'Support Request')}</div>
+        ${(() => {
+            const subject = (typeof window.displaySupportSubject === 'function')
+                ? (window.displaySupportSubject(d.subject, d.categoryLabel) || d.jobTitle || '')
+                : (d.subject || '');
+            return subject ? `<div class="detail-subject">${escapeHtml(subject)}</div>` : '';
+        })()}
         <div class="detail-message-text" id="detailMessageText">${threadHTML || '<div>No message content.</div>'}</div>
         ${d.referenceId ? `<div style="margin-top:1rem; font-size:0.75rem; color:rgba(230,214,174,0.5);">Reference: ${escapeHtml(d.referenceId)}</div>` : ''}
     `;

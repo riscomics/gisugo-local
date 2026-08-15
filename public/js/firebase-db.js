@@ -4798,9 +4798,30 @@ async function resolveSupportRequest(requestId) {
  * @param {Object} data
  * @returns {Array<Object>}
  */
+function stripRegardingGigPrefix(text) {
+  return String(text || '').replace(/^Regarding gig\s+"[^"]+"\s*:\s*/i, '').trim();
+}
+
+function stripAdminContactSubjectPrefix(subject) {
+  return String(subject || '').replace(/^Message from GISUGO\s*[—–-]\s*/i, '').trim();
+}
+
+function displaySupportSubject(subject, topicLabel) {
+  const cleaned = stripAdminContactSubjectPrefix(subject);
+  if (!cleaned) return '';
+  if (topicLabel && cleaned.toLowerCase() === String(topicLabel).toLowerCase()) return '';
+  return cleaned;
+}
+
 function normalizeSupportMessages(data) {
-  if (Array.isArray(data?.messages) && data.messages.length) {
-    return data.messages.slice();
+  const source = (Array.isArray(data?.messages) && data.messages.length)
+    ? data.messages
+    : null;
+  if (source) {
+    return source.map((entry) => ({
+      ...entry,
+      message: stripRegardingGigPrefix(entry && entry.message)
+    }));
   }
   const messages = [];
   const original = String(data?.message || '').trim();
@@ -4809,7 +4830,7 @@ function normalizeSupportMessages(data) {
       sender: 'user',
       senderId: data?.requester?.userId || data?.userId || null,
       senderName: String(data?.requester?.name || data?.userName || 'User'),
-      message: original,
+      message: stripRegardingGigPrefix(original),
       photoUrl: data?.attachments?.photoUrl || data?.photoUrl || null,
       photoThumbUrl: data?.attachments?.photoThumbUrl || data?.attachments?.photoUrl || data?.photoUrl || null,
       createdAtISO: data?.createdAtISO || null,
@@ -4830,7 +4851,7 @@ function normalizeSupportMessages(data) {
       sender: 'admin',
       senderId: data?.reply?.repliedBy?.adminId || null,
       senderName: String(data?.reply?.repliedBy?.adminName || 'Admin'),
-      message: replyMessage,
+      message: stripRegardingGigPrefix(replyMessage),
       photoUrl: data?.reply?.photoUrl || null,
       photoThumbUrl: data?.reply?.photoThumbUrl || data?.reply?.photoUrl || null,
       createdAtISO: replyIso,
@@ -5019,6 +5040,7 @@ window.markSupportRequestReadByRequester = markSupportRequestReadByRequester;
 window.resolveSupportRequest = resolveSupportRequest;
 window.normalizeSupportMessages = normalizeSupportMessages;
 window.getSupportLastSender = getSupportLastSender;
+window.displaySupportSubject = displaySupportSubject;
 window.appendSupportUserMessage = appendSupportUserMessage;
 window.createOrAppendAdminSupportMessage = createOrAppendAdminSupportMessage;
 window.createPlatformBroadcast = createPlatformBroadcast;

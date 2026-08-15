@@ -392,6 +392,7 @@
     const categoryCode = document.getElementById('composeTopic')?.value || '';
     const openTicket = await getOpenSupportTicket(categoryCode);
     if (openTicket) {
+      closeSupportComposeModal({ force: true });
       showOpenTicketBlocked(getTopicDisplayName(categoryCode));
       return;
     }

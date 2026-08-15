@@ -10108,7 +10108,9 @@ function mapSupportRecordToUnifiedMessage(doc) {
         supportRequestId: doc.id,
         messageType: 'direct',
         topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
-        subject: String(data?.subject || 'Support Request'),
+        subject: (typeof window.displaySupportSubject === 'function')
+            ? window.displaySupportSubject(data?.subject, data?.categoryLabel || 'Message from GISUGO')
+            : String(data?.subject || ''),
         excerpt: lastText.length > 120 ? `${lastText.slice(0, 120)}...` : (lastText || 'No details provided.'),
         content: lastText,
         thread,
@@ -10647,7 +10649,7 @@ function generateMessageDetailHTML(message, role) {
         
         <div class="message-content-inner">
             <div class="message-detail-body">
-                <div class="detail-subject">${escapeHtml(message.subject || '')}</div>
+                ${message.subject ? `<div class="detail-subject">${escapeHtml(message.subject)}</div>` : ''}
                 ${threadHTML || `<div class="detail-message-text">${escapeHtml(message.content || '').replace(/\n/g, '<br>')}</div>`}
             </div>
         </div>
@@ -10676,7 +10678,7 @@ function generateOverlayMessageHTML(message, role) {
         </div>
         
         <div class="overlay-message-content">
-            <div class="overlay-subject">${escapeHtml(message.subject || '')}</div>
+            ${message.subject ? `<div class="overlay-subject">${escapeHtml(message.subject)}</div>` : ''}
             ${threadHTML || `<div class="overlay-message-text">${escapeHtml(message.content || '').replace(/\n/g, '<br>')}</div>`}
         </div>
     `;

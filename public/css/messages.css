@@ -9275,7 +9275,7 @@ html body.page-support:has(.uniform-header) {
   left: 0 !important;
   width: 100% !important;
   height: 100vh !important;
-  z-index: 12050;
+  z-index: 16000;
 }
 
 /* ===== Alerts page visual refresh (standalone .page-alerts only) ===== */

@@ -295,12 +295,13 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       • If both sides need the message, admin sends twice (two tickets / two users).
       • Lands in that user's Support → **New** (`isReadByRequester: false`,
         `lastSender: 'admin'`). They Reply; admin continues in Admin → Messages.
-      • One open thread **per topic**. User Feature Request / Account Issues / etc.
-        stay their own tickets. Gig Contact only joins or creates the
-        `admin_contact` / "Message from GISUGO" thread — it never appends into a
-        user-topic ticket. User can Reply on that GISUGO thread immediately;
-        Mark Resolved is not required to reply. Write stays available so they
-        can still open a different topic.
+      • One open thread **per topic**, and Gig Contact is one thread **per gig**.
+        User Feature Request / Account Issues / etc. stay their own tickets.
+        A second Contact on the same gig appends to that gig's
+        `admin_contact` / "Message from GISUGO" thread. A different gig opens
+        a new GISUGO thread (same topic badge, different subject). Never
+        append into a user-topic ticket. User can Reply immediately; Mark
+        Resolved is not required. Write stays available for other topics.
       • Gig SUSPEND is already live (Phase 2). Not this phase. Phase 9 is Permanently
         Ban User (Auth disable), not gig suspend.
       **Why a callable:** `support_requests` create requires `requester.userId == auth.uid`.
@@ -310,7 +311,8 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       1. **[coded 2026-08-15, not shipped]** Callable + taxonomy.
          `createOrAppendAdminSupportMessage` (asia-southeast1): admin check; gig
          target must be poster or `hiredWorkerId`; user-mgmt target must exist;
-         append only an open `admin_contact` ticket else create owned by the target
+         append only an open `admin_contact` ticket for that same `jobId`
+         (user-mgmt: no jobId) else create owned by the target
          (`lastSender: 'admin'`, `isReadByRequester: false`, status `replied`).
          Topic `admin_contact` / "Message from GISUGO". Photo URLs https-only,
          50-message cap. No rules change — Admin SDK bypasses create lock;
