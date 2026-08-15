@@ -69,10 +69,30 @@
     }
 
     try {
-      var db = firebase.firestore();
-      var adminDoc = await db.collection('admins').doc(user.uid).get();
+      // New mobile-Chrome tabs often have currentUser before Firestore has
+      // the ID token. The old `admins` read then failed as "not an admin".
+      await user.getIdToken();
+    } catch (tokenError) {
+      console.warn('⚠️ Could not get ID token before admin check:', tokenError);
+    }
+
+    async function readAdminDoc() {
+      return firebase.firestore().collection('admins').doc(user.uid).get();
+    }
+
+    try {
+      var adminDoc;
+      try {
+        adminDoc = await readAdminDoc();
+      } catch (firstError) {
+        console.warn('⚠️ Admin doc read failed, retrying after token refresh:', firstError);
+        try { await user.getIdToken(true); } catch (_) { /* ignore */ }
+        await new Promise(function (resolve) { setTimeout(resolve, 300); });
+        adminDoc = await readAdminDoc();
+      }
 
       if (!adminDoc.exists) {
+        console.warn('⚠️ Access denied for uid:', user.uid);
         showGate(
           'Access denied',
           'This account does not have admin access. Contact the primary administrator if you believe this is a mistake.',

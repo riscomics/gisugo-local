@@ -185,8 +185,11 @@ service cloud.firestore {
     // only governs client-side access after that.
     // ═══════════════════════════════════════════════════════════════
     match /admins/{adminId} {
-      // Any admin can see who else has access (e.g. a future admin list UI).
-      allow read: if isAdmin();
+      // Own doc: so a cold tab can check membership without the circular
+      // `isAdmin()` (exists(admins/uid) + allow read only if isAdmin).
+      // Other admins can still list the collection for a future admin UI.
+      allow read: if isAuthenticated()
+        && (request.auth.uid == adminId || isAdmin());
 
       // Only an existing super admin can grant/revoke admin access —
       // never a client granting itself, and never a non-super admin.
