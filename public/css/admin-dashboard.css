@@ -9378,6 +9378,8 @@ body.admin-dashboard::-webkit-scrollbar {
     max-height: 90vh;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
 }
 
 .contact-user-header {

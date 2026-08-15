@@ -8107,102 +8107,148 @@ function downloadImage(imageUrl, filename) {
     showToast(`Downloading ${filename}`, 'success');
 }
 
+let contactUserPhotoFile = null;
+let contactUserPhotoPreviewUrl = null;
+
+function clearContactUserPhoto() {
+    contactUserPhotoFile = null;
+    if (contactUserPhotoPreviewUrl) {
+        URL.revokeObjectURL(contactUserPhotoPreviewUrl);
+        contactUserPhotoPreviewUrl = null;
+    }
+    const previewContainer = document.getElementById('contactUserAttachmentPreview');
+    const previewImage = document.getElementById('contactUserAttachmentImg');
+    const attachInput = document.getElementById('contactUserAttachmentInput');
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (previewImage) previewImage.src = '';
+    if (attachInput) attachInput.value = '';
+}
+
+function closeContactUserOverlay() {
+    const overlay = document.getElementById('contactUserOverlay');
+    if (overlay) overlay.classList.remove('active');
+    const messageInput = document.getElementById('contactUserMessageInput');
+    if (messageInput) messageInput.value = '';
+    clearContactUserPhoto();
+}
+
 function initializeContactUserOverlay() {
     const overlay = document.getElementById('contactUserOverlay');
     const closeBtn = document.getElementById('closeContactUserModal');
     const cancelBtn = document.getElementById('cancelContactUserBtn');
     const sendBtn = document.getElementById('sendContactUserBtn');
-    const topicSelect = document.getElementById('contactUserTopicSelect');
-    const subjectInput = document.getElementById('contactUserSubjectInput');
-    const subjectCharCounter = document.getElementById('contactSubjectCharCounter');
     const messageInput = document.getElementById('contactUserMessageInput');
     const attachBtn = document.getElementById('contactUserAttachBtn');
     const attachmentInput = document.getElementById('contactUserAttachmentInput');
     const attachmentPreview = document.getElementById('contactUserAttachmentPreview');
     const attachmentImg = document.getElementById('contactUserAttachmentImg');
     const removeAttachment = document.getElementById('removeContactUserAttachment');
-    
-    // Subject character counter
-    if (subjectInput && subjectCharCounter) {
-        subjectInput.addEventListener('input', () => {
-            const count = subjectInput.value.length;
-            subjectCharCounter.textContent = `${count}/100`;
-            if (count >= 95) {
-                subjectCharCounter.style.color = '#f59e0b';
-            } else {
-                subjectCharCounter.style.color = '#a0aec0';
-            }
-        });
-    }
-    
-    // Close overlay
-    const closeOverlay = () => {
-        overlay.classList.remove('active');
-        topicSelect.value = '';
-        subjectInput.value = '';
-        subjectCharCounter.textContent = '0/100';
-        subjectCharCounter.style.color = '#a0aec0';
-        messageInput.value = '';
-        attachmentPreview.style.display = 'none';
-        attachmentInput.value = '';
-    };
-    
-    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
-    if (cancelBtn) cancelBtn.addEventListener('click', closeOverlay);
-    
-    // Attach image
+
+    if (closeBtn) closeBtn.addEventListener('click', closeContactUserOverlay);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeContactUserOverlay);
+    overlay?.addEventListener('click', (e) => {
+        if (e.target === overlay) closeContactUserOverlay();
+    });
+
     if (attachBtn && attachmentInput) {
-        attachBtn.addEventListener('click', () => {
-            attachmentInput.click();
-        });
-        
+        attachBtn.addEventListener('click', () => attachmentInput.click());
         attachmentInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    attachmentImg.src = e.target.result;
-                    attachmentPreview.style.display = 'block';
-                };
-                reader.readAsDataURL(this.files[0]);
+            const file = attachmentInput.files && attachmentInput.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showToast('Only image attachments are supported', 'error', 2500);
+                attachmentInput.value = '';
+                return;
             }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Photo must be under 5MB', 'error', 2500);
+                attachmentInput.value = '';
+                return;
+            }
+            if (contactUserPhotoPreviewUrl) URL.revokeObjectURL(contactUserPhotoPreviewUrl);
+            contactUserPhotoFile = file;
+            contactUserPhotoPreviewUrl = URL.createObjectURL(file);
+            if (attachmentImg) attachmentImg.src = contactUserPhotoPreviewUrl;
+            if (attachmentPreview) attachmentPreview.style.display = 'block';
         });
     }
-    
-    // Remove attachment
+
     if (removeAttachment) {
-        removeAttachment.addEventListener('click', () => {
-            attachmentPreview.style.display = 'none';
-            attachmentInput.value = '';
-        });
+        removeAttachment.addEventListener('click', clearContactUserPhoto);
     }
-    
-    // Send message
-    if (sendBtn) {
-        sendBtn.addEventListener('click', () => {
-            const topic = topicSelect.value;
-            const subject = subjectInput.value.trim();
-            const message = messageInput.value.trim();
-            
-            if (!topic) {
-                showToast('Please select a topic', 'error');
+
+    sendBtn?.addEventListener('click', async function() {
+        if (!currentUserData || !currentUserData.id) {
+            showToast('No user selected.', 'error', 2000);
+            return;
+        }
+        const message = (messageInput?.value || '').trim();
+        if (!message) {
+            showToast('Please enter a message', 'error', 2000);
+            return;
+        }
+        if (typeof window.createOrAppendAdminSupportMessage !== 'function') {
+            showToast('Support send is unavailable.', 'error', 2500);
+            return;
+        }
+        if (userModerationActionInFlight) return;
+        userModerationActionInFlight = true;
+        const originalSendHtml = sendBtn.innerHTML;
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<span class="settings-btn-spinner">⌛</span> Sending...';
+        const hourglass = document.getElementById('contactUserSendHourglass');
+        if (hourglass) {
+            hourglass.classList.add('is-visible');
+            hourglass.setAttribute('aria-hidden', 'false');
+        }
+
+        let uploadedPhotoForCleanup = null;
+        try {
+            let photoMeta = null;
+            if (contactUserPhotoFile && typeof window.uploadSupportPhoto === 'function') {
+                const uploaderId = (window.currentAdmin && window.currentAdmin.uid) || null;
+                const uploadResult = await window.uploadSupportPhoto(
+                    `${currentUserData.id}_contact_${Date.now()}`,
+                    contactUserPhotoFile,
+                    uploaderId
+                );
+                if (!uploadResult.success) {
+                    showToast((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed', 'error', 2500);
+                    return;
+                }
+                photoMeta = { url: uploadResult.url, thumbUrl: uploadResult.thumbUrl };
+                uploadedPhotoForCleanup = uploadResult;
+            }
+
+            const result = await window.createOrAppendAdminSupportMessage({
+                targetUserId: currentUserData.id,
+                message,
+                source: 'admin_user_contact',
+                photoMeta
+            });
+            if (!result.success) {
+                if (uploadedPhotoForCleanup && typeof window.cleanupSupportPhotoUpload === 'function') {
+                    await window.cleanupSupportPhotoUpload(uploadedPhotoForCleanup);
+                }
+                showToast(result.message || 'Send failed', 'error', 2500);
                 return;
             }
-            
-            if (!subject) {
-                showToast('Please enter a subject', 'error');
-                return;
+
+            const who = currentUserData.fullName || 'user';
+            showToast(result.action === 'appended'
+                ? `Added to ${who}'s open Support thread`
+                : `Message sent to ${who}`, 'success', 2500);
+            closeContactUserOverlay();
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalSendHtml;
+            userModerationActionInFlight = false;
+            if (hourglass) {
+                hourglass.classList.remove('is-visible');
+                hourglass.setAttribute('aria-hidden', 'true');
             }
-            
-            if (!message) {
-                showToast('Please enter a message', 'error');
-                return;
-            }
-            
-            // TODO: Send message via Firebase
-            showToast(`Message sent to ${currentUserData.fullName}`, 'success');
-            closeOverlay();
-        });
-    }
+        }
+    });
 }
 
 function showContactUserOverlay() {

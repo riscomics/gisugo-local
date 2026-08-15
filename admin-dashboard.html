@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=8">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=9">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -1961,6 +1961,9 @@
             <!-- Contact User Overlay -->
             <div class="contact-user-overlay" id="contactUserOverlay">
                 <div class="contact-user-modal">
+                    <div class="send-hourglass-overlay" id="contactUserSendHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
                     <div class="contact-user-header">
                         <h3 class="contact-user-title">Contact User</h3>
                         <button class="contact-user-close" id="closeContactUserModal">×</button>
@@ -1968,27 +1971,6 @@
                     <div class="contact-user-body">
                         <div class="contact-user-info" id="contactUserInfoDisplay">
                             <!-- Will show user name and avatar -->
-                        </div>
-                        <div class="contact-form-group">
-                            <label class="contact-form-label">Topic:</label>
-                            <select class="contact-topic-select" id="contactUserTopicSelect">
-                                <option value="">Select topic...</option>
-                                <option value="account-verification">Account Verification</option>
-                                <option value="account-suspension">Account Suspension</option>
-                                <option value="policy-violation">Policy Violation</option>
-                                <option value="payment-issue">Payment Issue</option>
-                                <option value="gig-inquiry">Gig Inquiry</option>
-                                <option value="verification-request">Verification Request</option>
-                                <option value="general-inquiry">General Inquiry</option>
-                                <option value="security-alert">Security Alert</option>
-                                <option value="important-notice">Important Notice</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="contact-form-group">
-                            <label class="contact-form-label">Subject:</label>
-                            <input type="text" class="contact-subject-input" id="contactUserSubjectInput" placeholder="Enter message subject..." maxlength="100">
-                            <span class="char-counter" id="contactSubjectCharCounter">0/100</span>
                         </div>
                         <div class="contact-form-group">
                             <label class="contact-form-label">Message:</label>
@@ -3668,7 +3650,7 @@
     <script src="public/js/admin-auth-gate.js?v=2"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=9"></script>
+    <script src="public/js/admin-dashboard.js?v=10"></script>
     
     
 </body>

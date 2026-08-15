@@ -115,7 +115,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Chapters 1–2 coded 2026-08-15, not shipped.** Next: Ship (functions + hosting), then owner Chapter 3 gig test. Chapter 4 (User Management Contact) not started. Phases 6, 7, 9, 11 stay parked.
+**Phase 8 Gig Contact live (Ch 1–3). Chapter 4 User Management Contact shipping with this pass.** Next: Chapter 5 Support notify. Chapter 6 leftover is notify + final audit. Phases 6, 7, 9, 11 stay parked.
 
 | Phase | What it actually was | Status |
 |---|---|---|
@@ -126,7 +126,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement dashboard section. | Not built |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
-| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact wired (Ch 1–2); User Management Contact still a mock (Ch 4). | Ch 1–2 coded, not shipped — **next is Ship + Ch 3 test** |
+| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact live (Ch 1–3). User Management Contact wired (Ch 4). Notify (menu / Support icon / Alerts / browser tray) is Ch 5 — **do not forget**. | Ch 4 shipping — **next is Ch 5 notify** |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
@@ -281,7 +281,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       silently removed the card locally without touching the real account). What it should
       actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
       dedicated task below.
-- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Ch 1–2 coded, not shipped.**
+- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Gig Contact live; Ch 4–6 open.**
       Supersedes the 2026-08-09 "reuse `chat_threads`" line (that plan is stale: chat is
       shelved, requires `jobId` + exactly 2 participants, Messages is hidden). Contact is
       admin writing *out* about a gig or a person; it uses the Phase 10 Support engine
@@ -304,11 +304,16 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
         Resolved is not required. Write stays available for other topics.
       • Gig SUSPEND is already live (Phase 2). Not this phase. Phase 9 is Permanently
         Ban User (Auth disable), not gig suspend.
+      • **Notify is in this phase (Chapter 5), after User Management Contact.**
+        Gig Contact today writes `support_requests` only — no `notifications`
+        row — so menu count, Support icon count, Alerts, and browser tray stay
+        quiet. Do both Contact Sends first, then one notify pass for Gig
+        Contact, User Contact, and admin Reply. Do not drop this.
       **Why a callable:** `support_requests` create requires `requester.userId == auth.uid`.
       An admin cannot client-write a ticket owned by the poster/worker. Admin SDK
       callable creates or appends.
       **Microtasklist**
-      1. **[coded 2026-08-15, not shipped]** Callable + taxonomy.
+      1. **[x] Callable + taxonomy — shipped 2026-08-15.**
          `createOrAppendAdminSupportMessage` (asia-southeast1): admin check; gig
          target must be poster or `hiredWorkerId`; user-mgmt target must exist;
          append only an open `admin_contact` ticket for that same `jobId`
@@ -317,20 +322,28 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          Topic `admin_contact` / "Message from GISUGO". Photo URLs https-only,
          50-message cap. No rules change — Admin SDK bypasses create lock;
          users still cannot client-write `messages`.
-      2. **[coded 2026-08-15, not shipped]** Gig Contact UI. All Applicants
+      2. **[x] Gig Contact UI — shipped 2026-08-15.** All Applicants
          stripped. Hired Worker gated on loaded `hiredWorkerId`. Send →
          `uploadSupportPhoto` + orphan cleanup + callable. Hourglass. Toast
          only after real success. Names from the loaded gig.
-      3. **Test pass (gig) — owner, after Ship.** Poster-only gig: Hired Worker
-         disabled; send to poster → their Support New → they Reply → admin
-         sees it. Gig with hire: send to worker only → worker's New, not the
-         poster's. Send-to-both = two sends. Open-ticket user gets an append,
-         not a second ticket. Photo both ways. No extra gig read on Contact open.
-      4. **User Management Contact.** Same callable, no recipient dropdown (the
-         open user is the target). Same Support landing. Same open-ticket append.
-         **Not started** — User Management Send is still the old fake toast.
-      5. **Full-phase audit.** Syntax, rules, no leftover fake toast-send, no
-         `chat_threads` write from these buttons, flag/docs match live behavior.
+      3. **[x] Test pass (gig) — owner 2026-08-15.** Customer + hired worker
+         each got their own Message from GISUGO thread (New). Close moved
+         worker's to Old. Same-topic Write still blocked. Per-gig threads
+         after the second ship. Photo on worker thread confirmed in log.
+      4. **[x] User Management Contact — shipping 2026-08-15.** Same callable
+         (`admin_user_contact`), no recipient dropdown, no topic/subject
+         (topic is Message from GISUGO). Photo + hourglass. Appends only an
+         open no-`jobId` GISUGO thread — does not join a gig Contact thread.
+      5. **Support notify — after Chapter 4. Do not skip.** Write a
+         `notifications` row when admin Contact creates/appends and when admin
+         Replies, so the existing pipeline fires: shared-menu count, Support
+         icon count, Alerts page, browser tray (`sendPushOnNotificationCreate`).
+         One wiring for Gig Contact + User Contact + admin Reply. Deep-link
+         to that Support thread. Respect the user's notification settings.
+         No second listener on `support_requests`.
+      6. **Full-phase audit.** Syntax, rules, no leftover fake toast-send, no
+         `chat_threads` write from these buttons, notify actually fires, flag/docs
+         match live behavior.
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
       NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
       though it touches User Management — same rule as everything else post-Phase-3: new work
