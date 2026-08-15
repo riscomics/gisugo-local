@@ -188,9 +188,9 @@ function initializeUniformHeader(options = {}) {
     // Initialize back button functionality
     initializeUniformBackButton();
 
-    // Register page unload cleanup
+    // pagehide is allowed; `unload` trips Permissions-Policy on this document.
     window.addEventListener('beforeunload', executeHeaderCleanups);
-    window.addEventListener('unload', executeHeaderCleanups);
+    window.addEventListener('pagehide', executeHeaderCleanups);
 
     console.log('✅ Universal Header System initialized');
 }

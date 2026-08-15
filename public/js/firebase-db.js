@@ -4747,6 +4747,25 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
  * reply if one was already sent.
  * @param {string} requestId
  */
+async function markSupportRequestReadByRequester(requestId) {
+  const db = getFirestore();
+  const safeId = String(requestId || '').trim();
+  if (!db || !safeId) return { success: false, message: 'Missing ticket id' };
+  try {
+    const now = new Date();
+    await db.collection('support_requests').doc(safeId).update({
+      isReadByRequester: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAtISO: now.toISOString(),
+      updatedAtMs: now.getTime()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ markSupportRequestReadByRequester failed:', error);
+    return { success: false, message: error.message || 'Could not save closed state' };
+  }
+}
+
 async function resolveSupportRequest(requestId) {
   const db = getFirestore();
   const safeId = String(requestId || '').trim();
@@ -4961,6 +4980,7 @@ window.getSupportQueueNew = getSupportQueueNew;
 window.getSupportQueueOld = getSupportQueueOld;
 window.getSupportQueueCounts = getSupportQueueCounts;
 window.replyToSupportRequest = replyToSupportRequest;
+window.markSupportRequestReadByRequester = markSupportRequestReadByRequester;
 window.resolveSupportRequest = resolveSupportRequest;
 window.normalizeSupportMessages = normalizeSupportMessages;
 window.getSupportLastSender = getSupportLastSender;

@@ -2237,7 +2237,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     window.addEventListener('beforeunload', guardedExecuteAllCleanups);
-    window.addEventListener('unload', guardedExecuteAllCleanups);
 
     console.log('✅ Support page ready');
 });
@@ -10304,10 +10303,7 @@ function loadUnifiedMessages() {
     if (container) {
         const unifiedMessages = getMessagesByRole('unified');
         // Start with New messages only (filtering will handle Old messages)
-        const newMessages = unifiedMessages.filter(msg => {
-            const messageState = messageStates[msg.id];
-            return messageState ? !messageState.isClosed : true;
-        });
+        const newMessages = unifiedMessages.filter(msg => !isMessageClosed(msg));
         console.log('Unified new messages count:', newMessages.length);
         
         if (newMessages.length === 0) {
@@ -10782,11 +10778,44 @@ function getSupportEmptyStateHTML(messageText, detailText) {
     `;
 }
 
+function getBroadcastClosedStoreKey() {
+    const uid = (typeof getCurrentUserId === 'function' && getCurrentUserId()) || 'anon';
+    return `gisugo_support_closed_${uid}`;
+}
+
+function loadBroadcastClosedIds() {
+    try {
+        const raw = localStorage.getItem(getBroadcastClosedStoreKey());
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function persistBroadcastClosed(messageId) {
+    const store = loadBroadcastClosedIds();
+    store[String(messageId)] = true;
+    try {
+        localStorage.setItem(getBroadcastClosedStoreKey(), JSON.stringify(store));
+    } catch (_) { /* ignore quota */ }
+}
+
+// Tickets: Firestore isReadByRequester (admin reply flips it back to New).
+// Broadcasts: local close list (users cannot write platform_broadcasts).
+function isMessageClosed(message) {
+    if (!message) return false;
+    if (message.supportRequestId) {
+        return Boolean(message.isRead);
+    }
+    const state = messageStates[message.id];
+    if (state && state.isClosed) return true;
+    return Boolean(loadBroadcastClosedIds()[message.id]);
+}
+
 function filterMessages(messages, searchTerm, messageType, currentTab, supportSubtopic = 'all') {
     return messages.filter(message => {
-        // Filter by current tab (New/Old) - check messageStates instead of message object
-        const messageState = messageStates[message.id];
-        const isClosed = messageState ? messageState.isClosed : false;
+        const isClosed = isMessageClosed(message);
         const isNewMessage = !isClosed;
         const showInNewTab = currentTab === 'new' && isNewMessage;
         const showInOldTab = currentTab === 'old' && isClosed;
@@ -10847,11 +10876,17 @@ function closeMessage(messageId, role) {
         }
         
         // Check if message was already closed (to determine if we should show toast)
-        const wasAlreadyClosed = messageStates[messageId].isClosed;
+        const wasAlreadyClosed = isMessageClosed(message);
         
         // Update message state
         messageStates[messageId].isRead = true;
         messageStates[messageId].isClosed = true;
+        message.isRead = true;
+        if (message.supportRequestId && typeof window.markSupportRequestReadByRequester === 'function') {
+            void window.markSupportRequestReadByRequester(message.supportRequestId);
+        } else {
+            persistBroadcastClosed(messageId);
+        }
         
         // Update UI - remove unread class
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -10951,10 +10986,7 @@ function updateMessageCounts(role) {
 // Update main Messages tab count (separate function to avoid race conditions)
 function updateMainMessagesTabCount() {
     // Unified view uses support data source for current mode.
-    const unifiedCount = getMessagesByRole('unified').filter(msg => {
-        const messageState = messageStates[msg.id];
-        return messageState ? !messageState.isClosed : true;
-    }).length;
+    const unifiedCount = getMessagesByRole('unified').filter(msg => !isMessageClosed(msg)).length;
     
     // Update BOTH badge elements with the same unified count
     const customerMessagesTabBadge = document.querySelector('#unifiedMessagesTab .notification-count');
@@ -11084,14 +11116,8 @@ const MESSAGE_FILTER_CLEANUPS = new Map();
             const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab, currentSupportSubtype);
             
             console.log('Total messages:', messages.length);
-            console.log('New messages:', messages.filter(m => {
-                const messageState = messageStates[m.id];
-                return messageState ? !messageState.isClosed : true;
-            }).length);
-            console.log('Old messages:', messages.filter(m => {
-                const messageState = messageStates[m.id];
-                return messageState ? messageState.isClosed : false;
-            }).length);
+            console.log('New messages:', messages.filter(m => !isMessageClosed(m)).length);
+            console.log('Old messages:', messages.filter(m => isMessageClosed(m)).length);
             console.log('Filtered messages count for', currentTab, 'tab:', filteredMessages.length);
             
             // Update message list
@@ -11209,8 +11235,7 @@ function setupMessageDetailHandlers(role) {
             if (message) {
                 // Auto-close previously open message (any viewed message should move to Old when switching)
                 if (currentlyOpenMessage && currentlyOpenRole && currentlyOpenMessage.id !== messageId) {
-                    const previousMessageState = messageStates[currentlyOpenMessage.id];
-                    if (previousMessageState && !previousMessageState.isClosed) {
+                    if (!isMessageClosed(currentlyOpenMessage)) {
                         console.log(`🔄 Auto-closing previously viewed message: ${currentlyOpenMessage.id}`);
                         closeMessage(currentlyOpenMessage.id, currentlyOpenRole);
                     }
@@ -11475,8 +11500,7 @@ function updateInboxTabCounts(role) {
     let oldCount = 0;
     
     messages.forEach(message => {
-        const messageState = messageStates[message.id];
-        if (messageState && messageState.isClosed) {
+        if (isMessageClosed(message)) {
             oldCount++;
         } else {
             newCount++;
