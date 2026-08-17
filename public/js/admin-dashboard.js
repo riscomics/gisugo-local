@@ -7420,8 +7420,8 @@ function normalizeUserForDisplay(id, data) {
         id,
         fullName: d.fullName || 'Unnamed User',
         avatar: d.profilePhoto || GIG_MODERATION_FALLBACK_AVATAR,
-        rating: Number(d.rating) || 0,
-        reviewCount: Number(d.reviewCount) || 0,
+        rating: Number(d.averageRating != null ? d.averageRating : d.rating) || 0,
+        reviewCount: Number(d.totalReviews != null ? d.totalReviews : d.reviewCount) || 0,
         verificationStatus,
         status: isSuspended ? 'suspended' : 'new',
         registeredDate: d.accountCreated ? new Date(d.accountCreated) : new Date(0),
@@ -7909,8 +7909,7 @@ function initializeUserActions() {
     const viewProfileBtn = document.getElementById('viewProfileBtn');
     if (viewProfileBtn) {
         viewProfileBtn.addEventListener('click', () => {
-            // TODO: Navigate to profile page
-            showToast('View Profile feature coming soon!', 'info');
+            openUserPublicProfile(currentUserData && currentUserData.id);
         });
     }
     
@@ -7944,6 +7943,16 @@ function initializeUserActions() {
         });
     }
 }
+
+function openUserPublicProfile(userId) {
+    const id = String(userId || '').trim();
+    if (!id) {
+        showToast('No user selected', 'error', 2000);
+        return;
+    }
+    window.open(`profile.html?userId=${encodeURIComponent(id)}`, '_blank', 'noopener');
+}
+window.openUserPublicProfile = openUserPublicProfile;
 
 function closeUserDetail() {
     currentUserData = null;
@@ -8800,7 +8809,7 @@ function showUserDetailOverlay(user) {
         </div>
         
         <div class="user-profile-section">
-            <button class="view-profile-btn" onclick="showToast('View Profile feature coming soon!', 'info')">
+            <button class="view-profile-btn" onclick="openUserPublicProfile('${user.id}')">
                 <span class="profile-btn-icon">👤</span>
                 <span>VIEW PROFILE</span>
             </button>
