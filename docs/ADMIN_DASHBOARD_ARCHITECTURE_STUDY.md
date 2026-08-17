@@ -1,7 +1,7 @@
 # Admin Dashboard — Architecture & Cost Study (Track C #8)
 
-> Status: **Study complete.** Implementation through Phase 8 Ch 1–5 live (owner tested
-> 2026-08-17). Companion: `docs/V1_HARDENING_TASKLIST.md` Track C.
+> Status: **Study complete.** Implementation through Phase 8 Ch 1–6 shipped (owner tested
+> + leftover audit 2026-08-17). Companion: `docs/V1_HARDENING_TASKLIST.md` Track C.
 > Dashboard: `admin-dashboard.html` / `public/js/admin-dashboard.js` — real Firebase for
 > shipped sections. Some unused mock-era Messages helpers remain (dead-code cleanup).
 
@@ -355,7 +355,7 @@ good to go") — now resolved on request, same level of detail as the other thre
   in `docs/V1_HARDENING_TASKLIST.md`, not deleted during this pass to keep the Phase 4 diff focused
   and reviewable.
 
-### Implementation status (Phase 8, Ch 1–5 live 2026-08-17)
+### Implementation status (Phase 8, Ch 1–6 shipped 2026-08-17)
 
 - **Contact:** Gig Moderation + User Management Send write `support_requests` via
   `createOrAppendAdminSupportMessage`. Topic `admin_contact` / “Message from GISUGO”.
@@ -369,7 +369,11 @@ good to go") — now resolved on request, same level of detail as the other thre
 - **Owner test 2026-08-17:** Ch 4+5 steps 1–8 passed. Profile “Messages from GISUGO”
   tray-off (step 9) skipped, accepted. Test-pass fixes: Just now stamp, Mark Resolved
   hourglass, Alerts deep-link waits for the live thread.
-- **Still open:** Phase 8 Chapter 6 leftover audit.
+- **Chapter 6 leftover audit 2026-08-17:** no Contact-path bugs. Send is callable-only
+  (not a fake toast); no `chat_threads` write from these buttons; notify writes
+  `support_admin_message` on create/append and admin Reply. Accepted leftovers:
+  dead mock Messages helpers (Phase 4 cleanup); 20-ticket open-thread scan; Reply
+  stamps `role: 'worker'` (Alerts filters by type); Settings tray-off untested.
 
 - **Architecture:** small paginated queue on `support_requests`, same cost pattern as
   Reported/Suspended — no live listener. Submit side and user-read side already work today; only

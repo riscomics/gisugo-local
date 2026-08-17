@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify live (Ch 1–5), owner tested 2026-08-17** (Settings tray toggle skipped, accepted). Next: Chapter 6 leftover audit when asked. Phases 6, 7, 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). Phases 6, 7, 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -129,7 +129,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement dashboard section. | Not built |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
-| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact live (Ch 1–3). User Management Contact live (Ch 4). Notify live (Ch 5): menu / Support icon / Alerts (both role tabs) / browser tray. | Ch 1–5 live + tested — **next is Ch 6 audit** |
+| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
@@ -289,7 +289,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       silently removed the card locally without touching the real account). What it should
       actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
       dedicated task below.
-- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Ch 1–5 live + owner tested 2026-08-17; Ch 6 leftover audit still open.**
+- [x] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Ch 1–6 complete 2026-08-17.**
       Supersedes the 2026-08-09 "reuse `chat_threads`" line (that plan is stale: chat is
       shelved, requires `jobId` + exactly 2 participants, Messages is hidden). Contact is
       admin writing *out* about a gig or a person; it uses the Phase 10 Support engine
@@ -356,9 +356,23 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          tickets). Test-pass fixes shipped 2026-08-17 (`9905a64`): Just now
          stamp (no −2m), Mark Resolved hourglass, Alerts deep-link waits for
          the live thread.
-      6. **Full-phase leftover audit.** Still open. Syntax, rules, no leftover
-         fake toast-send, no `chat_threads` write from these buttons, notify
-         actually fires, flag/docs match live behavior.
+      6. **[x] Full-phase leftover audit — 2026-08-17.** Syntax clean
+         (`functions/index.js`, `firebase-db.js`, `admin-dashboard.js`,
+         `support-taxonomy.js`, `alerts.js`). Contact Send (gig + user, desktop
+         + mobile) waits on `createOrAppendAdminSupportMessage`; toast only
+         after success; hourglass; photo orphan cleanup. No `chat_threads`
+         write from these buttons (callable writes `support_requests` only;
+         users still cannot client-create a ticket for someone else). Notify:
+         Contact create/append writes `support_admin_message`; admin Reply
+         writes the same via `createNotification`; type is on the push
+         allowlist and both Alerts role lists; Profile toggle exists.
+         `admin_contact` is not on the user Write dropdown. All Applicants
+         stripped; Hired Worker gated. **Accepted leftovers (not this phase):**
+         dead mock Messages helpers still in `admin-dashboard.js` (Phase 4
+         cleanup); callable finds an open GISUGO thread among the user's 20
+         newest tickets (fine at V1 volume); admin Reply stamps
+         `role: 'worker'` (Alerts filters by type; both tabs intentional);
+         Settings tray-off not owner-tested; admin Messages stays glance.
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
       NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
       though it touches User Management — same rule as everything else post-Phase-3: new work
@@ -450,7 +464,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 - [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
       Do this **after remaining product phases are done**, immediately **before** the full-platform
       test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until
-      this ships. Not next while Phases 6 / 7 / 8-Ch6 / 9 / 11 (and any other chosen leftovers)
+      this ships. Not next while Phases 6 / 7 / 9 / 11 (and any other chosen leftovers)
       are still open. Full scope: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
       **Why last:** flipping rules too early breaks Apply / Hire / Accept. Doing it after
       launch has the same code size but a bigger blast radius. Quiet window + full QA after
@@ -467,7 +481,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
-      Phase 8 Ch 1–5 (2026-08-15/17).
+      Phase 8 Ch 1–6 (2026-08-15/17).
 - [x] **Phase 4: Support responder (admin side only) — shipped (2026-08-10).**
       Admin queue + one-slot `reply` + Mark Resolved + broadcasts. **Not** a complete
       support product: user-facing Reply is still a fake in-memory write; tickets cannot
