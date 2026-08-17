@@ -1,10 +1,9 @@
 # Admin Dashboard — Architecture & Cost Study (Track C #8)
 
-> Status: **In progress — discuss before wiring.** Owner + agent working session, started
-> 2026-07-17, resumed 2026-07-26.
-> Companion: `docs/V1_HARDENING_TASKLIST.md` Track C (this doc is the detailed backing study).
-> Current mock: `admin-dashboard.html` / `public/js/admin-dashboard.js` — fully simulated
-> (`localStorage` + `setInterval`), zero real Firebase wiring today.
+> Status: **Study complete.** Implementation through Phase 8 Ch 1–5 live (owner tested
+> 2026-08-17). Companion: `docs/V1_HARDENING_TASKLIST.md` Track C.
+> Dashboard: `admin-dashboard.html` / `public/js/admin-dashboard.js` — real Firebase for
+> shipped sections. Some unused mock-era Messages helpers remain (dead-code cleanup).
 
 ## Core principle (applies to every section below)
 
@@ -26,7 +25,7 @@ Instead:
 | Overview (stat cards + overlays) | Resolved — see below | Studied 2026-07-26/27 |
 | User Management | Resolved — see below | Studied 2026-07-26 |
 | Gig Moderation | Resolved — see below | Studied 2026-07-26 |
-| Messages (Support admin reply) | Wire as a paged queue — cheapest, most-blocked, highest-value piece | Resolved 2026-07-27 |
+| Messages (Support admin reply) | Paged glance queue. Phase 4 + Phase 10 engine + Phase 8 Contact/notify live | Live 2026-08-17 |
 | Settings | Wire as one small Firestore doc, replaces `localStorage` | **Shipped 2026-08-10 (Phase 5)** — see below |
 | Ad Placement | Wire per existing `AD_PHASE3_WIRING.md` plan — config reads only | Already scoped |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
@@ -226,16 +225,13 @@ explicit Ship, per standing rule):
   of in-memory mock data. Search bar debounces (400ms) into `searchGigsByTitlePrefix`. Permanent
   delete reuses the existing `deleteJob()` (photo/application/coin cleanup) rather than a new
   function, since `firestore.rules` already lets `isAdmin()` hard-delete any job.
-- **Known gap, deliberately out of scope for this pass:** the "Contact" overlay's Send Message
-  button (desktop `contactGigBtn` / mobile `gigOverlayContactBtn`, always visible regardless of
-  gig status) is still non-functional (shows a toast, doesn't send anything) — it predates this
-  chapter and needs its own pass wired into the real messaging system (`messages.js`/Firestore
-  `chat_threads`), not a quick patch here. Tracked as its own task in
-  `docs/V1_HARDENING_TASKLIST.md` ("Wire 'Gig Moderation → Contact' admin messaging").
+- **Contact overlay — now live (Phase 8, 2026-08-15/17).** Desktop `contactGigBtn` / mobile
+  `gigOverlayContactBtn` write the live Support thread (`support_requests` via
+  `createOrAppendAdminSupportMessage`), not `chat_threads`. Poster or hired worker only;
+  one Send = one recipient; per-gig GISUGO thread. See tasklist Phase 8.
   **Not to be confused with** the user-facing "Report Gig" button on the live gig detail page
-  (`dynamic-job.js` → `submitGigReportToAdmin()`) — that's a different, already fully-built and
-  confirmed-working feature that feeds `gig_reports` straight into this same Gig Moderation
-  system (see Chapter 1 above).
+  (`dynamic-job.js` → `submitGigReportToAdmin()`) — that's a different, already fully-built
+  feature that feeds `gig_reports` into this same Gig Moderation system (see Chapter 1 above).
 
 ---
 
@@ -265,8 +261,11 @@ explicit Ship, per standing rule):
   `executeBanCascadeOnUserSuspend` (Phase 2/Chapter 3) already listens for, so the real cascade
   (auto-suspend their gigs, withdraw pending applications, reopen gigs where they were hired) just
   fires automatically — no duplicate logic needed here. `reinstate` only restores login/account
-  access; it deliberately does **not** auto-restore whatever the cascade touched — an admin
-  reviews and reinstates those gigs individually in Gig Moderation. Extra guard: moderating
+  access; it deliberately does **not** auto-restore whatever the cascade touched. **Locked
+  2026-08-17:** the restored user re-posts if they want those gigs live again. Admin is not
+  expected to relist them. Investigate listed gigs from User Management → Gigs Listed
+  (same on-demand `posterId` jobs read; click opens the public gig page in a new tab).
+  Gig Moderation search stays title-prefix only. Extra guard: moderating
   another admin account requires `super_admin`; an admin can never moderate themself.
 - **Rules** (`firestore.rules`): `users/{userId}` owner-update rule now explicitly blocks the
   owner from touching `status`/`suspendedAt`/`suspendedBy`/`suspendedByName`/`suspendReason`/
@@ -300,10 +299,10 @@ explicit Ship, per standing rule):
   `user_moderation_log` same as suspend/reinstate, kept separate from the existing reversible
   `'suspend'` action since a ban should require its own explicit confirmation. Tracked in
   `docs/V1_HARDENING_TASKLIST.md`.
-- **Also deliberately out of scope, same as Gig Moderation's "Contact":** the desktop/mobile
-  Contact button on a user's detail panel is still a mock (shows a toast, doesn't send anything) —
-  same known gap as "Gig Moderation → Contact," same fix (wire into the real messaging system),
-  not duplicated effort.
+- **User Management Contact — now live (Phase 8 Ch 4, 2026-08-15/17).** Same callable
+  (`admin_user_contact`). No recipient dropdown. Topic is Message from GISUGO. Appends only
+  an open no-`jobId` GISUGO thread — does not join a gig Contact thread. Notify is Phase 8
+  Ch 5 (`support_admin_message`). Permanently Ban remains Phase 9.
 
 ---
 
@@ -356,16 +355,33 @@ good to go") — now resolved on request, same level of detail as the other thre
   in `docs/V1_HARDENING_TASKLIST.md`, not deleted during this pass to keep the Phase 4 diff focused
   and reviewable.
 
+### Implementation status (Phase 8, Ch 1–5 live 2026-08-17)
+
+- **Contact:** Gig Moderation + User Management Send write `support_requests` via
+  `createOrAppendAdminSupportMessage`. Topic `admin_contact` / “Message from GISUGO”.
+  One recipient per Send. Gig Contact is one open thread per gig; User Management
+  Contact is the no-`jobId` GISUGO thread only.
+- **Notify:** `support_admin_message` notification row on Contact create/append and
+  admin Reply. Menu / Support icon / Alerts / tray use the existing pipeline. Alerts
+  show the same card in both role tabs on purpose (one row; opening marks both read).
+- **Admin queue stays glance:** no live listener. New tickets do not appear until the
+  dashboard is refreshed. Old tab is Load More, 20 at a time (same as Posted).
+- **Owner test 2026-08-17:** Ch 4+5 steps 1–8 passed. Profile “Messages from GISUGO”
+  tray-off (step 9) skipped, accepted. Test-pass fixes: Just now stamp, Mark Resolved
+  hourglass, Alerts deep-link waits for the live thread.
+- **Still open:** Phase 8 Chapter 6 leftover audit.
+
 - **Architecture:** small paginated queue on `support_requests`, same cost pattern as
   Reported/Suspended — no live listener. Submit side and user-read side already work today; only
   the admin queue + reply-writer is missing.
 - **Admin workflow:** keep the mock's structure as-is (New / Old / Sent tabs). The mock already
   has a "Mark as Resolved" confirm action that closes a ticket and moves it to the resolved
   section — that's the existing New→Old mechanism, not something new to design.
-- **Reply delivery: in-platform only.** A reply is a write to the existing `support_requests`
-  record; the user's already-live Support page picks it up next time they open it
-  (`mapSupportRecordToUnifiedMessage`). **No email, no push, nothing leaves the platform** — owner
-  decision, applies to all platform communication generally, not just Support.
+- **Reply delivery: in-platform first.** A reply is a write to the existing `support_requests`
+  record; the user's Support page picks it up. **Update 2026-08-17 (Phase 8 Ch 5):** admin
+  Contact + admin Reply also write a `support_admin_message` notification so menu / Support
+  icon / Alerts (both role tabs, one row) / browser tray fire. Still no email. Admin Messages
+  stays glance — no live listener; refresh the dashboard to see new tickets.
 - **Topic filter — must read from the real shared taxonomy, not a separate hardcoded list.**
   Confirmed in code (`public/js/support-taxonomy.js`, `SHARED_SUPPORT_TOPICS`): the actual topic
   list used by the live user-facing compose form is **Account Issues, Complaints & Disputes,

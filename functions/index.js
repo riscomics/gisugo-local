@@ -1542,8 +1542,9 @@ exports.adminModerateGig = onCall(
 // withdraw their pending applications, reopen gigs where they were hired).
 // "reinstate" only restores login/account access -- it deliberately does NOT
 // auto-restore whatever the cascade touched (their suspended gigs stay
-// suspended); an admin reviews and reinstates those individually in Gig
-// Moderation, same as a fresh report would be handled case-by-case.
+// suspended). Locked 2026-08-17: the restored user re-posts if they want
+// those gigs live again. Admin is not expected to relist them. Investigate
+// listed gigs from User Management → Gigs Listed (same on-demand jobs read).
 const USER_MODERATION_ACTIONS = new Set(["suspend", "reinstate"]);
 
 exports.adminModerateUser = onCall(

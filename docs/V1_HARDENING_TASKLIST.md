@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-08-14
+> Status: **Active** · Last updated: 2026-08-17
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -111,11 +111,11 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-15)
+### Phase roster (macro — updated 2026-08-17)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact live (Ch 1–4). Chapter 5 Support notify shipping with this pass.** Next: Chapter 6 leftover is notify + final audit. Phases 6, 7, 9, 11 stay parked.
+**Phase 8 Contact + notify live (Ch 1–5), owner tested 2026-08-17** (Settings tray toggle skipped, accepted). Next: Chapter 6 leftover audit when asked. Phases 6, 7, 9, 11 stay parked.
 
 | Phase | What it actually was | Status |
 |---|---|---|
@@ -126,7 +126,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement dashboard section. | Not built |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
-| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact live (Ch 1–3). User Management Contact live (Ch 4). Notify (menu / Support icon / Alerts / browser tray) shipping (Ch 5). | Ch 5 shipping — **next is Ch 6 audit** |
+| 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact live (Ch 1–3). User Management Contact live (Ch 4). Notify live (Ch 5): menu / Support icon / Alerts (both role tabs) / browser tray. | Ch 1–5 live + tested — **next is Ch 6 audit** |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
@@ -238,9 +238,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
         `createdAt`) that Chapter 1's `syncGigReportCountersOnCreate` and Chapter 5's
         `getGigReportsForJob()`/"Reported By" list already consume. **No action needed.**
       - **Admin-side "Contact" button** (in the Gig Moderation detail panel/overlay — desktop
-        `contactGigBtn` + mobile `gigOverlayContactBtn`, both always visible regardless of gig
-        status, opening the "Contact Regarding Gig" form with Recipient/Message/Attachment) is a
-        **real, separate, still-unbuilt feature** — see next bullet.
+        `contactGigBtn` + mobile `gigOverlayContactBtn`) was still unbuilt at this Phase 2
+        ship. **Now live (Phase 8, 2026-08-15/17)** — writes `support_requests`, not
+        `chat_threads`. See Phase 8.
 - [x] **Phase 3: User Management built end-to-end — shipped and deployed (2026-08-09).**
       Full design in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "User Management — resolved
       design" → "Implementation status" subsection. Built in 4 audited chapters, same pattern as
@@ -255,8 +255,12 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          (admin-read-only). `suspend` sets `status='suspended'`, which is the exact transition
          `executeBanCascadeOnUserSuspend` (Phase 2) already listens for — the real ban cascade
          just fires automatically, no duplicate logic. `reinstate` only restores login access, not
-         whatever the cascade touched (their gigs stay suspended for an admin to review
-         individually). Extra guard: moderating another admin requires `super_admin`.
+         whatever the cascade touched (their gigs stay suspended). **Locked 2026-08-17:** the
+         restored user re-posts if they want those gigs live again. Admin is not expected to
+         relist them. Investigate listed gigs from User Management → Gigs Listed (reuses the
+         on-demand `posterId` jobs read; public gig page opens in a new tab). Gig Moderation
+         search stays title-prefix only.
+         Extra guard: moderating another admin requires `super_admin`.
       2. Full code-level audit of chapter 1 (confirmed the account-type analytics counter
          correctly no-ops on suspend/reinstate writes — verified it wouldn't double-count).
       3. `admin-dashboard.js`/`.html` rewired off in-memory mock data (which, on inspection, was
@@ -281,7 +285,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       silently removed the card locally without touching the real account). What it should
       actually do (disable Auth login vs. hard-delete account/data) is an open decision — see the
       dedicated task below.
-- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Gig Contact live; Ch 4–6 open.**
+- [ ] **Phase 8: Admin Contact → live Support thread. DECIDED 2026-08-15. Ch 1–5 live + owner tested 2026-08-17; Ch 6 leftover audit still open.**
       Supersedes the 2026-08-09 "reuse `chat_threads`" line (that plan is stale: chat is
       shelved, requires `jobId` + exactly 2 participants, Messages is hidden). Contact is
       admin writing *out* about a gig or a person; it uses the Phase 10 Support engine
@@ -329,21 +333,28 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          each got their own Message from GISUGO thread (New). Close moved
          worker's to Old. Same-topic Write still blocked. Per-gig threads
          after the second ship. Photo on worker thread confirmed in log.
-      4. **[x] User Management Contact — shipping 2026-08-15.** Same callable
-         (`admin_user_contact`), no recipient dropdown, no topic/subject
-         (topic is Message from GISUGO). Photo + hourglass. Appends only an
-         open no-`jobId` GISUGO thread — does not join a gig Contact thread.
-      5. **[x] Support notify — shipping 2026-08-15.** One type
+      4. **[x] User Management Contact — shipped 2026-08-15, owner tested 2026-08-17.**
+         Same callable (`admin_user_contact`), no recipient dropdown, no
+         topic/subject (topic is Message from GISUGO). Photo + hourglass.
+         Appends only an open no-`jobId` GISUGO thread — does not join a gig
+         Contact thread.
+      5. **[x] Support notify — shipped 2026-08-15, owner tested 2026-08-17
+         (steps 1–8; Settings tray toggle skipped, accepted).** One type
          (`support_admin_message`). Contact callable writes the
          `notifications` row (create + append). Admin Reply writes the same
          shape via `createNotification`. Existing pipeline then fires: menu
-         count, hamburger/Support icon count, Alerts (both role tabs),
-         browser tray (`sendPushOnNotificationCreate`). Deep-link
-         `support.html?ticket=`. Profile toggle “Messages from GISUGO”.
-         No second listener on `support_requests`.
-      6. **Full-phase audit.** Syntax, rules, no leftover fake toast-send, no
-         `chat_threads` write from these buttons, notify actually fires, flag/docs
-         match live behavior.
+         count, hamburger/Support icon count, Alerts (both role tabs — one
+         notification row; opening marks both cards read), browser tray
+         (`sendPushOnNotificationCreate`). Deep-link `support.html?ticket=`.
+         Profile toggle “Messages from GISUGO” exists; tray-off was not
+         retested. No second listener on `support_requests`. Admin Messages
+         stays glance (no live listener — refresh the dashboard to see new
+         tickets). Test-pass fixes shipped 2026-08-17 (`9905a64`): Just now
+         stamp (no −2m), Mark Resolved hourglass, Alerts deep-link waits for
+         the live thread.
+      6. **Full-phase leftover audit.** Still open. Syntax, rules, no leftover
+         fake toast-send, no `chat_threads` write from these buttons, notify
+         actually fires, flag/docs match live behavior.
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
       NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
       though it touches User Management — same rule as everything else post-Phase-3: new work
@@ -434,8 +445,8 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       reopen Phase 5. Do not start until owner prioritizes it.
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
-      (Contact → `support_requests` Support thread). The overlays are still mocks
-      until that microtasklist ships.
+      (Contact → `support_requests` Support thread). Overlays are live as of
+      Phase 8 Ch 1–5 (2026-08-15/17).
 - [x] **Phase 4: Support responder (admin side only) — shipped (2026-08-10).**
       Admin queue + one-slot `reply` + Mark Resolved + broadcasts. **Not** a complete
       support product: user-facing Reply is still a fake in-memory write; tickets cannot

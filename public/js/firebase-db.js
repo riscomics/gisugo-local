@@ -4501,6 +4501,8 @@ async function searchUsersByNamePrefix(prefix) {
  *    below for why, not the count() aggregation these were originally
  *    written for). One user's own gigs/applications is a small, naturally
  *    bounded set, so the extra per-document read cost here is negligible.
+ *  - listedGigs is a slim map of that same jobs `.get()` (id/title/status/
+ *    category/datePostedMs). No second query. Full job docs are not kept.
  *
  * FIX (2026-08-11): this originally called Firestore's count() aggregation
  * (`.where(...).count().get()`), which bills as ~1 read regardless of match
@@ -4512,10 +4514,30 @@ async function searchUsersByNamePrefix(prefix) {
  * Swapped to a real `.get()` here instead of chasing a modular-SDK bridge
  * for two low-stakes display numbers.
  */
+function listedGigPostedMs(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function slimListedGigFromDoc(doc) {
+  const data = doc.data() || {};
+  const title = String(data.title || '').trim();
+  return {
+    id: doc.id,
+    title: title || 'Untitled gig',
+    status: String(data.status || 'unknown').trim() || 'unknown',
+    category: String(data.category || '').trim(),
+    datePostedMs: listedGigPostedMs(data.datePosted)
+  };
+}
+
 async function getUserModerationExtras(uid) {
   const db = getFirestore();
   const safeUid = String(uid || '').trim();
-  const empty = { region: null, ipAddress: null, gigsListed: 0, applications: 0 };
+  const empty = { region: null, ipAddress: null, gigsListed: 0, applications: 0, listedGigs: [] };
   if (!db || !safeUid) return empty;
 
   const [securityResult, gigsCountResult, appsCountResult] = await Promise.allSettled([
@@ -4534,10 +4556,16 @@ async function getUserModerationExtras(uid) {
     console.error('❌ Error loading security_metadata (admin):', securityResult.reason);
   }
 
+  const listedGigs = gigsCountResult.status === 'fulfilled'
+    ? gigsCountResult.value.docs.map(slimListedGigFromDoc)
+        .sort((a, b) => (b.datePostedMs || 0) - (a.datePostedMs || 0))
+    : [];
+
   return {
     region,
     ipAddress,
-    gigsListed: gigsCountResult.status === 'fulfilled' ? gigsCountResult.value.size : 0,
+    gigsListed: listedGigs.length,
+    listedGigs,
     applications: appsCountResult.status === 'fulfilled' ? appsCountResult.value.size : 0
   };
 }

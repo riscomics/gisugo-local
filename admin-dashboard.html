@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=16">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=19">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -1723,13 +1723,10 @@
                     <div class="user-nav-panel">
                         <div class="panel-header">
                             <div class="user-controls">
-                                <!-- First Row: NEW, PENDING, VERIFIED -->
-                                <!-- Pending/Verified tabs hidden (not deleted): they map to the
-                                     ID-verification submission workflow, which isn't built yet --
-                                     an always-empty tab for a nonexistent feature is just confusing
-                                     UI. See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "User
-                                     Management — resolved design". Quick to unhide once that
-                                     pipeline ships. -->
+                                <!-- Tabs on one row; search below. Pending/Verified stay hidden
+                                     (not deleted): they map to ID-verification, which isn't built
+                                     yet. See docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md "User
+                                     Management — resolved design". -->
                                 <div class="user-tabs-row">
                                     <button class="user-tab-btn active" id="usersNewBtn" data-tab="new">
                                         NEW <span class="tab-count" id="newUsersCount">0</span>
@@ -1740,15 +1737,12 @@
                                     <button class="user-tab-btn" id="usersVerifiedBtn" data-tab="verified" style="display: none;">
                                         VERIFIED <span class="tab-count" id="verifiedUsersCount">0</span>
                                     </button>
-                                </div>
-                                <!-- Second Row: SUSPENDED, SEARCH -->
-                                <div class="user-tabs-row user-tabs-row-bottom">
                                     <button class="user-tab-btn" id="usersSuspendedBtn" data-tab="suspended">
                                         SUSPENDED <span class="tab-count" id="suspendedUsersCount">0</span>
                                     </button>
-                                    <div class="user-search">
-                                        <input type="text" placeholder="Search users..." class="search-input-small" id="usersSearchInput">
-                                    </div>
+                                </div>
+                                <div class="user-search">
+                                    <input type="text" placeholder="Search users..." class="search-input-small" id="usersSearchInput">
                                 </div>
                             </div>
                         </div>
@@ -1854,7 +1848,7 @@
                                         <div class="user-info-row">
                                             <div class="user-info-item">
                                                 <div class="user-info-label">GIGS LISTED:</div>
-                                                <div class="user-info-value" id="userGigsListed">0</div>
+                                                <button type="button" class="user-info-value user-gigs-listed-btn" id="userGigsListed" title="View listed gigs">0</button>
                                             </div>
                                             <div class="user-info-item">
                                                 <div class="user-info-label">APPLICATIONS:</div>
@@ -2075,6 +2069,18 @@
                     <div class="confirm-actions">
                         <button class="confirm-btn cancel-btn" id="cancelSuspendUserBtn">Cancel</button>
                         <button class="confirm-btn confirm-suspend-btn" id="confirmSuspendUserBtn">Suspend User</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User listed gigs (from the same on-demand jobs read as Gigs Listed) -->
+            <div class="confirm-overlay" id="userListedGigsOverlay" aria-hidden="true">
+                <div class="confirm-modal user-listed-gigs-modal">
+                    <h3 class="confirm-title" id="userListedGigsTitle">Gigs listed</h3>
+                    <p class="confirm-message" id="userListedGigsSubtitle"></p>
+                    <div class="user-listed-gigs-list" id="userListedGigsList"></div>
+                    <div class="confirm-actions">
+                        <button type="button" class="confirm-btn cancel-btn" id="closeUserListedGigsBtn">Close</button>
                     </div>
                 </div>
             </div>
@@ -3822,7 +3828,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=10"></script>
+    <script src="public/js/firebase-db.js?v=11"></script>
     <script src="public/js/firebase-storage.js"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     
@@ -3834,7 +3840,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=12"></script>
+    <script src="public/js/admin-dashboard.js?v=14"></script>
     
     
 </body>

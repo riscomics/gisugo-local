@@ -216,6 +216,8 @@ function cleanupSectionOverlays() {
         userOverlay.style.display = '';
         document.body.style.overflow = '';
     }
+
+    closeUserListedGigsOverlay();
     
     console.log('🧹 Cleaned up all section overlays');
 }
@@ -7327,6 +7329,8 @@ function initializeUserManagement() {
     
     // Initialize mobile overlay
     initializeUserDetailOverlay();
+
+    initializeUserListedGigsOverlay();
     
     // Initialize image lightbox
     initializeImageLightbox();
@@ -7452,6 +7456,8 @@ function normalizeUserForDisplay(id, data) {
         city: 'Loading...',
         ipAddress: 'Loading...',
         gigsListed: 0,
+        listedGigs: null,
+        moderationExtrasLoaded: false,
         applications: 0,
         suspendedInfo: isSuspended ? {
             suspendedBy: d.suspendedByName || 'Unknown admin',
@@ -7643,6 +7649,7 @@ function attachUserCardHandlers() {
 }
 
 function selectUser(user) {
+    closeUserListedGigsOverlay();
     currentUserData = user;
     
     // Update selected state on cards
@@ -7744,38 +7751,57 @@ function displayUserDetails(user) {
     updateUserFooterSections(user);
 }
 
+let userExtrasInFlight = { uid: null, promise: null };
+
+function applyUserModerationExtras(user, extras) {
+    user.region = extras.region || 'Not shared';
+    user.city = 'Not tracked'; // no city-level capture pipeline exists, only region -- see submitSignupLocation
+    user.ipAddress = extras.ipAddress || 'Not available';
+    user.gigsListed = extras.gigsListed;
+    user.listedGigs = Array.isArray(extras.listedGigs) ? extras.listedGigs : [];
+    user.applications = extras.applications;
+    user.moderationExtrasLoaded = true;
+
+    // Desktop panel: individual field IDs, safe to patch in place.
+    const regionEl = document.getElementById('userRegion');
+    const cityEl = document.getElementById('userCity');
+    const gigsListedEl = document.getElementById('userGigsListed');
+    const applicationsEl = document.getElementById('userApplications');
+    const ipEl = document.getElementById('userIpAddress');
+    if (regionEl) regionEl.textContent = user.region;
+    if (cityEl) cityEl.textContent = user.city;
+    if (gigsListedEl) gigsListedEl.textContent = user.gigsListed;
+    if (applicationsEl) applicationsEl.textContent = user.applications;
+    if (ipEl) ipEl.textContent = user.ipAddress;
+
+    // Mobile overlay has no per-field IDs (its body is a single
+    // regenerated HTML blob) -- if it's currently open on this same
+    // user, just rebuild it now that the extras have arrived.
+    const overlay = document.getElementById('userDetailOverlay');
+    if (overlay && overlay.classList.contains('active')) {
+        showUserDetailOverlay(user);
+    }
+}
+
 async function loadUserModerationExtrasInto(user) {
+    if (!user || user.moderationExtrasLoaded) return;
     if (typeof getUserModerationExtras !== 'function') return;
     try {
-        const extras = await getUserModerationExtras(user.id);
-        if (!currentUserData || currentUserData.id !== user.id) return; // selection changed mid-fetch
-
-        user.region = extras.region || 'Not shared';
-        user.city = 'Not tracked'; // no city-level capture pipeline exists, only region -- see submitSignupLocation
-        user.ipAddress = extras.ipAddress || 'Not available';
-        user.gigsListed = extras.gigsListed;
-        user.applications = extras.applications;
-
-        // Desktop panel: individual field IDs, safe to patch in place.
-        const regionEl = document.getElementById('userRegion');
-        const cityEl = document.getElementById('userCity');
-        const gigsListedEl = document.getElementById('userGigsListed');
-        const applicationsEl = document.getElementById('userApplications');
-        const ipEl = document.getElementById('userIpAddress');
-        if (regionEl) regionEl.textContent = user.region;
-        if (cityEl) cityEl.textContent = user.city;
-        if (gigsListedEl) gigsListedEl.textContent = user.gigsListed;
-        if (applicationsEl) applicationsEl.textContent = user.applications;
-        if (ipEl) ipEl.textContent = user.ipAddress;
-
-        // Mobile overlay has no per-field IDs (its body is a single
-        // regenerated HTML blob) -- if it's currently open on this same
-        // user, just rebuild it now that the extras have arrived.
-        const overlay = document.getElementById('userDetailOverlay');
-        if (overlay && overlay.classList.contains('active')) {
-            showUserDetailOverlay(user);
+        let extrasPromise = userExtrasInFlight.promise;
+        if (!extrasPromise || userExtrasInFlight.uid !== user.id) {
+            extrasPromise = getUserModerationExtras(user.id);
+            userExtrasInFlight = { uid: user.id, promise: extrasPromise };
         }
+        const extras = await extrasPromise;
+        if (userExtrasInFlight.uid === user.id) {
+            userExtrasInFlight = { uid: null, promise: null };
+        }
+        if (!currentUserData || currentUserData.id !== user.id) return; // selection changed mid-fetch
+        applyUserModerationExtras(user, extras);
     } catch (error) {
+        if (userExtrasInFlight.uid === user.id) {
+            userExtrasInFlight = { uid: null, promise: null };
+        }
         console.error('❌ Error loading user moderation extras:', error);
     }
 }
@@ -7925,6 +7951,10 @@ function initializeUserActions() {
             openUserPublicProfile(currentUserData && currentUserData.id);
         });
     }
+
+    document.getElementById('userGigsListed')?.addEventListener('click', () => {
+        openUserListedGigsOverlay();
+    });
     
     // Big Approve button
     const bigApproveBtn = document.getElementById('bigApproveUserBtn');
@@ -7967,7 +7997,108 @@ function openUserPublicProfile(userId) {
 }
 window.openUserPublicProfile = openUserPublicProfile;
 
+function buildPublicGigPageUrl(jobId, category) {
+    const id = String(jobId || '').trim();
+    if (!id) return '';
+    const params = new URLSearchParams({ jobId: id });
+    const cat = String(category || '').trim();
+    if (cat) params.set('category', cat);
+    return `dynamic-job.html?${params.toString()}`;
+}
+
+function listedGigStatusMeta(status) {
+    const key = String(status || 'unknown').trim().toLowerCase() || 'unknown';
+    const labels = {
+        active: 'Active',
+        reported: 'Reported',
+        suspended: 'Suspended',
+        hired: 'Hired',
+        accepted: 'In Progress',
+        completed: 'Completed',
+        closed: 'Closed'
+    };
+    return {
+        key: key.replace(/[^a-z0-9_-]/g, '') || 'unknown',
+        label: labels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
+    };
+}
+
+function closeUserListedGigsOverlay() {
+    const overlay = document.getElementById('userListedGigsOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+function renderUserListedGigsList(gigs) {
+    const list = document.getElementById('userListedGigsList');
+    if (!list) return;
+    const rows = Array.isArray(gigs) ? gigs : [];
+    if (!rows.length) {
+        list.innerHTML = '<div class="user-listed-gigs-empty">This user has no listed gigs.</div>';
+        return;
+    }
+    list.innerHTML = rows.map((gig) => {
+        const href = buildPublicGigPageUrl(gig.id, gig.category);
+        if (!href) return '';
+        const posted = gig.datePostedMs
+            ? formatGigTimestamp(new Date(gig.datePostedMs))
+            : 'Date unknown';
+        const statusMeta = listedGigStatusMeta(gig.status);
+        return `
+            <a class="user-listed-gig-row" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">
+                <div class="user-listed-gig-title">${escapeHtml(gig.title || 'Untitled gig')}</div>
+                <div class="user-listed-gig-meta">
+                    <span class="user-listed-gig-status is-${escapeHtml(statusMeta.key)}">${escapeHtml(statusMeta.label)}</span>
+                    <span>•</span>
+                    <span>${escapeHtml(posted)}</span>
+                </div>
+            </a>
+        `;
+    }).join('');
+}
+
+async function openUserListedGigsOverlay() {
+    const user = currentUserData;
+    if (!user) {
+        showToast('No user selected', 'error', 2000);
+        return;
+    }
+    const overlay = document.getElementById('userListedGigsOverlay');
+    const titleEl = document.getElementById('userListedGigsTitle');
+    const subtitleEl = document.getElementById('userListedGigsSubtitle');
+    const list = document.getElementById('userListedGigsList');
+    if (!overlay || !list) return;
+
+    if (titleEl) titleEl.textContent = 'Gigs listed';
+    if (subtitleEl) subtitleEl.textContent = user.fullName || '';
+    list.innerHTML = '<div class="user-listed-gigs-empty">Loading…</div>';
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    if (!user.moderationExtrasLoaded) {
+        await loadUserModerationExtrasInto(user);
+    }
+    if (!currentUserData || currentUserData.id !== user.id) return;
+    if (!user.moderationExtrasLoaded) {
+        list.innerHTML = '<div class="user-listed-gigs-empty">Could not load gigs. Try again.</div>';
+        return;
+    }
+
+    const count = Array.isArray(user.listedGigs) ? user.listedGigs.length : 0;
+    if (titleEl) titleEl.textContent = `Gigs listed (${count})`;
+    renderUserListedGigsList(user.listedGigs);
+}
+
+function initializeUserListedGigsOverlay() {
+    document.getElementById('closeUserListedGigsBtn')?.addEventListener('click', closeUserListedGigsOverlay);
+    document.getElementById('userListedGigsOverlay')?.addEventListener('click', (e) => {
+        if (e.target.id === 'userListedGigsOverlay') closeUserListedGigsOverlay();
+    });
+}
+
 function closeUserDetail() {
+    closeUserListedGigsOverlay();
     currentUserData = null;
     
     // Clear card selection
@@ -8596,8 +8727,9 @@ async function suspendUser(user, suspensionData) {
  * Restore (reinstate) a suspended user via adminModerateUser. This only
  * restores account/login access -- it deliberately does NOT auto-restore
  * whatever executeBanCascadeOnUserSuspend touched (their gigs stay
- * suspended); an admin reviews and reinstates those individually in Gig
- * Moderation. See functions/index.js adminModerateUser comment.
+ * suspended). Locked 2026-08-17: the user re-posts if they want those
+ * gigs live again. Admin is not expected to relist them. Investigate via
+ * Gigs Listed overlay. See functions/index.js adminModerateUser comment.
  */
 async function restoreUser(user) {
     if (userModerationActionInFlight) return;
@@ -8681,10 +8813,17 @@ function initializeUserDetailOverlay() {
     // Close overlay
     const closeOverlay = () => {
         overlay.classList.remove('active');
+        closeUserListedGigsOverlay();
     };
     
     if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
     if (closeFooterBtn) closeFooterBtn.addEventListener('click', closeOverlay);
+
+    overlay?.addEventListener('click', (e) => {
+        if (e.target.closest('[data-open-user-gigs]')) {
+            openUserListedGigsOverlay();
+        }
+    });
     
     // Mobile action buttons
     const contactBtn = document.getElementById('userOverlayContactBtn');
@@ -8807,7 +8946,7 @@ function showUserDetailOverlay(user) {
             <div class="user-info-row">
                 <div class="user-info-item">
                     <div class="user-info-label">GIGS LISTED:</div>
-                    <div class="user-info-value">${user.gigsListed}</div>
+                    <button type="button" class="user-info-value user-gigs-listed-btn" data-open-user-gigs="1" title="View listed gigs">${user.gigsListed}</button>
                 </div>
                 <div class="user-info-item">
                     <div class="user-info-label">APPLICATIONS:</div>
