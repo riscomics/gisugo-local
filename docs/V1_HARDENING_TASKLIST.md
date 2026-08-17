@@ -68,12 +68,14 @@ See `AGENTS.md` § "verify production data."
       settings gating). ✅ Hosting deployed.
       ⚠️ Verify on live: a logged-OUT user should no longer see Account/own-profile controls.
 
-## Track B — Security hardening (DEFERRED — fold into Admin/backend pass)
+## Track B — Security hardening (now Phase 12 — launch gate)
 > **Full scope mapped in `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md` — read that first.**
 > Applications + notifications lockdown is one server-side job (notification delivery and the
 > worker-accept→reject-others flow are cross-user and must move to Cloud Functions). Notifications
-> are already half server-side (push + counters). Pre-launch, the gap is non-UI/technical-only and
-> NOT urgent. Groundwork (`gigOwnerId` stamp + backfill) is done and stays.
+> are already half server-side (push + counters). Groundwork (`gigOwnerId` stamp + backfill) is
+> done and stays. **Locked 2026-08-17:** do this after remaining product phases, immediately
+> before full-platform QA. Do not mark V1 complete until Phase 12 ships. Do not start until
+> those earlier phases are done.
 
 - [~] **Applications read rule (Option B):**
       - [x] Step 1 — stamp `gigOwnerId` (= job.posterId) on new applications, both write
@@ -116,6 +118,7 @@ Honest status of each numbered phase. **Shipped** means that phase’s scoped jo
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
 **Phase 8 Contact + notify live (Ch 1–5), owner tested 2026-08-17** (Settings tray toggle skipped, accepted). Next: Chapter 6 leftover audit when asked. Phases 6, 7, 9, 11 stay parked.
+**Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
 |---|---|---|
@@ -130,6 +133,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
+| 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -443,6 +447,23 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       (`maintenanceData`, `techWarningData`). This phase is a field-by-field pass:
       keep + enforce, or hide/remove so the UI does not imply fake power. Do not
       reopen Phase 5. Do not start until owner prioritizes it.
+- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
+      Do this **after remaining product phases are done**, immediately **before** the full-platform
+      test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until
+      this ships. Not next while Phases 6 / 7 / 8-Ch6 / 9 / 11 (and any other chosen leftovers)
+      are still open. Full scope: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
+      **Why last:** flipping rules too early breaks Apply / Hire / Accept. Doing it after
+      launch has the same code size but a bigger blast radius. Quiet window + full QA after
+      the lock is the point.
+      **Ship order (do not skip):**
+      1. Cloud Functions + switch client call sites. **Keep current rules up.**
+      2. Prove Apply → review → hire → accept → alerts still work (SDK + iOS REST).
+      3. Then lock rules: notifications create/update/delete = server; read = recipient
+         only. Applications read = applicant or `gigOwnerId`; create enforces the stamp.
+      4. Then full-platform QA. Not before step 3.
+      Groundwork already shipped (`gigOwnerId` stamp + backfill). Push + unread counters
+      already run server-side. This phase completes that architecture; it is not new
+      Firebase setup and is not a cost project.
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
@@ -1884,10 +1905,12 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    registration (PH telco sender-ID approval), NOT on code. Also the durable fix for the
    cross-provider duplicate-phone gap (verify + link phone on all accounts).
 4. **Block-user feature** (Track C #9). After the dashboard study (confirms admin vs user-only plumbing).
-5. **Backend security lockdown** (Track B — see `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`).
-   Folds into the dashboard server work.
-6. **Final cross-device QA pass** + remaining Track E items (incl. iPad-mini header layout +
-   legacy-iPhone data-loading stalls) before release.
+5. **Phase 12 — Track B lockdown** (launch gate). After remaining product phases, before
+   full-platform QA. Functions + client first; keep old rules up; prove Apply/Hire/Accept;
+   then lock rules. See `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`. Do not mark
+   V1 complete until this ships.
+6. **Final cross-device / full-platform QA pass** + remaining Track E items (incl. iPad-mini
+   header layout + legacy-iPhone data-loading stalls) **after Phase 12**, before release.
 7. **Privacy + Terms rewrite** + **in-app account deletion** (BUILD_PLAN deferred backlog — Meta/user
    facing).
 

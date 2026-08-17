@@ -1,7 +1,7 @@
 # Notifications & Applications — Security Lockdown Scope
 
-> Status: **Groundwork done · Full lockdown DEFERRED to the Admin/backend pass**
-> Last updated: 2026-06-19
+> Status: **Groundwork done · Full lockdown is Phase 12 (launch gate)**
+> Last updated: 2026-08-17
 > READ THIS FIRST whenever notifications or application-access rules come up. It exists so
 > the full scope is known up front and we never "discover walls" mid-change again.
 >
@@ -16,14 +16,17 @@
 - The current Firestore rules let any *authenticated* user read all `applications` and all
   `notifications` (and create/update/delete notifications). This is a **moderate, non-UI,
   technical-only privacy gap** — exploitable only via direct API/dev-tools, never through the
-  app's UI. Pre-launch with test data, it is **not urgent**.
+  app's UI. That "not urgent" call was for a tester-only site. Public launch in weeks
+  makes this the **Phase 12 launch gate**, not an afterthought.
 - Tightening it is **not** a quick rule flip. The notification *delivery system* and several
   application flows are **cross-user by design** and would be denied by strict rules. Those
   pieces must move to Cloud Functions first.
 - **Notifications are already half server-side** (push + counters run on the server today), so
   finishing the move is *completing an existing architecture*, not a rewrite.
-- Decision: **defer** the lockdown and fold it into the Admin Dashboard / backend build, which
-  already requires server functions. Keep the additive `gigOwnerId` groundwork (already shipped).
+- Decision **updated 2026-08-17:** this is **Phase 12**, the last build before full-platform
+  QA and public launch. Do remaining product phases first. Ship functions + client while
+  rules stay loose; prove Apply/Hire/Accept; then lock rules; then full QA. Do not mark
+  V1 complete until Phase 12 ships. Keep the additive `gigOwnerId` groundwork (already shipped).
 
 ---
 
