@@ -3880,8 +3880,21 @@ function confirmResolveSupportTicket(ticketId) {
         async () => {
             if (supportActionInFlight) return;
             supportActionInFlight = true;
-            const result = await window.resolveSupportRequest(ticketId);
-            supportActionInFlight = false;
+            const hourglass = document.getElementById('supportResolveHourglass');
+            if (hourglass) {
+                hourglass.classList.add('is-visible');
+                hourglass.setAttribute('aria-hidden', 'false');
+            }
+            let result = { success: false };
+            try {
+                result = await window.resolveSupportRequest(ticketId);
+            } finally {
+                supportActionInFlight = false;
+                if (hourglass) {
+                    hourglass.classList.remove('is-visible');
+                    hourglass.setAttribute('aria-hidden', 'true');
+                }
+            }
             if (result.success) {
                 showToast('Ticket marked as resolved', 'success', 2000);
                 closeSupportDetail();

@@ -1841,6 +1841,11 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 .send-hourglass-overlay.is-visible {
     display: flex;
 }
+
+#supportResolveHourglass {
+    position: fixed;
+    z-index: 10050;
+}
 .send-hourglass-icon {
     display: inline-block;
     font-size: 3rem;

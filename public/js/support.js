@@ -1016,6 +1016,7 @@ const SUPPORT_RESPONSES_STREAM_STATE = {
     messages: [],
     started: false,
     hasSnapshot: false,
+    serverSnapshotSeen: false,
     limit: 50
 };
 const ALERTS_LOAD_STATE = {
@@ -1048,6 +1049,7 @@ function resetSupportResponsesStreamState() {
     SUPPORT_RESPONSES_STREAM_STATE.messages = [];
     SUPPORT_RESPONSES_STREAM_STATE.started = false;
     SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = false;
+    SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = false;
 }
 
 function stopSupportResponsesRealtimeStream(reason = 'unspecified') {
@@ -10160,20 +10162,23 @@ async function findOpenSupportTicket(topicCode) {
 
 window.findOpenSupportTicket = findOpenSupportTicket;
 
+async function waitForSupportServerSnapshot(timeoutMs = 4000) {
+    if (SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen) return;
+    try {
+        await ensureSupportResponsesRealtimeStream();
+    } catch (_) { /* ignore */ }
+    const deadline = Date.now() + timeoutMs;
+    while (!SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 80));
+    }
+}
+
 async function findSupportTicketMessageById(ticketId) {
     const safeId = String(ticketId || '').trim();
     if (!safeId) return null;
     const pick = (messages) => (Array.isArray(messages) ? messages : [])
         .find((msg) => String(msg.supportRequestId || '') === safeId) || null;
-    const existing = pick(SUPPORT_RESPONSES_STREAM_STATE.messages);
-    if (existing) return existing;
-    try {
-        await ensureSupportResponsesRealtimeStream();
-    } catch (_) { /* ignore */ }
-    const deadline = Date.now() + 2500;
-    while (!SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot && Date.now() < deadline) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    await waitForSupportServerSnapshot();
     return pick(SUPPORT_RESPONSES_STREAM_STATE.messages);
 }
 
@@ -10301,6 +10306,9 @@ async function ensureSupportResponsesRealtimeStream() {
 
             SUPPORT_RESPONSES_STREAM_STATE.messages = supportMessages;
             SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
+            if (!snapshot.metadata.fromCache) {
+                SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = true;
+            }
 
             const filteringSystem = window.unifiedFilteringSystem;
             if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
@@ -10310,6 +10318,14 @@ async function ensureSupportResponsesRealtimeStream() {
             }
             updateMainMessagesTabCount();
             updateInboxTabCounts('unified');
+
+            if (currentlyOpenMessage && currentlyOpenRole === 'unified') {
+                const updated = supportMessages.find((msg) => msg.id === currentlyOpenMessage.id);
+                if (updated) {
+                    currentlyOpenMessage = updated;
+                    refreshCurrentMessageDisplay(updated, 'unified');
+                }
+            }
         }, (error) => {
             console.error('❌ Support responses stream error:', error);
             stopSupportResponsesRealtimeStream('snapshot_error');
@@ -10493,11 +10509,14 @@ function getTopicLabel(topicOrCategory, isPublic = false) {
 // Format timestamp to relative time
 function formatTimeAgo(timestamp) {
     const now = new Date();
-    const diff = now - new Date(timestamp);
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
+    const parsed = new Date(timestamp);
+    const diff = Number.isNaN(parsed.getTime()) ? 0 : (now - parsed);
+    const minutes = Math.floor(Math.max(0, diff) / 60000);
+    const hours = Math.floor(Math.max(0, diff) / 3600000);
+    const days = Math.floor(Math.max(0, diff) / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes === 1) return '1 minute ago';
     if (minutes < 60) return `${minutes} minutes ago`;
     if (hours < 24) return `${hours} hours ago`;
     if (days === 1) return 'Yesterday';

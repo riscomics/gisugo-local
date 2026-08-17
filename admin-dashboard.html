@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=15">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=16">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2181,6 +2181,9 @@
 
             <!-- Messages Management Section -->
             <section id="messages" class="content-section">
+                <div class="send-hourglass-overlay" id="supportResolveHourglass" aria-hidden="true">
+                    <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                </div>
                 <div class="section-header">
                     <h1 class="section-title">Messages</h1>
                     <p class="section-subtitle">Manage customer inquiries and Promotions</p>
@@ -3831,7 +3834,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=11"></script>
+    <script src="public/js/admin-dashboard.js?v=12"></script>
     
     
 </body>
