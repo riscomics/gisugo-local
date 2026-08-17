@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=13">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=15">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -17,39 +17,220 @@
         #adminAuthGateOverlay {
             position: fixed;
             inset: 0;
-            background: #0f1419;
+            background:
+                radial-gradient(ellipse 70% 55% at 50% 42%, rgba(26, 58, 92, 0.45) 0%, transparent 62%),
+                linear-gradient(180deg, #070b12 0%, #0c1522 55%, #070b12 100%);
             color: #e6d6ae;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             z-index: 99999;
+            overflow: hidden;
         }
         body:not(.admin-auth-pending) #adminAuthGateOverlay {
             display: none;
         }
-        #adminAuthGateOverlay .gate-box { max-width: 360px; padding: 24px; }
-        #adminAuthGateOverlay h2 { margin: 0 0 8px; font-size: 20px; }
-        #adminAuthGateOverlay p { margin: 0 0 16px; opacity: 0.75; font-size: 14px; }
+        #adminAuthGateOverlay .jarvis-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: radial-gradient(circle at 50% 45%, #000 20%, transparent 72%);
+            pointer-events: none;
+        }
+        #adminAuthGateOverlay .jarvis-scan {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 18%;
+            background: linear-gradient(180deg, transparent, rgba(79, 210, 255, 0.08), transparent);
+            animation: jarvisScan 3.4s linear infinite;
+            pointer-events: none;
+        }
+        #adminAuthGateOverlay .gate-box {
+            position: relative;
+            z-index: 1;
+            max-width: 420px;
+            padding: 28px 24px 32px;
+        }
+        #adminAuthGateOverlay .gate-caption {
+            display: block;
+            width: min(280px, 72vw);
+            height: auto;
+            margin: 0 auto 40px;
+            opacity: 0.55;
+        }
+        #adminAuthGateOverlay .jarvis-rings {
+            position: relative;
+            width: 168px;
+            height: 168px;
+            margin: 0 auto 40px;
+        }
+        #adminAuthGateOverlay .jarvis-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid rgba(79, 210, 255, 0.28);
+            box-shadow: 0 0 18px rgba(79, 210, 255, 0.12), inset 0 0 18px rgba(79, 210, 255, 0.08);
+        }
+        #adminAuthGateOverlay .jarvis-ring.r1 {
+            border-top-color: #4fd2ff;
+            border-right-color: rgba(230, 214, 174, 0.7);
+            animation: jarvisSpin 4s linear infinite;
+        }
+        #adminAuthGateOverlay .jarvis-ring.r2 {
+            inset: 16px;
+            border-style: dashed;
+            border-color: rgba(230, 214, 174, 0.35);
+            border-left-color: #e6d6ae;
+            animation: jarvisSpin 7s linear infinite reverse;
+        }
+        #adminAuthGateOverlay .jarvis-ring.r3 {
+            inset: 34px;
+            border-bottom-color: #4fd2ff;
+            animation: jarvisSpin 2.6s linear infinite;
+        }
+        #adminAuthGateOverlay .jarvis-core {
+            position: absolute;
+            inset: 58px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #7ae0ff 0%, #1a6fa8 42%, #0b1c2c 72%);
+            box-shadow: 0 0 28px rgba(79, 210, 255, 0.55), inset 0 0 10px rgba(255, 255, 255, 0.25);
+            animation: jarvisPulse 1.6s ease-in-out infinite;
+        }
+        #adminAuthGateOverlay .gate-brand {
+            margin: 0 0 10px;
+            color: #e6d6ae;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            text-shadow: 0 0 18px rgba(230, 214, 174, 0.35);
+        }
+        #adminAuthGateOverlay:not(.is-denied) h2 {
+            display: none;
+        }
+        #adminAuthGateOverlay h2 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #7ae0ff;
+        }
+        #adminAuthGateOverlay p {
+            margin: 0 0 12px;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            color: #e6d6ae;
+            animation: jarvisTextPulse 1.6s ease-in-out infinite;
+        }
+        #adminAuthGateOverlay .jarvis-progress {
+            width: min(240px, 70vw);
+            height: 8px;
+            margin: 0 auto 18px;
+            position: relative;
+            background: rgba(79, 210, 255, 0.08);
+            border: 1px solid rgba(79, 210, 255, 0.4);
+            box-shadow: 0 0 12px rgba(79, 210, 255, 0.18), inset 0 0 8px rgba(79, 210, 255, 0.08);
+            overflow: hidden;
+        }
+        #adminAuthGateOverlay .jarvis-progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #125a86 0%, #4fd2ff 55%, #e6d6ae 100%);
+            box-shadow: 0 0 10px rgba(79, 210, 255, 0.75);
+            animation: jarvisProgress 2s linear forwards;
+        }
+        #adminAuthGateOverlay .jarvis-progress::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent 0,
+                transparent 7px,
+                rgba(7, 11, 18, 0.55) 7px,
+                rgba(7, 11, 18, 0.55) 8px
+            );
+            pointer-events: none;
+        }
         #adminAuthGateAction {
             display: none;
-            color: #6cb6ff;
+            color: #7ae0ff;
             font-size: 14px;
             text-decoration: none;
-            border: 1px solid #6cb6ff;
+            border: 1px solid rgba(122, 224, 255, 0.55);
             border-radius: 6px;
             padding: 8px 16px;
         }
-        #adminAuthGateAction:hover { background: rgba(108, 182, 255, 0.12); }
+        #adminAuthGateAction:hover { background: rgba(122, 224, 255, 0.12); }
+        #adminAuthGateOverlay.is-denied .jarvis-progress {
+            display: none;
+        }
+        #adminAuthGateOverlay.is-denied .jarvis-ring,
+        #adminAuthGateOverlay.is-denied .jarvis-core,
+        #adminAuthGateOverlay.is-denied .jarvis-scan,
+        #adminAuthGateOverlay.is-denied p {
+            animation-play-state: paused;
+        }
+        #adminAuthGateOverlay.is-denied p {
+            opacity: 0.78;
+        }
+        #adminAuthGateOverlay.is-denied .jarvis-core {
+            background: radial-gradient(circle, #ffb4a8 0%, #8a2a2a 48%, #2c0b0b 74%);
+            box-shadow: 0 0 24px rgba(255, 77, 77, 0.45);
+        }
+        #adminAuthGateOverlay.is-denied h2 { color: #ff8a80; }
+        @keyframes jarvisSpin { to { transform: rotate(360deg); } }
+        @keyframes jarvisPulse {
+            0%, 100% { transform: scale(0.92); opacity: 0.85; }
+            50% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes jarvisTextPulse {
+            0%, 100% { opacity: 0.28; }
+            50% { opacity: 0.78; }
+        }
+        @keyframes jarvisScan {
+            0% { top: -18%; }
+            100% { top: 100%; }
+        }
+        @keyframes jarvisProgress {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #adminAuthGateOverlay .jarvis-ring,
+            #adminAuthGateOverlay .jarvis-core,
+            #adminAuthGateOverlay .jarvis-scan,
+            #adminAuthGateOverlay p { animation: none; }
+            #adminAuthGateOverlay .jarvis-progress-fill { animation: none; width: 100%; }
+        }
     </style>
 </head>
 <body class="admin-dashboard admin-auth-pending">
     <!-- Shown while access is being verified, or if access is denied -->
     <div id="adminAuthGateOverlay">
+        <div class="jarvis-grid" aria-hidden="true"></div>
+        <div class="jarvis-scan" aria-hidden="true"></div>
         <div class="gate-box">
+            <img class="gate-caption" src="public/images/gisugo-title.png" alt="GISUGO">
+            <div class="jarvis-rings" aria-hidden="true">
+                <span class="jarvis-ring r1"></span>
+                <span class="jarvis-ring r2"></span>
+                <span class="jarvis-ring r3"></span>
+                <span class="jarvis-core"></span>
+            </div>
+            <div class="gate-brand">ADMIN DASHBOARD</div>
             <h2 id="adminAuthGateTitle">Checking access&hellip;</h2>
-            <p id="adminAuthGateMessage">Please wait.</p>
+            <p id="adminAuthGateMessage">Checking Access</p>
+            <div class="jarvis-progress" aria-hidden="true">
+                <div class="jarvis-progress-fill"></div>
+            </div>
             <a id="adminAuthGateAction" href="index.html">Return to GISUGO</a>
         </div>
     </div>
@@ -3647,7 +3828,7 @@
 
     <!-- Access gate: must run and confirm admin access before the dashboard
          below is allowed to become visible/interactive. -->
-    <script src="public/js/admin-auth-gate.js?v=2"></script>
+    <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js?v=11"></script>

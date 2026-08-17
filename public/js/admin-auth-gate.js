@@ -20,23 +20,61 @@
 (function () {
   'use strict';
 
+  var MIN_SPLASH_MS = 2000;
+  var splashStartedAt = Date.now();
+  var overviewSettleTimer = null;
+  var overviewSettleBound = false;
+
+  function waitForMinSplash() {
+    var remaining = Math.max(0, MIN_SPLASH_MS - (Date.now() - splashStartedAt));
+    return new Promise(function (resolve) { setTimeout(resolve, remaining); });
+  }
+
+  function settleOverviewTiles() {
+    if (overviewSettleTimer) {
+      clearTimeout(overviewSettleTimer);
+      overviewSettleTimer = null;
+    }
+    document.body.classList.add('overview-tiles-settled');
+  }
+
+  function armOverviewTileSettle() {
+    if (overviewSettleBound) return;
+    overviewSettleBound = true;
+    var lastTile = document.getElementById('trafficCostsCard');
+    function onEnd(event) {
+      if (event.animationName && event.animationName !== 'overviewTileIn') return;
+      if (lastTile) lastTile.removeEventListener('animationend', onEnd);
+      settleOverviewTiles();
+    }
+    if (lastTile) lastTile.addEventListener('animationend', onEnd);
+    overviewSettleTimer = setTimeout(function () {
+      if (lastTile) lastTile.removeEventListener('animationend', onEnd);
+      settleOverviewTiles();
+    }, 2500);
+  }
+
   function showGate(title, message, showReturnLink) {
+    var overlay = document.getElementById('adminAuthGateOverlay');
     var titleEl = document.getElementById('adminAuthGateTitle');
     var msgEl = document.getElementById('adminAuthGateMessage');
     var actionEl = document.getElementById('adminAuthGateAction');
+    if (overlay) overlay.classList.add('is-denied');
     if (titleEl) titleEl.textContent = title;
     if (msgEl) msgEl.textContent = message;
     if (actionEl) actionEl.style.display = showReturnLink ? 'inline-block' : 'none';
   }
 
-  function revealDashboard(adminRecord, user) {
+  async function revealDashboard(adminRecord, user) {
     window.currentAdmin = {
       uid: user.uid,
       role: (adminRecord && adminRecord.role) || 'super_admin',
       name: (user.displayName || '').trim() || 'Admin'
     };
 
+    await waitForMinSplash();
     document.body.classList.remove('admin-auth-pending');
+    armOverviewTileSettle();
 
     // Reflect the real signed-in admin instead of the hardcoded mock name.
     var nameEl = document.querySelector('.admin-name');
@@ -64,6 +102,7 @@
     }
 
     if (!user) {
+      await waitForMinSplash();
       window.location.href = 'login.html?redirect=admin-dashboard.html';
       return;
     }
@@ -93,6 +132,7 @@
 
       if (!adminDoc.exists) {
         console.warn('⚠️ Access denied for uid:', user.uid);
+        await waitForMinSplash();
         showGate(
           'Access denied',
           'This account does not have admin access. Contact the primary administrator if you believe this is a mistake.',
@@ -101,9 +141,10 @@
         return;
       }
 
-      revealDashboard(adminDoc.data(), user);
+      await revealDashboard(adminDoc.data(), user);
     } catch (error) {
       console.error('❌ Admin access check failed:', error);
+      await waitForMinSplash();
       showGate('Access check failed', 'Could not verify admin access. Refresh the page or try again later.', true);
     }
   }
