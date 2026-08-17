@@ -23,7 +23,7 @@ body::-webkit-scrollbar,
 
 body.admin-dashboard {
     font-family: Arial, Helvetica, sans-serif;
-    background-color: #2d3748;
+    background-color: #141b24;
     color: #e6d6ae;
     line-height: 1.6;
     /* Hide main scrollbar but keep functionality */
@@ -43,8 +43,9 @@ body.admin-dashboard::-webkit-scrollbar {
     left: 0;
     right: 0;
     height: 70px;
-    background: #1a202c;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(180deg, #1a2430 0%, #141c26 100%);
+    border-bottom: 4px solid #0ea5e9;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 12px rgba(14, 165, 233, 0.35);
     z-index: 1000;
 }
 
@@ -91,23 +92,24 @@ body.admin-dashboard::-webkit-scrollbar {
     width: 100%;
     height: 42px;
     padding: 0 3rem 0 1rem;
-    border: none;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 21px;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+    background: rgba(15, 23, 42, 0.72);
+    color: #f5edd4;
     font-size: 0.95rem;
     backdrop-filter: blur(10px);
     transition: all 0.3s ease;
 }
 
 .search-input::placeholder {
-    color: rgba(255, 255, 255, 0.7);
+    color: #94a3b8;
 }
 
 .search-input:focus {
     outline: none;
-    background: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(16, 185, 129, 0.55);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.22);
 }
 
 
@@ -124,16 +126,19 @@ body.admin-dashboard::-webkit-scrollbar {
     height: 44px;
     border: none;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(230, 214, 174, 0.22);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .notification-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(230, 214, 174, 0.4);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
 .notification-btn img {
@@ -171,20 +176,20 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .admin-profile:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
 }
 
 .admin-avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid rgba(230, 214, 174, 0.4);
     object-fit: cover;
     object-position: center;
 }
 
 .admin-name {
-    color: white;
+    color: #f5edd4;
     font-weight: 500;
     font-size: 0.95rem;
 }
@@ -193,10 +198,10 @@ body.admin-dashboard::-webkit-scrollbar {
     position: absolute;
     top: calc(100% + 0.5rem);
     right: 0;
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     min-width: 150px;
     opacity: 0;
     visibility: hidden;
@@ -245,9 +250,9 @@ body.admin-dashboard::-webkit-scrollbar {
 /* ===== SIDEBAR NAVIGATION ===== */
 .admin-sidebar {
     width: 280px;
-    background: #363f4f;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(180deg, #1a2430 0%, #141c26 100%);
+    border-right: 1px solid rgba(230, 214, 174, 0.22);
+    box-shadow: 2px 0 18px rgba(0, 0, 0, 0.4);
     position: fixed;
     left: 0;
     top: 70px;
@@ -282,7 +287,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Sidebar Header */
 .sidebar-header {
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     justify-content: flex-end;
 }
@@ -305,7 +310,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .sidebar-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
 }
 
 .toggle-icon {
@@ -325,19 +330,20 @@ body.admin-dashboard::-webkit-scrollbar {
     transition: all 0.3s ease;
     border-left: 4px solid transparent;
     margin: 0.25rem 0;
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .menu-item:hover {
-    background: #4a5568;
+    background: linear-gradient(135deg, #3a4556 0%, #2c3544 100%);
     border-left-color: #10b981;
-    color: #e6d6ae;
+    color: #f5edd4;
 }
 
 .menu-item.active {
-    background: #2d3748;
-    border-left-color: #10b981;
-    color: #e6d6ae;
+    background: linear-gradient(135deg, #2f3d3a 0%, #1c2824 100%);
+    border-left-color: #34d399;
+    color: #f5edd4;
+    box-shadow: inset 0 1px 0 rgba(110, 231, 183, 0.08);
 }
 
 .menu-icon {
@@ -394,7 +400,7 @@ body.admin-dashboard::-webkit-scrollbar {
     flex: 1;
     margin-left: 280px;
     padding: 2rem;
-    background: #2d3748;
+    background: #141b24;
     box-sizing: border-box;
     transition: margin-left 0.3s ease;
 }
@@ -425,7 +431,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .section-subtitle {
     font-size: 1.1rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-weight: 400;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -475,11 +481,11 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .stat-card {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     padding: 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -488,8 +494,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(160deg, #323d52 0%, #243041 55%, #1f2a38 100%);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    border-color: rgba(230, 214, 174, 0.45);
 }
 
 .stat-icon {
@@ -519,7 +526,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .stat-label {
     font-size: 0.9rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-weight: 500;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -533,11 +540,11 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .dashboard-card {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     padding: 1.5rem;
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .card-title {
@@ -546,7 +553,7 @@ body.admin-dashboard::-webkit-scrollbar {
     color: #e6d6ae;
     margin-bottom: 1.5rem;
     padding-bottom: 0.75rem;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(230, 214, 174, 0.28);
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -562,9 +569,9 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -577,7 +584,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 50%;
     flex-shrink: 0;
 }
@@ -595,7 +602,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .activity-time {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -681,7 +688,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .analytics-section {
     margin-bottom: 1.5rem;
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .analytics-section:last-child {
@@ -693,7 +700,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .section-subtitle-small {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.75rem;
@@ -707,16 +714,16 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .analytics-item {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     text-align: center;
 }
 
 .analytics-label {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -759,7 +766,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .browser-bar-container {
     height: 20px;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 10px;
     overflow: hidden;
 }
@@ -783,10 +790,10 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .peak-hour-badge {
@@ -813,13 +820,13 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.75rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
 }
 
 .ratio-label {
     font-size: 0.9rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -841,10 +848,10 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .storage-icon {
@@ -858,7 +865,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .storage-label {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.25rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -890,9 +897,9 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .traffic-row.cost-estimate {
@@ -935,9 +942,9 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     gap: 1.5rem;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .storage-icon-large {
@@ -951,7 +958,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .storage-main-label {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -974,7 +981,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .storage-progress-bar {
     width: 100%;
     height: 8px;
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 4px;
     overflow: hidden;
 }
@@ -998,9 +1005,9 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .traffic-compact-item.cost-highlight {
@@ -1019,7 +1026,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .traffic-compact-label {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.25rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -1098,7 +1105,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .peak-count {
     font-size: 1.1rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1113,14 +1120,14 @@ body.admin-dashboard::-webkit-scrollbar {
     flex-direction: column;
     gap: 0.5rem;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .peak-secondary-label {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1143,9 +1150,9 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .growth-label {
@@ -1173,9 +1180,9 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .trend-label {
@@ -1209,10 +1216,10 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: center;
     text-align: center;
     padding: 3rem 2rem;
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .placeholder-icon {
@@ -1238,11 +1245,11 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .placeholder-content li {
     font-size: 1rem;
-    color: #a0aec0;
+    color: #94a3b8;
     padding: 0.5rem 1rem;
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1254,16 +1261,16 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-category {
-    background: #363f4f;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 12px;
     overflow: hidden;
 }
 
 .category-header {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
@@ -1273,7 +1280,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .category-header:hover {
-    background: #374151;
+    background: #323d52;
 }
 
 .category-header-text {
@@ -1335,7 +1342,7 @@ body.admin-dashboard::-webkit-scrollbar {
     padding: 1rem;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     transition: all 0.2s ease;
 }
 
@@ -1387,10 +1394,10 @@ body.admin-dashboard::-webkit-scrollbar {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #4a5568;
+    background-color: #3a4556;
     transition: 0.3s;
     border-radius: 28px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .toggle-slider:before {
@@ -1456,8 +1463,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .setting-input,
 .setting-select {
     padding: 0.5rem 0.75rem;
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-size: 0.95rem;
@@ -1475,8 +1482,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .setting-textarea {
     padding: 0.75rem;
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-size: 0.95rem;
@@ -1542,7 +1549,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-confirm-dialog {
-    background: #1a202c;
+    background: #0f1419;
     border: 1px solid rgba(16, 185, 129, 0.3);
     border-radius: 12px;
     padding: 2rem;
@@ -1600,12 +1607,13 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-confirm-btn.cancel {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     color: rgba(230, 214, 174, 0.9);
 }
 
 .settings-confirm-btn.cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(148, 163, 184, 0.2);
+    border-color: rgba(230, 214, 174, 0.35);
 }
 
 @keyframes slideUp {
@@ -1632,13 +1640,13 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-reset-btn {
-    background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+    background: linear-gradient(135deg, #3a4556 0%, #2c3544 100%);
     color: white;
     box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
 }
 
 .settings-reset-btn:hover {
-    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    background: linear-gradient(135deg, #455266 0%, #343e50 100%);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(113, 128, 150, 0.4);
 }
@@ -1859,7 +1867,7 @@ body.admin-dashboard::-webkit-scrollbar {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #374151;
+    background: #323d52;
     border-radius: 32px;
     transition: all 0.3s ease;
 }
@@ -1890,7 +1898,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     gap: 2rem;
     padding-top: 0.75rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .status-item {
@@ -1911,7 +1919,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .dev-tools-divider {
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     margin: 1.5rem 0;
 }
 
@@ -2024,7 +2032,7 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .inbox-controls {
@@ -2049,8 +2057,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .search-input-small {
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 4px;
     padding: 0.4rem 0.6rem;
     color: #e6d6ae;
@@ -2066,12 +2074,12 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .search-input-small::placeholder {
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .search-btn-small {
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 4px;
     padding: 0.4rem 0.6rem;
     color: #e6d6ae;
@@ -2081,14 +2089,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .search-btn-small:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .inbox-tab-btn {
     padding: 0.6rem 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: #4a5568;
-    color: #a0aec0;
+    border: 1px solid rgba(230, 214, 174, 0.28);
+    background: #3a4556;
+    color: #94a3b8;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2110,13 +2118,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .inbox-tab-btn.active {
-    background: #10b981;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    border-color: #10b981;
+    border-color: rgba(167, 243, 208, 0.45);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
 .inbox-tab-btn:hover:not(.active) {
-    background: #5a6578;
+    background: #455266;
     color: #e6d6ae;
 }
 
@@ -2131,7 +2140,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Compose Public Message Button */
 .compose-btn {
     padding: 0.6rem 0.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     background: #10b981;
     color: white;
     border-radius: 4px;
@@ -2164,15 +2173,15 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .monitor-note {
     font-size: 0.8rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-style: italic;
 }
 
 /* ===== LEFT PANEL: Customer Support Inbox ===== */
 .messages-left-panel {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -2181,14 +2190,14 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .topic-filter {
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .topic-dropdown {
     width: 100%;
     padding: 0.75rem;
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -2213,28 +2222,28 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .messages-list-container::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 3px;
 }
 
 .messages-list-container::-webkit-scrollbar-thumb {
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 3px;
 }
 
 .messages-list-container::-webkit-scrollbar-thumb:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 /* ===== LAZY LOADING PAGINATION ===== */
 .messages-pagination {
     padding: 1rem;
     text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .load-more-btn {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
     border: none;
     padding: 0.75rem 1.5rem;
@@ -2246,18 +2255,18 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .load-more-btn:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .load-more-btn:disabled {
-    background: #2d3748;
+    background: #1a222e;
     color: #718096;
     cursor: not-allowed;
 }
 
 .loading-indicator {
     display: none;
-    color: #a0aec0;
+    color: #94a3b8;
     font-style: italic;
     padding: 1rem;
     text-align: center;
@@ -2270,7 +2279,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .messages-stats {
     margin-top: 0.5rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -2280,8 +2289,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .customer-message-item {
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 8px;
     margin-bottom: 0.75rem;
     padding: 0;
@@ -2293,8 +2302,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .customer-message-item:hover {
-    background: #4a5568;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border-color: rgba(230, 214, 174, 0.28);
 }
 
 .customer-message-item.unread {
@@ -2303,7 +2312,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 
 .customer-message-item.selected {
-    background: #4a5568;
+    background: #3a4556;
     border-color: #10b981;
 }
 
@@ -2328,7 +2337,7 @@ body.admin-dashboard::-webkit-scrollbar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .sender-info {
@@ -2345,7 +2354,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .sender-email {
     font-size: 0.8rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2358,7 +2367,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .message-time {
     font-size: 0.75rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2414,7 +2423,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .message-excerpt {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     line-height: 1.4;
     display: -webkit-box;
@@ -2441,9 +2450,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== CENTER PANEL: Message Detail & Reply ===== */
 .messages-center-panel {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     flex-direction: column;
     overflow: hidden; /* Prevent container overflow */
@@ -2459,7 +2468,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .no-message-selected {
     text-align: center;
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .no-message-icon {
@@ -2501,17 +2510,17 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .message-content-inner::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 3px;
 }
 
 .message-content-inner::-webkit-scrollbar-thumb {
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 3px;
 }
 
 .message-content-inner::-webkit-scrollbar-thumb:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 /* Custom scrollbar for message content */
@@ -2520,17 +2529,17 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .message-content::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 3px;
 }
 
 .message-content::-webkit-scrollbar-thumb {
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 3px;
 }
 
 .message-content::-webkit-scrollbar-thumb:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 /* ===== FIXED MESSAGE HEADER ===== */
@@ -2539,8 +2548,8 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: flex-start;
     padding: 1.5rem 1.5rem 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: #363f4f; /* Match panel background */
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%); /* Match panel background */
     flex-shrink: 0; /* Don't shrink */
     margin-bottom: 0.5rem; /* Reduced spacing */
 }
@@ -2564,7 +2573,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .sent-header-row-2 .message-detail-time {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.85rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -2608,7 +2617,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .sent-message-header .message-action-btn.close-btn:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .detail-sender {
@@ -2621,7 +2630,7 @@ body.admin-dashboard::-webkit-scrollbar {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .detail-sender-name {
@@ -2633,14 +2642,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .detail-sender-email {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.9rem;
     margin-bottom: 0.25rem;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 .detail-message-time {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.85rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -2707,7 +2716,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .detail-close-btn:hover {
-    background: #4a5568;
+    background: #3a4556;
 }
 
 .detail-subject {
@@ -2719,7 +2728,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .detail-message-text {
-    color: #a0aec0;
+    color: #94a3b8;
     line-height: 1.6;
     margin-bottom: 1.5rem;
     font-family: Arial, Helvetica, sans-serif;
@@ -2727,8 +2736,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== ATTACHMENT FOOTER ===== */
 .detail-attachment {
-    background: #2d3748; /* Darker footer background */
-    border-top: 1px solid rgba(255, 255, 255, 0.1); /* Top border only */
+    background: #1a222e; /* Darker footer background */
+    border-top: 1px solid rgba(230, 214, 174, 0.28); /* Top border only */
     border-radius: 0; /* Remove border radius for footer */
     padding: 1rem 1.5rem; /* Match panel padding */
     margin: 0; /* Remove margins */
@@ -2753,11 +2762,11 @@ body.admin-dashboard::-webkit-scrollbar {
     height: 60px;
     object-fit: cover;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .attachment-name {
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2784,9 +2793,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-modal {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
@@ -2797,9 +2806,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-modal-header {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -2815,7 +2824,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .reply-modal-close {
     background: none;
     border: none;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -2829,7 +2838,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     color: #e6d6ae;
 }
 
@@ -2852,8 +2861,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .reply-form-textarea {
     width: 100%;
     min-height: 120px;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     padding: 1rem;
     color: #e6d6ae;
@@ -2868,7 +2877,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-form-textarea::placeholder {
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .reply-attachment-upload {
@@ -2876,9 +2885,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-upload-btn {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     padding: 0.75rem 1rem;
     cursor: pointer;
@@ -2890,7 +2899,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-upload-btn:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .reply-photo-preview {
@@ -2935,14 +2944,14 @@ body.admin-dashboard::-webkit-scrollbar {
 .reply-photo-hint {
     display: block;
     margin-top: 0.5rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.75rem;
 }
 
 .reply-modal-footer {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
@@ -2959,12 +2968,12 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .reply-modal-btn.cancel {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
 }
 
 .reply-modal-btn.cancel:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .reply-modal-btn.send {
@@ -2999,9 +3008,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-message-modal {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
@@ -3012,9 +3021,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-message-header {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -3030,7 +3039,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .public-message-close {
     background: none;
     border: none;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -3044,7 +3053,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-message-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     color: #e6d6ae;
 }
 
@@ -3069,8 +3078,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .public-category-select {
     width: 100%;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     padding: 0.75rem;
     color: #e6d6ae;
@@ -3086,8 +3095,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .public-subject-input {
     width: 100%;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     padding: 0.75rem;
     color: #e6d6ae;
@@ -3102,14 +3111,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-subject-input::placeholder {
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .public-message-textarea {
     width: 100%;
     min-height: 150px;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     padding: 1rem;
     color: #e6d6ae;
@@ -3124,22 +3133,22 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-message-textarea::placeholder {
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .char-counter {
     display: block;
     text-align: right;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.85rem;
     margin-top: 0.25rem;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 .public-message-footer {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
@@ -3156,12 +3165,12 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .public-modal-btn.cancel {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
 }
 
 .public-modal-btn.cancel:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .public-modal-btn.send {
@@ -3177,7 +3186,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .message-actions {
     margin-top: 2rem;
     padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     gap: 1rem;
     justify-content: flex-start;
@@ -3238,8 +3247,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Left Panel: Chat List */
 .user-chats-left-panel {
-    background: #363f4f;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 8px;
     padding: 1.5rem;
     display: flex;
@@ -3254,7 +3263,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     gap: 0.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .chat-category-btn {
@@ -3296,7 +3305,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .chat-category-btn.active .category-count {
     background: #10b981;
-    color: #1a202c;
+    color: #0f1419;
 }
 
 /* Search Bar */
@@ -3308,7 +3317,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .chat-search-input {
     flex: 1;
     background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
     padding: 0.75rem 1rem;
     color: #e6d6ae;
@@ -3342,7 +3351,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Chat Item Card */
 .chat-item-card {
     background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 10px;
     padding: 1rem;
     cursor: pointer;
@@ -3449,8 +3458,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Right Panel: Chat Details Window */
 .user-chats-right-panel {
-    background: #363f4f;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 8px;
     overflow: hidden;
     height: 100%;
@@ -3481,8 +3490,8 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Chat Detail Header (Fixed) */
 .chat-detail-header {
     flex-shrink: 0;
-    background: #2d3748;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     padding: 1.5rem;
 }
 
@@ -3620,8 +3629,8 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Chat Detail Footer (Fixed) */
 .chat-detail-footer {
     flex-shrink: 0;
-    background: #2d3748;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     padding: 1.5rem;
     display: flex;
     gap: 1rem;
@@ -3705,7 +3714,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .chat-action-btn.close:hover {
-    background: #5a6578;
+    background: #455266;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
 }
@@ -3734,14 +3743,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .chat-overlay-content {
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 12px;
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     overflow: hidden;
 }
@@ -4520,7 +4529,7 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .messages-left-panel .message-time {
         font-size: 0.7rem;
-        color: #a0aec0;
+        color: #94a3b8;
     }
     
     .messages-left-panel .message-attachment {
@@ -5255,14 +5264,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .overlay-content {
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 12px;
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
@@ -5271,8 +5280,8 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: flex-start;
     justify-content: space-between;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: #2d3748;
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
+    background: #1a222e;
     border-radius: 12px 12px 0 0;
     gap: 1rem;
     position: relative;
@@ -5291,7 +5300,7 @@ body.admin-dashboard::-webkit-scrollbar {
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .overlay-poster-details {
@@ -5308,7 +5317,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .overlay-posted-time {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -5349,7 +5358,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .overlay-close-btn:hover {
-    background: #4a5568;
+    background: #3a4556;
 }
 
 .overlay-body {
@@ -5367,8 +5376,8 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     gap: 1rem;
     padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: #2d3748;
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
+    background: #1a222e;
     border-radius: 0 0 12px 12px;
 }
 
@@ -5425,7 +5434,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .overlay-email-time-row .detail-timestamp {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .overlay-email-time-row .detail-attachment-icon {
@@ -5674,9 +5683,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== LEFT PANEL: Gig Navigation ===== */
 .gig-nav-panel {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -5699,9 +5708,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .gig-tab-btn {
     padding: 0.6rem 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: #4a5568;
-    color: #a0aec0;
+    border: 1px solid rgba(230, 214, 174, 0.28);
+    background: #3a4556;
+    color: #94a3b8;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -5718,13 +5727,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-tab-btn.active {
-    background: #10b981;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    border-color: #10b981;
+    border-color: rgba(167, 243, 208, 0.45);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
 }
 
 .gig-tab-btn:hover:not(.active) {
-    background: #5a6578;
+    background: #455266;
     color: #e6d6ae;
 }
 
@@ -5763,17 +5773,17 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-cards-container::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 3px;
 }
 
 .gig-cards-container::-webkit-scrollbar-thumb {
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 3px;
 }
 
 .gig-cards-container::-webkit-scrollbar-thumb:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .gig-cards-list {
@@ -5782,8 +5792,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== GIG CARD STYLING ===== */
 .gig-card {
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
     margin-bottom: 0.75rem;
     padding: 1rem;
@@ -5793,16 +5803,18 @@ body.admin-dashboard::-webkit-scrollbar {
     overflow: hidden;
     display: flex;
     gap: 1rem;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .gig-card:hover {
-    background: #4a5568;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(160deg, #323d52 0%, #243041 55%, #1f2a38 100%);
+    border-color: rgba(230, 214, 174, 0.45);
 }
 
 .gig-card.selected {
-    background: #4a5568;
-    border-color: #10b981;
+    background: linear-gradient(160deg, #2f3d3a 0%, #24322e 45%, #1c2824 100%);
+    border-color: rgba(52, 211, 153, 0.7);
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.18), 0 10px 26px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(110, 231, 183, 0.08);
 }
 
 .gig-thumbnail {
@@ -5855,7 +5867,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .gig-card-date,
 .gig-card-time {
     font-size: 0.75rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -5876,21 +5888,21 @@ body.admin-dashboard::-webkit-scrollbar {
 .gig-pagination {
     padding: 1rem;
     text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .gig-stats {
     margin-top: 0.5rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 /* ===== RIGHT PANEL: Gig Details ===== */
 .gig-detail-panel {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -5906,7 +5918,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .no-gig-selected {
     text-align: center;
-    color: #a0aec0;
+    color: #94a3b8;
 }
 
 .no-gig-icon {
@@ -5947,17 +5959,17 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-content-inner::-webkit-scrollbar-track {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 3px;
 }
 
 .gig-content-inner::-webkit-scrollbar-thumb {
-    background: #4a5568;
+    background: #3a4556;
     border-radius: 3px;
 }
 
 .gig-content-inner::-webkit-scrollbar-thumb:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 /* ===== FIXED GIG HEADER ===== */
@@ -5966,8 +5978,8 @@ body.admin-dashboard::-webkit-scrollbar {
     flex-direction: column;
     gap: 1rem;
     padding: 1.5rem 1.5rem 1rem 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: #363f4f;
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     flex-shrink: 0;
     margin-bottom: 0.5rem;
 }
@@ -6002,7 +6014,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .detail-posted-time {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.85rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6087,7 +6099,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-action-btn.close-btn:hover {
-    background: #4a5568;
+    background: #3a4556;
 }
 
 /* ===== GIG DETAIL BODY ===== */
@@ -6137,16 +6149,16 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-info-item {
-    background: #2d3748;
+    background: #1a222e;
     padding: 0.75rem;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .gig-info-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6170,7 +6182,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-description-text {
-    color: #a0aec0;
+    color: #94a3b8;
     line-height: 1.6;
     font-family: Arial, Helvetica, sans-serif;
     white-space: pre-wrap;
@@ -6187,16 +6199,16 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .gig-payment-item {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .gig-payment-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6210,8 +6222,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== GIG DETAIL FOOTER ===== */
 .gig-detail-footer {
-    background: #2d3748;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 0;
     padding: 1rem 1.5rem;
     margin: 0;
@@ -6238,7 +6250,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .no-hired-worker {
-    color: #a0aec0;
+    color: #94a3b8;
     font-style: italic;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6253,7 +6265,7 @@ body.admin-dashboard::-webkit-scrollbar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
     object-fit: cover;
 }
 
@@ -6270,7 +6282,7 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.75rem;
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .reported-by-label {
@@ -6314,7 +6326,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .report-date {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6338,7 +6350,7 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.75rem;
     margin-top: 1.5rem;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .suspended-by-label {
@@ -6382,7 +6394,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .suspend-date {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -6397,7 +6409,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Shown while gig_reports is still being fetched on demand -- reportCount
    is known immediately, the per-reporter list resolves a beat later. */
 .reported-by-loading {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.85rem;
     font-family: Arial, Helvetica, sans-serif;
     font-style: italic;
@@ -6575,9 +6587,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .confirm-modal {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     width: 100%;
     max-width: 420px;
     padding: 2rem;
@@ -6625,7 +6637,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .confirm-message {
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.95rem;
     line-height: 1.6;
     margin-bottom: 2rem;
@@ -6679,8 +6691,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .confirm-form-textarea {
     width: 100%;
     padding: 0.75rem;
-    background: #1a202c;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0f1419;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -6724,7 +6736,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .confirm-btn.cancel-btn {
-    background: #4a5568;
+    background: #3a4556;
     color: #f7fafc;
 }
 
@@ -6835,9 +6847,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-gig-modal {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     width: 90%;
     max-width: 500px;
     max-height: 80vh;
@@ -6848,9 +6860,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-gig-header {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -6867,7 +6879,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .contact-gig-close {
     background: none;
     border: none;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -6881,7 +6893,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-gig-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     color: #e6d6ae;
 }
 
@@ -6905,8 +6917,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .contact-recipient-select {
     width: 100%;
     padding: 0.75rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -6923,8 +6935,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .contact-subject-input {
     width: 100%;
     padding: 0.75rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -6944,8 +6956,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .contact-message-input {
     width: 100%;
     padding: 0.75rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -6975,8 +6987,8 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -6987,7 +6999,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-attach-btn:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .attach-icon {
@@ -7004,7 +7016,7 @@ body.admin-dashboard::-webkit-scrollbar {
     max-width: 200px;
     max-height: 200px;
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     object-fit: cover;
 }
 
@@ -7031,9 +7043,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-gig-footer {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
@@ -7050,12 +7062,12 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-modal-btn.cancel {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
 }
 
 .contact-modal-btn.cancel:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .contact-modal-btn.send {
@@ -7113,7 +7125,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .reply-thread .thread-title {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #374151;
+    color: #323d52;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
@@ -7174,7 +7186,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .author-name {
     font-weight: 600;
     font-size: 0.875rem;
-    color: #374151;
+    color: #323d52;
 }
 
 .reply-time {
@@ -7184,7 +7196,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .reply-content {
     line-height: 1.6;
-    color: #374151;
+    color: #323d52;
     font-size: 0.875rem;
 }
 
@@ -7263,7 +7275,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .stat-overlay-content {
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 16px;
     max-width: 900px;
     width: 100%;
@@ -7292,8 +7304,8 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem 2rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(230, 214, 174, 0.18);
+    border-bottom: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .stat-overlay-title {
@@ -7308,7 +7320,7 @@ body.admin-dashboard::-webkit-scrollbar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     border: none;
     color: #e6d6ae;
     font-size: 1.5rem;
@@ -7352,8 +7364,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .stat-filter-dropdown {
     flex: 1;
     padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 6px;
     color: #e6d6ae;
     font-size: 0.9rem;
@@ -7363,8 +7375,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .stat-filter-dropdown:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(15, 23, 42, 0.88);
+    border-color: rgba(230, 214, 174, 0.45);
 }
 
 .stat-filter-dropdown:focus {
@@ -7376,7 +7388,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Dropdown options styling */
 .stat-filter-dropdown option {
-    background: #1a202c;
+    background: #0f1419;
     color: #e6d6ae;
     padding: 0.5rem;
 }
@@ -7390,8 +7402,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .stat-metric-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(230, 214, 174, 0.18);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
@@ -7477,7 +7489,7 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     justify-content: space-between;
     padding: 1rem 1.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(230, 214, 174, 0.18);
     cursor: pointer;
     transition: all 0.3s ease;
 }
@@ -7548,7 +7560,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .breakdown-bar {
     height: 24px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     border-radius: 12px;
     overflow: hidden;
     position: relative;
@@ -7617,7 +7629,7 @@ body.admin-dashboard::-webkit-scrollbar {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .stat-info-row:last-child {
@@ -7667,7 +7679,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Simple Pie Chart Label (for larger number) */
 .pie-chart-label-simple {
     position: absolute;
-    background: #1a202c;
+    background: #0f1419;
     width: 120px;
     height: 120px;
     border-radius: 50%;
@@ -7701,7 +7713,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .revenue-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 16px;
     padding: 1.5rem;
     display: flex;
@@ -7854,7 +7866,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .pie-chart-label {
     position: absolute;
-    background: #1a202c;
+    background: #0f1419;
     width: 120px;
     height: 120px;
     border-radius: 50%;
@@ -7915,7 +7927,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .donut-chart-label {
     position: absolute;
-    background: #1a202c;
+    background: #0f1419;
     width: 120px;
     height: 120px;
     border-radius: 50%;
@@ -8041,7 +8053,7 @@ body.admin-dashboard::-webkit-scrollbar {
         border-left: none !important;
         padding-left: 0 !important;
         padding-top: 0.75rem !important;
-        border-top: 1px solid rgba(255,255,255,0.1) !important;
+        border-top: 1px solid rgba(230, 214, 174, 0.28) !important;
     }
 }
 
@@ -8461,16 +8473,16 @@ body.admin-dashboard::-webkit-scrollbar {
 .user-nav-panel {
     display: flex;
     flex-direction: column;
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     overflow: hidden;
 }
 
 .user-nav-panel .panel-header {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     padding: 1.2rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .user-controls {
@@ -8495,10 +8507,10 @@ body.admin-dashboard::-webkit-scrollbar {
 .user-tab-btn {
     flex: 1;
     padding: 0.6rem 0.75rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #3a4556;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 4px;
-    color: #a0aec0;
+    color: #94a3b8;
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
@@ -8512,15 +8524,16 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .user-tab-btn:hover {
-    background: #5a6578;
+    background: #455266;
     border-color: rgba(255, 255, 255, 0.2);
     color: #cbd5e0;
 }
 
 .user-tab-btn.active {
-    background: #10b981;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    border-color: rgba(16, 185, 129, 0.3);
+    border-color: rgba(167, 243, 208, 0.45);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
     box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
@@ -8559,8 +8572,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .user-card {
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 0.75rem;
@@ -8569,16 +8582,18 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     gap: 1rem;
     align-items: flex-start;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .user-card:hover {
-    background: #4a5568;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(160deg, #323d52 0%, #243041 55%, #1f2a38 100%);
+    border-color: rgba(230, 214, 174, 0.45);
 }
 
 .user-card.selected {
-    background: #4a5568;
-    border-color: #10b981;
+    background: linear-gradient(160deg, #2f3d3a 0%, #24322e 45%, #1c2824 100%);
+    border-color: rgba(52, 211, 153, 0.7);
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.18), 0 10px 26px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(110, 231, 183, 0.08);
 }
 
 .user-card-avatar {
@@ -8647,7 +8662,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .user-card-reviews {
     font-size: 0.75rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-weight: 600;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -8678,7 +8693,7 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.75rem;
     flex-wrap: wrap;
     font-size: 0.75rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -8695,26 +8710,26 @@ body.admin-dashboard::-webkit-scrollbar {
 /* User Pagination */
 .user-pagination {
     padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(230, 214, 174, 0.18);
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     align-items: center;
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
 }
 
 .user-stats {
     font-size: 0.85rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-weight: 500;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Right Panel: User Details */
 .user-detail-panel {
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -8741,7 +8756,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .no-user-selected h4 {
     font-size: 1.2rem;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 0.5rem;
 }
 
@@ -8761,8 +8776,8 @@ body.admin-dashboard::-webkit-scrollbar {
 /* User Detail Header */
 .user-detail-header {
     padding: 1.2rem;
-    background: #2d3748;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -8876,7 +8891,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .user-action-btn.close-btn:hover {
-    background: #4a5568;
+    background: #3a4556;
     transform: translateY(-2px);
 }
 
@@ -8891,7 +8906,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .user-detail-body {
     padding: 1.5rem;
     flex: 1;
-    background: #363f4f;
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
 }
 
 /* User Status and Social Row (in body, centered below photo) */
@@ -8952,11 +8967,11 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* User Info Section */
 .user-info-section {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .user-info-row {
@@ -8979,7 +8994,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .user-info-label {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -8992,17 +9007,17 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Introduction Section */
 .user-intro-section {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .user-intro-label {
     font-size: 0.7rem;
     font-weight: 700;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.75rem;
@@ -9048,8 +9063,8 @@ body.admin-dashboard::-webkit-scrollbar {
 /* User Detail Footer */
 .user-detail-footer {
     padding: 1.5rem;
-    background: #2d3748;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #1a222e;
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 /* Verification Images Section */
@@ -9060,7 +9075,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .verification-images-label {
     font-size: 0.8rem;
     font-weight: 700;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 1rem;
@@ -9135,7 +9150,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .verification-image-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #a0aec0;
+    color: #94a3b8;
     text-align: center;
 }
 
@@ -9227,17 +9242,17 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Permanent Ban IP Display */
 .perm-ban-ip-display {
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .perm-ban-ip-label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
@@ -9252,9 +9267,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* Suspended Info Section */
 .suspended-info-section {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
     padding: 1.5rem;
     margin-bottom: 1rem;
 }
@@ -9262,7 +9277,7 @@ body.admin-dashboard::-webkit-scrollbar {
 .suspended-info-label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #a0aec0;
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.5rem;
@@ -9369,8 +9384,8 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-user-modal {
-    background: #1a202c;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0f1419;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 12px;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     width: 100%;
@@ -9384,8 +9399,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .contact-user-header {
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: #2d3748;
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
+    background: #1a222e;
     border-radius: 12px 12px 0 0;
     display: flex;
     justify-content: space-between;
@@ -9415,14 +9430,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-user-close:hover {
-    background: #4a5568;
+    background: #3a4556;
 }
 
 .contact-user-body {
     padding: 1.5rem;
     overflow-y: auto;
     flex: 1;
-    background: #1a202c;
+    background: #0f1419;
 }
 
 .contact-user-info {
@@ -9430,8 +9445,8 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: #2d3748;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #1a222e;
+    border: 1px solid rgba(230, 214, 174, 0.18);
     border-radius: 8px;
     margin-bottom: 1.5rem;
 }
@@ -9441,7 +9456,7 @@ body.admin-dashboard::-webkit-scrollbar {
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(230, 214, 174, 0.28);
 }
 
 .contact-user-info-name {
@@ -9452,8 +9467,8 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .contact-user-footer {
     padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: #2d3748;
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
+    background: #1a222e;
     border-radius: 0 0 12px 12px;
     display: flex;
     gap: 1rem;
@@ -9472,13 +9487,13 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .contact-cancel-btn {
-    background: #4a5568;
+    background: #3a4556;
     color: #cbd5e0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .contact-cancel-btn:hover {
-    background: #5a6578;
+    background: #455266;
     color: #f7fafc;
 }
 
@@ -9515,27 +9530,27 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .user-detail-overlay-content {
-    background: #1a202c;
+    background: #0f1419;
     border-radius: 12px;
     width: 100%;
     max-width: 600px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
     overflow: visible;
 }
 
 .user-detail-overlay .overlay-header {
-    background: #2d3748;
+    background: #1a222e;
     padding: 1rem;
     display: flex;
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
     position: relative;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .user-detail-overlay-content {
@@ -9563,7 +9578,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .user-detail-overlay .overlay-close-btn:hover {
-    background: #4a5568;
+    background: #3a4556;
 }
 
 .overlay-header-content {
@@ -9636,7 +9651,7 @@ body.admin-dashboard::-webkit-scrollbar {
     flex: 1;
     overflow-y: auto;
     padding: 1.5rem;
-    background: #1a202c;
+    background: #0f1419;
 }
 
 /* User Profile Photo (like gig photo) */
@@ -9646,8 +9661,8 @@ body.admin-dashboard::-webkit-scrollbar {
     margin: 0 auto 1.5rem;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: #2d3748;
+    border: 1px solid rgba(230, 214, 174, 0.28);
+    background: #1a222e;
 }
 
 .user-profile-photo {
@@ -9660,11 +9675,11 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .user-detail-overlay .overlay-footer {
     padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-    background: #2d3748;
+    background: #1a222e;
 }
 
 .user-detail-overlay .user-action-btn {
@@ -9933,9 +9948,9 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-compose-modal {
-    background: #2d3748;
+    background: #1a222e;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.28);
     width: 100%;
     max-width: 650px;
     max-height: 90vh;
@@ -9950,7 +9965,7 @@ body.admin-dashboard::-webkit-scrollbar {
     align-items: center;
     justify-content: space-between;
     padding: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(230, 214, 174, 0.28);
 }
 
 .settings-compose-title {
@@ -9964,7 +9979,7 @@ body.admin-dashboard::-webkit-scrollbar {
     background: none;
     border: none;
     font-size: 2rem;
-    color: #a0aec0;
+    color: #94a3b8;
     cursor: pointer;
     line-height: 1;
     padding: 0;
@@ -9978,7 +9993,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-compose-close:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.12);
     color: #e6d6ae;
 }
 
@@ -9990,7 +10005,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .settings-compose-description {
     font-size: 0.9rem;
-    color: #a0aec0;
+    color: #94a3b8;
     line-height: 1.6;
     margin-bottom: 1.5rem;
     font-family: Arial, Helvetica, sans-serif;
@@ -10015,8 +10030,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .compose-form-select {
     width: 100%;
     padding: 0.75rem;
-    background: #1a202c;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #0f1419;
+    border: 1px solid rgba(230, 214, 174, 0.28);
     border-radius: 8px;
     color: #e6d6ae;
     font-family: Arial, Helvetica, sans-serif;
@@ -10049,7 +10064,7 @@ body.admin-dashboard::-webkit-scrollbar {
     right: 0;
     top: 0;
     font-size: 0.75rem;
-    color: #a0aec0;
+    color: #94a3b8;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -10059,13 +10074,13 @@ body.admin-dashboard::-webkit-scrollbar {
     padding: 1.5rem;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(230, 214, 174, 0.18);
 }
 
 .compose-preview-label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #a0aec0;
+    color: #94a3b8;
     margin-bottom: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -10073,7 +10088,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .compose-preview-box {
-    background: #1a202c;
+    background: #0f1419;
     border: 2px solid #f59e0b;
     border-radius: 8px;
     padding: 1.5rem;
@@ -10095,7 +10110,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .preview-warning-message {
     font-size: 0.95rem;
-    color: #a0aec0;
+    color: #94a3b8;
     line-height: 1.6;
     margin-bottom: 0.75rem;
     font-family: Arial, Helvetica, sans-serif;
@@ -10128,7 +10143,7 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .preview-maintenance-message {
     font-size: 1rem;
-    color: #a0aec0;
+    color: #94a3b8;
     line-height: 1.6;
     margin-bottom: 1.5rem;
     font-family: Arial, Helvetica, sans-serif;
@@ -10175,7 +10190,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: flex;
     gap: 0.75rem;
     padding: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(230, 214, 174, 0.28);
     justify-content: flex-end;
 }
 
@@ -10192,12 +10207,12 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .settings-compose-cancel {
-    background: #4a5568;
+    background: #3a4556;
     color: #e6d6ae;
 }
 
 .settings-compose-cancel:hover {
-    background: #5a6578;
+    background: #455266;
 }
 
 .settings-compose-save {
@@ -10461,11 +10476,11 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .ad-settings-card {
-    background: linear-gradient(165deg, rgba(57, 68, 84, 0.95) 0%, rgba(46, 57, 73, 0.95) 100%);
+    background: linear-gradient(160deg, #2a3344 0%, #1e2633 55%, #1a222e 100%);
     border: 1px solid rgba(16, 185, 129, 0.18);
     border-radius: 14px;
     padding: 0.95rem;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(230, 214, 174, 0.18);
 }
 
 .ad-card-head {
