@@ -9527,8 +9527,6 @@ function syncAdSystemDependentToggles(forceOffWhenDisabled = false) {
 function collectAdPanelControls() {
     const enabled = document.getElementById('adEnabled');
     const frequencyCards = document.getElementById('adFrequencyCards');
-    const maxAdsPerSession = document.getElementById('adMaxAdsPerSession');
-    const startAfterCards = document.getElementById('adStartAfterCards');
     const allowTail = document.getElementById('adAllowTail');
     const allowEmpty = document.getElementById('adAllowEmpty');
     const zoneListingInline = document.getElementById('zoneListingInline');
@@ -9540,9 +9538,7 @@ function collectAdPanelControls() {
     } else {
         adPanelState.enabled = true;
     }
-    adPanelState.frequencyCards = frequencyCards ? Math.max(1, parseInt(frequencyCards.value, 10) || 10) : 10;
-    adPanelState.maxAdsPerSession = maxAdsPerSession ? Math.max(1, parseInt(maxAdsPerSession.value, 10) || 6) : 6;
-    adPanelState.startAfterCards = startAfterCards ? Math.max(0, parseInt(startAfterCards.value, 10) || 0) : 0;
+    adPanelState.frequencyCards = frequencyCards ? Math.max(1, parseInt(frequencyCards.value, 10) || 6) : (Number(adPanelState.frequencyCards) || 6);
     adPanelState.allowTailAd = allowTail ? !!allowTail.checked : true;
     adPanelState.allowEmptyStateAd = allowEmpty ? !!allowEmpty.checked : true;
 
@@ -9575,8 +9571,6 @@ function syncAdPanelFormFromState() {
     }
     updateAdEnabledIndicator();
     setValue('adFrequencyCards', adPanelState.frequencyCards);
-    setValue('adMaxAdsPerSession', adPanelState.maxAdsPerSession);
-    setValue('adStartAfterCards', adPanelState.startAfterCards);
     setChecked('adAllowTail', adPanelState.allowTailAd);
     setChecked('adAllowEmpty', adPanelState.allowEmptyStateAd);
     setChecked('zoneListingInline', adPanelState.zones.listing_feed_inline);

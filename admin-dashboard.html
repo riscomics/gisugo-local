@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=19">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=21">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2801,33 +2801,14 @@
                                 <span id="adEnabledText" class="ad-head-switch-state">ON</span>
                             </div>
                         </div>
-                        <div class="ad-metrics-row">
-                            <label class="ad-control-tile">
-                                <div class="ad-control-top">
-                                    <span class="ad-control-icon">🔢</span>
-                                </div>
-                                <input type="number" id="adFrequencyCards" min="1" max="50" value="10">
-                                <span class="ad-control-caption">Frequency (cards)</span>
-                            </label>
-
-                            <label class="ad-control-tile">
-                                <div class="ad-control-top">
-                                    <span class="ad-control-icon">📦</span>
-                                </div>
-                                <input type="number" id="adMaxAdsPerSession" min="1" max="20" value="6">
-                                <span class="ad-control-caption">Max Ads / Session</span>
-                            </label>
-
-                            <label class="ad-control-tile">
-                                <div class="ad-control-top">
-                                    <span class="ad-control-icon">⏳</span>
-                                </div>
-                                <input type="number" id="adStartAfterCards" min="0" max="100" value="0">
-                                <span class="ad-control-caption">Start After N Cards</span>
-                            </label>
-                        </div>
-
                         <div class="ad-toggle-list">
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Frequency (cards)</span>
+                                    <span class="ad-toggle-caption">Shows an ad after every N gig cards in a category feed.</span>
+                                </div>
+                                <input type="number" id="adFrequencyCards" class="ad-frequency-input" min="1" max="50" value="6">
+                            </label>
                             <label class="ad-toggle-card">
                                 <div class="ad-toggle-copy">
                                     <span class="ad-toggle-label">Tail ad after last gig</span>
@@ -3840,7 +3821,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=15"></script>
+    <script src="public/js/admin-dashboard.js?v=16"></script>
     
     
 </body>
