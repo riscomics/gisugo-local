@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize system settings
     initializeSystemSettings();
 
-    // Initialize ad placement settings (Phase 3 scaffold)
+    // Initialize ad placement settings (Phase 6 — Firestore)
     initializeAdSettingsPanel();
     
     // Initialize admin profile dropdown
@@ -9114,20 +9114,21 @@ window.addEventListener('resize', () => {
 });
 
 // ===== AD PLACEMENT SETTINGS (PHASE 3) =====
-const AD_SETTINGS_STORAGE_KEY = 'gisugo_admin_ad_settings_v1';
 const AD_PANEL_COLLAPSE_STORAGE_KEY = 'gisugo_admin_ad_panel_collapse_v1';
 const DEFAULT_AD_PANEL_COLLAPSE_STATE = {
     adItemCardBody: false,
     adInventoryCardBody: false,
     adActionsCardBody: false
 };
+// Reset / fallback matches the Phase 6 seed (listing.js AD_TRIAL_CONFIG).
 const DEFAULT_AD_PANEL_SETTINGS = {
     enabled: true,
-    frequencyCards: 10,
+    frequencyCards: 6,
     maxAdsPerSession: 6,
     startAfterCards: 0,
     allowTailAd: true,
     allowEmptyStateAd: true,
+    rotationMode: 'random',
     zones: {
         listing_feed_inline: true,
         profile_logout_slot: true,
@@ -9135,11 +9136,13 @@ const DEFAULT_AD_PANEL_SETTINGS = {
     },
     ads: [
         {
-            id: 'offer-verify-launch',
-            type: 'site_offer',
+            id: 'video-safety-tips',
+            type: 'video_popup',
+            subtype: 'in_app_offer',
             status: 'active',
-            imageSrc: 'public/images/verify.png',
-            altText: 'Get verified for safer gigs',
+            imageSrc: 'public/images/womensafety.jpg',
+            altText: 'Watch quick platform guide',
+            badgeText: 'Platform Update',
             weight: 100,
             maxImpressions: 0,
             maxClicks: 0,
@@ -9148,8 +9151,99 @@ const DEFAULT_AD_PANEL_SETTINGS = {
             startAt: '',
             endAt: '',
             action: {
-                type: 'open_modal',
-                target: '#accountOverlay'
+                type: 'open_video_popup',
+                target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+                youtubeEmbed: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+                poster: 'public/images/womensafety.jpg',
+                aspectRatio: '9:16'
+            }
+        },
+        {
+            id: 'sponsored-partner-spot',
+            type: 'sponsored_external',
+            subtype: 'sponsored_campaign',
+            status: 'active',
+            imageSrc: 'public/images/adsponsor.jpg',
+            altText: 'Sponsored partner spotlight',
+            badgeText: 'Sponsored',
+            weight: 100,
+            maxImpressions: 0,
+            maxClicks: 0,
+            currentImpressions: 0,
+            currentClicks: 0,
+            startAt: '',
+            endAt: '',
+            action: {
+                type: 'navigate',
+                target: 'https://www.RealinterfaceStudios.com',
+                url: 'https://www.RealinterfaceStudios.com'
+            }
+        },
+        {
+            id: 'video-platform-updates',
+            type: 'video_popup',
+            subtype: 'in_app_offer',
+            status: 'active',
+            imageSrc: 'public/images/updatesbanner.jpg',
+            altText: 'Watch latest platform updates',
+            badgeText: 'Platform Update',
+            weight: 100,
+            maxImpressions: 0,
+            maxClicks: 0,
+            currentImpressions: 0,
+            currentClicks: 0,
+            startAt: '',
+            endAt: '',
+            action: {
+                type: 'open_video_popup',
+                target: 'https://youtu.be/L2GUEZpNCsQ',
+                youtubeEmbed: 'https://youtu.be/L2GUEZpNCsQ',
+                poster: 'public/images/updatesbanner.jpg',
+                aspectRatio: '16:9'
+            }
+        },
+        {
+            id: 'offer-verify',
+            type: 'site_offer',
+            subtype: 'in_app_offer',
+            status: 'active',
+            imageSrc: 'public/images/verify.png',
+            altText: 'Get verified offer',
+            badgeText: '',
+            weight: 100,
+            maxImpressions: 0,
+            maxClicks: 0,
+            currentImpressions: 0,
+            currentClicks: 0,
+            startAt: '',
+            endAt: '',
+            action: {
+                type: 'navigate',
+                target: 'profile.html',
+                url: 'profile.html'
+            }
+        },
+        {
+            id: 'offer-share-gisugo',
+            type: 'site_offer',
+            subtype: 'in_app_offer',
+            status: 'active',
+            imageSrc: 'public/images/sharebanner.jpg',
+            altText: 'Share GisuGo with your network',
+            badgeText: '',
+            weight: 100,
+            maxImpressions: 0,
+            maxClicks: 0,
+            currentImpressions: 0,
+            currentClicks: 0,
+            startAt: '',
+            endAt: '',
+            action: {
+                type: 'share',
+                title: 'Check out GisuGo',
+                text: 'Browse local gigs and opportunities on GisuGo.',
+                url: 'https://www.Gisugo.com',
+                target: 'https://www.Gisugo.com'
             }
         }
     ]
@@ -9158,48 +9252,79 @@ const DEFAULT_AD_PANEL_SETTINGS = {
 let adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
 let adPanelCollapseState = { ...DEFAULT_AD_PANEL_COLLAPSE_STATE };
 
-function initializeAdSettingsPanel() {
+function mergeAdPanelState(parsed) {
+    const source = parsed && typeof parsed === 'object' ? parsed : {};
+    return {
+        ...JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS)),
+        ...source,
+        zones: {
+            ...DEFAULT_AD_PANEL_SETTINGS.zones,
+            ...(source.zones || {})
+        },
+        ads: Array.isArray(source.ads) ? source.ads : [...DEFAULT_AD_PANEL_SETTINGS.ads]
+    };
+}
+
+function getAdPanelPayload() {
+    return {
+        enabled: !!adPanelState.enabled,
+        frequencyCards: Number(adPanelState.frequencyCards) || 6,
+        maxAdsPerSession: Number(adPanelState.maxAdsPerSession) || 6,
+        startAfterCards: Number(adPanelState.startAfterCards) || 0,
+        allowTailAd: !!adPanelState.allowTailAd,
+        allowEmptyStateAd: !!adPanelState.allowEmptyStateAd,
+        rotationMode: adPanelState.rotationMode || 'random',
+        zones: {
+            listing_feed_inline: !!(adPanelState.zones && adPanelState.zones.listing_feed_inline),
+            profile_logout_slot: !!(adPanelState.zones && adPanelState.zones.profile_logout_slot),
+            gig_detail_post_customer: !!(adPanelState.zones && adPanelState.zones.gig_detail_post_customer)
+        },
+        ads: Array.isArray(adPanelState.ads) ? adPanelState.ads : []
+    };
+}
+
+async function persistAdPanelToFirestore() {
+    refreshAdJsonPreview();
+    if (typeof window.saveAdSettings !== 'function') {
+        console.error('saveAdSettings is not available');
+        return false;
+    }
+    return window.saveAdSettings(getAdPanelPayload());
+}
+
+async function initializeAdSettingsPanel() {
     const adsSection = document.getElementById('ads');
     if (!adsSection) return;
 
-    loadAdPanelState();
     loadAdPanelCollapseState();
     bindAdPanelActions();
     setupAdPanelCollapsibles();
+    applyAdPanelCollapseState();
+    await loadAdPanelState();
     renderAdInventoryList();
     syncAdPanelFormFromState();
-    applyAdPanelCollapseState();
     updateAdEnabledIndicator();
     refreshAdJsonPreview();
-    console.log('📣 Ad placement settings panel initialized');
+    console.log('Ad placement settings panel initialized');
 }
 
-function loadAdPanelState() {
+async function loadAdPanelState() {
+    adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+    if (typeof window.getAdSettings !== 'function') {
+        console.warn('getAdSettings is not available; using seeded defaults');
+        return;
+    }
     try {
-        const raw = localStorage.getItem(AD_SETTINGS_STORAGE_KEY);
-        if (!raw) {
-            adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+        const remote = await window.getAdSettings();
+        if (remote) {
+            adPanelState = mergeAdPanelState(remote);
             return;
         }
-        const parsed = JSON.parse(raw);
-        adPanelState = {
-            ...JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS)),
-            ...parsed,
-            zones: {
-                ...DEFAULT_AD_PANEL_SETTINGS.zones,
-                ...(parsed.zones || {})
-            },
-            ads: Array.isArray(parsed.ads) ? parsed.ads : [...DEFAULT_AD_PANEL_SETTINGS.ads]
-        };
+        console.warn('adSettings/global missing; using seeded defaults');
     } catch (error) {
-        console.warn('⚠️ Failed to load ad settings; using defaults.', error);
+        console.warn('Failed to load ad settings; using seeded defaults.', error);
         adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
     }
-}
-
-function saveAdPanelState() {
-    localStorage.setItem(AD_SETTINGS_STORAGE_KEY, JSON.stringify(adPanelState));
-    refreshAdJsonPreview();
 }
 
 function loadAdPanelCollapseState() {
@@ -9246,22 +9371,41 @@ function bindAdPanelActions() {
     }
 
     if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
+        saveBtn.addEventListener('click', async () => {
             collectAdPanelControls();
-            saveAdPanelState();
-            flashButtonState(saveBtn, 'Saved');
+            const original = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            const success = await persistAdPanelToFirestore();
+            saveBtn.disabled = false;
+            saveBtn.textContent = original;
+            if (success) {
+                showToast('Ad settings saved.', 'success');
+                flashButtonState(saveBtn, 'Saved');
+            } else {
+                showToast('Failed to save ad settings. Try again.', 'error');
+            }
         });
     }
 
     if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
+        resetBtn.addEventListener('click', async () => {
             adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
             syncAdPanelFormFromState();
             renderAdInventoryList();
-            saveAdPanelState();
-            refreshAdJsonPreview();
             clearAdItemForm();
-            flashButtonState(resetBtn, 'Reset');
+            const original = resetBtn.textContent;
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Resetting...';
+            const success = await persistAdPanelToFirestore();
+            resetBtn.disabled = false;
+            resetBtn.textContent = original;
+            if (success) {
+                showToast('Ad settings reset to defaults.', 'success');
+                flashButtonState(resetBtn, 'Reset');
+            } else {
+                showToast('Failed to reset ad settings. Try again.', 'error');
+            }
         });
     }
 
@@ -9284,14 +9428,27 @@ function bindAdPanelActions() {
     }
 
     if (addOrUpdateBtn) {
-        addOrUpdateBtn.addEventListener('click', () => {
+        addOrUpdateBtn.addEventListener('click', async () => {
             collectAdPanelControls();
-            upsertAdFromForm();
-            saveAdPanelState();
+            if (!upsertAdFromForm()) {
+                showToast('Fill Ad ID, image, and action target first.', 'error');
+                return;
+            }
             renderAdInventoryList();
             refreshAdJsonPreview();
-            clearAdItemForm();
-            flashButtonState(addOrUpdateBtn, 'Updated');
+            const original = addOrUpdateBtn.textContent;
+            addOrUpdateBtn.disabled = true;
+            addOrUpdateBtn.textContent = 'Saving...';
+            const success = await persistAdPanelToFirestore();
+            addOrUpdateBtn.disabled = false;
+            addOrUpdateBtn.textContent = original;
+            if (success) {
+                clearAdItemForm();
+                showToast('Ad saved.', 'success');
+                flashButtonState(addOrUpdateBtn, 'Updated');
+            } else {
+                showToast('Failed to save ad. Try again.', 'error');
+            }
         });
     }
 
@@ -9491,7 +9648,7 @@ function getAdItemFormData() {
 
 function upsertAdFromForm() {
     const formData = getAdItemFormData();
-    if (!formData) return;
+    if (!formData) return false;
 
     const existingIndex = adPanelState.ads.findIndex(ad => ad.id === formData.id);
     if (existingIndex >= 0) {
@@ -9505,6 +9662,7 @@ function upsertAdFromForm() {
     } else {
         adPanelState.ads.push(formData);
     }
+    return true;
 }
 
 function clearAdItemForm() {
@@ -9576,23 +9734,27 @@ function renderAdInventoryList() {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'ad-mini-btn';
         removeBtn.textContent = 'Delete';
-        removeBtn.addEventListener('click', () => {
+        removeBtn.addEventListener('click', async () => {
             adPanelState.ads = adPanelState.ads.filter(itemAd => itemAd.id !== ad.id);
-            saveAdPanelState();
             renderAdInventoryList();
-            refreshAdJsonPreview();
+            const success = await persistAdPanelToFirestore();
+            if (!success) {
+                showToast('Failed to delete ad. Try again.', 'error');
+            }
         });
 
         const toggleBtn = document.createElement('button');
         toggleBtn.className = 'ad-mini-btn';
         toggleBtn.textContent = status === 'paused' ? 'Resume' : 'Pause';
-        toggleBtn.addEventListener('click', () => {
+        toggleBtn.addEventListener('click', async () => {
             const target = adPanelState.ads.find(itemAd => itemAd.id === ad.id);
             if (!target) return;
             target.status = target.status === 'paused' ? 'active' : 'paused';
-            saveAdPanelState();
             renderAdInventoryList();
-            refreshAdJsonPreview();
+            const success = await persistAdPanelToFirestore();
+            if (!success) {
+                showToast('Failed to update ad status. Try again.', 'error');
+            }
         });
 
         actions.appendChild(editBtn);

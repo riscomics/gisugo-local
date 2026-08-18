@@ -2681,6 +2681,19 @@ async function checkIfUserAlreadyApplied(jobId) {
   }
 }
 
+let gigDetailAdRuntime = null;
+
+function getGigDetailAdConfig() {
+  return gigDetailAdRuntime || GIG_DETAIL_AD_ZONE_CONFIG;
+}
+
+async function applyGigDetailAdConfigFromServer() {
+  if (typeof window.getAdGlobalSettings !== 'function') return;
+  const remote = await window.getAdGlobalSettings();
+  if (!remote) return;
+  gigDetailAdRuntime = remote;
+}
+
 const GIG_DETAIL_AD_ZONE_CONFIG = {
   enabled: true,
   zoneId: 'gig_detail_post_customer',
@@ -2764,12 +2777,16 @@ const GIG_DETAIL_AD_RENDER_STATE = {
 };
 
 function getGigDetailSlotAd() {
-  if (!GIG_DETAIL_AD_ZONE_CONFIG.enabled) return null;
-  const ads = Array.isArray(GIG_DETAIL_AD_ZONE_CONFIG.ads) ? GIG_DETAIL_AD_ZONE_CONFIG.ads : [];
+  const config = getGigDetailAdConfig();
+  if (!config.enabled) return null;
+  if (config.zones && config.zones.gig_detail_post_customer === false) return null;
+  const ads = Array.isArray(config.activeAds)
+    ? config.activeAds
+    : (Array.isArray(config.ads) ? config.ads : []);
   const activeAds = ads.filter(ad => ad && ad.imageSrc);
   if (activeAds.length === 0) return null;
 
-  const mode = GIG_DETAIL_AD_ZONE_CONFIG.rotationMode || 'sequential';
+  const mode = config.rotationMode || 'sequential';
   if (mode === 'random') {
     return getNextRandomGigDetailAd(activeAds);
   }
@@ -3095,7 +3112,7 @@ function createGigDetailAdCard(adConfig) {
   const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
   adCard.className = 'gig-detail-slot-ad-card';
   adCard.href = href;
-  adCard.setAttribute('data-ad-zone', GIG_DETAIL_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-zone', 'gig_detail_post_customer');
   adCard.setAttribute('data-ad-id', adConfig.id || 'gig-detail-ad');
   adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
   adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
@@ -3114,7 +3131,13 @@ function createGigDetailAdCard(adConfig) {
   return adCard;
 }
 
-function initializeGigDetailAdSlot() {
+async function initializeGigDetailAdSlot() {
+  try {
+    await applyGigDetailAdConfigFromServer();
+  } catch (adError) {
+    console.warn('Gig detail ad config stayed on local trial fallback.', adError);
+  }
+
   const customerSection = document.getElementById('customerSection');
   if (!customerSection) return;
 
@@ -3161,7 +3184,7 @@ document.addEventListener('DOMContentLoaded', function() {
   safeInit('initializeReportGigButton', initializeReportGigButton);
   safeInit('initCounterOfferFormatting', initCounterOfferFormatting);
   safeInit('initializePhotoLightbox', initializePhotoLightbox);
-  safeInit('initializeGigDetailAdSlot', initializeGigDetailAdSlot);
+  safeInit('initializeGigDetailAdSlot', () => { void initializeGigDetailAdSlot(); });
   
   console.log('✅ Dynamic job page initialization completed');
 }); 

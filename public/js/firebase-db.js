@@ -5215,6 +5215,44 @@ async function savePlatformSettings(settings) {
 window.getPlatformSettings = getPlatformSettings;
 window.savePlatformSettings = savePlatformSettings;
 
+// Ad Placement (Phase 6) — one public config doc. One-shot .get(), no
+// listener. Public read (category pages are logged-out). Write is isAdmin().
+const AD_SETTINGS_DOC_PATH = ['adSettings', 'global'];
+
+async function getAdSettings() {
+  const db = getFirestore();
+  if (!db) return null;
+  try {
+    const ref = db.collection(AD_SETTINGS_DOC_PATH[0]).doc(AD_SETTINGS_DOC_PATH[1]);
+    const snap = await ref.get({ source: 'server' });
+    if (!snap.exists) return null;
+    return snap.data() || null;
+  } catch (error) {
+    console.error('Error loading ad settings:', error);
+    return null;
+  }
+}
+
+async function saveAdSettings(settings) {
+  const db = getFirestore();
+  if (!db) return false;
+  try {
+    const ref = db.collection(AD_SETTINGS_DOC_PATH[0]).doc(AD_SETTINGS_DOC_PATH[1]);
+    await ref.set({
+      ...settings,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null
+    }, { merge: false });
+    return true;
+  } catch (error) {
+    console.error('Error saving ad settings:', error);
+    return false;
+  }
+}
+
+window.getAdSettings = getAdSettings;
+window.saveAdSettings = saveAdSettings;
+
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
  * Cloud Function-maintained aggregate doc (see functions/index.js

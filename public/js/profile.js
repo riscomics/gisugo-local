@@ -4601,6 +4601,19 @@ function updateSocialLinks(userProfile) {
 
 // Verification state should come from stored user profile data.
 
+let profileAdRuntime = null;
+
+function getProfileAdConfig() {
+  return profileAdRuntime || PROFILE_AD_ZONE_CONFIG;
+}
+
+async function applyProfileAdConfigFromServer() {
+  if (typeof window.getAdGlobalSettings !== 'function') return;
+  const remote = await window.getAdGlobalSettings();
+  if (!remote) return;
+  profileAdRuntime = remote;
+}
+
 const PROFILE_AD_ZONE_CONFIG = {
   enabled: true,
   zoneId: 'profile_logout_slot',
@@ -4683,12 +4696,16 @@ const PROFILE_AD_RENDER_STATE = {
 };
 
 function getProfileSlotAd() {
-  if (!PROFILE_AD_ZONE_CONFIG.enabled) return null;
-  const ads = Array.isArray(PROFILE_AD_ZONE_CONFIG.ads) ? PROFILE_AD_ZONE_CONFIG.ads : [];
+  const config = getProfileAdConfig();
+  if (!config.enabled) return null;
+  if (config.zones && config.zones.profile_logout_slot === false) return null;
+  const ads = Array.isArray(config.activeAds)
+    ? config.activeAds
+    : (Array.isArray(config.ads) ? config.ads : []);
   const activeAds = ads.filter(ad => ad && ad.imageSrc);
   if (activeAds.length === 0) return null;
 
-  const mode = PROFILE_AD_ZONE_CONFIG.rotationMode || 'sequential';
+  const mode = config.rotationMode || 'sequential';
   if (mode === 'random') {
     return getNextRandomProfileAd(activeAds);
   }
@@ -5009,7 +5026,7 @@ function createProfileSlotAdCard(adConfig) {
   const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
   adCard.className = 'profile-slot-ad-card';
   adCard.href = href;
-  adCard.setAttribute('data-ad-zone', PROFILE_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-zone', 'profile_logout_slot');
   adCard.setAttribute('data-ad-id', adConfig.id || 'profile-ad');
   adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
   adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
@@ -5174,7 +5191,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Initialize edit profile overlay
   initializeEditProfileOverlay();
 
-  // Phase 2 ad zone: profile logout slot
+  try {
+    await applyProfileAdConfigFromServer();
+  } catch (adError) {
+    console.warn('Profile ad config stayed on local trial fallback.', adError);
+  }
   initializeProfileAdSlot();
 
   // Activity cards: icon animation + tap-for-description overlay

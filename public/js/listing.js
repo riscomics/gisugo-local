@@ -1794,7 +1794,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   renderInlineAdsByGigPositions(headerSpacer.parentNode);
 
   // Optional tail placement: show one ad after the final gig in the listing
-  if (!PAGINATION.hasMore && !AD_RENDER_STATE.tailInserted && shouldRenderAdsInCurrentListing() && AD_TRIAL_CONFIG.allowTailAd) {
+  if (!PAGINATION.hasMore && !AD_RENDER_STATE.tailInserted && shouldRenderAdsInCurrentListing() && getListingAdConfig().allowTailAd) {
     const tailAd = getNextAdConfig('tail');
     if (tailAd) {
       const tailAdCard = createAdPlaceholderCard(tailAd, {
@@ -1889,6 +1889,19 @@ const PAGINATION = {
   isLoading: false,      // Prevent concurrent loads
   hasMore: true          // Whether more jobs exist to load
 };
+
+let listingAdRuntime = null;
+
+function getListingAdConfig() {
+  return listingAdRuntime || AD_TRIAL_CONFIG;
+}
+
+async function applyListingAdConfigFromServer() {
+  if (typeof window.getAdGlobalSettings !== 'function') return;
+  const remote = await window.getAdGlobalSettings();
+  if (!remote) return;
+  listingAdRuntime = remote;
+}
 
 const AD_TRIAL_CONFIG = {
   enabled: true,
@@ -1990,14 +2003,20 @@ function resetAdRenderState() {
 }
 
 function shouldRenderAdsInCurrentListing() {
-  if (!AD_TRIAL_CONFIG.enabled) return false;
-  if (AD_TRIAL_CONFIG.category === 'all') return true;
-  return getCurrentCategory() === AD_TRIAL_CONFIG.category;
+  const config = getListingAdConfig();
+  if (!config.enabled) return false;
+  if (config.zones && config.zones.listing_feed_inline === false) return false;
+  if (!config.category || config.category === 'all') return true;
+  return getCurrentCategory() === config.category;
 }
 
 function getActiveAdPool() {
   if (!shouldRenderAdsInCurrentListing()) return [];
-  const ads = Array.isArray(AD_TRIAL_CONFIG.ads) ? AD_TRIAL_CONFIG.ads : [];
+  const config = getListingAdConfig();
+  if (Array.isArray(config.activeAds)) {
+    return config.activeAds.filter(ad => ad && ad.imageSrc);
+  }
+  const ads = Array.isArray(config.ads) ? config.ads : [];
   return ads.filter(ad => ad && ad.imageSrc);
 }
 
@@ -2063,7 +2082,7 @@ function getNextAdConfig(slotKey = '') {
   const activeAds = getActiveAdPool();
   if (activeAds.length === 0) return null;
 
-  const mode = AD_TRIAL_CONFIG.rotationMode || 'sequential';
+  const mode = getListingAdConfig().rotationMode || 'sequential';
   if (mode === 'random') {
     if (slotKey && AD_RENDER_STATE.slotAssignments && AD_RENDER_STATE.slotAssignments[slotKey]) {
       const savedId = AD_RENDER_STATE.slotAssignments[slotKey];
@@ -2102,7 +2121,7 @@ function renderInlineAdsByGigPositions(container) {
   AD_RENDER_STATE.inlineInsertions = 0;
 
   if (!shouldRenderAdsInCurrentListing()) return;
-  const frequency = Number(AD_TRIAL_CONFIG.frequencyCards) || 0;
+  const frequency = Number(getListingAdConfig().frequencyCards) || 0;
   if (frequency <= 0) return;
 
   const gigCards = Array.from(container.querySelectorAll('.job-preview-card:not([data-ad-placeholder="true"])'));
@@ -2159,7 +2178,7 @@ function syncEmptyStateAdPlacement(isVisible, emptyState) {
   AD_RENDER_STATE.emptyInserted = false;
 
   if (!isVisible || !emptyState) return;
-  if (!shouldRenderAdsInCurrentListing() || !AD_TRIAL_CONFIG.allowEmptyStateAd) return;
+  if (!shouldRenderAdsInCurrentListing() || !getListingAdConfig().allowEmptyStateAd) return;
 
   const preferredEmptyAd = getAdConfigById('offer-share-gisugo');
   const nextAd = preferredEmptyAd || getNextAdConfig('empty');
@@ -2632,6 +2651,12 @@ async function bootstrapListingPage() {
   if (LISTING_BOOTSTRAP_STARTED) return;
   LISTING_BOOTSTRAP_STARTED = true;
   console.log('🔥 Listing page loaded with Firebase integration');
+
+  try {
+    await applyListingAdConfigFromServer();
+  } catch (adError) {
+    console.warn('Listing ad config stayed on local trial fallback.', adError);
+  }
   
   // Apply filtering and sorting - now async for Firebase support
   try {

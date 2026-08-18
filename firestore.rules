@@ -656,6 +656,17 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // AD SETTINGS (Admin Dashboard — Phase 6)
+    // One public config doc (adSettings/global). Category / profile /
+    // gig-detail pages are public, so read is open. Write is admin-only.
+    // One-shot .get() — no listener. Not impression/click counters.
+    // ═══════════════════════════════════════════════════════════════
+    match /adSettings/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT
     // ═══════════════════════════════════════════════════════════════
     match /{document=**} {
