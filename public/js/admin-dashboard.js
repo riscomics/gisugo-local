@@ -9284,7 +9284,6 @@ function getAdPanelPayload() {
 }
 
 async function persistAdPanelToFirestore() {
-    refreshAdJsonPreview();
     if (typeof window.saveAdSettings !== 'function') {
         console.error('saveAdSettings is not available');
         return false;
@@ -9304,7 +9303,6 @@ async function initializeAdSettingsPanel() {
     renderAdInventoryList();
     syncAdPanelFormFromState();
     updateAdEnabledIndicator();
-    refreshAdJsonPreview();
     console.log('Ad placement settings panel initialized');
 }
 
@@ -9357,7 +9355,6 @@ function saveAdPanelCollapseState() {
 function bindAdPanelActions() {
     const saveBtn = document.getElementById('adSaveBtn');
     const resetBtn = document.getElementById('adResetBtn');
-    const exportBtn = document.getElementById('adExportBtn');
     const addOrUpdateBtn = document.getElementById('adAddOrUpdateBtn');
     const clearFormBtn = document.getElementById('adClearFormBtn');
     const enabledToggle = document.getElementById('adEnabled');
@@ -9409,24 +9406,6 @@ function bindAdPanelActions() {
         });
     }
 
-    if (exportBtn) {
-        exportBtn.addEventListener('click', async () => {
-            const jsonText = JSON.stringify(adPanelState, null, 2);
-            const preview = document.getElementById('adJsonPreview');
-            if (preview) preview.value = jsonText;
-            try {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(jsonText);
-                    flashButtonState(exportBtn, 'Copied');
-                    return;
-                }
-            } catch (error) {
-                console.warn('Clipboard export failed, keeping JSON in preview.', error);
-            }
-            flashButtonState(exportBtn, 'Ready');
-        });
-    }
-
     if (addOrUpdateBtn) {
         addOrUpdateBtn.addEventListener('click', async () => {
             collectAdPanelControls();
@@ -9435,7 +9414,6 @@ function bindAdPanelActions() {
                 return;
             }
             renderAdInventoryList();
-            refreshAdJsonPreview();
             const original = addOrUpdateBtn.textContent;
             addOrUpdateBtn.disabled = true;
             addOrUpdateBtn.textContent = 'Saving...';
@@ -9701,6 +9679,23 @@ function renderAdInventoryList() {
         };
         const typeIcon = typeIconMap[ad.type] || '🔔';
 
+        const thumb = document.createElement('div');
+        thumb.className = 'ad-inventory-thumb';
+        const imageSrc = String(ad.imageSrc || '').trim();
+        if (imageSrc) {
+            const img = document.createElement('img');
+            img.src = imageSrc;
+            img.alt = ad.altText || ad.id || '';
+            img.loading = 'lazy';
+            img.addEventListener('error', () => {
+                thumb.classList.add('is-missing');
+                img.remove();
+            });
+            thumb.appendChild(img);
+        } else {
+            thumb.classList.add('is-missing');
+        }
+
         const meta = document.createElement('div');
         meta.className = 'ad-inventory-meta';
         const status = ad.status || 'active';
@@ -9757,6 +9752,7 @@ function renderAdInventoryList() {
         actions.appendChild(editBtn);
         actions.appendChild(toggleBtn);
         actions.appendChild(removeBtn);
+        item.appendChild(thumb);
         item.appendChild(meta);
         item.appendChild(actions);
         container.appendChild(item);
@@ -9830,12 +9826,6 @@ function calculateCtr(clicks, impressions) {
     const i = Number(impressions || 0);
     if (i <= 0) return '0.00%';
     return `${((c / i) * 100).toFixed(2)}%`;
-}
-
-function refreshAdJsonPreview() {
-    const preview = document.getElementById('adJsonPreview');
-    if (!preview) return;
-    preview.value = JSON.stringify(adPanelState, null, 2);
 }
 
 function flashButtonState(button, text) {

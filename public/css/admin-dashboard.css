@@ -10538,6 +10538,27 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     background: rgba(16, 185, 129, 0.72);
 }
 
+.ad-inventory-thumb {
+    flex: 0 0 168px;
+    width: 168px;
+    height: 104px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(2, 6, 23, 0.72);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.ad-inventory-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ad-inventory-thumb.is-missing {
+    background: rgba(15, 23, 42, 0.85);
+}
+
 .ad-inventory-item {
     display: flex;
     align-items: center;
@@ -10550,6 +10571,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 }
 
 .ad-inventory-meta {
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -10579,21 +10601,6 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     padding: 0.35rem 0.55rem;
     cursor: pointer;
     font-size: 0.75rem;
-}
-
-.ad-json-preview {
-    width: 100%;
-    min-height: 180px;
-    margin-top: 0.8rem;
-    resize: vertical;
-    border-radius: 9px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    background: rgba(2, 6, 23, 0.92);
-    color: #d1fae5;
-    padding: 0.7rem;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 0.78rem;
-    line-height: 1.35;
 }
 
 /* ===== AD PLACEMENT REDESIGN OVERRIDES ===== */
@@ -11048,12 +11055,6 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     font-weight: 600;
 }
 
-.ad-json-preview {
-    min-height: 210px;
-    border-radius: 10px;
-    border-color: rgba(16, 185, 129, 0.28);
-}
-
 @media (max-width: 768px) {
     .ad-settings-layout {
         grid-template-columns: 1fr;
@@ -11079,9 +11080,24 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     .ad-form-actions .ad-btn {
         flex: 1 1 calc(50% - 0.4rem);
     }
+
+    .ad-inventory-item {
+        flex-wrap: wrap;
+    }
+
+    .ad-inventory-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }
 
 @media (max-width: 480px) {
+    .ad-inventory-thumb {
+        flex-basis: 128px;
+        width: 128px;
+        height: 80px;
+    }
+
     .ad-ops-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=22">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=25">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -3007,7 +3007,7 @@
                             <div class="ad-card-icon">💾</div>
                             <div>
                                 <h2 class="ad-card-title">Actions</h2>
-                                <div class="ad-card-subtitle">Save, reset, or export your current setup</div>
+                                <div class="ad-card-subtitle">Save or reset your current setup</div>
                             </div>
                             <div class="ad-card-head-right">
                                 <button type="button" class="ad-collapse-toggle" data-collapse-target="adActionsCardBody" aria-expanded="true" aria-label="Collapse Actions section">Hide</button>
@@ -3017,9 +3017,7 @@
                         <div class="ad-form-actions">
                             <button id="adSaveBtn" class="ad-btn primary">Save Ad Settings</button>
                             <button id="adResetBtn" class="ad-btn danger">Reset to Defaults</button>
-                            <button id="adExportBtn" class="ad-btn">Export JSON</button>
                         </div>
-                        <textarea id="adJsonPreview" class="ad-json-preview" readonly></textarea>
                         </div>
                     </div>
                 </div>
@@ -3821,7 +3819,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=17"></script>
+    <script src="public/js/admin-dashboard.js?v=19"></script>
     
     
 </body>

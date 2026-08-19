@@ -27,7 +27,7 @@ Instead:
 | Gig Moderation | Resolved — see below | Studied 2026-07-26 |
 | Messages (Support admin reply) | Paged glance queue. Phase 4 + Phase 10 engine + Phase 8 Contact/notify live | Live 2026-08-17 |
 | Settings | Wire as one small Firestore doc, replaces `localStorage` | **Shipped 2026-08-10 (Phase 5)** — see below |
-| Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. | Phase 6 shipped Ch 1–6, 2026-08-18 |
+| Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. Inventory thumbs are Hosting GETs. | Phase 6 shipped; inventory tested 2026-08-19 |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
 | Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
 | Analytics (demographics, peak hours, "Traffic & Costs") | Cut for now — needs Google Analytics/BigQuery or GCP Billing API, not Firestore; Firestore can't self-report its own read/write cost | Decided |

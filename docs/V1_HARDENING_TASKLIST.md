@@ -113,11 +113,11 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-17)
+### Phase roster (macro — updated 2026-08-19)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6), owner tested + audit 2026-08-18.** Phases 7, 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** Phases 7, 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -127,7 +127,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 3 | User Management (suspend / reinstate). **Permanently Ban** and **Contact** were **never** in this phase — see 8 / 9. | Shipped |
 | 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
-| 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. | Shipped (Ch 1–6, 2026-08-18) |
+| 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
@@ -699,12 +699,17 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          `AD_TRIAL_CONFIG` on error / missing doc. No listener.
       4. **[x] Profile + gig detail — 2026-08-18.** Same adapter for
          `profile_logout_slot` and `gig_detail_post_customer`. Same fallback.
-      5. **[x] Owner test — 2026-08-18.** Master, Frequency, Tail,
-         Empty-state, and all three zones passed (refresh, not live).
-         Inventory showed the five seeded cards. Frequency retargeted as
-         a full-width row; Max Ads / Session and Start After N stripped
-         from the form (unused; not implemented). Owner retested after
-         that ship; all good.
+      5. **[x] Owner test — 2026-08-18 zones; 2026-08-19 inventory.**
+         Master, Frequency, Tail, Empty-state, and all three zones
+         passed (refresh, not live). Frequency is a full-width row;
+         Max Ads / Session and Start After N stripped (unused).
+         Inventory 2026-08-19: Pause, Edit (form scroll + toast),
+         Status, Add, Delete passed. External links need `https://`
+         (bare `facebook.com` becomes `gisugo.com/facebook.com`).
+         Deploy new image files before saving the Image URL; same
+         filename replacements need `?v=` or a cache clear. Export
+         JSON removed (prototype leftover). Inventory rows show a
+         Hosting thumbnail (no extra Firestore read).
       6. **[x] Leftover audit — 2026-08-18.** Syntax clean. Rules:
          `adSettings` public read, admin write. Settings persist is
          Firestore only (`adSettings/global`); accordion collapse stays
@@ -717,7 +722,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          stored on the doc, not on the form; Weight / Max Impressions /
          Max Clicks / CTR still on Add/Edit and do not run the feed;
          one inventory still feeds all three zones (no per-ad zone/
-         category picker).
+         category picker). Per-ad zone/category is a later build.
+         **Operator rule:** Deploy the image file first, then save the
+         URL. Same-name replacements: `?v=2` or a new filename.
 - [ ] **Phase 7: Wire Overview's Storage Usage / User Activity / Traffic & Costs cards to
       real external data (2 setup steps + 1 code pass — NOT deferred/optional, explicitly
       wanted on the dashboard so admin can see live snapshots).** These 3 cards currently
