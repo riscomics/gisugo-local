@@ -10566,6 +10566,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 
 .ad-inventory-actions {
     display: flex;
+    flex-wrap: wrap;
+    flex-shrink: 0;
     gap: 0.45rem;
 }
 

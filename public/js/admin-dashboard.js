@@ -9721,11 +9721,13 @@ function renderAdInventoryList() {
         actions.className = 'ad-inventory-actions';
 
         const editBtn = document.createElement('button');
+        editBtn.type = 'button';
         editBtn.className = 'ad-mini-btn';
         editBtn.textContent = 'Edit';
         editBtn.addEventListener('click', () => populateAdFormForEdit(ad));
 
         const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
         removeBtn.className = 'ad-mini-btn';
         removeBtn.textContent = 'Delete';
         removeBtn.addEventListener('click', async () => {
@@ -9738,6 +9740,7 @@ function renderAdInventoryList() {
         });
 
         const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
         toggleBtn.className = 'ad-mini-btn';
         toggleBtn.textContent = status === 'paused' ? 'Resume' : 'Pause';
         toggleBtn.addEventListener('click', async () => {
@@ -9760,8 +9763,20 @@ function renderAdInventoryList() {
     });
 }
 
+function expandAdItemFormForEdit() {
+    adPanelCollapseState.adItemCardBody = false;
+    applyAdPanelCollapseState();
+    saveAdPanelCollapseState();
+    const formCard = document.getElementById('adItemCardBody')
+        && document.getElementById('adItemCardBody').closest('.ad-settings-card');
+    if (formCard && typeof formCard.scrollIntoView === 'function') {
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
 function populateAdFormForEdit(ad) {
     if (!ad) return;
+    expandAdItemFormForEdit();
     const setValue = (id, value) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -9800,6 +9815,7 @@ function populateAdFormForEdit(ad) {
     setValue('adItemEndAt', ad.endAt || '');
     setValue('adItemCtr', calculateCtr(ad.currentClicks || 0, ad.currentImpressions || 0));
     syncAdTypeFormState(adType);
+    showToast('Loaded ' + (ad.id || 'ad') + ' into the form.', 'success');
 }
 
 function formatAdDateWindow(startAt, endAt) {
