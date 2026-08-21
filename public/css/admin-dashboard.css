@@ -7387,6 +7387,21 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     transform: rotate(90deg);
 }
 
+.stat-snapshot-refresh {
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(230, 214, 174, 0.22);
+    color: #e6d6ae;
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.stat-snapshot-refresh:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
 .stat-overlay-body {
     padding: 2rem;
     overflow-y: auto;

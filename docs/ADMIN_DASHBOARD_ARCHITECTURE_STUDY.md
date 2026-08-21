@@ -30,7 +30,7 @@ Instead:
 | Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. Inventory thumbs are Hosting GETs. | Phase 6 shipped; inventory tested 2026-08-19 |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
 | Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
-| Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + GCP Billing API. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 Ch 1 built 2026-08-21 — not shipped |
+| Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + GCP Billing API. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 Ch 1 live; Ch 2–4 built 2026-08-21 — not shipped |
 
 ---
 

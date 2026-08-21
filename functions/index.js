@@ -3,6 +3,12 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
 const { classifyStoragePath, isCountableStorageObject } = require("./storage-analytics");
+const {
+  emptyUserActivity,
+  emptyTraffic,
+  fetchUserActivityFromGa4,
+  fetchTrafficFromMonitoring
+} = require("./overview-snapshots");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -1411,6 +1417,70 @@ exports.syncStorageAnalyticsOnDelete = onObjectDeleted(
   async (event) => {
     const data = event.data || {};
     await applyStorageAnalyticsDelta(data.name, data.size, -1);
+  }
+);
+
+// ============================================================================
+// OVERVIEW SNAPSHOTS (Admin Dashboard — Phase 7 Ch 3–4)
+// ============================================================================
+// Manual refresh only. Browser never talks to GA4 or Cloud Monitoring.
+// GA4_PROPERTY_ID is empty until Analytics is linked. Monitoring fills
+// Traffic without a Billing Account grant (invoice export is leftover).
+
+const GA4_PROPERTY_ID = String(process.env.GA4_PROPERTY_ID || "551027693").trim();
+const STORAGE_USD_PER_GB_MONTH = 0.020;
+
+async function assertIsAdmin(request) {
+  const uid = request.auth?.uid || "";
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Authentication required.");
+  }
+  const adminDoc = await db.collection("admins").doc(uid).get();
+  if (!adminDoc.exists) {
+    throw new HttpsError("permission-denied", "Admin access required.");
+  }
+  return uid;
+}
+
+exports.refreshUserActivitySnapshot = onCall(
+  { region: "asia-southeast1", cors: true, timeoutSeconds: 60 },
+  async (request) => {
+    await assertIsAdmin(request);
+    let snapshot = emptyUserActivity();
+    try {
+      snapshot = await fetchUserActivityFromGa4(GA4_PROPERTY_ID);
+    } catch (error) {
+      logger.error("User Activity GA4 refresh failed", { error: String(error) });
+      snapshot.status = "error";
+      snapshot.error = String(error.message || error);
+    }
+    snapshot.refreshedAt = admin.firestore.FieldValue.serverTimestamp();
+    await db.collection("platform_analytics").doc("user_activity").set(snapshot);
+    return { success: true, status: snapshot.status };
+  }
+);
+
+exports.refreshTrafficSnapshot = onCall(
+  { region: "asia-southeast1", cors: true, timeoutSeconds: 60 },
+  async (request) => {
+    await assertIsAdmin(request);
+    let snapshot = emptyTraffic();
+    try {
+      snapshot = await fetchTrafficFromMonitoring();
+      const storageDoc = await db.collection("platform_analytics").doc("storage").get();
+      const storageBytes = Math.max(0, Number(storageDoc.exists ? storageDoc.data().totalBytes : 0) || 0);
+      const storageUsd = (storageBytes / (1024 * 1024 * 1024)) * STORAGE_USD_PER_GB_MONTH;
+      snapshot.costBreakdown = snapshot.costBreakdown || emptyTraffic().costBreakdown;
+      snapshot.costBreakdown.storage = storageUsd;
+      snapshot.costUsd = Number(snapshot.costUsd || 0) + storageUsd;
+    } catch (error) {
+      logger.error("Traffic snapshot refresh failed", { error: String(error) });
+      snapshot.status = "error";
+      snapshot.error = String(error.message || error);
+    }
+    snapshot.refreshedAt = admin.firestore.FieldValue.serverTimestamp();
+    await db.collection("platform_analytics").doc("traffic").set(snapshot);
+    return { success: true, status: snapshot.status };
   }
 );
 

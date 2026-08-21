@@ -5849,6 +5849,9 @@ async function initializeStatOverlays() {
         // on overlay open like renderGigsAnalyticsOverlay().
         loadGigsAnalyticsGlanceCard();
         loadStorageUsageGlanceCard();
+        loadUserActivityGlanceCard();
+        loadTrafficCostsGlanceCard();
+        attachOverviewSnapshotRefreshListeners();
 
         // Attach click listeners to stat cards
         attachStatCardListeners();
@@ -6004,6 +6007,10 @@ function openStatOverlay(type) {
             renderAgeGroupsBreakdown();
         } else if (type === 'storageUsage') {
             renderStorageUsageOverlay();
+        } else if (type === 'userActivity') {
+            renderUserActivityOverlay();
+        } else if (type === 'trafficCosts') {
+            renderTrafficCostsOverlay();
         }
 
         console.log(`Opened ${type} overlay`);
@@ -6494,6 +6501,167 @@ async function renderStorageUsageOverlay() {
         });
     } catch (error) {
         console.error('❌ Error rendering Storage Usage overlay:', error);
+    }
+}
+
+function formatSessionDuration(seconds) {
+    const s = Math.max(0, Math.round(Number(seconds) || 0));
+    const m = Math.floor(s / 60);
+    return `${m}m ${s % 60}s`;
+}
+
+function applyUserActivitySnapshot(activity) {
+    const data = activity || {};
+    setElementValue('androidDeviceCount', Number(data.androidCount || 0).toLocaleString());
+    setElementValue('iphoneDeviceCount', Number(data.iphoneCount || 0).toLocaleString());
+    setElementValue('androidDevicePercent', `${Number(data.androidPercent || 0)}%`);
+    setElementValue('iphoneDevicePercent', `${Number(data.iphonePercent || 0)}%`);
+    setElementValue('avgSessionDuration', formatSessionDuration(data.avgSessionSeconds));
+    setElementValue('peakHoursDisplay', data.peakHoursLabel || 'N/A');
+
+    setElementValue('userActivityMobilePercent', `${Number(data.mobilePercent || 0)}%`);
+    setElementValue('userActivityDesktopPercent', `${Number(data.desktopPercent || 0)}%`);
+    setElementValue('androidBreakdownPercent', `${Number(data.androidPercent || 0)}%`);
+    setElementValue('iphoneBreakdownPercent', `${Number(data.iphonePercent || 0)}%`);
+    setElementValue('userActivityRepeatPercent', `${Number(data.repeatPercent || 0)}%`);
+    setElementValue('userActivityBounceRate', `${Number(data.bounceRate || 0)}%`);
+    setElementValue('avgSessionOverlayDisplay', formatSessionDuration(data.avgSessionSeconds));
+
+    const browsers = data.browsers || {};
+    setElementValue('chromePercent', `${Number(browsers.chrome || 0)}%`);
+    setElementValue('safariPercent', `${Number(browsers.safari || 0)}%`);
+    setElementValue('firefoxPercent', `${Number(browsers.firefox || 0)}%`);
+    setElementValue('edgePercent', `${Number(browsers.edge || 0)}%`);
+    setElementValue('messengerPercent', `${Number(browsers.messenger || 0)}%`);
+    setElementValue('otherBrowserPercent', `${Number(browsers.other || 0)}%`);
+
+    const peaks = data.peakBuckets || {};
+    setElementValue('morningUsersCount', Number(peaks.morning || 0).toLocaleString());
+    setElementValue('afternoonUsersCount', Number(peaks.afternoon || 0).toLocaleString());
+    setElementValue('eveningUsersCount', Number(peaks.evening || 0).toLocaleString());
+    setElementValue('nightUsersCount', Number(peaks.night || 0).toLocaleString());
+}
+
+function applyTrafficSnapshot(traffic) {
+    const data = traffic || {};
+    const breakdown = data.costBreakdown || {};
+    const totalUsd = Number(data.costUsd || 0);
+    setElementValue('bandwidthUsageMTD', formatStorageBytes(data.bandwidthBytes || 0));
+    setElementValue('firebaseCostMTD', formatStorageUsd(totalUsd));
+    setElementValue('trafficOverlayBandwidth', formatStorageBytes(data.bandwidthBytes || 0));
+    setElementValue('trafficOverlayReads', Number(data.firestoreReads || 0).toLocaleString());
+    setElementValue('trafficOverlayWrites', Number(data.firestoreWrites || 0).toLocaleString());
+    setElementValue('trafficOverlayCost', formatStorageUsd(totalUsd));
+
+    const dbUsd = Number(breakdown.database || 0);
+    const storageUsd = Number(breakdown.storage || 0);
+    const bandwidthUsd = Number(breakdown.bandwidth || 0);
+    const authUsd = Number(breakdown.auth || 0);
+    setElementValue('dbOperationsCostValue', formatStorageUsd(dbUsd));
+    setElementValue('storageCostValue', formatStorageUsd(storageUsd));
+    setElementValue('bandwidthCostValue', formatStorageUsd(bandwidthUsd));
+    setElementValue('authCostValue', formatStorageUsd(authUsd));
+    setElementValue('dbOperationsCostPercent', `${totalUsd > 0 ? Math.round((dbUsd / totalUsd) * 100) : 0}%`);
+    setElementValue('storageCostPercent', `${totalUsd > 0 ? Math.round((storageUsd / totalUsd) * 100) : 0}%`);
+    setElementValue('bandwidthCostPercent', `${totalUsd > 0 ? Math.round((bandwidthUsd / totalUsd) * 100) : 0}%`);
+    setElementValue('authCostPercent', `${totalUsd > 0 ? Math.round((authUsd / totalUsd) * 100) : 0}%`);
+}
+
+function snapshotStatusMessage(kind, status) {
+    if (status === 'ok') return 'Snapshot updated.';
+    if (status === 'needs_ga4') return 'Google Analytics is not linked yet. Enable it in Firebase Console and send the G- ID.';
+    if (status === 'empty' && kind === 'activity') return 'No Analytics traffic yet. Card stays at 0 until GA has sessions.';
+    if (status === 'needs_monitoring') return 'Cloud Monitoring did not return usage. Check project IAM.';
+    if (status === 'error') return 'Snapshot refresh failed. Try again.';
+    return 'Snapshot saved.';
+}
+
+async function loadUserActivityGlanceCard() {
+    if (typeof getPlatformAnalyticsUserActivity !== 'function') return;
+    try {
+        applyUserActivitySnapshot(await getPlatformAnalyticsUserActivity());
+    } catch (error) {
+        console.error('❌ Error loading User Activity glance card:', error);
+    }
+}
+
+async function renderUserActivityOverlay() {
+    if (typeof getPlatformAnalyticsUserActivity !== 'function') return;
+    try {
+        applyUserActivitySnapshot(await getPlatformAnalyticsUserActivity());
+    } catch (error) {
+        console.error('❌ Error rendering User Activity overlay:', error);
+    }
+}
+
+async function loadTrafficCostsGlanceCard() {
+    if (typeof getPlatformAnalyticsTraffic !== 'function') return;
+    try {
+        applyTrafficSnapshot(await getPlatformAnalyticsTraffic());
+    } catch (error) {
+        console.error('❌ Error loading Traffic glance card:', error);
+    }
+}
+
+async function renderTrafficCostsOverlay() {
+    if (typeof getPlatformAnalyticsTraffic !== 'function') return;
+    try {
+        applyTrafficSnapshot(await getPlatformAnalyticsTraffic());
+    } catch (error) {
+        console.error('❌ Error rendering Traffic overlay:', error);
+    }
+}
+
+async function handleOverviewSnapshotRefresh(kind) {
+    const isActivity = kind === 'activity';
+    const buttonId = isActivity ? 'refreshUserActivitySnapshot' : 'refreshTrafficSnapshot';
+    const button = document.getElementById(buttonId);
+    if (button) button.disabled = true;
+    try {
+        const result = isActivity
+            ? await refreshUserActivitySnapshot()
+            : await refreshTrafficSnapshot();
+        if (!result || !result.success) {
+            showToast((result && result.message) || 'Refresh failed', 'error');
+            return;
+        }
+        if (isActivity) {
+            await loadUserActivityGlanceCard();
+            await renderUserActivityOverlay();
+        } else {
+            await loadTrafficCostsGlanceCard();
+            await renderTrafficCostsOverlay();
+        }
+        showToast(
+            snapshotStatusMessage(kind, result.status),
+            result.status === 'ok' ? 'success' : 'info',
+            4000
+        );
+    } catch (error) {
+        showToast(error.message || 'Refresh failed', 'error');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+function attachOverviewSnapshotRefreshListeners() {
+    const activityBtn = document.getElementById('refreshUserActivitySnapshot');
+    const trafficBtn = document.getElementById('refreshTrafficSnapshot');
+    if (activityBtn && !activityBtn.dataset.bound) {
+        activityBtn.dataset.bound = '1';
+        activityBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleOverviewSnapshotRefresh('activity');
+        });
+    }
+    if (trafficBtn && !trafficBtn.dataset.bound) {
+        trafficBtn.dataset.bound = '1';
+        trafficBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleOverviewSnapshotRefresh('traffic');
+        });
     }
 }
 

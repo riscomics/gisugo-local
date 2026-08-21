@@ -19,7 +19,9 @@ const firebaseConfig = {
   projectId: "gisugo1",
   storageBucket: "gisugo1.firebasestorage.app",
   messagingSenderId: "380568649178",
-  appId: "1:380568649178:web:725c745becbb89412094e3"
+  appId: "1:380568649178:web:725c745becbb89412094e3",
+  // Phase 7 Ch 2: real G- ID only. Empty = do not load gtag (no placeholder).
+  measurementId: "G-TBGN7B69R9"
 };
 
 // Optional: Firebase Web Push certificate key (Project Settings -> Cloud Messaging)
@@ -178,12 +180,34 @@ function initializeFirebase() {
     firebaseInitialized = true;
     console.log('✅ Firebase initialized successfully');
     console.log('📊 Project ID:', firebaseConfig.projectId);
+    initializeConsumerAnalytics();
     
     return true;
   } catch (error) {
     console.error('❌ Firebase initialization error:', error);
     return false;
   }
+}
+
+function initializeConsumerAnalytics() {
+  const measurementId = String(firebaseConfig.measurementId || "").trim();
+  if (!/^G-[A-Z0-9]+$/.test(measurementId)) return;
+  try {
+    const path = String(window.location && window.location.pathname || "");
+    if (/admin-dashboard\.html$/i.test(path)) return;
+  } catch (error) {
+    return;
+  }
+  if (window.__gisugoGa4Started) return;
+  window.__gisugoGa4Started = true;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function() { window.dataLayer.push(arguments); };
+  window.gtag('js', new Date());
+  window.gtag('config', measurementId);
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+  document.head.appendChild(script);
 }
 
 // ============================================================================

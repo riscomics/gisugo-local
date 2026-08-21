@@ -5382,6 +5382,80 @@ async function getPlatformAnalyticsStorage() {
   }
 }
 
+async function getPlatformAnalyticsUserActivity() {
+  const empty = {
+    mobilePercent: 0,
+    desktopPercent: 0,
+    androidCount: 0,
+    androidPercent: 0,
+    iphoneCount: 0,
+    iphonePercent: 0,
+    avgSessionSeconds: 0,
+    peakHoursLabel: 'N/A',
+    repeatPercent: 0,
+    bounceRate: 0,
+    browsers: { chrome: 0, safari: 0, firefox: 0, edge: 0, messenger: 0, other: 0 },
+    peakBuckets: { morning: 0, afternoon: 0, evening: 0, night: 0 },
+    status: 'empty'
+  };
+  const db = getFirestore();
+  if (!db) return empty;
+  try {
+    const doc = await db.collection('platform_analytics').doc('user_activity').get();
+    if (!doc.exists) return empty;
+    return Object.assign({}, empty, doc.data() || {});
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/user_activity:', error);
+    return empty;
+  }
+}
+
+async function getPlatformAnalyticsTraffic() {
+  const empty = {
+    bandwidthBytes: 0,
+    firestoreReads: 0,
+    firestoreWrites: 0,
+    costUsd: 0,
+    costBreakdown: { database: 0, storage: 0, bandwidth: 0, auth: 0 },
+    status: 'empty'
+  };
+  const db = getFirestore();
+  if (!db) return empty;
+  try {
+    const doc = await db.collection('platform_analytics').doc('traffic').get();
+    if (!doc.exists) return empty;
+    const data = doc.data() || {};
+    return Object.assign({}, empty, data, {
+      costBreakdown: Object.assign({}, empty.costBreakdown, data.costBreakdown || {})
+    });
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/traffic:', error);
+    return empty;
+  }
+}
+
+async function refreshUserActivitySnapshot() {
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('refreshUserActivitySnapshot');
+    const response = await callable({});
+    return { success: true, status: response && response.data && response.data.status };
+  } catch (error) {
+    console.error('❌ refreshUserActivitySnapshot failed:', error);
+    return { success: false, message: error.message || 'Refresh failed' };
+  }
+}
+
+async function refreshTrafficSnapshot() {
+  try {
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('refreshTrafficSnapshot');
+    const response = await callable({});
+    return { success: true, status: response && response.data && response.data.status };
+  } catch (error) {
+    console.error('❌ refreshTrafficSnapshot failed:', error);
+    return { success: false, message: error.message || 'Refresh failed' };
+  }
+}
+
 // Get start of current month timestamp
 function getMonthStartTimestamp() {
   const now = new Date();
@@ -5519,6 +5593,10 @@ window.getPlatformAnalyticsGigs = getPlatformAnalyticsGigs;
 window.getPlatformAnalyticsApplications = getPlatformAnalyticsApplications;
 window.getPlatformAnalyticsUsers = getPlatformAnalyticsUsers;
 window.getPlatformAnalyticsStorage = getPlatformAnalyticsStorage;
+window.getPlatformAnalyticsUserActivity = getPlatformAnalyticsUserActivity;
+window.getPlatformAnalyticsTraffic = getPlatformAnalyticsTraffic;
+window.refreshUserActivitySnapshot = refreshUserActivitySnapshot;
+window.refreshTrafficSnapshot = refreshTrafficSnapshot;
 
 // ============================================================================
 // NOTIFICATION HELPER (Pre-wired for RELIST feature - uses existing ALERTS)
