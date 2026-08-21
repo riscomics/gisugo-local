@@ -5328,6 +5328,60 @@ async function getPlatformAnalyticsUsers() {
   }
 }
 
+/**
+ * Get the Storage Usage counter doc (platform_analytics/storage).
+ * Maintained by Storage finalize/delete triggers + the one-time seed.
+ * Never lists the bucket. See functions/storage-analytics.js for buckets.
+ */
+function emptyStorageTypeRow() {
+  return { bytes: 0, files: 0 };
+}
+
+async function getPlatformAnalyticsStorage() {
+  const emptyByType = {
+    profile: emptyStorageTypeRow(),
+    gig: emptyStorageTypeRow(),
+    id: emptyStorageTypeRow(),
+    other: emptyStorageTypeRow()
+  };
+  const empty = { totalBytes: 0, totalFiles: 0, byType: emptyByType };
+  const db = getFirestore();
+  if (!db) return empty;
+
+  try {
+    const doc = await db.collection('platform_analytics').doc('storage').get();
+    if (!doc.exists) return empty;
+    const data = doc.data() || {};
+    const rawByType = data.byType || {};
+    const byType = {
+      profile: {
+        bytes: Math.max(0, Number(rawByType.profile && rawByType.profile.bytes) || 0),
+        files: Math.max(0, Number(rawByType.profile && rawByType.profile.files) || 0)
+      },
+      gig: {
+        bytes: Math.max(0, Number(rawByType.gig && rawByType.gig.bytes) || 0),
+        files: Math.max(0, Number(rawByType.gig && rawByType.gig.files) || 0)
+      },
+      id: {
+        bytes: Math.max(0, Number(rawByType.id && rawByType.id.bytes) || 0),
+        files: Math.max(0, Number(rawByType.id && rawByType.id.files) || 0)
+      },
+      other: {
+        bytes: Math.max(0, Number(rawByType.other && rawByType.other.bytes) || 0),
+        files: Math.max(0, Number(rawByType.other && rawByType.other.files) || 0)
+      }
+    };
+    return {
+      totalBytes: Math.max(0, Number(data.totalBytes) || 0),
+      totalFiles: Math.max(0, Number(data.totalFiles) || 0),
+      byType
+    };
+  } catch (error) {
+    console.error('❌ Error getting platform_analytics/storage:', error);
+    return empty;
+  }
+}
+
 // Get start of current month timestamp
 function getMonthStartTimestamp() {
   const now = new Date();
@@ -5464,6 +5518,7 @@ window.getAdminAnalytics = getAdminAnalytics;
 window.getPlatformAnalyticsGigs = getPlatformAnalyticsGigs;
 window.getPlatformAnalyticsApplications = getPlatformAnalyticsApplications;
 window.getPlatformAnalyticsUsers = getPlatformAnalyticsUsers;
+window.getPlatformAnalyticsStorage = getPlatformAnalyticsStorage;
 
 // ============================================================================
 // NOTIFICATION HELPER (Pre-wired for RELIST feature - uses existing ALERTS)

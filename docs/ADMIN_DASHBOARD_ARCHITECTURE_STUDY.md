@@ -30,7 +30,7 @@ Instead:
 | Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. Inventory thumbs are Hosting GETs. | Phase 6 shipped; inventory tested 2026-08-19 |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
 | Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
-| Analytics (demographics, peak hours, "Traffic & Costs") | Cut for now — needs Google Analytics/BigQuery or GCP Billing API, not Firestore; Firestore can't self-report its own read/write cost | Decided |
+| Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + GCP Billing API. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 Ch 1 built 2026-08-21 — not shipped |
 
 ---
 
@@ -445,10 +445,10 @@ good to go") — now resolved on request, same level of detail as the other thre
 
 ## Open items
 
-1. **Firebase/Google Analytics** — needs to be turned on (Firebase Console + SDK) before the User
-   Activity card has any data to pull. Separate action item from dashboard build.
-2. **Billing API access** — needs the read-access grant set up once, deliberately, when Traffic &
-   Firebase Costs gets built. Owner confirmed OK to proceed (2026-07-27).
+1. **Firebase/Google Analytics** — Phase 7 Ch 2. Turned on (Firebase Console + SDK) before the User
+   Activity card has any data to pull. Not started.
+2. **Billing API access** — Phase 7 Ch 4. One-time IAM grant when Traffic &
+   Firebase Costs is built. Owner confirmed OK to proceed (2026-07-27). Grant not done.
 3. **Deleted-gigs assumption** — confirmed hard-delete (no soft-delete/status flag kept). If this
    ever changes, the "no Deleted badge needed" call in Gig Moderation would need revisiting.
 

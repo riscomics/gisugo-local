@@ -5848,6 +5848,7 @@ async function initializeStatOverlays() {
         // it loads here alongside the other stat cards rather than lazily
         // on overlay open like renderGigsAnalyticsOverlay().
         loadGigsAnalyticsGlanceCard();
+        loadStorageUsageGlanceCard();
 
         // Attach click listeners to stat cards
         attachStatCardListeners();
@@ -6001,6 +6002,8 @@ function openStatOverlay(type) {
             renderGigsAnalyticsOverlay();
         } else if (type === 'totalUsers') {
             renderAgeGroupsBreakdown();
+        } else if (type === 'storageUsage') {
+            renderStorageUsageOverlay();
         }
 
         console.log(`Opened ${type} overlay`);
@@ -6395,6 +6398,102 @@ async function renderGigsAnalyticsOverlay() {
         });
     } catch (error) {
         console.error('❌ Error rendering Gigs Analytics overlay:', error);
+    }
+}
+
+// ============================================================================
+// STORAGE USAGE (Phase 7 Ch 1)
+// ============================================================================
+// Data source: platform_analytics/storage (Storage finalize/delete triggers
+// + one-time seed). One doc read. Never lists the bucket.
+// Published Standard regional estimate: $0.020 / GB-month.
+
+const STORAGE_USD_PER_GB_MONTH = 0.020;
+
+function formatStorageBytes(bytes) {
+    const n = Math.max(0, Number(bytes) || 0);
+    if (n >= 1024 * 1024 * 1024) return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+    if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+    return `${n} B`;
+}
+
+function estimateStorageUsd(bytes) {
+    return (Math.max(0, Number(bytes) || 0) / (1024 * 1024 * 1024)) * STORAGE_USD_PER_GB_MONTH;
+}
+
+function formatStorageUsd(usd) {
+    const n = Math.max(0, Number(usd) || 0);
+    if (n <= 0) return '$0.00';
+    if (n < 0.01) return `$${n.toFixed(4)}`;
+    return `$${n.toFixed(2)}`;
+}
+
+function applyStorageTypeRow(prefix, row, totalBytes) {
+    const bytes = Math.max(0, Number(row && row.bytes) || 0);
+    const files = Math.max(0, Number(row && row.files) || 0);
+    const pct = totalBytes > 0 ? Math.round((bytes / totalBytes) * 100) : 0;
+    setElementValue(`${prefix}Count`, files.toLocaleString());
+    setElementValue(`${prefix}Size`, `(${formatStorageBytes(bytes)})`);
+    setElementValue(`${prefix}Percent`, `${pct}%`);
+}
+
+async function loadStorageUsageGlanceCard() {
+    if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+        console.warn('⚠️ Storage Usage glance card: Firebase offline, skipping load');
+        return;
+    }
+    if (typeof getPlatformAnalyticsStorage !== 'function') {
+        console.warn('⚠️ Storage Usage glance card: analytics function unavailable');
+        return;
+    }
+
+    try {
+        const storageAnalytics = await getPlatformAnalyticsStorage();
+        const totalBytes = storageAnalytics.totalBytes || 0;
+        setElementValue('totalStorageUsed', formatStorageBytes(totalBytes));
+        setElementValue('storageCostEstimate', `est. ${formatStorageUsd(estimateStorageUsd(totalBytes))} / month`);
+        console.log('✅ Storage Usage glance card populated', {
+            totalBytes,
+            totalFiles: storageAnalytics.totalFiles || 0
+        });
+    } catch (error) {
+        console.error('❌ Error loading Storage Usage glance card:', error);
+    }
+}
+
+async function renderStorageUsageOverlay() {
+    if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+        console.warn('⚠️ Storage Usage: Firebase offline, skipping load');
+        return;
+    }
+    if (typeof getPlatformAnalyticsStorage !== 'function') {
+        console.warn('⚠️ Storage Usage: analytics function unavailable');
+        return;
+    }
+
+    try {
+        const storageAnalytics = await getPlatformAnalyticsStorage();
+        const totalBytes = storageAnalytics.totalBytes || 0;
+        const totalFiles = storageAnalytics.totalFiles || 0;
+        const byType = storageAnalytics.byType || {};
+        const estUsd = estimateStorageUsd(totalBytes);
+
+        setElementValue('storageOverlayTotal', formatStorageBytes(totalBytes));
+        setElementValue('storageOverlayMediaCount', totalFiles.toLocaleString());
+        setElementValue('storageOverlayMediaSize', formatStorageBytes(totalBytes));
+        setElementValue('storageOverlayCost', formatStorageUsd(estUsd));
+
+        applyStorageTypeRow('profilePhotos', byType.profile, totalBytes);
+        applyStorageTypeRow('gigPhotos', byType.gig, totalBytes);
+        applyStorageTypeRow('idVerifications', byType.id, totalBytes);
+        applyStorageTypeRow('otherFiles', byType.other, totalBytes);
+
+        console.log('✅ Storage Usage overlay populated from platform_analytics/storage', {
+            totalBytes, totalFiles
+        });
+    } catch (error) {
+        console.error('❌ Error rendering Storage Usage overlay:', error);
     }
 }
 

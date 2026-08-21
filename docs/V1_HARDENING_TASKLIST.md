@@ -113,11 +113,11 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-19)
+### Phase roster (macro — updated 2026-08-21)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** Phases 7, 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1 built 2026-08-21 — not live until Deploy + seed.** Phases 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -128,7 +128,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
-| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to GA + Billing. Cards still show honest `0`. | Not built |
+| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Billing API). Storage card built (Ch 1) — not live until Deploy + seed. | Ch 1 built — not shipped |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
@@ -725,23 +725,73 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          category picker). Per-ad zone/category is a later build.
          **Operator rule:** Deploy the image file first, then save the
          URL. Same-name replacements: `?v=2` or a new filename.
-- [ ] **Phase 7: Wire Overview's Storage Usage / User Activity / Traffic & Costs cards to
-      real external data (2 setup steps + 1 code pass — NOT deferred/optional, explicitly
-      wanted on the dashboard so admin can see live snapshots).** These 3 cards currently
-      show honest `0`/`0%`/`$0.00` placeholders — correct, but non-functional. Full design
-      already exists in `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` "Open items" #1-#2;
-      promoted here so it has its own tracked checkbox instead of living only as prose in a
-      design doc. Concretely:
-      1. **Enable Google Analytics** (Firebase Console + GA4 SDK) — no data source exists for
-         User Activity (device split, session length, peak hours) until this is on.
-      2. **Grant GCP Billing API read access** (one-time IAM grant) — needed for Traffic &
-         Firebase Costs to pull real bandwidth/$ numbers. Owner already confirmed OK to
-         proceed (2026-07-27) — grant not yet done.
-      3. **Code pass:** once both are enabled/granted, wire `userActivityCard` /
-         `storageUsageCard` / `trafficCostsCard` in `admin-dashboard.js` to pull from
-         GA4/BigQuery + the Billing API instead of self-reported Firestore (Firestore cannot
-         report its own storage size or read/write cost — confirmed architectural
-         constraint, not an oversight). Manual-refresh snapshot cards, not live listeners.
+- [ ] **Phase 7: Overview Storage / User Activity / Traffic cards — microtasklist
+      started 2026-08-19, not built.** The three cards already exist and show
+      honest `0`. Design in
+      `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` (manual-refresh snapshots +
+      Open items #1–#2). The old “one code pass after GA + Billing” lump was
+      wrong: Storage is our own running counter, not GA/Billing.
+      **Locked product:**
+      • Three existing Overview cards + their overlays only. Same HTML IDs.
+        No new cards. Gigs Analytics stays Phase 1.
+      • Manual-refresh snapshots. No live listener. No scheduled job this
+        phase. Dashboard reads tiny `platform_analytics` docs (`isAdmin()`
+        read, Functions-only write — rules already match).
+      • **Storage Usage** = running byte + file counters, bumped on Storage
+        finalize/delete. Never list the bucket from the dashboard. One-time
+        Admin SDK seed is allowed so existing files are not invisible. Cost
+        = published Firebase Storage $/GB math, labeled estimate. Drop the
+        fake “of 500 GB plan” line (Blaze has no storage cap).
+      • **User Activity** = GA4 Data API. No data until Analytics is on and
+        has traffic. Device / session / peak / repeat / bounce / browser
+        fill existing fields; honest empty if the property is new.
+      • **Traffic & Costs** = GCP Billing API. Firestore cannot self-count
+        reads/writes. Card face = bandwidth MTD + $ MTD. Overlay period
+        selector is MTD first; other periods leftover if the export cannot
+        cheaply answer them.
+      • Secrets stay in Cloud Functions. Browser never calls GA/Billing
+        with credentials. Refresh = admin-only callable that writes the
+        snapshot doc; card then `.get()`s that doc.
+      • `landing.js` already has a dead `gtag('config', 'GA_MEASUREMENT_ID')`
+        placeholder — do not treat that as live Analytics.
+      • **Owner setup (blocks Ch 3 and Ch 4, not Ch 1):** (a) enable
+        Firebase/GA4 and give the Measurement ID; (b) grant the Functions
+        service account Billing Account Viewer (confirmed OK 2026-07-27,
+        grant not done).
+      • **Not this phase:** AdSense, paid billing product, impression
+        writes, Regional / Age leftover, cookie-consent banner, nightly
+        cron, hiding the 0 cards, “Projected Full” (needs a fake cap).
+      **Microtasklist**
+      1. **[x] Storage counter + card — 2026-08-21 (not live until
+         Deploy + seed --apply).**
+         `syncStorageAnalyticsOnFinalize` /
+         `syncStorageAnalyticsOnDelete` → `platform_analytics/storage`.
+         Shared classifier: `functions/storage-analytics.js`.
+         Dashboard: `getPlatformAnalyticsStorage()` + glance card +
+         overlay. Fake 500 GB plan / progress bar removed. Cost =
+         $0.020/GB-month estimate. Seed:
+         `scripts/seed-storage-analytics.js` (dry-run default;
+         `--apply` overwrites). **Ship order:** deploy functions, then
+         `--apply` seed.
+         Growth “This Month / Avg / Projected Full” leftover.
+         Same-path overwrite drift leftover if GCS skips delete.
+         Other bucket includes live `support_photos/` + `chat_photos/`.
+      2. **[ ] Enable GA4 (owner Console + SDK).** Owner turns Analytics
+         on and sends the Measurement ID. Agent adds the real SDK on
+         consumer pages (not the landing placeholder). Collect only —
+         the User Activity card stays `0` until Ch 3.
+      3. **[ ] User Activity snapshot.** Admin-only callable pulls GA4
+         Data API → `platform_analytics/user_activity`. Fill the existing
+         card + overlay. Honest empty if GA has no rows yet.
+      4. **[ ] Billing grant + Traffic snapshot.** Owner IAM grant, then
+         admin-only callable → `platform_analytics/traffic`. Fill
+         bandwidth / $ MTD (and overlay reads/writes/$ if the SKUs exist).
+      5. **[ ] Owner test.** Storage after an upload/delete; Activity
+         after GA has traffic; Traffic after the Billing grant. Refresh,
+         not live.
+      6. **[ ] Leftover audit.** Syntax, rules (still Functions-only
+         writes), no client Billing/GA secrets, no Storage list from
+         the dashboard, no listeners.
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.

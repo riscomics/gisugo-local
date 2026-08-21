@@ -1332,7 +1332,7 @@
                                     <div class="revenue-details">
                                         <div class="revenue-label">Total Storage</div>
                                         <div class="revenue-amount" id="storageOverlayTotal">0 GB</div>
-                                        <div class="revenue-sublabel">of 500 GB plan</div>
+                                        <div class="revenue-sublabel">Blaze — no storage cap</div>
                                     </div>
                                 </div>
                                 <div class="revenue-card">
@@ -1348,7 +1348,7 @@
                                     <div class="revenue-details">
                                         <div class="revenue-label">Storage Cost</div>
                                         <div class="revenue-amount cost-value" id="storageOverlayCost">$0.00</div>
-                                        <div class="revenue-sublabel">per month</div>
+                                        <div class="revenue-sublabel">est. / month</div>
                                     </div>
                                 </div>
                             </div>
@@ -1360,7 +1360,6 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="mediaUploadsBreakdown">
-                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/storage/mediaTypes -->
                                     <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">👤</div>
@@ -1667,7 +1666,6 @@
                     <!-- Storage Usage Card -->
                     <div class="dashboard-card clickable-card" id="storageUsageCard">
                         <h3 class="card-title">💾 Storage Usage</h3>
-                        <!-- FIREBASE TODO: Fetch from /admin/analytics/storage -->
                         
                         <div class="analytics-section">
                             <div class="storage-main-display">
@@ -1675,10 +1673,7 @@
                                 <div class="storage-main-info">
                                     <div class="storage-main-label">Total Storage Used</div>
                                     <div class="storage-main-value" id="totalStorageUsed">0 GB</div>
-                                    <div class="storage-main-limit">of 500 GB plan</div>
-                                    <div class="storage-progress-bar">
-                                        <div class="storage-progress-fill" style="width: 0%;" id="storageProgressFill"></div>
-                                    </div>
+                                    <div class="storage-main-limit" id="storageCostEstimate">est. $0.00 / month</div>
                                 </div>
                             </div>
                         </div>
@@ -3807,7 +3802,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=12"></script>
+    <script src="public/js/firebase-db.js?v=13"></script>
     <script src="public/js/firebase-storage.js"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     
@@ -3819,7 +3814,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=19"></script>
+    <script src="public/js/admin-dashboard.js?v=20"></script>
     
     
 </body>

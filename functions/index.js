@@ -1,6 +1,8 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
+const { classifyStoragePath, isCountableStorageObject } = require("./storage-analytics");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -1354,6 +1356,61 @@ exports.syncApplicationAnalyticsCountersOnCreate = onDocumentCreated(
         error: String(error)
       });
     }
+  }
+);
+
+// ============================================================================
+// STORAGE USAGE COUNTERS (Admin Dashboard — Phase 7 Ch 1)
+// ============================================================================
+// Running byte + file counts on platform_analytics/storage. Dashboard reads
+// that tiny doc only — never lists the bucket. Same-path overwrite (e.g.
+// profile_photos/{uid}/photo.jpg) nets correctly when GCS fires delete then
+// finalize; if only finalize fires, totals can drift until the seed is re-run.
+
+const STORAGE_ANALYTICS_BUCKET = "gisugo1.firebasestorage.app";
+
+async function applyStorageAnalyticsDelta(objectName, sizeBytes, fileDelta) {
+  if (!isCountableStorageObject(objectName)) return;
+  const size = Math.max(0, Number(sizeBytes) || 0);
+  const typeKey = classifyStoragePath(objectName);
+  const direction = fileDelta < 0 ? -1 : 1;
+  const byteDelta = direction * size;
+  const countDelta = direction;
+
+  try {
+    await db.collection("platform_analytics").doc("storage").set({
+      totalBytes: admin.firestore.FieldValue.increment(byteDelta),
+      totalFiles: admin.firestore.FieldValue.increment(countDelta),
+      byType: {
+        [typeKey]: {
+          bytes: admin.firestore.FieldValue.increment(byteDelta),
+          files: admin.firestore.FieldValue.increment(countDelta)
+        }
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    logger.error("Storage analytics counter sync failed", {
+      objectName: String(objectName || ""),
+      fileDelta: countDelta,
+      error: String(error)
+    });
+  }
+}
+
+exports.syncStorageAnalyticsOnFinalize = onObjectFinalized(
+  { bucket: STORAGE_ANALYTICS_BUCKET, region: "asia-southeast1" },
+  async (event) => {
+    const data = event.data || {};
+    await applyStorageAnalyticsDelta(data.name, data.size, 1);
+  }
+);
+
+exports.syncStorageAnalyticsOnDelete = onObjectDeleted(
+  { bucket: STORAGE_ANALYTICS_BUCKET, region: "asia-southeast1" },
+  async (event) => {
+    const data = event.data || {};
+    await applyStorageAnalyticsDelta(data.name, data.size, -1);
   }
 );
 
