@@ -2647,18 +2647,38 @@ function createJobPreviewCard(cardData, payType = 'Personal', consecutiveCount =
 
 let LISTING_BOOTSTRAP_STARTED = false;
 
+function relayoutListingAds() {
+  const headerSpacer = document.querySelector('.jobcat-header-spacer');
+  const container = headerSpacer && headerSpacer.parentNode;
+  if (!container) return;
+
+  container.querySelectorAll('[data-ad-placeholder="true"]').forEach((ad) => ad.remove());
+  resetAdRenderState();
+  renderInlineAdsByGigPositions(container);
+
+  if (!PAGINATION.hasMore && shouldRenderAdsInCurrentListing() && getListingAdConfig().allowTailAd) {
+    const tailAd = getNextAdConfig('tail');
+    if (tailAd) {
+      container.appendChild(createAdPlaceholderCard(tailAd, {
+        zone: 'tail',
+        insertAfterGigCount: PAGINATION.displayedJobs.length
+      }));
+      AD_RENDER_STATE.tailInserted = true;
+    }
+  }
+}
+
 async function bootstrapListingPage() {
   if (LISTING_BOOTSTRAP_STARTED) return;
   LISTING_BOOTSTRAP_STARTED = true;
   console.log('🔥 Listing page loaded with Firebase integration');
 
-  try {
-    await applyListingAdConfigFromServer();
-  } catch (adError) {
+  // Do not block the feed on adSettings. That read is source:server and was
+  // delaying warm-cache cards by seconds. Paint jobs first, place ads after.
+  const adConfigPromise = applyListingAdConfigFromServer().catch((adError) => {
     console.warn('Listing ad config stayed on local trial fallback.', adError);
-  }
-  
-  // Apply filtering and sorting - now async for Firebase support
+  });
+
   try {
     await filterAndSortJobs();
   } catch (error) {
@@ -2672,6 +2692,13 @@ async function bootstrapListingPage() {
         </div>
       `;
     }
+  }
+
+  await adConfigPromise;
+  try {
+    relayoutListingAds();
+  } catch (adRenderError) {
+    console.warn('Listing ad placement after remote config skipped.', adRenderError);
   }
   
   const truncateTimer = setTimeout(() => {
