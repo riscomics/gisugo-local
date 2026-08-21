@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=26">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=27">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2187,7 +2187,10 @@
                     <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
                 </div>
                 <div class="section-header">
-                    <h1 class="section-title">Messages</h1>
+                    <div class="section-title-row">
+                        <h1 class="section-title">Messages</h1>
+                        <button type="button" class="section-refresh-btn" id="refreshMessagesBtn" title="Refresh inbox" aria-label="Refresh inbox">↻</button>
+                    </div>
                     <p class="section-subtitle">Manage customer inquiries and Promotions</p>
                 </div>
 
@@ -3815,7 +3818,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=21"></script>
+    <script src="public/js/admin-dashboard.js?v=22"></script>
     
     
 </body>

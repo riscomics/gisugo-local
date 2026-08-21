@@ -420,6 +420,50 @@ body.admin-dashboard::-webkit-scrollbar {
     margin-bottom: 2rem;
 }
 
+.section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 0.5rem;
+}
+
+.section-title-row .section-title {
+    margin-bottom: 0;
+}
+
+.section-refresh-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    border: 1px solid rgba(230, 214, 174, 0.28);
+    background: rgba(148, 163, 184, 0.12);
+    color: #e6d6ae;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.section-refresh-btn:hover {
+    background: rgba(230, 214, 174, 0.16);
+}
+
+.section-refresh-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.section-refresh-btn.is-refreshing {
+    animation: sectionRefreshSpin 0.8s linear infinite;
+}
+
+@keyframes sectionRefreshSpin {
+    to { transform: rotate(360deg); }
+}
+
 .section-title {
     font-size: 2rem;
     font-weight: 700;

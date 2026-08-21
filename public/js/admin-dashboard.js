@@ -3386,6 +3386,7 @@ function initializeSupportCenter() {
     initializeSupportMobileOverlay();
     initializeSupportComposeOverlay();
     initializeSupportAttachmentLightbox();
+    initializeSupportInboxRefresh();
     loadSupportTab('new', { reset: true });
     refreshSupportTabCounts();
     console.log('✅ Support Center initialized');
@@ -3515,9 +3516,58 @@ async function refreshSupportTabCounts() {
     const { newCount, oldCount } = await window.getSupportQueueCounts();
     document.getElementById('newCountLabel') && (document.getElementById('newCountLabel').textContent = formatCount(newCount));
     document.getElementById('oldCountLabel') && (document.getElementById('oldCountLabel').textContent = formatCount(oldCount));
-    document.getElementById('sentCountLabel') && (document.getElementById('sentCountLabel').textContent = formatCount(supportBroadcasts.length));
+    if (supportCurrentTab === 'sent' || supportBroadcasts.length) {
+        document.getElementById('sentCountLabel') && (document.getElementById('sentCountLabel').textContent = formatCount(supportBroadcasts.length));
+    }
     if (typeof updateNavigationMessageBadge === 'function') {
         updateNavigationMessageBadge(newCount);
+    }
+}
+
+function initializeSupportInboxRefresh() {
+    const button = document.getElementById('refreshMessagesBtn');
+    if (!button || button.dataset.bound) return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', (event) => {
+        event.preventDefault();
+        refreshSupportInbox();
+    });
+}
+
+async function refreshSupportInbox() {
+    const button = document.getElementById('refreshMessagesBtn');
+    if (button) {
+        button.disabled = true;
+        button.classList.add('is-refreshing');
+    }
+    if (supportCurrentTab !== 'new') {
+        supportTickets.new = [];
+        supportLastDoc.new = null;
+        supportHasMore.new = false;
+    }
+    if (supportCurrentTab !== 'old') {
+        supportTickets.old = [];
+        supportLastDoc.old = null;
+        supportHasMore.old = false;
+    }
+    if (supportCurrentTab !== 'sent') {
+        supportBroadcasts = [];
+        supportBroadcastsLastDoc = null;
+        supportBroadcastsHasMore = false;
+    }
+    if (typeof closeSupportDetail === 'function') closeSupportDetail();
+    try {
+        if (supportCurrentTab === 'sent') {
+            await loadSupportSentTab({ reset: true });
+        } else {
+            await loadSupportTab(supportCurrentTab, { reset: true });
+        }
+        await refreshSupportTabCounts();
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.classList.remove('is-refreshing');
+        }
     }
 }
 
