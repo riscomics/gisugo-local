@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1 built 2026-08-21 — not live until Deploy + seed.** Phases 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh blocked on Analytics Data API. **Storage hygiene** (orphan sweep + prevent accumulation) drafted 2026-08-21 — not started. Phases 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -128,7 +128,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
-| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Billing API). Ch 1 live. Ch 2–4 built, not shipped. | Ch 1 live; Ch 2–4 built — not shipped |
+| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Ch 1–4 live. Ch 5: Storage + Traffic tested; Activity Refresh failed (Data API off). Ch 6 leftover audit not done. |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
@@ -783,12 +783,91 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          not an invoice. Overlay period selector leftover (MTD only).
          BigQuery billing export leftover (Cloud Billing API has no
          “get MTD spend” endpoint). Auth cost tile stays 0.
-      5. **[ ] Owner test.** Storage after an upload/delete; Activity
-         after GA has traffic; Traffic after the Billing grant. Refresh,
-         not live.
+      5. **[~] Owner test — 2026-08-21.** Storage overlay matches the
+         seed (17.3 MB / 170 files; 8 profile / 88 gig / 12 ID / 62
+         other). Traffic **Refresh snapshot** worked (883.0 MB /
+         est. $0.05). User Activity **Refresh snapshot** failed:
+         snapshot `status=error` — Google Analytics Data API is
+         disabled on project `380568649178`. Owner must enable
+         `analyticsdata.googleapis.com` then Refresh again. Honest
+         empty is OK until GA has sessions; this toast is not empty.
       6. **[ ] Leftover audit.** Syntax, rules (still Functions-only
          writes), no client Billing/GA secrets, no Storage list from
-         the dashboard, no listeners.
+         the dashboard, no listeners. Growth tiles leftover.
+         Session-duration histogram leftover. Overlay period
+         selector leftover (MTD only). Auth cost tile stays 0.
+- [ ] **Storage hygiene — orphan sweep + prevent accumulation
+      (drafted 2026-08-21, not built).** Phase 7 counts files, not
+      accounts. Live 2026-08-21: 3 users, 71 jobs; tiles showed
+      8 / 88 / 12 because Storage was never wiped when test
+      accounts and some gigs were deleted. Phase 9 Permanently Ban
+      **keeps** evidence — do not reuse this work for a ban wipe.
+      **Authoritative leftover inventory (bucket list 2026-08-21):**
+      • Profile 8 = 3 live `photo.jpg` + 5 deleted-UID folders.
+      • Gig 88 = 71 files whose `{jobId}.jpg` is a live job +
+        17 unused (5 deleted-UID `JjcJQr…` + 12 Peter files).
+        None of the 17 are referenced by a live thumbnail URL.
+      • ID 12 = face media only (`face_verification/`).
+        4 live (Peter + Operations, mp4+poster each) + 8 leftover
+        from 3 deleted UIDs. `verification_ids/` is empty.
+      • Other 62 = live `support_photos/` (keep) + parked-chat
+        `chat_photos/` leftovers (safe to sweep; chat not shipping).
+      **Locked product:**
+      • One Admin-SDK sweep script (dry-run default). Dashboard
+        never lists the bucket. After apply, re-seed
+        `platform_analytics/storage`.
+      • Delete a file only when unreferenced: profile/face/ID =
+        UID not in `users`; gig = no live `jobs/{jobId}` **and**
+        no live `thumbnail` URL points at that path.
+      • Prevention is the real launch gate: every product delete
+        / replace path must remove the Storage object so real
+        users cannot pile up the same leftovers.
+      • No live listener. No nightly cron this pass.
+      • Support ticket photos stay (evidence). Chat leftovers
+        may be swept because User Chats is empty / parked.
+      **Not this pass:** Phase 9 ban, user self-delete product
+      (spec exists, not built), chat-thread photo cleanup when
+      chat ships, BigQuery, cookie banner.
+      **Microtasklist**
+      1. **[x] Dry-run sweep script — 2026-08-22.**
+         `scripts/sweep-storage-orphans.js` (dry-run default).
+         Ran: 56 DELETE / 114 KEEP. 8→3 profile, 88→71 gig,
+         12→4 ID, 62→36 other (26 chat). No writes.
+      2. **[x] Apply sweep + re-seed — 2026-08-22.**
+         Deleted 56 orphans. Re-seeded
+         `platform_analytics/storage` to 114 files / 12.5 MB
+         (3 profile / 71 gig / 4 ID / 36 other). Support
+         photos kept. Live users/jobs untouched.
+      3. **[ ] Harden `deleteJob()`.** Always delete
+         `job_photos/{posterId}/{jobId}.jpg` by path, not only
+         by parsing `thumbnail`. If the URL path differs
+         (relist reuse), delete that path only when no other
+         live job still references it. Manual Firestore job
+         deletes will still orphan — accepted unless a
+         `onDocumentDeleted` Storage cleanup is added here.
+      4. **[ ] Relist writes a new path.** New job gets
+         `job_photos/{uid}/{newJobId}.jpg` (copy or re-upload).
+         Do not keep pointing the new gig at the old filename
+         so later original-job delete cannot break or orphan.
+      5. **[ ] Account-media wipe helper.** Admin-SDK / callable
+         that deletes `profile_photos/{uid}/`,
+         `face_verification/{uid}/`, `verification_ids/{uid}/`,
+         and leftover `job_photos/{uid}/` after that user’s
+         jobs are gone. Used by the sweep and by a future
+         self-delete. **Not** called by Permanently Ban.
+      6. **[ ] Replace paths do not accumulate.** Profile already
+         overwrites `photo.jpg`. Face replace must delete old
+         formats (mp4/webm/mov + extra poster). ID submit must
+         stop `timestamp_filename` pile-up — overwrite a stable
+         path or delete the previous file on new submit.
+      7. **[ ] Owner test.** Delete one gig → photo gone, tile
+         −1. Replace profile photo → still 1 file. Replace face
+         → no leftover webm. Sweep numbers match overlay after
+         Refresh is not needed (triggers bump the counter).
+      8. **[ ] Leftover audit.** No dashboard bucket list. No
+         listener. Ban path still does not wipe. Support photos
+         still present. Syntax + rules unchanged for public
+         Storage reads.
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.

@@ -3834,7 +3834,7 @@ function buildSupportDetailBodyHTML(ticket) {
         const border = isAdmin ? '#3b82f6' : '#e6d6ae';
         const bg = isAdmin ? 'rgba(59,130,246,0.08)' : 'rgba(230,214,174,0.08)';
         const labelColor = isAdmin ? '#3b82f6' : '#e6d6ae';
-        const prefix = isAdmin ? '↩️' : '👤';
+        const prefix = isAdmin ? '↩️' : '👩🏻';
         return `
             <div class="support-thread-entry" style="margin-top:1rem; padding:1rem; border-left:3px solid ${border}; background:${bg}; border-radius:6px;">
                 <div style="font-weight:600; color:${labelColor}; margin-bottom:0.5rem;">${prefix} ${who}</div>
@@ -4353,9 +4353,10 @@ let gigModerationActionInFlight = false; // Guards double-submits on Suspend/Rei
 
 const GIG_MODERATION_FALLBACK_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">' +
-    '<circle cx="20" cy="20" r="20" fill="#ccd3dc"/>' +
-    '<circle cx="20" cy="16" r="7" fill="#ffffff"/>' +
-    '<path d="M6 36c0-9.4 6.3-15 14-15s14 5.6 14 15" fill="#ffffff"/>' +
+    '<circle cx="20" cy="20" r="20" fill="#3d4a5c"/>' +
+    '<ellipse cx="20" cy="15" rx="7.2" ry="7.6" fill="#f3c7a7"/>' +
+    '<path d="M12.2 15.2c.4-6.2 4-9.4 7.8-9.4s7.4 3.2 7.8 9.4c-.6-2.4-2.6-4.2-5.2-4.8-1.4 2.2-4.4 2.4-6.2.4-1.8.6-3.6 2.2-4.2 4.4z" fill="#2a1a12"/>' +
+    '<path d="M8 36.5c1.2-7.6 6.2-12.2 12-12.2s10.8 4.6 12 12.2" fill="#2f241c"/>' +
     '</svg>'
 );
 
@@ -9279,7 +9280,7 @@ function showUserDetailOverlay(user) {
         
         <div class="user-profile-section">
             <button class="view-profile-btn" onclick="openUserPublicProfile('${user.id}')">
-                <span class="profile-btn-icon">👤</span>
+                <span class="profile-btn-icon">👩🏻</span>
                 <span>VIEW PROFILE</span>
             </button>
         </div>
