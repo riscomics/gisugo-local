@@ -6781,6 +6781,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 }
 
 .confirm-form-select,
+.confirm-form-input,
 .confirm-form-textarea {
     width: 100%;
     padding: 0.75rem;
@@ -6795,6 +6796,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 }
 
 .confirm-form-select:focus,
+.confirm-form-input:focus,
 .confirm-form-textarea:focus {
     outline: none;
     border-color: #10b981;
@@ -6802,6 +6804,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 }
 
 .confirm-form-select:hover,
+.confirm-form-input:hover,
 .confirm-form-textarea:hover {
     border-color: rgba(255, 255, 255, 0.2);
 }
@@ -7444,6 +7447,10 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 .stat-snapshot-refresh:disabled {
     opacity: 0.5;
     cursor: wait;
+}
+
+.storage-budget-card {
+    cursor: pointer;
 }
 
 .stat-overlay-body {

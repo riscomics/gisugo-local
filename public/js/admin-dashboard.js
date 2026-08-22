@@ -5903,6 +5903,7 @@ async function initializeStatOverlays() {
         loadUserActivityGlanceCard();
         loadTrafficCostsGlanceCard();
         attachOverviewSnapshotRefreshListeners();
+        attachStorageBudgetListeners();
 
         // Attach click listeners to stat cards
         attachStatCardListeners();
@@ -6019,11 +6020,15 @@ function attachOverlayCloseListeners() {
     
     // Close on Escape key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const activeOverlay = document.querySelector('.stat-overlay.active');
-            if (activeOverlay) {
-                closeStatOverlay(activeOverlay.id);
-            }
+        if (e.key !== 'Escape') return;
+        const budgetOverlay = document.getElementById('storageBudgetOverlay');
+        if (budgetOverlay && budgetOverlay.classList.contains('active')) {
+            closeStorageBudgetOverlay();
+            return;
+        }
+        const activeOverlay = document.querySelector('.stat-overlay.active');
+        if (activeOverlay) {
+            closeStatOverlay(activeOverlay.id);
         }
     });
 }
@@ -6521,20 +6526,42 @@ function applyStorageGrowthTiles(storageAnalytics) {
         ? closed.reduce((sum, value) => sum + value, 0) / closed.length
         : 0;
     const rateBytes = closedAvg > 0 ? closedAvg : monthDelta;
-    if (totalBytes >= STORAGE_FREE_BYTES) {
-        setElementValue('storageProjectedFull', 'now');
-        setElementValue('storageProjectedFullNote', 'over 5 GB free');
-    } else if (rateBytes <= 0) {
-        setElementValue('storageProjectedFull', '—');
-        setElementValue('storageProjectedFullNote', 'needs monthly growth');
-    } else {
-        const months = Math.ceil((STORAGE_FREE_BYTES - totalBytes) / rateBytes);
-        setElementValue(
-            'storageProjectedFull',
-            months >= 24 ? `${Math.round(months / 12)} yr` : `${months} mo`
-        );
-        setElementValue('storageProjectedFullNote', 'to 5 GB free cliff');
+    applyStorageBudgetTile(totalBytes, rateBytes, storageAnalytics && storageAnalytics.budgetUsdPerMonth);
+}
+
+function storageBytesForBudgetUsd(usd) {
+    const billableGb = Math.max(0, Number(usd) || 0) / STORAGE_USD_PER_GB_MONTH;
+    return STORAGE_FREE_BYTES + (billableGb * 1024 * 1024 * 1024);
+}
+
+function applyStorageBudgetTile(totalBytes, rateBytes, budgetUsd) {
+    const input = document.getElementById('storageBudgetInput');
+    const hasBudget = budgetUsd !== null && budgetUsd !== undefined && Number.isFinite(Number(budgetUsd));
+    if (input && document.activeElement !== input) {
+        input.value = hasBudget ? String(Number(budgetUsd)) : '';
     }
+    if (!hasBudget) {
+        setElementValue('storageBudgetAmount', '—');
+        setElementValue('storageBudgetNote', 'set a $ / month');
+        return;
+    }
+    setElementValue('storageBudgetAmount', formatStorageUsd(budgetUsd));
+    const targetBytes = storageBytesForBudgetUsd(budgetUsd);
+    if (totalBytes >= targetBytes) {
+        setElementValue('storageBudgetNote', 'at or over this bill');
+        return;
+    }
+    if (rateBytes <= 0) {
+        setElementValue('storageBudgetNote', 'needs monthly growth');
+        return;
+    }
+    const months = Math.ceil((targetBytes - totalBytes) / rateBytes);
+    setElementValue(
+        'storageBudgetNote',
+        months >= 24
+            ? `${Math.round(months / 12)} yr at current growth`
+            : `${months} mo at current growth`
+    );
 }
 
 function formatStorageUsd(usd) {
@@ -6588,11 +6615,17 @@ async function renderStorageUsageOverlay() {
     }
 
     try {
-        const storageAnalytics = await getPlatformAnalyticsStorage();
+        const [storageAnalytics, budgetDoc] = await Promise.all([
+            getPlatformAnalyticsStorage(),
+            typeof getStorageBudget === 'function'
+                ? getStorageBudget()
+                : Promise.resolve({ budgetUsdPerMonth: null })
+        ]);
         const totalBytes = storageAnalytics.totalBytes || 0;
         const totalFiles = storageAnalytics.totalFiles || 0;
         const byType = storageAnalytics.byType || {};
         const estUsd = estimateStorageUsd(totalBytes);
+        storageAnalytics.budgetUsdPerMonth = budgetDoc && budgetDoc.budgetUsdPerMonth;
 
         setElementValue('storageOverlayTotal', formatStorageBytes(totalBytes));
         setElementValue('storageOverlayMediaCount', totalFiles.toLocaleString());
@@ -6753,6 +6786,117 @@ async function handleOverviewSnapshotRefresh(kind) {
     }
 }
 
+function parseStorageBudgetInput(raw) {
+    const text = String(raw == null ? '' : raw).trim();
+    if (!text) return { ok: true, value: null };
+    const n = Number(text);
+    if (!Number.isFinite(n) || n < 0 || n > 9999) {
+        return { ok: false, value: null };
+    }
+    return { ok: true, value: Math.round(n * 100) / 100 };
+}
+
+async function handleStorageBudgetSave() {
+    const input = document.getElementById('storageBudgetInput');
+    const button = document.getElementById('storageBudgetSaveBtn');
+    if (!input || typeof saveStorageBudget !== 'function') return;
+    const parsed = parseStorageBudgetInput(input.value);
+    if (!parsed.ok) {
+        showToast('Enter a $ / month of 0 or more.', 'error');
+        return;
+    }
+    if (button) button.disabled = true;
+    try {
+        const success = await saveStorageBudget(parsed.value);
+        if (!success) {
+            showToast('Could not save budget. Super admin only.', 'error');
+            return;
+        }
+        await renderStorageUsageOverlay();
+        closeStorageBudgetOverlay();
+        showToast(
+            parsed.value === null ? 'Storage budget cleared.' : `Storage budget set to ${formatStorageUsd(parsed.value)} / month.`,
+            'success'
+        );
+    } catch (error) {
+        showToast(error.message || 'Could not save budget.', 'error');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+function openStorageBudgetOverlay() {
+    const overlay = document.getElementById('storageBudgetOverlay');
+    if (!overlay) return;
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    const input = document.getElementById('storageBudgetInput');
+    if (input) {
+        setTimeout(() => input.focus(), 0);
+    }
+}
+
+function closeStorageBudgetOverlay() {
+    const overlay = document.getElementById('storageBudgetOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+}
+
+function attachStorageBudgetListeners() {
+    const card = document.getElementById('storageBudgetCard');
+    const button = document.getElementById('storageBudgetSaveBtn');
+    const input = document.getElementById('storageBudgetInput');
+    const closeBtn = document.getElementById('closeStorageBudgetBtn');
+    const overlay = document.getElementById('storageBudgetOverlay');
+    if (card && !card.dataset.bound) {
+        card.dataset.bound = '1';
+        card.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openStorageBudgetOverlay();
+        });
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openStorageBudgetOverlay();
+            }
+        });
+    }
+    if (button && !button.dataset.bound) {
+        button.dataset.bound = '1';
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleStorageBudgetSave();
+        });
+    }
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = '1';
+        closeBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeStorageBudgetOverlay();
+        });
+    }
+    if (overlay && !overlay.dataset.bound) {
+        overlay.dataset.bound = '1';
+        overlay.addEventListener('click', (event) => {
+            if (event.target.id === 'storageBudgetOverlay') {
+                closeStorageBudgetOverlay();
+            }
+        });
+    }
+    if (input && !input.dataset.bound) {
+        input.dataset.bound = '1';
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                handleStorageBudgetSave();
+            }
+        });
+    }
+}
+
 function attachOverviewSnapshotRefreshListeners() {
     const activityBtn = document.getElementById('refreshUserActivitySnapshot');
     const trafficBtn = document.getElementById('refreshTrafficSnapshot');
@@ -6776,6 +6920,9 @@ function attachOverviewSnapshotRefreshListeners() {
 
 // Close stat overlay
 function closeStatOverlay(overlayId) {
+    if (overlayId === 'storageUsageOverlay') {
+        closeStorageBudgetOverlay();
+    }
     const overlay = document.getElementById(overlayId);
 
     if (overlay) {

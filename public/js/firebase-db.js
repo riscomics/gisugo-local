@@ -5402,6 +5402,52 @@ async function getPlatformAnalyticsStorage() {
   }
 }
 
+/**
+ * Owner Storage budget ($ / month). Separate from platform_analytics/storage
+ * so seed/sweep/triggers cannot wipe it. Super-admin write via
+ * platform_settings/storage.
+ */
+async function getStorageBudget() {
+  const empty = { budgetUsdPerMonth: null };
+  const db = getFirestore();
+  if (!db) return empty;
+  try {
+    const snap = await db.collection('platform_settings').doc('storage').get({ source: 'server' });
+    if (!snap.exists) return empty;
+    const raw = snap.data() && snap.data().budgetUsdPerMonth;
+    if (raw === null || raw === undefined || raw === '') return empty;
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) return empty;
+    return { budgetUsdPerMonth: n };
+  } catch (error) {
+    console.error('❌ Error getting storage budget:', error);
+    return empty;
+  }
+}
+
+async function saveStorageBudget(usd) {
+  const db = getFirestore();
+  if (!db) return false;
+  try {
+    const ref = db.collection('platform_settings').doc('storage');
+    const payload = {
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (usd === null || usd === undefined || usd === '') {
+      payload.budgetUsdPerMonth = null;
+    } else {
+      const n = Number(usd);
+      if (!Number.isFinite(n) || n < 0) return false;
+      payload.budgetUsdPerMonth = Math.round(n * 100) / 100;
+    }
+    await ref.set(payload, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('❌ Error saving storage budget:', error);
+    return false;
+  }
+}
+
 async function getPlatformAnalyticsUserActivity() {
   const empty = {
     mobilePercent: 0,
@@ -5613,6 +5659,8 @@ window.getPlatformAnalyticsGigs = getPlatformAnalyticsGigs;
 window.getPlatformAnalyticsApplications = getPlatformAnalyticsApplications;
 window.getPlatformAnalyticsUsers = getPlatformAnalyticsUsers;
 window.getPlatformAnalyticsStorage = getPlatformAnalyticsStorage;
+window.getStorageBudget = getStorageBudget;
+window.saveStorageBudget = saveStorageBudget;
 window.getPlatformAnalyticsUserActivity = getPlatformAnalyticsUserActivity;
 window.getPlatformAnalyticsTraffic = getPlatformAnalyticsTraffic;
 window.refreshUserActivitySnapshot = refreshUserActivitySnapshot;
