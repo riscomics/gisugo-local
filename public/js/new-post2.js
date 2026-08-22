@@ -126,6 +126,7 @@ const np2State = {
   endPeriod: 'PM',
   photoFile: null,
   photoDataUrl: null,
+  originalThumbnail: null,
   jobDescription: '',
   gigUseType: 'Personal',
   paymentAmount: '',
@@ -2002,37 +2003,39 @@ async function postJob() {
       console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
       result = await createJob(jobData);
       
-      // Now upload photo with the real jobId (ONLY if user selected a new photo file)
-      if (result.success && result.jobId && np2State.photoFile) {
-        const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
-        
-        if (useFirebaseStorage) {
-          console.log('📤 Uploading photo with jobId:', result.jobId);
-          
-          try {
-            // Upload to Firebase Storage with REAL jobId
-            const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
-            
-            if (uploadResult.success) {
-              console.log('✅ Photo uploaded:', uploadResult.url);
-              
-              // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
-              if (typeof getFirestore === 'function') {
-                const db = getFirestore();
-                await db.collection('jobs').doc(result.jobId).update({
-                  thumbnail: uploadResult.url,
-                  lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                console.log('✅ Job updated with photo URL');
-              }
-            } else {
-              console.error('❌ Photo upload failed:', uploadResult.errors);
-              alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
-            }
-          } catch (photoError) {
-            console.error('❌ Photo upload error:', photoError);
+      // New gig always gets job_photos/{uid}/{newJobId}.jpg — never the old
+      // gig's filename. Relist copies the old Storage file if the user did
+      // not pick a new one.
+      if (result.success && result.jobId) {
+        const useFirebaseStorage = typeof getFirebaseStorage === 'function' && getFirebaseStorage();
+        let photoResult = null;
+        try {
+          if (np2State.photoFile && typeof uploadJobPhoto === 'function' && useFirebaseStorage) {
+            photoResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
+          } else if (
+            np2State.mode === 'relist'
+            && np2State.originalThumbnail
+            && typeof copyJobPhotoToNewJob === 'function'
+            && useFirebaseStorage
+          ) {
+            photoResult = await copyJobPhotoToNewJob(
+              np2State.originalThumbnail,
+              result.jobId,
+              currentUser.uid
+            );
+          }
+          if (photoResult && photoResult.success && photoResult.url && typeof getFirestore === 'function') {
+            const db = getFirestore();
+            await db.collection('jobs').doc(result.jobId).update({
+              thumbnail: photoResult.url,
+              lastModified: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          } else if (np2State.photoFile || np2State.mode === 'relist') {
             alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
           }
+        } catch (photoError) {
+          console.error('❌ Photo attach error:', photoError);
+          alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
         }
       }
       
@@ -2222,6 +2225,7 @@ function resetForm() {
   np2State.endPeriod = 'PM';
   np2State.photoFile = null;
   np2State.photoDataUrl = null;
+  np2State.originalThumbnail = null;
   np2State.jobDescription = '';
   np2State.gigUseType = 'Personal';
   np2State.paymentAmount = '';
@@ -2450,6 +2454,7 @@ async function handleRelistMode(jobId, category) {
             thumbnail: firebaseJob.thumbnail
           };
           
+          np2State.originalThumbnail = firebaseJob.thumbnail || null;
           populateFormWithJobData(jobData, category, 'relist');
           if (loadingOverlay) setTimeout(() => loadingOverlay.classList.remove('show'), 300);
           return;

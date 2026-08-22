@@ -1482,6 +1482,93 @@ async function updateJobStatus(jobId, newStatus, additionalData = {}) {
  * @param {string} jobId - Job document ID
  * @returns {Promise<Object>} - Result object
  */
+function extractStoragePathFromUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('gs://')) {
+    const withoutScheme = raw.slice(5);
+    const slash = withoutScheme.indexOf('/');
+    return slash === -1 ? '' : withoutScheme.slice(slash + 1);
+  }
+  try {
+    const parsed = new URL(raw);
+    const fromO = parsed.pathname.match(/\/o\/(.+)$/);
+    if (fromO) return decodeURIComponent(fromO[1]);
+  } catch (_) { /* fall through */ }
+  const match = raw.match(/\/o\/([^?]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+function canonicalJobPhotoPath(posterId, jobId) {
+  const uid = String(posterId || '').trim();
+  const id = String(jobId || '').trim();
+  if (!uid || !id) return '';
+  return `job_photos/${uid}/${id}.jpg`;
+}
+
+async function deleteStoragePathQuiet(storagePath) {
+  const path = String(storagePath || '').replace(/^\/+/, '');
+  if (!path) return false;
+  if (typeof deleteFile === 'function') {
+    const result = await deleteFile(path);
+    return !!(result && result.success);
+  }
+  const storage = typeof getFirebaseStorage === 'function' ? getFirebaseStorage() : null;
+  if (!storage) return false;
+  try {
+    await storage.ref().child(path).delete();
+    return true;
+  } catch (error) {
+    if (error.code === 'storage/object-not-found') return true;
+    console.error('❌ Error deleting Storage path:', path, error);
+    return false;
+  }
+}
+
+async function otherLiveJobReferencesPath(db, posterId, jobId, storagePath, thumbnailUrl) {
+  const uid = String(posterId || '').trim();
+  const path = String(storagePath || '').replace(/^\/+/, '');
+  if (!uid || !path) return false;
+  const snap = await db.collection('jobs').where('posterId', '==', uid).get();
+  return snap.docs.some((doc) => {
+    if (doc.id === jobId) return false;
+    const thumb = String((doc.data() || {}).thumbnail || '');
+    if (!thumb) return false;
+    if (thumbnailUrl && thumb === thumbnailUrl) return true;
+    return extractStoragePathFromUrl(thumb) === path;
+  });
+}
+
+async function cleanupJobPhotosOnDelete(db, jobId, jobData) {
+  const posterId = (jobData && (jobData.posterId || jobData.userId)) || '';
+  const thumbnail = (jobData && jobData.thumbnail) || '';
+  const canonical = canonicalJobPhotoPath(posterId, jobId);
+  const fromUrl = extractStoragePathFromUrl(thumbnail);
+  let deletedAny = false;
+
+  if (canonical) {
+    deletedAny = (await deleteStoragePathQuiet(canonical)) || deletedAny;
+  }
+
+  const extraPath = fromUrl && fromUrl !== canonical && fromUrl.startsWith('job_photos/')
+    ? fromUrl
+    : '';
+  if (!extraPath) return deletedAny;
+
+  let referenced = false;
+  try {
+    referenced = await otherLiveJobReferencesPath(db, posterId, jobId, extraPath, thumbnail);
+  } catch (error) {
+    console.warn('⚠️ Could not check other jobs for shared photo; leaving extra path', extraPath, error);
+    return deletedAny;
+  }
+  if (referenced) {
+    console.log('ℹ️ Extra thumbnail path still used by another live job, leaving it:', extraPath);
+    return deletedAny;
+  }
+  return (await deleteStoragePathQuiet(extraPath)) || deletedAny;
+}
+
 async function deleteJob(jobId) {
   const db = getFirestore();
   
@@ -1499,50 +1586,13 @@ async function deleteJob(jobId) {
     
     const jobData = jobDoc.data();
     
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 1: Delete photo from Firebase Storage (if it's a Storage URL)
-    // ═══════════════════════════════════════════════════════════════
-    if (jobData.thumbnail) {
-      const isStorageUrl = jobData.thumbnail.includes('firebasestorage.googleapis.com') || 
-                          jobData.thumbnail.includes('storage.googleapis.com');
-      
-      if (isStorageUrl) {
-        console.log('🗑️ Deleting photo from Firebase Storage...');
-        
-        try {
-          // Extract storage path from URL
-          const storage = getFirebaseStorage();
-          if (storage) {
-            // Method 1: Try to extract path from URL
-            let storagePath = null;
-            
-            // Parse URL to get the file path
-            const url = new URL(jobData.thumbnail);
-            const pathMatch = url.pathname.match(/\/o\/(.+)$/);
-            
-            if (pathMatch) {
-              storagePath = decodeURIComponent(pathMatch[1]);
-              console.log('📍 Extracted storage path:', storagePath);
-              
-              // Delete the file
-              const fileRef = storage.ref().child(storagePath);
-              await fileRef.delete();
-              console.log('✅ Photo deleted from Storage');
-            } else {
-              console.warn('⚠️ Could not extract storage path from URL');
-            }
-          }
-        } catch (storageError) {
-          // Don't fail the entire deletion if photo deletion fails
-          if (storageError.code === 'storage/object-not-found') {
-            console.warn('⚠️ Photo already deleted from Storage');
-          } else {
-            console.error('❌ Error deleting photo from Storage:', storageError);
-          }
-        }
-      } else {
-        console.log('ℹ️ Photo is base64/local, no Storage cleanup needed');
-      }
+    // STEP 1: Delete Storage photo by canonical path, then any extra
+    // thumbnail path only if no other live job still points at it.
+    let photoDeleted = false;
+    try {
+      photoDeleted = await cleanupJobPhotosOnDelete(db, jobId, jobData);
+    } catch (storageError) {
+      console.error('❌ Error deleting job photo from Storage:', storageError);
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -1618,7 +1668,7 @@ async function deleteJob(jobId) {
       deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
       reason: 'user_requested',
       jobData: jobData,
-      photoDeleted: jobData.thumbnail ? jobData.thumbnail.includes('firebasestorage') : false,
+      photoDeleted: photoDeleted,
       applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
     });
     
@@ -1633,7 +1683,7 @@ async function deleteJob(jobId) {
       message: 'Job deleted successfully',
       cleanup: {
         firestoreDeleted: true,
-        photoDeleted: jobData.thumbnail ? jobData.thumbnail.includes('firebasestorage') : false,
+        photoDeleted: photoDeleted,
         applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
       }
     };

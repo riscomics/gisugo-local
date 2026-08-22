@@ -336,6 +336,80 @@ async function uploadJobPhoto(jobId, file, userId = null) {
   }
 }
 
+function extractStoragePathFromUrl(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('gs://')) {
+    const withoutScheme = raw.slice(5);
+    const slash = withoutScheme.indexOf('/');
+    return slash === -1 ? '' : withoutScheme.slice(slash + 1);
+  }
+  try {
+    const parsed = new URL(raw);
+    const fromO = parsed.pathname.match(/\/o\/(.+)$/);
+    if (fromO) return decodeURIComponent(fromO[1]);
+  } catch (_) { /* fall through */ }
+  const match = raw.match(/\/o\/([^?]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
+/**
+ * Copy an existing gig photo to job_photos/{userId}/{newJobId}.jpg.
+ * Used on completed relist so the new gig does not keep pointing at
+ * the old gig's filename.
+ */
+async function copyJobPhotoToNewJob(sourceUrl, newJobId, userId) {
+  const destUid = String(userId || '').trim();
+  const destJobId = String(newJobId || '').trim();
+  const sourcePath = extractStoragePathFromUrl(sourceUrl);
+  if (!destUid || !destJobId) {
+    return { success: false, errors: ['Missing user or job id'] };
+  }
+  if (!sourcePath || !sourcePath.startsWith(`${STORAGE_CONFIG.paths.jobPhotos}/`)) {
+    return { success: false, errors: ['No Storage job photo to copy'] };
+  }
+  const destPath = `${STORAGE_CONFIG.paths.jobPhotos}/${destUid}/${destJobId}.jpg`;
+  if (sourcePath === destPath) {
+    return { success: true, url: sourceUrl, path: destPath };
+  }
+
+  const storage = getFirebaseStorage();
+  if (!storage) {
+    return { success: false, errors: ['Storage unavailable'] };
+  }
+
+  try {
+    const sourceRef = storage.ref().child(sourcePath);
+    let blob = null;
+    if (typeof sourceRef.getBytes === 'function') {
+      const bytes = await sourceRef.getBytes();
+      blob = new Blob([bytes], { type: 'image/jpeg' });
+    } else {
+      const downloadUrl = await sourceRef.getDownloadURL();
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        return { success: false, errors: ['Could not read original photo'] };
+      }
+      blob = await response.blob();
+    }
+    const destRef = storage.ref().child(destPath);
+    const snapshot = await destRef.put(blob, {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        jobId: destJobId,
+        userId: destUid,
+        copiedFrom: sourcePath,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+    const url = await snapshot.ref.getDownloadURL();
+    return { success: true, url, path: destPath };
+  } catch (error) {
+    console.error('❌ Job photo copy error:', error);
+    return { success: false, errors: [error.message] };
+  }
+}
+
 async function uploadJobPhotoOffline(jobId, file) {
   try {
     const compressedBlob = await compressImage(file);
@@ -490,11 +564,8 @@ async function uploadVerificationDocuments(userId, idFile, selfieFile) {
   try {
     console.log('📤 Uploading verification documents...');
     
-    const timestamp = Date.now();
-    
-    // Upload ID document
     const idBlob = await compressImage(idFile, { maxWidth: 1600, maxHeight: 1600, quality: 0.9 });
-    const idPath = `${STORAGE_CONFIG.paths.idDocuments}/${userId}/id_${timestamp}.jpg`;
+    const idPath = `${STORAGE_CONFIG.paths.idDocuments}/${userId}/id.jpg`;
     const idRef = storage.ref().child(idPath);
     const idSnapshot = await idRef.put(idBlob, {
       contentType: 'image/jpeg',
@@ -508,7 +579,7 @@ async function uploadVerificationDocuments(userId, idFile, selfieFile) {
     
     // Upload selfie
     const selfieBlob = await compressImage(selfieFile, { maxWidth: 1600, maxHeight: 1600, quality: 0.9 });
-    const selfiePath = `${STORAGE_CONFIG.paths.idDocuments}/${userId}/selfie_${timestamp}.jpg`;
+    const selfiePath = `${STORAGE_CONFIG.paths.idDocuments}/${userId}/selfie.jpg`;
     const selfieRef = storage.ref().child(selfiePath);
     const selfieSnapshot = await selfieRef.put(selfieBlob, {
       contentType: 'image/jpeg',
@@ -521,6 +592,7 @@ async function uploadVerificationDocuments(userId, idFile, selfieFile) {
     const selfieUrl = await selfieSnapshot.ref.getDownloadURL();
     
     console.log('✅ Verification documents uploaded');
+    await deleteStaleVerificationIdFiles(userId, [idPath, selfiePath]);
     
     return {
       success: true,
@@ -536,6 +608,28 @@ async function uploadVerificationDocuments(userId, idFile, selfieFile) {
       success: false,
       errors: [error.message]
     };
+  }
+}
+
+async function deleteStaleVerificationIdFiles(userId, keepPaths) {
+  const storage = getFirebaseStorage();
+  const uid = String(userId || '').trim();
+  if (!storage || !uid) return;
+  const keep = new Set((keepPaths || []).map((item) => String(item || '').replace(/^\/+/, '')));
+  try {
+    const listed = await storage.ref().child(`${STORAGE_CONFIG.paths.idDocuments}/${uid}`).listAll();
+    await Promise.all((listed.items || []).map(async (item) => {
+      if (keep.has(item.fullPath)) return;
+      try {
+        await item.delete();
+      } catch (error) {
+        if (error.code !== 'storage/object-not-found') {
+          console.warn('⚠️ Could not delete leftover ID file:', item.fullPath, error);
+        }
+      }
+    }));
+  } catch (error) {
+    console.warn('⚠️ Could not list verification_ids for leftover cleanup:', error);
   }
 }
 
@@ -788,8 +882,10 @@ window.validateFile = validateFile;
 window.compressImage = compressImage;
 window.uploadProfilePhoto = uploadProfilePhoto;
 window.uploadJobPhoto = uploadJobPhoto;
+window.copyJobPhotoToNewJob = copyJobPhotoToNewJob;
 window.uploadSupportPhoto = uploadSupportPhoto;
 window.uploadVerificationDocuments = uploadVerificationDocuments;
+window.deleteStaleVerificationIdFiles = deleteStaleVerificationIdFiles;
 window.deleteFile = deleteFile;
 window.cleanupSupportPhotoUpload = cleanupSupportPhotoUpload;
 window.deletePhotoFromStorageUrl = deletePhotoFromStorageUrl;

@@ -6100,11 +6100,14 @@ async function submitIdForVerification(userId, file) {
   try {
     // 1. Upload file to Firebase Storage
     const storageRef = firebase.storage().ref();
-    const idRef = storageRef.child(`verification_ids/${userId}/${Date.now()}_${file.name}`);
+    const idRef = storageRef.child(`verification_ids/${userId}/id.jpg`);
     
     console.log('Uploading ID file to Firebase Storage...');
     const uploadTask = await idRef.put(file);
     const downloadUrl = await uploadTask.ref.getDownloadURL();
+    if (typeof deleteStaleVerificationIdFiles === 'function') {
+      await deleteStaleVerificationIdFiles(userId, [`verification_ids/${userId}/id.jpg`]);
+    }
     
     // 2. Create verification request document
     const verificationData = {

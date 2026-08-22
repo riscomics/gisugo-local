@@ -2718,16 +2718,32 @@ async function createJobPostWithData(formData) {
     } else if (mode === 'relist') {
       console.log('🔄 RELIST MODE: Starting relist process...');
       const relistPayload = { ...backendPayload };
+      relistPayload.thumbnail = null;
       const originalJobData = await getCompletedJobData(relistJobId);
-      if (originalJobData && originalJobData.thumbnail && !relistPayload.thumbnail) {
-        relistPayload.thumbnail = originalJobData.thumbnail;
-      }
 
       const relistResult = await createJob(relistPayload);
       if (!relistResult || !relistResult.success || !relistResult.jobId) {
         throw new Error((relistResult && relistResult.message) || 'Failed to relist job');
       }
       jobId = relistResult.jobId;
+      const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+      const uid = currentUser && currentUser.uid;
+      let photoResult = null;
+      if (formData.photoFile && typeof uploadJobPhoto === 'function') {
+        photoResult = await uploadJobPhoto(jobId, formData.photoFile, uid);
+      } else if (
+        originalJobData
+        && originalJobData.thumbnail
+        && typeof copyJobPhotoToNewJob === 'function'
+      ) {
+        photoResult = await copyJobPhotoToNewJob(originalJobData.thumbnail, jobId, uid);
+      }
+      if (photoResult && photoResult.success && photoResult.url && typeof getFirestore === 'function') {
+        await getFirestore().collection('jobs').doc(jobId).update({
+          thumbnail: photoResult.url,
+          lastModified: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
       
     } else {
       console.log('🆕 NEW MODE: Starting new job creation process...');

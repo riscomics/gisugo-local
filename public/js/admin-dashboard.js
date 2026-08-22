@@ -6521,20 +6521,10 @@ function applyStorageGrowthTiles(storageAnalytics) {
 
     setElementValue('storageGrowthAllTime', formatStorageBytes(totalBytes));
     setElementValue('storageAllTimeCost', `(${formatStorageUsd(estimateStorageUsd(totalBytes))})`);
-
-    const closedAvg = closed.length
-        ? closed.reduce((sum, value) => sum + value, 0) / closed.length
-        : 0;
-    const rateBytes = closedAvg > 0 ? closedAvg : monthDelta;
-    applyStorageBudgetTile(totalBytes, rateBytes, storageAnalytics && storageAnalytics.budgetUsdPerMonth);
+    applyStorageBudgetTile(totalBytes, storageAnalytics && storageAnalytics.budgetUsdPerMonth);
 }
 
-function storageBytesForBudgetUsd(usd) {
-    const billableGb = Math.max(0, Number(usd) || 0) / STORAGE_USD_PER_GB_MONTH;
-    return STORAGE_FREE_BYTES + (billableGb * 1024 * 1024 * 1024);
-}
-
-function applyStorageBudgetTile(totalBytes, rateBytes, budgetUsd) {
+function applyStorageBudgetTile(totalBytes, budgetUsd) {
     const input = document.getElementById('storageBudgetInput');
     const hasBudget = budgetUsd !== null && budgetUsd !== undefined && Number.isFinite(Number(budgetUsd));
     if (input && document.activeElement !== input) {
@@ -6545,23 +6535,14 @@ function applyStorageBudgetTile(totalBytes, rateBytes, budgetUsd) {
         setElementValue('storageBudgetNote', 'set a $ / month');
         return;
     }
-    setElementValue('storageBudgetAmount', formatStorageUsd(budgetUsd));
-    const targetBytes = storageBytesForBudgetUsd(budgetUsd);
-    if (totalBytes >= targetBytes) {
-        setElementValue('storageBudgetNote', 'at or over this bill');
+    const remaining = Number(budgetUsd) - estimateStorageUsd(totalBytes);
+    if (remaining < 0) {
+        setElementValue('storageBudgetAmount', '$0.00');
+        setElementValue('storageBudgetNote', 'over monthly budget');
         return;
     }
-    if (rateBytes <= 0) {
-        setElementValue('storageBudgetNote', 'needs monthly growth');
-        return;
-    }
-    const months = Math.ceil((targetBytes - totalBytes) / rateBytes);
-    setElementValue(
-        'storageBudgetNote',
-        months >= 24
-            ? `${Math.round(months / 12)} yr at current growth`
-            : `${months} mo at current growth`
-    );
+    setElementValue('storageBudgetAmount', formatStorageUsd(remaining));
+    setElementValue('storageBudgetNote', 'monthly budget remaining');
 }
 
 function formatStorageUsd(usd) {

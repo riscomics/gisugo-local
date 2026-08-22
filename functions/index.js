@@ -16,6 +16,7 @@ const {
   fetchUserActivityFromGa4,
   fetchTrafficFromMonitoring
 } = require("./overview-snapshots");
+const { wipeAccountMedia } = require("./wipe-account-media");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -1154,12 +1155,20 @@ exports.normalizeFaceVerificationVideo = onCall(
         }
       });
 
-      const staleVariants = [
-        `face_verification/${targetUserId}/face_intro.webm`,
-        `face_verification/${targetUserId}/face_intro.mov`,
-        `face_verification/${targetUserId}/face_intro.m4v`
-      ];
-      await Promise.all(staleVariants.map((variantPath) => deleteStorageObjectIfExists(variantPath)));
+      const keepFaceFiles = new Set([
+        canonicalPath,
+        `face_verification/${targetUserId}/face_poster.jpg`
+      ]);
+      const [faceItems] = await bucket.getFiles({
+        prefix: `face_verification/${targetUserId}/`
+      });
+      await Promise.all((faceItems || []).map((item) => {
+        const name = item && item.name;
+        if (!name || name.endsWith("/") || keepFaceFiles.has(name)) {
+          return Promise.resolve();
+        }
+        return deleteStorageObjectIfExists(name);
+      }));
 
       const canonicalUrl = await ensureDownloadUrlForPath(canonicalPath);
       const patch = {
@@ -1441,6 +1450,40 @@ exports.syncStorageAnalyticsOnDelete = onObjectDeleted(
   async (event) => {
     const data = event.data || {};
     await applyStorageAnalyticsDelta(data.name, data.size, -1);
+  }
+);
+
+// Storage hygiene Ch 5 — self-only. Future account self-delete can call
+// this. Permanently Ban must never call it (ban keeps Storage evidence).
+exports.wipeAccountMedia = onCall(
+  { region: "asia-southeast1", cors: true, timeoutSeconds: 120 },
+  async (request) => {
+    const uid = request.auth && request.auth.uid ? request.auth.uid : "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const targetUserId = String((request.data && request.data.targetUserId) || uid).trim();
+    if (targetUserId !== uid) {
+      throw new HttpsError("permission-denied", "You can only wipe your own account media.");
+    }
+    try {
+      const result = await wipeAccountMedia(
+        db,
+        admin.storage().bucket(STORAGE_ANALYTICS_BUCKET),
+        uid,
+        { dryRun: Boolean(request.data && request.data.dryRun) }
+      );
+      logger.info("wipeAccountMedia", {
+        uid,
+        dryRun: result.dryRun,
+        count: result.count,
+        jobPhotosWiped: result.jobPhotosWiped
+      });
+      return result;
+    } catch (error) {
+      logger.error("wipeAccountMedia failed", { uid, error: String(error) });
+      throw new HttpsError("internal", error.message || "Wipe failed.");
+    }
   }
 );
 

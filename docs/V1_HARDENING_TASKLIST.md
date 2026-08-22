@@ -113,11 +113,11 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-21)
+### Phase roster (macro — updated 2026-08-22)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh blocked on Analytics Data API. **Storage hygiene** (orphan sweep + prevent accumulation) drafted 2026-08-21 — not started. Phases 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene** sweep + re-seed done 2026-08-22; prevention (Ch 3–8) is next. Overview tile tour parked. Phases 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -799,74 +799,79 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          (not live until Deploy). Overwrite drift leftover.
          Session-duration histogram leftover. Overlay period
          selector leftover (MTD only). Auth cost tile stays 0.
-- [ ] **Storage hygiene — orphan sweep + prevent accumulation
-      (drafted 2026-08-21, not built).** Phase 7 counts files, not
-      accounts. Live 2026-08-21: 3 users, 71 jobs; tiles showed
-      8 / 88 / 12 because Storage was never wiped when test
-      accounts and some gigs were deleted. Phase 9 Permanently Ban
-      **keeps** evidence — do not reuse this work for a ban wipe.
-      **Authoritative leftover inventory (bucket list 2026-08-21):**
-      • Profile 8 = 3 live `photo.jpg` + 5 deleted-UID folders.
-      • Gig 88 = 71 files whose `{jobId}.jpg` is a live job +
-        17 unused (5 deleted-UID `JjcJQr…` + 12 Peter files).
-        None of the 17 are referenced by a live thumbnail URL.
-      • ID 12 = face media only (`face_verification/`).
-        4 live (Peter + Operations, mp4+poster each) + 8 leftover
-        from 3 deleted UIDs. `verification_ids/` is empty.
-      • Other 62 = live `support_photos/` (keep) + parked-chat
-        `chat_photos/` leftovers (safe to sweep; chat not shipping).
+- [~] **Storage hygiene — sweep done; prevent accumulation next
+      (updated 2026-08-22).** Phase 7 counts files, not accounts.
+      Sweep + re-seed live. Prevention (Ch 3–8) is the remaining
+      launch work so real users cannot pile orphans again.
+      Phase 9 Permanently Ban **keeps** evidence — do not reuse
+      this wipe for a ban.
+      **Live after sweep (2026-08-22):** 3 users, 71 jobs;
+      bucket + `platform_analytics/storage` = **114 files /
+      12.5 MB** (3 profile / 71 gig / 4 ID / 36 other). Second
+      dry-run DELETE 0. ID 4 = 2 face pairs (mp4 + poster), not
+      4 people. Profile 3 = one `photo.jpg` each.
       **Locked product:**
-      • One Admin-SDK sweep script (dry-run default). Dashboard
-        never lists the bucket. After apply, re-seed
-        `platform_analytics/storage`.
+      • Sweep script stays Admin-SDK, dry-run default. Dashboard
+        never lists the bucket. Re-seed after apply.
       • Delete a file only when unreferenced: profile/face/ID =
         UID not in `users`; gig = no live `jobs/{jobId}` **and**
         no live `thumbnail` URL points at that path.
-      • Prevention is the real launch gate: every product delete
-        / replace path must remove the Storage object so real
-        users cannot pile up the same leftovers.
+      • Prevention is the real remaining gate: product delete /
+        replace / relist must remove or not reuse Storage objects.
       • No live listener. No nightly cron this pass.
       • Support ticket photos stay (evidence). Chat leftovers
-        may be swept because User Chats is empty / parked.
-      **Not this pass:** Phase 9 ban, user self-delete product
-      (spec exists, not built), chat-thread photo cleanup when
-      chat ships, BigQuery, cookie banner.
+        already swept (User Chats empty / parked).
+      **Not this pass:** Overview tile tour (Budget remaining is
+      a Phase 7 leftover, not hygiene). Phase 9 ban. User
+      self-delete product. Chat-thread photo cleanup when chat
+      ships. BigQuery. Cookie banner.
       **Microtasklist**
       1. **[x] Dry-run sweep script — 2026-08-22.**
          `scripts/sweep-storage-orphans.js` (dry-run default).
-         Ran: 56 DELETE / 114 KEEP. 8→3 profile, 88→71 gig,
-         12→4 ID, 62→36 other (26 chat). No writes.
+         Ran: 56 DELETE / 114 KEEP.
       2. **[x] Apply sweep + re-seed — 2026-08-22.**
-         Deleted 56 orphans. Re-seeded
-         `platform_analytics/storage` to 114 files / 12.5 MB
-         (3 profile / 71 gig / 4 ID / 36 other). Support
-         photos kept. Live users/jobs untouched.
-      3. **[ ] Harden `deleteJob()`.** Always delete
-         `job_photos/{posterId}/{jobId}.jpg` by path, not only
-         by parsing `thumbnail`. If the URL path differs
-         (relist reuse), delete that path only when no other
-         live job still references it. Manual Firestore job
-         deletes will still orphan — accepted unless a
-         `onDocumentDeleted` Storage cleanup is added here.
-      4. **[ ] Relist writes a new path.** New job gets
-         `job_photos/{uid}/{newJobId}.jpg` (copy or re-upload).
-         Do not keep pointing the new gig at the old filename
-         so later original-job delete cannot break or orphan.
-      5. **[ ] Account-media wipe helper.** Admin-SDK / callable
-         that deletes `profile_photos/{uid}/`,
-         `face_verification/{uid}/`, `verification_ids/{uid}/`,
-         and leftover `job_photos/{uid}/` after that user’s
-         jobs are gone. Used by the sweep and by a future
-         self-delete. **Not** called by Permanently Ban.
-      6. **[ ] Replace paths do not accumulate.** Profile already
-         overwrites `photo.jpg`. Face replace must delete old
-         formats (mp4/webm/mov + extra poster). ID submit must
-         stop `timestamp_filename` pile-up — overwrite a stable
-         path or delete the previous file on new submit.
-      7. **[ ] Owner test.** Delete one gig → photo gone, tile
-         −1. Replace profile photo → still 1 file. Replace face
-         → no leftover webm. Sweep numbers match overlay after
-         Refresh is not needed (triggers bump the counter).
+         Deleted 56 orphans (5 deleted-UID profiles, 17 unused
+         gig photos, 8 leftover face files, 26 parked
+         `chat_photos/`). Support photos kept. Live users/jobs
+         untouched. Re-seeded 114 / 12.5 MB.
+      3. **[x] Harden `deleteJob()` — 2026-08-22 (not live until
+         Deploy).** Always deletes
+         `job_photos/{posterId}/{jobId}.jpg` by path. If the
+         thumbnail URL points at a different `job_photos/` file
+         (relist reuse), deletes that extra path only when no
+         other live job by the same poster still references it.
+         Owner + admin delete both use this. Manual console job
+         deletes will still orphan — accepted.
+      4. **[x] Relist writes a new path — 2026-08-22 (not live
+         until Deploy).** Completed relist creates a new gig and
+         always stores the photo as
+         `job_photos/{uid}/{newJobId}.jpg` (re-upload if they
+         pick a file, otherwise copy the old Storage file).
+         Never copies the old thumbnail URL onto the new gig.
+         Void/same-gig relist is unchanged (same gig, same
+         file). `new-post.js` leftover URL-copy removed.
+      5. **[x] Account-media wipe helper — 2026-08-22 (not live
+         until Deploy).** `functions/wipe-account-media.js` +
+         self-only callable `wipeAccountMedia` + Admin-SDK
+         script `scripts/wipe-account-media.js` (dry-run
+         default). Deletes `profile_photos/{uid}/`,
+         `face_verification/{uid}/`, `verification_ids/{uid}/`.
+         `job_photos/{uid}/` only if that user has no live
+         jobs. Support photos untouched. Permanently Ban still
+         does not call this.
+      6. **[x] Replace paths do not accumulate — 2026-08-22
+         (not live until Deploy).** Profile still overwrites
+         `photo.jpg`. Face normalize now lists the folder and
+         deletes anything except `face_intro.mp4` +
+         `face_poster.jpg` (plus existing client variant
+         cleanup). ID helpers now write
+         `verification_ids/{uid}/id.jpg` + `selfie.jpg` and
+         delete leftover timestamp files. Live ID submit UI
+         is still mock (not wired).
+      7. **[ ] Owner test.** Delete one gig → photo gone, Gig
+         tile −1. Replace profile photo → still 1 file. Replace
+         face → no leftover webm. Triggers bump the counter
+         (no Refresh needed).
       8. **[ ] Leftover audit.** No dashboard bucket list. No
          listener. Ban path still does not wipe. Support photos
          still present. Syntax + rules unchanged for public
