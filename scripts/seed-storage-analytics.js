@@ -24,7 +24,8 @@ const path = require("path");
 const admin = require(path.join(__dirname, "../functions/node_modules/firebase-admin"));
 const {
   buildStorageSnapshot,
-  STORAGE_TYPE_KEYS
+  STORAGE_TYPE_KEYS,
+  attachGrowthStamp
 } = require(path.join(__dirname, "../functions/storage-analytics"));
 
 const STORAGE_BUCKET = "gisugo1.firebasestorage.app";
@@ -85,10 +86,13 @@ async function main() {
     process.exit(0);
   }
 
+  const existing = await db.collection("platform_analytics").doc("storage").get();
+  const prev = existing.exists ? existing.data() || {} : {};
   await db.collection("platform_analytics").doc("storage").set({
     totalBytes: snapshot.totalBytes,
     totalFiles: snapshot.totalFiles,
     byType: snapshot.byType,
+    growth: attachGrowthStamp(prev.growth, prev.totalBytes, snapshot.totalBytes),
     seededAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });

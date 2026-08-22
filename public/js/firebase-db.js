@@ -5344,7 +5344,12 @@ async function getPlatformAnalyticsStorage() {
     id: emptyStorageTypeRow(),
     other: emptyStorageTypeRow()
   };
-  const empty = { totalBytes: 0, totalFiles: 0, byType: emptyByType };
+  const empty = {
+    totalBytes: 0,
+    totalFiles: 0,
+    byType: emptyByType,
+    growth: { monthKey: '', monthStartBytes: 0, monthStartAt: '', months: {} }
+  };
   const db = getFirestore();
   if (!db) return empty;
 
@@ -5371,10 +5376,25 @@ async function getPlatformAnalyticsStorage() {
         files: Math.max(0, Number(rawByType.other && rawByType.other.files) || 0)
       }
     };
+    const rawGrowth = data.growth || {};
+    const months = {};
+    Object.keys(rawGrowth.months || {}).forEach((key) => {
+      const row = rawGrowth.months[key] || {};
+      months[key] = {
+        startBytes: Math.max(0, Number(row.startBytes) || 0),
+        endBytes: Math.max(0, Number(row.endBytes) || 0)
+      };
+    });
     return {
       totalBytes: Math.max(0, Number(data.totalBytes) || 0),
       totalFiles: Math.max(0, Number(data.totalFiles) || 0),
-      byType
+      byType,
+      growth: {
+        monthKey: String(rawGrowth.monthKey || ''),
+        monthStartBytes: Math.max(0, Number(rawGrowth.monthStartBytes) || 0),
+        monthStartAt: String(rawGrowth.monthStartAt || ''),
+        months
+      }
     };
   } catch (error) {
     console.error('❌ Error getting platform_analytics/storage:', error);

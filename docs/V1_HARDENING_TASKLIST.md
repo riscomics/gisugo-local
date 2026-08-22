@@ -764,7 +764,8 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       **Microtasklist**
       1. **[x] Storage counter + card — shipped 2026-08-21.**
          Triggers + seed live. Other includes `support_photos/` +
-         `chat_photos/`. Growth tiles leftover. Overwrite drift leftover.
+         `chat_photos/`. Growth month-start stamp + 5 GB free
+         cost built 2026-08-22. Overwrite drift leftover.
       2. **[x] Enable GA4 SDK — built 2026-08-21, not collecting.**
          Owner enabled Analytics 2026-08-21. IDs in code:
          Measurement `G-TBGN7B69R9`, property `551027693`.
@@ -793,7 +794,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          empty is OK until GA has sessions; this toast is not empty.
       6. **[ ] Leftover audit.** Syntax, rules (still Functions-only
          writes), no client Billing/GA secrets, no Storage list from
-         the dashboard, no listeners. Growth tiles leftover.
+         the dashboard, no listeners. Storage Growth month-start
+         stamp + billable cost after 5 GB free built 2026-08-22
+         (not live until Deploy). Overwrite drift leftover.
          Session-duration histogram leftover. Overlay period
          selector leftover (MTD only). Auth cost tile stays 0.
 - [ ] **Storage hygiene — orphan sweep + prevent accumulation

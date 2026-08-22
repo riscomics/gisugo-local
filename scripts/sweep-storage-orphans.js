@@ -30,7 +30,8 @@ const {
   classifyStoragePath,
   isCountableStorageObject,
   buildStorageSnapshot,
-  STORAGE_TYPE_KEYS
+  STORAGE_TYPE_KEYS,
+  attachGrowthStamp
 } = require(path.join(__dirname, "../functions/storage-analytics"));
 
 const STORAGE_BUCKET = "gisugo1.firebasestorage.app";
@@ -207,10 +208,13 @@ async function main() {
       size: Number((file.metadata && file.metadata.size) || 0)
     }))
   );
+  const existing = await db.collection("platform_analytics").doc("storage").get();
+  const prev = existing.exists ? existing.data() || {} : {};
   await db.collection("platform_analytics").doc("storage").set({
     totalBytes: recount.totalBytes,
     totalFiles: recount.totalFiles,
     byType: recount.byType,
+    growth: attachGrowthStamp(prev.growth, prev.totalBytes, recount.totalBytes),
     seededAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   });

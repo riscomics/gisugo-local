@@ -6467,6 +6467,7 @@ async function renderGigsAnalyticsOverlay() {
 // Published Standard regional estimate: $0.020 / GB-month.
 
 const STORAGE_USD_PER_GB_MONTH = 0.020;
+const STORAGE_FREE_BYTES = 5 * 1024 * 1024 * 1024;
 
 function formatStorageBytes(bytes) {
     const n = Math.max(0, Number(bytes) || 0);
@@ -6476,8 +6477,64 @@ function formatStorageBytes(bytes) {
     return `${n} B`;
 }
 
+function formatStorageDelta(bytes) {
+    const n = Number(bytes) || 0;
+    const sign = n > 0 ? '+' : n < 0 ? '−' : '';
+    return `${sign}${formatStorageBytes(Math.abs(n))}`;
+}
+
 function estimateStorageUsd(bytes) {
-    return (Math.max(0, Number(bytes) || 0) / (1024 * 1024 * 1024)) * STORAGE_USD_PER_GB_MONTH;
+    const billable = Math.max(0, (Number(bytes) || 0) - STORAGE_FREE_BYTES);
+    return (billable / (1024 * 1024 * 1024)) * STORAGE_USD_PER_GB_MONTH;
+}
+
+function applyStorageGrowthTiles(storageAnalytics) {
+    const totalBytes = Math.max(0, Number(storageAnalytics && storageAnalytics.totalBytes) || 0);
+    const growth = (storageAnalytics && storageAnalytics.growth) || {};
+    const monthStart = Math.max(0, Number(growth.monthStartBytes) || 0);
+    const hasAnchor = Boolean(growth.monthKey);
+    const monthDelta = hasAnchor ? totalBytes - monthStart : 0;
+
+    setElementValue('storageGrowthMonth', hasAnchor ? formatStorageDelta(monthDelta) : '—');
+    const startLabel = growth.monthStartAt
+        ? new Date(growth.monthStartAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+    setElementValue('storageGrowthMonthNote', hasAnchor
+        ? (startLabel ? `since ${startLabel} (Manila)` : 'since month stamp')
+        : 'waiting for first stamp');
+
+    const closed = Object.keys(growth.months || {}).map((key) => {
+        const row = growth.months[key];
+        return (Number(row.endBytes) || 0) - (Number(row.startBytes) || 0);
+    });
+    if (closed.length) {
+        const avg = closed.reduce((sum, value) => sum + value, 0) / closed.length;
+        setElementValue('storageGrowthAvg', formatStorageDelta(avg));
+    } else {
+        setElementValue('storageGrowthAvg', '—');
+    }
+
+    setElementValue('storageGrowthAllTime', formatStorageBytes(totalBytes));
+    setElementValue('storageAllTimeCost', `(${formatStorageUsd(estimateStorageUsd(totalBytes))})`);
+
+    const closedAvg = closed.length
+        ? closed.reduce((sum, value) => sum + value, 0) / closed.length
+        : 0;
+    const rateBytes = closedAvg > 0 ? closedAvg : monthDelta;
+    if (totalBytes >= STORAGE_FREE_BYTES) {
+        setElementValue('storageProjectedFull', 'now');
+        setElementValue('storageProjectedFullNote', 'over 5 GB free');
+    } else if (rateBytes <= 0) {
+        setElementValue('storageProjectedFull', '—');
+        setElementValue('storageProjectedFullNote', 'needs monthly growth');
+    } else {
+        const months = Math.ceil((STORAGE_FREE_BYTES - totalBytes) / rateBytes);
+        setElementValue(
+            'storageProjectedFull',
+            months >= 24 ? `${Math.round(months / 12)} yr` : `${months} mo`
+        );
+        setElementValue('storageProjectedFullNote', 'to 5 GB free cliff');
+    }
 }
 
 function formatStorageUsd(usd) {
@@ -6510,7 +6567,7 @@ async function loadStorageUsageGlanceCard() {
         const storageAnalytics = await getPlatformAnalyticsStorage();
         const totalBytes = storageAnalytics.totalBytes || 0;
         setElementValue('totalStorageUsed', formatStorageBytes(totalBytes));
-        setElementValue('storageCostEstimate', `est. ${formatStorageUsd(estimateStorageUsd(totalBytes))} / month`);
+        setElementValue('storageCostEstimate', `est. ${formatStorageUsd(estimateStorageUsd(totalBytes))} / month after 5 GB free`);
         console.log('✅ Storage Usage glance card populated', {
             totalBytes,
             totalFiles: storageAnalytics.totalFiles || 0
@@ -6546,6 +6603,7 @@ async function renderStorageUsageOverlay() {
         applyStorageTypeRow('gigPhotos', byType.gig, totalBytes);
         applyStorageTypeRow('idVerifications', byType.id, totalBytes);
         applyStorageTypeRow('otherFiles', byType.other, totalBytes);
+        applyStorageGrowthTiles(storageAnalytics);
 
         console.log('✅ Storage Usage overlay populated from platform_analytics/storage', {
             totalBytes, totalFiles

@@ -2,7 +2,14 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
-const { classifyStoragePath, isCountableStorageObject } = require("./storage-analytics");
+const {
+  classifyStoragePath,
+  isCountableStorageObject,
+  emptyByType,
+  STORAGE_TYPE_KEYS,
+  attachGrowthStamp,
+  estimateStorageUsd
+} = require("./storage-analytics");
 const {
   emptyUserActivity,
   emptyTraffic,
@@ -1382,19 +1389,36 @@ async function applyStorageAnalyticsDelta(objectName, sizeBytes, fileDelta) {
   const direction = fileDelta < 0 ? -1 : 1;
   const byteDelta = direction * size;
   const countDelta = direction;
+  const ref = db.collection("platform_analytics").doc("storage");
 
   try {
-    await db.collection("platform_analytics").doc("storage").set({
-      totalBytes: admin.firestore.FieldValue.increment(byteDelta),
-      totalFiles: admin.firestore.FieldValue.increment(countDelta),
-      byType: {
-        [typeKey]: {
-          bytes: admin.firestore.FieldValue.increment(byteDelta),
-          files: admin.firestore.FieldValue.increment(countDelta)
-        }
-      },
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = snap.exists ? snap.data() || {} : {};
+      const prevByType = emptyByType();
+      STORAGE_TYPE_KEYS.forEach((key) => {
+        const row = (prev.byType && prev.byType[key]) || {};
+        prevByType[key] = {
+          bytes: Math.max(0, Number(row.bytes) || 0),
+          files: Math.max(0, Number(row.files) || 0)
+        };
+      });
+      const prevTotalBytes = Math.max(0, Number(prev.totalBytes) || 0);
+      const nextByType = prevByType;
+      nextByType[typeKey] = {
+        bytes: Math.max(0, nextByType[typeKey].bytes + byteDelta),
+        files: Math.max(0, nextByType[typeKey].files + countDelta)
+      };
+      const nextTotalBytes = Math.max(0, prevTotalBytes + byteDelta);
+      const nextTotalFiles = Math.max(0, (Number(prev.totalFiles) || 0) + countDelta);
+      tx.set(ref, {
+        totalBytes: nextTotalBytes,
+        totalFiles: nextTotalFiles,
+        byType: nextByType,
+        growth: attachGrowthStamp(prev.growth, prevTotalBytes, nextTotalBytes),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    });
   } catch (error) {
     logger.error("Storage analytics counter sync failed", {
       objectName: String(objectName || ""),
@@ -1428,8 +1452,6 @@ exports.syncStorageAnalyticsOnDelete = onObjectDeleted(
 // Traffic without a Billing Account grant (invoice export is leftover).
 
 const GA4_PROPERTY_ID = String(process.env.GA4_PROPERTY_ID || "551027693").trim();
-const STORAGE_USD_PER_GB_MONTH = 0.020;
-
 async function assertIsAdmin(request) {
   const uid = request.auth?.uid || "";
   if (!uid) {
@@ -1469,7 +1491,7 @@ exports.refreshTrafficSnapshot = onCall(
       snapshot = await fetchTrafficFromMonitoring();
       const storageDoc = await db.collection("platform_analytics").doc("storage").get();
       const storageBytes = Math.max(0, Number(storageDoc.exists ? storageDoc.data().totalBytes : 0) || 0);
-      const storageUsd = (storageBytes / (1024 * 1024 * 1024)) * STORAGE_USD_PER_GB_MONTH;
+      const storageUsd = estimateStorageUsd(storageBytes);
       snapshot.costBreakdown = snapshot.costBreakdown || emptyTraffic().costBreakdown;
       snapshot.costBreakdown.storage = storageUsd;
       snapshot.costUsd = Number(snapshot.costUsd || 0) + storageUsd;
