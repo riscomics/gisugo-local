@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). Phases 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 microtasklist drafted 2026-08-24, not built.** Phase 11 parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -128,9 +128,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
 | 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
-| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Ch 1–4 live. Ch 5: Storage + Traffic tested; Activity Refresh failed (Data API off). Ch 6 leftover audit not done. |
+| 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided, not built |
+| 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided; microtasklist 2026-08-24; not built |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
@@ -374,22 +374,44 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          `role: 'worker'` (Alerts filters by type; both tabs intentional);
          Settings tray-off not owner-tested; admin Messages stays glance.
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
-      NOT hard delete.** New phase, not folded back into Phase 3 (already shipped/closed) even
-      though it touches User Management — same rule as everything else post-Phase-3: new work
-      gets a new phase number, shipped phases stay untouched. Rationale (owner): hard-deleting the
-      account would destroy evidence — reviews, gig/application history, messages, moderation log
-      entries all reference this uid and need to stay query-able for any future dispute/
-      investigation. Disable keeps every record intact and just revokes the ability to log in.
-      • **Not yet built** — button still shows an honest "not built yet" toast in the Suspended
-        tab detail panel (account is NOT affected by clicking it). Ready to build now that the
-        decision is made:
-        `admin.auth().updateUser(uid, {disabled: true})` via a new `adminModerateUser` action
-        (e.g. `'ban'`), separate from `'suspend'` since suspend already has its own reversible
-        flow — ban should be its own explicit, harder-to-reverse-by-accident action, logged the
-        same way to `user_moderation_log`. Reversible later via `disabled: false` if ever needed,
-        but the UI should treat it as a serious/rare action (extra confirmation step).
-      • No Data Privacy Act concern under this option — nothing is deleted, so no retention
-        conflict.
+      NOT hard delete.** New phase, not folded back into Phase 3. Rationale (owner):
+      reviews, gig/application history, messages, moderation log stay query-able.
+      Button still toasts “not built yet” (account is not affected).
+      **Locked product:**
+      • Ban only from the Suspended tab (cascade already ran on suspend).
+      • `adminModerateUser` action `'ban'`: Auth `disabled: true`,
+        `users.status = 'banned'`, stamp `bannedAt` / `bannedBy` /
+        `bannedByName`. Log to `user_moderation_log`.
+      • Same guards as suspend: not self; only super_admin may ban
+        another admin.
+      • Must already be `suspended`. Do not re-run
+        `executeBanCascadeOnUserSuspend`. Do **not** call
+        `wipeAccountMedia`.
+      • Confirm overlay copy must match this: disable login, keep
+        evidence. Current copy (“cannot be undone” + IP block) is
+        wrong — no IP block this phase.
+      • Extra confirm + hourglass. Toast only after the callable
+        succeeds.
+      • Suspended tab lists `suspended` and `banned`. Banned badge.
+        Restore refuses banned users.
+      • `'unban'`: Auth `disabled: false`, status `active`. Extra
+        confirm. Does not relist gigs (same as Restore after suspend).
+      • No Data Privacy Act issue — nothing is deleted.
+      **Not this phase:** IP block, data wipe, Phase 12 lockdown,
+      self-delete product, Ban from the New tab.
+      **Microtasklist**
+      1. **[ ] Callable `ban` + `unban`.** Extend
+         `adminModerateUser`. Auth disable/enable + status + audit
+         log. No media wipe. No second cascade.
+      2. **[ ] Confirm UI.** Honest copy. Hourglass. Wire Ban and
+         Unban. Remove the “not built yet” toast.
+      3. **[ ] Suspended queue.** Show banned users. Badge. Restore
+         refuses banned.
+      4. **[ ] Owner test.** Suspend → Ban → cannot log in. Evidence
+         and Storage files remain. Unban → can log in. Gigs stay
+         suspended.
+      5. **[ ] Leftover audit.** Syntax, no wipe path, confirm copy
+         matches the lock, toast only after success.
 - [ ] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14). Not shelving yet.**
       New phase (Phase 4 stays closed). Owner confirmed the test loop (text + photo both
       ways, Mark Resolved, hourglass). **Leave the in-app desk on.** Do not flip a shelf
@@ -725,8 +747,8 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          category picker). Per-ad zone/category is a later build.
          **Operator rule:** Deploy the image file first, then save the
          URL. Same-name replacements: `?v=2` or a new filename.
-- [ ] **Phase 7: Overview Storage / User Activity / Traffic cards — microtasklist
-      started 2026-08-19, not built.** The three cards already exist and show
+- [x] **Phase 7: Overview Storage / User Activity / Traffic cards — CLOSED
+      2026-08-24.** The three cards already exist and show
       honest `0`. Design in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md` (manual-refresh snapshots +
       Open items #1–#2). The old “one code pass after GA + Billing” lump was
@@ -792,13 +814,25 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          disabled on project `380568649178`. Owner must enable
          `analyticsdata.googleapis.com` then Refresh again. Honest
          empty is OK until GA has sessions; this toast is not empty.
-      6. **[ ] Leftover audit.** Syntax, rules (still Functions-only
-         writes), no client Billing/GA secrets, no Storage list from
-         the dashboard, no listeners. Storage Growth month-start
-         stamp + billable cost after 5 GB free built 2026-08-22
-         (not live until Deploy). Overwrite drift leftover.
-         Session-duration histogram leftover. Overlay period
-         selector leftover (MTD only). Auth cost tile stays 0.
+      6. **[x] Leftover audit — 2026-08-24.** `node --check` clean
+         (`functions/index.js`, `firebase-db.js`, `admin-dashboard.js`,
+         `firebase-config.js`). `platform_analytics` still
+         `allow write: if false` (Functions/Admin SDK only). Dashboard
+         Storage / Activity / Traffic are one-shot `.get()` of those
+         docs — no bucket `listAll`/`getFiles`, no `onSnapshot`.
+         Refresh callables are admin-only; browser never calls
+         GA4/Monitoring/Billing with credentials. Admin dashboard
+         skips gtag (`initializeConsumerAnalytics`). Public G-
+         Measurement ID is not a secret. Live snapshots:
+         `user_activity` `status=ok` (2026-08-21), `traffic`
+         `status=ok` (2026-08-22). Storage Growth + 5 GB free cost
+         already live. **Accepted leftovers (not this phase):**
+         same-path overwrite can drift the Storage counter until
+         re-seed; no session-duration histogram; Traffic period
+         selector is MTD only; Auth cost tile stays 0; BigQuery
+         invoice export not wired; `landing.js` still has a dead
+         `GA_MEASUREMENT_ID` gtag placeholder; Overview tile tour
+         / Budget remaining stays parked.
 - [x] **Storage hygiene — CLOSED 2026-08-23.** Phase 7 counts
       files, not accounts. Sweep + prevent-accumulation (Ch 1–8)
       owner-tested. Phase 9 Permanently Ban **keeps** evidence —

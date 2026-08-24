@@ -30,7 +30,7 @@ Instead:
 | Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. Inventory thumbs are Hosting GETs. | Phase 6 shipped; inventory tested 2026-08-19 |
 | Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
 | Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
-| Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + GCP Billing API. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 Ch 1 live; Ch 2–4 built 2026-08-21 — not shipped |
+| Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + Cloud Monitoring estimate. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 shipped 2026-08-24 (Ch 6 leftover audit) |
 
 ---
 
@@ -298,7 +298,7 @@ explicit Ship, per standing rule):
   (e.g. `'ban'`) calling `admin.auth().updateUser(uid, {disabled: true})`, logged to
   `user_moderation_log` same as suspend/reinstate, kept separate from the existing reversible
   `'suspend'` action since a ban should require its own explicit confirmation. Tracked in
-  `docs/V1_HARDENING_TASKLIST.md`.
+  `docs/V1_HARDENING_TASKLIST.md` (Phase 9 microtasklist drafted 2026-08-24, not built).
 - **User Management Contact — now live (Phase 8 Ch 4, 2026-08-15/17).** Same callable
   (`admin_user_contact`). No recipient dropdown. Topic is Message from GISUGO. Appends only
   an open no-`jobId` GISUGO thread — does not join a gig Contact thread. Notify is Phase 8
