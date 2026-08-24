@@ -923,6 +923,15 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          still has a live applicant. Console must not show the
          batch permission error. Applications count drops. Held
          coins return only for pending/accepted/hired.
+      5. **[x] Query by jobId, not only applicationIds — 2026-08-24
+         (not live until Deploy).** Empty `applicationIds` still
+         runs cleanup. Callable + client fallback both list
+         `applications` where `jobId` matches, then merge any
+         listed IDs. Closes the “5th withdrawn app not on the
+         array” hole.
+      6. **[x] Delete the 7 dead-gig leftovers — 2026-08-24.**
+         Admin SDK. No coin refund. Applications 94 → 87.
+         Live leftover scan after delete: 0 stranded.
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.

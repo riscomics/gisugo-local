@@ -44,7 +44,13 @@ async function cleanupJobApplications(db, FieldValue, options) {
     ? options.applicationIds
     : [];
   const reason = String((options && options.reason) || "job_deleted").slice(0, 80);
-  const uniqueIds = [...new Set(rawIds.map((id) => String(id || "").trim()).filter(isSafeId))];
+  const fromClient = rawIds.map((id) => String(id || "").trim()).filter(isSafeId);
+  const fromQuery = [];
+  if (isSafeId(jobId)) {
+    const queried = await db.collection("applications").where("jobId", "==", jobId).get();
+    queried.docs.forEach((doc) => fromQuery.push(doc.id));
+  }
+  const uniqueIds = [...new Set([...fromClient, ...fromQuery])];
 
   const deleted = [];
   const skippedMissing = [];

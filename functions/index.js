@@ -1511,10 +1511,10 @@ exports.deleteJobStoragePhotos = onCall(
   }
 );
 
-// deleteJob() application + coin cleanup. Skips missing IDs (a stale
-// applicationIds entry must not fail the rest). Refunds only apps that
-// still hold a coin (pending / accepted / hired). Admin SDK so poster
-// or admin can refund another user's coins.
+// deleteJob() application + coin cleanup. Queries applications by
+// jobId (do not trust job.applicationIds alone — withdrawn / older
+// apps can be missing from that array). Also accepts listed IDs.
+// Skips missing docs. Refunds only pending / accepted / hired.
 exports.cleanupDeletedJobApplications = onCall(
   { region: "asia-southeast1", cors: true },
   async (request) => {

@@ -1578,9 +1578,22 @@ async function callCleanupDeletedJobApplications(jobId, applicationIds) {
   }
 }
 
+async function collectApplicationIdsForJobDelete(db, jobId, applicationIds) {
+  const ids = new Set((applicationIds || []).map((id) => String(id || '').trim()).filter(Boolean));
+  if (!jobId || !db) return [...ids];
+  try {
+    const queried = await db.collection('applications').where('jobId', '==', jobId).get();
+    queried.docs.forEach((doc) => ids.add(doc.id));
+  } catch (error) {
+    console.warn('⚠️ Could not query applications by jobId; using listed IDs only', error);
+  }
+  return [...ids];
+}
+
 async function cleanupJobApplicationsOnClient(db, jobId, applicationIds) {
   let deleted = 0;
-  for (const rawId of applicationIds || []) {
+  const idsToDelete = await collectApplicationIdsForJobDelete(db, jobId, applicationIds);
+  for (const rawId of idsToDelete) {
     const applicationId = String(rawId || '').trim();
     if (!applicationId) continue;
     try {
@@ -1677,15 +1690,13 @@ async function deleteJob(jobId) {
     // ═══════════════════════════════════════════════════════════════
     const applicationIds = Array.isArray(jobData.applicationIds) ? jobData.applicationIds : [];
     let applicationsDeleted = 0;
-    if (applicationIds.length > 0) {
-      console.log(`🗑️ Deleting ${applicationIds.length} associated applications...`);
-      const viaFn = await callCleanupDeletedJobApplications(jobId, applicationIds);
-      if (viaFn.success) {
-        applicationsDeleted = (viaFn.deleted || []).length;
-        console.log('✅ Applications cleaned via cleanupDeletedJobApplications', viaFn);
-      } else {
-        applicationsDeleted = await cleanupJobApplicationsOnClient(db, jobId, applicationIds);
-      }
+    console.log(`🗑️ Cleaning applications for job ${jobId} (listed ${applicationIds.length})`);
+    const viaFn = await callCleanupDeletedJobApplications(jobId, applicationIds);
+    if (viaFn.success) {
+      applicationsDeleted = (viaFn.deleted || []).length;
+      console.log('✅ Applications cleaned via cleanupDeletedJobApplications', viaFn);
+    } else {
+      applicationsDeleted = await cleanupJobApplicationsOnClient(db, jobId, applicationIds);
     }
     
     // ═══════════════════════════════════════════════════════════════
