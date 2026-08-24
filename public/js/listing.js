@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260310b';
+const LISTING_CSS_VERSION = '20260823a';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';

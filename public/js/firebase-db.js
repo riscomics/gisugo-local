@@ -1559,6 +1559,52 @@ async function callDeleteJobStoragePhotos(jobId, posterId, extraPath) {
   }
 }
 
+async function callCleanupDeletedJobApplications(jobId, applicationIds) {
+  try {
+    if (typeof firebase === 'undefined' || typeof firebase.app !== 'function') {
+      return { attempted: false, success: false };
+    }
+    const app = firebase.app();
+    if (!app.functions) return { attempted: false, success: false };
+    const callable = app.functions('asia-southeast1').httpsCallable('cleanupDeletedJobApplications');
+    const response = await callable({
+      jobId: String(jobId || ''),
+      applicationIds: Array.isArray(applicationIds) ? applicationIds : []
+    });
+    return { attempted: true, success: true, ...(response && response.data ? response.data : {}) };
+  } catch (error) {
+    console.error('❌ cleanupDeletedJobApplications call failed:', error);
+    return { attempted: true, success: false };
+  }
+}
+
+async function cleanupJobApplicationsOnClient(db, jobId, applicationIds) {
+  let deleted = 0;
+  for (const rawId of applicationIds || []) {
+    const applicationId = String(rawId || '').trim();
+    if (!applicationId) continue;
+    try {
+      const appRef = db.collection('applications').doc(applicationId);
+      const appDoc = await appRef.get();
+      if (!appDoc.exists) continue;
+      const appData = appDoc.data() || {};
+      if (jobId && String(appData.jobId || '') !== String(jobId)) continue;
+      if (isApplicationHoldingCoin(appData)) {
+        try {
+          await releaseApplicationCoinForApplication(applicationId, 'job_deleted');
+        } catch (coinError) {
+          console.warn('⚠️ Could not release coin for deleted-job applicant:', coinError);
+        }
+      }
+      await appRef.delete();
+      deleted += 1;
+    } catch (appError) {
+      console.error('❌ Error deleting application:', applicationId, appError);
+    }
+  }
+  return deleted;
+}
+
 async function cleanupJobPhotosOnDelete(db, jobId, jobData) {
   const posterId = (jobData && (jobData.posterId || jobData.userId)) || '';
   const thumbnail = (jobData && jobData.thumbnail) || '';
@@ -1624,65 +1670,21 @@ async function deleteJob(jobId) {
     
     // ═══════════════════════════════════════════════════════════════
     // STEP 2: Delete associated applications & release held coins
-    // (Legacy appliedJobsCount / activeJobsCount increments were removed —
-    //  they were decrement-only leftovers nothing reads; profile stats use
-    //  statistics.* instead.)
+    // Admin SDK callable first — a stale/missing applicationId must not
+    // fail the rest, and only pending/accepted/hired apps still hold a
+    // coin. Client fallback skips missing IDs (batch.delete of a ghost
+    // doc is denied by rules and aborts the whole batch).
     // ═══════════════════════════════════════════════════════════════
-    if (jobData.applicationIds && jobData.applicationIds.length > 0) {
-      console.log(`🗑️ Deleting ${jobData.applicationIds.length} associated applications...`);
-      
-      // First, get applicants that still hold an application coin so we can release it.
-      const coinReleaseCandidates = [];
-      try {
-        const appPromises = jobData.applicationIds.map(appId => 
-          db.collection('applications').doc(appId).get()
-        );
-        const appDocs = await Promise.all(appPromises);
-        
-        appDocs.forEach(appDoc => {
-          if (appDoc.exists) {
-            const appData = appDoc.data() || {};
-            const applicantId = appData.applicantId;
-            if (applicantId && appData.coinHeld !== false && !appData.coinReleasedAt) {
-              coinReleaseCandidates.push({
-                applicantId,
-                applicationId: appDoc.id
-              });
-            }
-          }
-        });
-      } catch (fetchError) {
-        console.error('⚠️ Error fetching applications for coin release:', fetchError);
-        // Continue with deletion even if we can't get IDs
-      }
-      
-      // Delete applications
-      const batch = db.batch();
-      for (const appId of jobData.applicationIds) {
-        const appRef = db.collection('applications').doc(appId);
-        batch.delete(appRef);
-      }
-      
-      try {
-        await batch.commit();
-        console.log('✅ Applications deleted');
-      } catch (appError) {
-        console.error('❌ Error deleting applications:', appError);
-        // Continue with job deletion even if applications fail
-      }
-
-      if (coinReleaseCandidates.length > 0) {
-        try {
-          const uniqueReleaseUsers = [...new Set(coinReleaseCandidates.map((entry) => entry.applicantId))];
-          const releasePromises = uniqueReleaseUsers.map((uid) =>
-            releaseApplicationCoinForUser(uid, 'job_deleted').catch((error) => {
-              console.warn('⚠️ Could not release coin for deleted-job applicant:', error);
-            })
-          );
-          await Promise.all(releasePromises);
-        } catch (coinReleaseError) {
-          console.warn('⚠️ Error releasing coins for deleted job applications:', coinReleaseError);
-        }
+    const applicationIds = Array.isArray(jobData.applicationIds) ? jobData.applicationIds : [];
+    let applicationsDeleted = 0;
+    if (applicationIds.length > 0) {
+      console.log(`🗑️ Deleting ${applicationIds.length} associated applications...`);
+      const viaFn = await callCleanupDeletedJobApplications(jobId, applicationIds);
+      if (viaFn.success) {
+        applicationsDeleted = (viaFn.deleted || []).length;
+        console.log('✅ Applications cleaned via cleanupDeletedJobApplications', viaFn);
+      } else {
+        applicationsDeleted = await cleanupJobApplicationsOnClient(db, jobId, applicationIds);
       }
     }
     
@@ -1696,7 +1698,7 @@ async function deleteJob(jobId) {
       reason: 'user_requested',
       jobData: jobData,
       photoDeleted: photoDeleted,
-      applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
+      applicationsDeleted
     });
     
     // ═══════════════════════════════════════════════════════════════
@@ -1711,7 +1713,7 @@ async function deleteJob(jobId) {
       cleanup: {
         firestoreDeleted: true,
         photoDeleted: photoDeleted,
-        applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
+        applicationsDeleted
       }
     };
     

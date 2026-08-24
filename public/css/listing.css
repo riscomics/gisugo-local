@@ -13,10 +13,22 @@ html::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
 
+:root {
+  /* Single source of truth for listing header + compact filter overlay.
+     Phones keep the proven pixel values via max-width overrides below.
+     601px+ uses the real header stack so the filter can sit flush without
+     the old margin-top push that opened a gap under the teal line. */
+  --jobcat-header-bar: clamp(64px, 12vh, 88px);
+  --jobcat-border-h: clamp(3px, 0.5vh, 4px);
+  --jobcat-header-height: calc(var(--jobcat-header-bar) + var(--jobcat-border-h));
+  --filter-collapsed-h: clamp(52px, 13vw, 95px);
+  --filter-card-gap: 12px;
+}
+
 body {        
   background: #141b24 !important; /* Page fill matched to Alerts / Profile */
   margin: 0;
-  padding: clamp(70px, 12vh, 96px) 0 0 0; /* Keep stable on legacy iOS tablet viewport math */
+  padding: var(--jobcat-header-height) 0 0 0; /* Clears the fixed header only; spacer clears the filter */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -45,7 +57,7 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: clamp(64px, 12vh, 88px);
+  height: var(--jobcat-header-bar);
   align-items: center;
   justify-content: space-between;
   background: transparent;
@@ -248,7 +260,7 @@ body::-webkit-scrollbar {
 }
 
 .jobcat-borderline {
-  height: clamp(3px, 0.5vh, 4px);
+  height: var(--jobcat-border-h);
   width: 100%;
   background: #0ea5e9; /* Cyan/Blue - differentiated from filter green */
   position: fixed;
@@ -325,8 +337,8 @@ body::-webkit-scrollbar {
 
 /* Tablet tuning (including iPad mini Safari) */
 @media (min-width: 601px) and (max-width: 1023px) {
-  .jobcat-listheader {
-    height: clamp(64px, 10vh, 78px);
+  :root {
+    --jobcat-header-bar: clamp(64px, 10vh, 78px);
   }
 
   .jobcat-servicemenu {
@@ -898,7 +910,7 @@ body::-webkit-scrollbar {
 /* Sort Menu Styles */
 .jobcat-sort-header {
   position: fixed;
-  top: 72px; /* Height of main header (68px) + borderline (4px) */
+  top: var(--jobcat-header-height); /* Flush to the teal header line on every breakpoint */
   left: 0;
   right: 0;
   z-index: 50;
@@ -937,7 +949,7 @@ body::-webkit-scrollbar {
 
 /* Collapsed state - only footer visible */
 .gaming-filter-panel {
-  max-height: clamp(52px, 13vw, 95px); /* Much more aggressive shrinking - smaller min, higher vw scaling */
+  max-height: var(--filter-collapsed-h); /* Same token the spacer uses, so reserved space tracks the bar */
   transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bouncy expansion */
               transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.3s ease;
@@ -945,14 +957,14 @@ body::-webkit-scrollbar {
 
 /* Smooth closing animation - consolidated with styling */
 .gaming-filter-panel:not(.expanded) {
-  max-height: clamp(52px, 13vw, 95px); /* Explicit same height to prevent snap */
+  max-height: var(--filter-collapsed-h); /* Explicit same height to prevent snap */
   transition: max-height 0.35s ease-out, /* Faster closing */
               transform 0.35s ease-out,
               box-shadow 0.35s ease-out,
               margin 0.35s ease-out;
   border-radius: 0 0 14px 14px;
   border-top: none;
-  margin-top: -3px; /* Mobile: flush with borderline */
+  margin-top: -3px; /* Kiss the teal line on every viewport — do not reintroduce a 601px+ push */
   margin-bottom: clamp(8px, 1.5vw, 16px); /* Use vw - shrinks on smaller screens */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 rgba(16, 185, 129, 0);
 }
@@ -960,13 +972,6 @@ body::-webkit-scrollbar {
 /* Clip content during closing animation to prevent overflow */
 .gaming-filter-panel.closing {
   overflow: hidden !important;
-}
-
-/* Desktop 601px+: Push collapsed panel down so text isn't hidden by header */
-@media (min-width: 601px) {
-  .gaming-filter-panel:not(.expanded) {
-    margin-top: clamp(22px, 3vh, 32px); /* Pushed down on desktop only */
-  }
 }
 
 .gaming-filter-panel.expanded {
@@ -1596,7 +1601,7 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) {
   .jobcat-sort-header {
-    top: 72px;
+    top: var(--jobcat-header-height);
   }
 
   .sortmenus {
@@ -1905,9 +1910,10 @@ body::-webkit-scrollbar {
   transform: translateY(-2px) scale(0.99);
 }
 
-/* Consistent space between filter panel and first card */
+/* Gap under the overlay lives on the spacer (--filter-card-gap), not here.
+   Extra first-card margin was stacking on top of the spacer and looking uneven. */
 .job-preview-card:first-of-type {
-  margin-top: clamp(10px, 2vw, 20px) !important; /* Shrinks on smaller screens */
+  margin-top: 0 !important;
 }
 
 /* ============================
@@ -3216,7 +3222,9 @@ body::-webkit-scrollbar {
 /* ===================== END JOB PREVIEW & JOB PAGE STYLES ===================== */
 
 .jobcat-header-spacer {
-  height: clamp(60px, 10vw, 75px); /* Use vw not vh - shrinks on smaller screens */
+  /* Must track the collapsed overlay height. Old 60–75px cap was why tablet
+     overlay sat on the first card while phones still had leftover air. */
+  height: calc(var(--filter-collapsed-h) + var(--filter-card-gap));
 }
 
 /* Desktop optimization for header spacer (601px and above) */
@@ -3225,12 +3233,19 @@ body::-webkit-scrollbar {
 
 
 @media (max-width: 600px) {
+  :root {
+    --jobcat-header-bar: 68px;
+    --jobcat-border-h: 4px;
+    --jobcat-header-height: 72px; /* Proven flush pairing with the -3px overlay kiss */
+    --filter-card-gap: 8px; /* Match the tighter 10px card-to-card gap on phones */
+  }
+
   body {
-    padding: 72px 0 0 0; /* Add top padding for mobile fixed header */
+    padding: var(--jobcat-header-height) 0 0 0; /* Add top padding for mobile fixed header */
   }
   
   .jobcat-listheader {
-    height: 68px;
+    height: var(--jobcat-header-bar);
     padding-right: 5px;
   }
   
@@ -3423,12 +3438,16 @@ body::-webkit-scrollbar {
 
 /* Small Screens (360px and below) */
 @media (max-width: 360px) {
+  :root {
+    --jobcat-header-height: 68px;
+  }
+
   body {
-    padding: 68px 0 0 0 !important; /* Adjusted body padding to show first borderline */
+    padding: var(--jobcat-header-height) 0 0 0 !important; /* Adjusted body padding to show first borderline */
   }
   
   .jobcat-sort-header {
-    top: 68px !important; /* Adjusted to match body padding */
+    top: var(--jobcat-header-height) !important; /* Adjusted to match body padding */
     z-index: 50 !important; /* Reduced z-index to allow jobcat modal to appear above */
   }
   
@@ -3462,12 +3481,17 @@ body::-webkit-scrollbar {
 
 /* Ultra Small Screens (320px and below) - Optimized layout */
 @media (max-width: 320px) {
+  :root {
+    --jobcat-header-bar: 62px;
+    --jobcat-header-height: 66px;
+  }
+
   body {
-    padding: 66px 0 0 0 !important; /* Increased to show first borderline */
+    padding: var(--jobcat-header-height) 0 0 0 !important; /* Increased to show first borderline */
   }
   
   .jobcat-sort-header {
-    top: 66px !important; /* Match increased body padding */
+    top: var(--jobcat-header-height) !important; /* Match increased body padding */
   }
   
   .jobcat-servicemenu {
@@ -3530,7 +3554,7 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-listheader {
-    height: 62px !important; /* Reduce overall header height */
+    height: var(--jobcat-header-bar) !important; /* Reduce overall header height */
     padding-right: 2px !important; /* Reduce padding */
   }
   
@@ -4064,13 +4088,18 @@ body::-webkit-scrollbar {
     height: 35px !important; /* Legacy support */
   }
   
+  :root {
+    --jobcat-header-bar: 64px;
+    --jobcat-header-height: 68px;
+  }
+
   .jobcat-listheader {
-    height: 64px !important;
+    height: var(--jobcat-header-bar) !important;
     padding-right: 3px !important;
   }
   
   body {
-    padding: 70px 0 0 0 !important;
+    padding: 70px 0 0 0 !important; /* Keep this 2px extra — it was tuned so the teal line stays visible at 321–360 */
   }
 }
 

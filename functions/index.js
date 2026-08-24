@@ -17,6 +17,7 @@ const {
   fetchTrafficFromMonitoring
 } = require("./overview-snapshots");
 const { wipeAccountMedia } = require("./wipe-account-media");
+const { cleanupJobApplications, isSafeId } = require("./cleanup-job-applications");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -1507,6 +1508,56 @@ exports.deleteJobStoragePhotos = onCall(
 
     logger.info("deleteJobStoragePhotos", { uid, jobId, posterId, deleted });
     return { success: true, deleted };
+  }
+);
+
+// deleteJob() application + coin cleanup. Skips missing IDs (a stale
+// applicationIds entry must not fail the rest). Refunds only apps that
+// still hold a coin (pending / accepted / hired). Admin SDK so poster
+// or admin can refund another user's coins.
+exports.cleanupDeletedJobApplications = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth && request.auth.uid ? request.auth.uid : "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const jobId = String((request.data && request.data.jobId) || "").trim();
+    const applicationIds = Array.isArray(request.data && request.data.applicationIds)
+      ? request.data.applicationIds
+      : [];
+    if (!isSafeId(jobId)) {
+      throw new HttpsError("invalid-argument", "jobId is required.");
+    }
+    if (applicationIds.length > 80) {
+      throw new HttpsError("invalid-argument", "Too many applicationIds.");
+    }
+
+    const jobSnap = await db.collection("jobs").doc(jobId).get();
+    if (!jobSnap.exists) {
+      throw new HttpsError("not-found", "Gig not found.");
+    }
+    const posterId = String((jobSnap.data() || {}).posterId || (jobSnap.data() || {}).userId || "").trim();
+    if (uid !== posterId) {
+      const adminDoc = await db.collection("admins").doc(uid).get();
+      if (!adminDoc.exists) {
+        throw new HttpsError("permission-denied", "You can only clean up applications on your own gig.");
+      }
+    }
+
+    try {
+      const result = await cleanupJobApplications(db, admin.firestore.FieldValue, {
+        jobId,
+        applicationIds,
+        reason: "job_deleted"
+      });
+      logger.info("cleanupDeletedJobApplications", { uid, jobId, ...result });
+      return { success: true, ...result };
+    } catch (error) {
+      logger.error("cleanupDeletedJobApplications failed", { uid, jobId, error: String(error) });
+      throw new HttpsError("internal", "Could not clean up applications.");
+    }
   }
 );
 
