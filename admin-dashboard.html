@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=29">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=30">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2465,13 +2465,13 @@
                             <div class="gig-cards-list" id="gigCardsList">
                                 <!-- Gig cards will be populated here by JavaScript -->
                             </div>
-                            
-                            <!-- Pagination Controls -->
-                            <div class="gig-pagination">
-                                <div class="loading-indicator" id="gigsLoading">Loading more gigs...</div>
-                                <button class="load-more-btn" id="loadMoreGigsBtn">Load More Gigs</button>
-                                <div class="gig-stats" id="gigsStats">Showing 20 of 156 gigs</div>
-                            </div>
+                        </div>
+
+                        <!-- Stays visible under the list on every viewport -->
+                        <div class="gig-pagination">
+                            <div class="loading-indicator" id="gigsLoading">Loading more gigs...</div>
+                            <button class="load-more-btn" id="loadMoreGigsBtn">Load More Gigs</button>
+                            <div class="gig-stats" id="gigsStats">Showing 20 of 156 gigs</div>
                         </div>
                     </div>
 
@@ -3826,7 +3826,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js?v=20260821ga"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=17"></script>
+    <script src="public/js/firebase-db.js?v=18"></script>
     <script src="public/js/firebase-storage.js"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     

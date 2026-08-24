@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene** sweep + re-seed done 2026-08-22; prevention (Ch 3–8) is next. Overview tile tour parked. Phases 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. Phases 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -799,17 +799,15 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          (not live until Deploy). Overwrite drift leftover.
          Session-duration histogram leftover. Overlay period
          selector leftover (MTD only). Auth cost tile stays 0.
-- [~] **Storage hygiene — sweep done; prevent accumulation next
-      (updated 2026-08-22).** Phase 7 counts files, not accounts.
-      Sweep + re-seed live. Prevention (Ch 3–8) is the remaining
-      launch work so real users cannot pile orphans again.
-      Phase 9 Permanently Ban **keeps** evidence — do not reuse
-      this wipe for a ban.
-      **Live after sweep (2026-08-22):** 3 users, 71 jobs;
-      bucket + `platform_analytics/storage` = **114 files /
-      12.5 MB** (3 profile / 71 gig / 4 ID / 36 other). Second
-      dry-run DELETE 0. ID 4 = 2 face pairs (mp4 + poster), not
-      4 people. Profile 3 = one `photo.jpg` each.
+- [x] **Storage hygiene — CLOSED 2026-08-23.** Phase 7 counts
+      files, not accounts. Sweep + prevent-accumulation (Ch 1–8)
+      owner-tested. Phase 9 Permanently Ban **keeps** evidence —
+      do not reuse this wipe for a ban.
+      **Live after owner test (2026-08-23):** 3 users, 70 jobs;
+      bucket + `platform_analytics/storage` = **113 files /
+      12.5 MB** (3 profile / 70 gig / 4 ID / 36 other). Dry-run
+      DELETE 0. ID 4 = 2 face pairs (mp4 + poster only).
+      Profile 3 = one `photo.jpg` each.
       **Locked product:**
       • Sweep script stays Admin-SDK, dry-run default. Dashboard
         never lists the bucket. Re-seed after apply.
@@ -868,14 +866,22 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          `verification_ids/{uid}/id.jpg` + `selfie.jpg` and
          delete leftover timestamp files. Live ID submit UI
          is still mock (not wired).
-      7. **[ ] Owner test.** Delete one gig → photo gone, Gig
-         tile −1. Replace profile photo → still 1 file. Replace
-         face → no leftover webm. Triggers bump the counter
-         (no Refresh needed).
-      8. **[ ] Leftover audit.** No dashboard bucket list. No
-         listener. Ban path still does not wipe. Support photos
-         still present. Syntax + rules unchanged for public
-         Storage reads.
+      7. **[x] Owner test — 2026-08-23.** Delete gig → Gig
+         tile −1 (71→70). Replace profile → still 3 files.
+         Re-record face → ID stayed 4. Triggers bumped the
+         counter (no Refresh). Verified live: jobs 70;
+         `platform_analytics/storage` 113 files (3 / 70 / 4 /
+         36) matches bucket. Face folders are mp4 + poster
+         only (no leftover webm).
+      8. **[x] Leftover audit — 2026-08-23.** Dashboard Storage
+         overlay is one `.get()` of `platform_analytics/storage`
+         — no bucket `listAll` / `getFiles`, no Storage
+         listener. `wipeAccountMedia` is not called from
+         Permanently Ban (still “not built” toast). Support
+         photos still present (36 KEEP). `node --check
+         functions/index.js` clean. `storage.rules` public
+         reads unchanged (`profile_photos` / `job_photos`
+         `allow read: if true`).
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.

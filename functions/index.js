@@ -1453,6 +1453,63 @@ exports.syncStorageAnalyticsOnDelete = onObjectDeleted(
   }
 );
 
+// Admin/owner gig-photo delete. Client Storage rules isAdmin() via
+// firestore.exists(admins/{uid}) 403s live, so admin delete of someone
+// else's job_photos/{posterId}/... fails silently. This uses the Admin
+// SDK. deleteJob() calls this first; client Storage delete is fallback.
+const JOB_PHOTO_ID_RE = /^[A-Za-z0-9_-]{8,128}$/;
+
+exports.deleteJobStoragePhotos = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth && request.auth.uid ? request.auth.uid : "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const jobId = String((request.data && request.data.jobId) || "").trim();
+    const posterId = String((request.data && request.data.posterId) || "").trim();
+    const extraPath = String((request.data && request.data.extraPath) || "")
+      .replace(/^\/+/, "")
+      .trim();
+
+    if (!JOB_PHOTO_ID_RE.test(jobId) || !JOB_PHOTO_ID_RE.test(posterId)) {
+      throw new HttpsError("invalid-argument", "jobId and posterId are required.");
+    }
+
+    if (uid !== posterId) {
+      const adminDoc = await db.collection("admins").doc(uid).get();
+      if (!adminDoc.exists) {
+        throw new HttpsError("permission-denied", "You can only delete your own gig photos.");
+      }
+    }
+
+    const canonical = `job_photos/${posterId}/${jobId}.jpg`;
+    const paths = [canonical];
+    if (extraPath && extraPath !== canonical) {
+      if (!extraPath.startsWith(`job_photos/${posterId}/`) || extraPath.includes("..")) {
+        throw new HttpsError("invalid-argument", "extraPath is not allowed.");
+      }
+      paths.push(extraPath);
+    }
+
+    const bucket = admin.storage().bucket(STORAGE_ANALYTICS_BUCKET);
+    const deleted = [];
+    for (const name of paths) {
+      try {
+        await bucket.file(name).delete({ ignoreNotFound: true });
+        deleted.push(name);
+      } catch (error) {
+        logger.error("deleteJobStoragePhotos failed", { name, uid, error: String(error) });
+        throw new HttpsError("internal", "Could not delete gig photo.");
+      }
+    }
+
+    logger.info("deleteJobStoragePhotos", { uid, jobId, posterId, deleted });
+    return { success: true, deleted };
+  }
+);
+
 // Storage hygiene Ch 5 — self-only. Future account self-delete can call
 // this. Permanently Ban must never call it (ban keeps Storage evidence).
 exports.wipeAccountMedia = onCall(

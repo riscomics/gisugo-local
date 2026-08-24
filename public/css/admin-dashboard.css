@@ -5633,16 +5633,12 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     #moderation.content-section {
         padding-bottom: 0;
     }
-    
-    /* Hide pagination on desktop to save space */
-    .gig-nav-panel .gig-pagination {
-        display: none;
-    }
-    
-    /* Extend cards container to use freed space */
+
+    /* List scrolls; Load More / count stay pinned under the cards */
     .gig-nav-panel .gig-cards-container {
         flex: 1;
-        max-height: calc(100vh - 380px);
+        min-height: 0;
+        max-height: none;
     }
     
     /* Hide overlay for desktop */
@@ -5720,14 +5716,17 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     .gig-nav-panel {
         width: 100%;
         max-width: none;
-        min-height: auto;
+        height: calc(100vh - 150px);
         max-height: calc(100vh - 150px);
+        min-height: 0;
+        overflow: hidden;
     }
     
-    /* Extend gig cards container height */
+    /* List scrolls; pagination stays pinned under the cards */
     .gig-nav-panel .gig-cards-container {
-        max-height: calc(100vh - 350px);
         flex: 1;
+        min-height: 0;
+        max-height: none;
     }
     
     /* Adjust sections for mobile */
@@ -5782,6 +5781,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
 }
 
 .gig-controls {
@@ -5856,6 +5856,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 /* ===== SCROLLABLE GIG CARDS CONTAINER ===== */
 .gig-cards-container {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     max-height: calc(100vh - 450px);
     padding: 0;
@@ -5979,6 +5980,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 
 /* ===== GIG PAGINATION ===== */
 .gig-pagination {
+    flex-shrink: 0;
     padding: 1rem;
     text-align: center;
     border-top: 1px solid rgba(230, 214, 174, 0.18);

@@ -1539,34 +1539,61 @@ async function otherLiveJobReferencesPath(db, posterId, jobId, storagePath, thum
   });
 }
 
+async function callDeleteJobStoragePhotos(jobId, posterId, extraPath) {
+  try {
+    if (typeof firebase === 'undefined' || typeof firebase.app !== 'function') {
+      return { attempted: false, success: false };
+    }
+    const app = firebase.app();
+    if (!app.functions) return { attempted: false, success: false };
+    const callable = app.functions('asia-southeast1').httpsCallable('deleteJobStoragePhotos');
+    const response = await callable({
+      jobId: String(jobId || ''),
+      posterId: String(posterId || ''),
+      extraPath: String(extraPath || '')
+    });
+    return { attempted: true, success: true, deleted: (response && response.data && response.data.deleted) || [] };
+  } catch (error) {
+    console.error('❌ deleteJobStoragePhotos call failed:', error);
+    return { attempted: true, success: false };
+  }
+}
+
 async function cleanupJobPhotosOnDelete(db, jobId, jobData) {
   const posterId = (jobData && (jobData.posterId || jobData.userId)) || '';
   const thumbnail = (jobData && jobData.thumbnail) || '';
   const canonical = canonicalJobPhotoPath(posterId, jobId);
   const fromUrl = extractStoragePathFromUrl(thumbnail);
-  let deletedAny = false;
+  let extraPath = fromUrl && fromUrl !== canonical && fromUrl.startsWith('job_photos/')
+    ? fromUrl
+    : '';
 
+  if (extraPath) {
+    try {
+      const referenced = await otherLiveJobReferencesPath(db, posterId, jobId, extraPath, thumbnail);
+      if (referenced) {
+        console.log('ℹ️ Extra thumbnail path still used by another live job, leaving it:', extraPath);
+        extraPath = '';
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not check other jobs for shared photo; leaving extra path', extraPath, error);
+      extraPath = '';
+    }
+  }
+
+  // Admin SDK callable first — client Storage isAdmin() 403s on someone
+  // else's job_photos/{posterId}/ folder. Owner client-delete is fallback.
+  const viaFn = await callDeleteJobStoragePhotos(jobId, posterId, extraPath);
+  if (viaFn.success) return true;
+
+  let deletedAny = false;
   if (canonical) {
     deletedAny = (await deleteStoragePathQuiet(canonical)) || deletedAny;
   }
-
-  const extraPath = fromUrl && fromUrl !== canonical && fromUrl.startsWith('job_photos/')
-    ? fromUrl
-    : '';
-  if (!extraPath) return deletedAny;
-
-  let referenced = false;
-  try {
-    referenced = await otherLiveJobReferencesPath(db, posterId, jobId, extraPath, thumbnail);
-  } catch (error) {
-    console.warn('⚠️ Could not check other jobs for shared photo; leaving extra path', extraPath, error);
-    return deletedAny;
+  if (extraPath) {
+    deletedAny = (await deleteStoragePathQuiet(extraPath)) || deletedAny;
   }
-  if (referenced) {
-    console.log('ℹ️ Extra thumbnail path still used by another live job, leaving it:', extraPath);
-    return deletedAny;
-  }
-  return (await deleteStoragePathQuiet(extraPath)) || deletedAny;
+  return deletedAny;
 }
 
 async function deleteJob(jobId) {
