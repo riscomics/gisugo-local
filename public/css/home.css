@@ -2591,7 +2591,7 @@ section {
   .play-button {
     width: 35px;
     height: 35px;
-    font-size: 20px;
+    font-size: 26px;
     padding-left: 3px;
     box-shadow: 0 2px 10px var(--accent-glow);
   }

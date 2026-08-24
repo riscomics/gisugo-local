@@ -288,21 +288,18 @@ explicit Ship, per standing rule):
   `submitSignupLocation`). Suspension "Duration" field hidden in the confirm form (markup kept,
   not deleted) — no auto-expiry/auto-restore Cloud Function exists, so every suspension is
   indefinite until an admin manually clicks Restore.
-- **Known gap, not yet built — "Permanently Ban User."** The button is visible (Suspended tab
-  detail panel) but intentionally does nothing except show an honest "not implemented" toast — it
-  does **not** fake success by hiding the card locally (the old mock's behavior, which would have
-  silently done nothing to the real account while looking like it worked). **Decided (2026-08-10):
-  disable the account's Firebase Auth login**, not a hard delete — owner's call, specifically to
-  avoid destroying evidence (reviews/history/moderation-log references all stay intact and
-  query-able; the account just can't log in). Ready to build: a new `adminModerateUser` action
-  (e.g. `'ban'`) calling `admin.auth().updateUser(uid, {disabled: true})`, logged to
-  `user_moderation_log` same as suspend/reinstate, kept separate from the existing reversible
-  `'suspend'` action since a ban should require its own explicit confirmation. Tracked in
-  `docs/V1_HARDENING_TASKLIST.md` (Phase 9 microtasklist drafted 2026-08-24, not built).
+- **Permanently Ban User — Ch 1–3 coded 2026-08-24, not owner-tested, not deployed.** Ban is
+  only from the Suspended tab. `adminModerateUser` actions `'ban'` / `'unban'`: Auth
+  `disabled` plus `users.status = 'banned'` / `'active'`. Cascade already ran on suspend;
+  ban does **not** re-run it and does **not** call `wipeAccountMedia`. Suspended tab lists
+  `suspended` and `banned`. Restore refuses banned users (Unban is the separate extra-confirm
+  action). Confirm copy: disable login, keep evidence, no IP block. Tracked in
+  `docs/V1_HARDENING_TASKLIST.md` (Phase 9 Ch 4 owner test + Ch 5 leftover audit still open).
 - **User Management Contact — now live (Phase 8 Ch 4, 2026-08-15/17).** Same callable
   (`admin_user_contact`). No recipient dropdown. Topic is Message from GISUGO. Appends only
   an open no-`jobId` GISUGO thread — does not join a gig Contact thread. Notify is Phase 8
-  Ch 5 (`support_admin_message`). Permanently Ban remains Phase 9.
+  Ch 5 (`support_admin_message`). Permanently Ban Ch 1–3 coded 2026-08-24
+  (not owner-tested, not deployed).
 
 ---
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=32">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=33">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -1824,6 +1824,7 @@
                                     <!-- Status Badge and Social Icons (centered below photo) -->
                                     <div class="user-status-social-row">
                                         <div class="user-status-badge" id="userStatusBadge">NEW MEMBER</div>
+                                        <div class="user-mod-status-badge banned" id="userModerationBadge" style="display: none;">BANNED</div>
                                         <div class="user-social-links" id="userSocialLinks">
                                             <!-- Social icons populated by JS if linked -->
                                         </div>
@@ -1955,20 +1956,23 @@
                                         
                                         <div class="suspended-info-label" style="margin-top: 1rem;" id="suspensionNotesLabel">ADDITIONAL NOTES:</div>
                                         <div class="suspended-info-text" id="suspensionNotes" style="white-space: pre-wrap; line-height: 1.5;"></div>
+
+                                        <div id="bannedInfoBlock" style="display: none;">
+                                            <div class="suspended-info-label" style="margin-top: 1rem;">BANNED BY:</div>
+                                            <div class="suspended-info-text" id="bannedBy"></div>
+                                            <div class="suspended-info-label" style="margin-top: 1rem;">BAN DATE:</div>
+                                            <div class="suspended-info-text" id="bannedDate"></div>
+                                        </div>
                                     </div>
                                     
-                                    <!-- Permanent Ban Section (for SUSPENDED tab only). NOT wired to
-                                         a real backend action yet -- what it should actually do
-                                         (disable Auth login vs. hard-delete account/data) is an open
-                                         design decision, not yet made. See
-                                         docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md. Button stays
-                                         visible + honest about not doing anything, rather than
-                                         silently faking success. -->
+                                    <!-- Permanent Ban / Unban (Suspended tab). Ban disables Auth
+                                         login and keeps evidence. Unban re-enables login and does
+                                         not relist gigs. See functions/index.js adminModerateUser. -->
                                     <div class="perm-ban-section" id="permBanSection" style="display: none;">
                                         <div class="perm-ban-warning">
                                             <div class="perm-ban-icon">🚫</div>
-                                            <div class="perm-ban-text">
-                                                <strong>Danger Zone:</strong> Permanent ban will disable the account's login (decided -- not a data-deleting ban) but is not built yet. This button currently does nothing to the account.
+                                            <div class="perm-ban-text" id="permBanSectionText">
+                                                <strong>Danger Zone:</strong> Permanent ban disables this account's login. Reviews, gigs, applications, messages, logs, and uploaded files stay on file as evidence. This is not a data delete and not an IP block.
                                             </div>
                                         </div>
                                         <div class="perm-ban-ip-display">
@@ -1976,6 +1980,7 @@
                                             <div class="perm-ban-ip-value" id="userIpAddress">Loading...</div>
                                         </div>
                                         <button class="perm-ban-btn" id="permBanUserBtn">PERMANENTLY BAN USER</button>
+                                        <button class="perm-ban-btn unban-user-btn" id="unbanUserBtn" style="display: none;">UNBAN USER</button>
                                     </div>
                                 </div>
                             </div>
@@ -2005,6 +2010,7 @@
                             </div>
                             <div class="overlay-status-social-row">
                                 <div class="user-status-badge" id="userOverlayStatusBadge">NEW MEMBER</div>
+                                <div class="user-mod-status-badge banned" id="userOverlayModerationBadge" style="display: none;">BANNED</div>
                                 <div class="user-social-links" id="userOverlaySocialLinks">
                                     <!-- Social icons populated by JS if linked -->
                                 </div>
@@ -2018,6 +2024,7 @@
                         <button class="user-action-btn contact-btn" id="userOverlayContactBtn">CONTACT</button>
                         <button class="user-action-btn suspend-btn" id="userOverlaySuspendBtn">SUSPEND</button>
                         <button class="user-action-btn restore-btn" id="userOverlayRestoreBtn" style="display: none;">RESTORE</button>
+                        <button class="user-action-btn restore-btn" id="userOverlayUnbanBtn" style="display: none;">UNBAN</button>
                         <button class="user-action-btn close-btn" id="userOverlayCloseBtn">CLOSE</button>
                     </div>
                 </div>
@@ -2149,14 +2156,38 @@
             <!-- Permanent Ban Confirmation Overlay -->
             <div class="confirm-overlay" id="permBanUserConfirmOverlay">
                 <div class="confirm-modal">
+                    <div class="send-hourglass-overlay" id="permBanUserHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
                     <div class="confirm-icon ban-icon">🚫</div>
                     <h3 class="confirm-title">Permanently Ban This User?</h3>
                     <p class="confirm-message" id="permBanUserConfirmMessage">
-                        <strong>⚠️ Warning:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                        This disables their login. They cannot sign in until an admin Unbans them.<br><br>
+                        This is not a data delete. Reviews, gigs, applications, messages, moderation logs, and uploaded files stay on file as evidence.<br><br>
+                        This is not an IP block. They could create a new account from the same network.
                     </p>
                     <div class="confirm-actions">
                         <button class="confirm-btn cancel-btn" id="cancelPermBanUserBtn">Cancel</button>
                         <button class="confirm-btn confirm-ban-btn" id="confirmPermBanUserBtn">Permanently Ban</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unban User Confirmation Overlay -->
+            <div class="confirm-overlay" id="unbanUserConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="send-hourglass-overlay" id="unbanUserHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
+                    <div class="confirm-icon restore-icon">✓</div>
+                    <h3 class="confirm-title">Unban This User?</h3>
+                    <p class="confirm-message" id="unbanUserConfirmMessage">
+                        This re-enables their login. They can sign in again.<br><br>
+                        Their gigs stay suspended (same as Restore after a suspend). They can re-post if they want those gigs live again.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelUnbanUserBtn">Cancel</button>
+                        <button class="confirm-btn confirm-restore-btn" id="confirmUnbanUserBtn">Unban User</button>
                     </div>
                 </div>
             </div>
@@ -3835,7 +3866,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js?v=20260821ga"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=20"></script>
+    <script src="public/js/firebase-db.js?v=21"></script>
     <script src="public/js/firebase-storage.js"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     
@@ -3847,7 +3878,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=30"></script>
+    <script src="public/js/admin-dashboard.js?v=31"></script>
     
     
 </body>

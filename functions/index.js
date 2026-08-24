@@ -1834,18 +1834,37 @@ exports.adminModerateGig = onCall(
 // USER MANAGEMENT -- ADMIN ACTIONS (Admin Dashboard Phase 3)
 // ============================================================================
 // Mirrors adminModerateGig's shape exactly (same admin-check pattern, same
-// transaction + best-effort audit-log structure). Only two actions exist
-// here (no "ignore" equivalent -- User Management has no report-threshold
-// concept). "suspend" sets users/{userId}.status = 'suspended', which is
-// exactly the transition executeBanCascadeOnUserSuspend (above) listens for
-// -- that Cloud Function does the actual cascade (auto-suspend their gigs,
-// withdraw their pending applications, reopen gigs where they were hired).
+// transaction + best-effort audit-log structure). Four actions:
+// "suspend" sets users/{userId}.status = 'suspended', which is exactly the
+// transition executeBanCascadeOnUserSuspend listens for -- that Cloud
+// Function does the actual cascade (auto-suspend their gigs, withdraw their
+// pending applications, reopen gigs where they were hired).
 // "reinstate" only restores login/account access -- it deliberately does NOT
 // auto-restore whatever the cascade touched (their suspended gigs stay
 // suspended). Locked 2026-08-17: the restored user re-posts if they want
 // those gigs live again. Admin is not expected to relist them. Investigate
 // listed gigs from User Management → Gigs Listed (same on-demand jobs read).
-const USER_MODERATION_ACTIONS = new Set(["suspend", "reinstate"]);
+// "ban" (Phase 9): Auth disabled:true + status='banned'. Must already be
+// suspended so the cascade has already run. Does NOT re-run the cascade
+// and does NOT call wipeAccountMedia -- evidence stays.
+// "unban": Auth disabled:false + status='active'. Does not relist gigs
+// (same as reinstate). Auth updates happen outside the Firestore
+// transaction; if the Firestore stamp fails, Auth is rolled back only
+// when the latest status is not already the intended one (avoids a
+// two-admin race that would re-enable a just-banned account).
+const USER_MODERATION_ACTIONS = new Set(["suspend", "reinstate", "ban", "unban"]);
+
+async function setUserAuthDisabled(uid, disabled) {
+  try {
+    await admin.auth().updateUser(uid, { disabled });
+  } catch (error) {
+    if (error.code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "Auth account not found for this user.");
+    }
+    logger.error("adminModerateUser Auth update failed", { uid, disabled, error: String(error) });
+    throw new HttpsError("internal", "Could not update login access for this user.");
+  }
+}
 
 exports.adminModerateUser = onCall(
   { region: "asia-southeast1", cors: true },
@@ -1867,7 +1886,7 @@ exports.adminModerateUser = onCall(
       throw new HttpsError("invalid-argument", "userId is required.");
     }
     if (!USER_MODERATION_ACTIONS.has(action)) {
-      throw new HttpsError("invalid-argument", "action must be one of: suspend, reinstate.");
+      throw new HttpsError("invalid-argument", "action must be one of: suspend, reinstate, ban, unban.");
     }
     if (targetUserId === uid) {
       throw new HttpsError("failed-precondition", "You cannot moderate your own admin account.");
@@ -1886,44 +1905,118 @@ exports.adminModerateUser = onCall(
     let previousStatus = "";
     let newStatus = "";
 
-    await db.runTransaction(async (tx) => {
-      const userSnap = await tx.get(userRef);
-      if (!userSnap.exists) {
-        throw new HttpsError("not-found", "User not found.");
-      }
-      const user = userSnap.data() || {};
-      previousStatus = String(user.status || "active");
+    if (action === "ban" || action === "unban") {
+      const intendedStatus = action === "ban" ? "banned" : "active";
+      const requiredStatus = action === "ban" ? "suspended" : "banned";
+      const disableLogin = action === "ban";
 
-      if (action === "suspend") {
-        if (previousStatus === "suspended") {
-          throw new HttpsError("failed-precondition", "User is already suspended.");
-        }
-        newStatus = "suspended";
-        tx.update(userRef, {
-          status: newStatus,
-          suspendedAt: admin.firestore.FieldValue.serverTimestamp(),
-          suspendedBy: uid,
-          suspendedByName: adminName,
-          suspendReason: reason,
-          lastModified: admin.firestore.FieldValue.serverTimestamp()
+      await setUserAuthDisabled(targetUserId, disableLogin);
+      try {
+        await db.runTransaction(async (tx) => {
+          const userSnap = await tx.get(userRef);
+          if (!userSnap.exists) {
+            throw new HttpsError("not-found", "User not found.");
+          }
+          previousStatus = String((userSnap.data() || {}).status || "active");
+          if (previousStatus !== requiredStatus) {
+            throw new HttpsError(
+              "failed-precondition",
+              action === "ban"
+                ? `Cannot ban a user with status '${previousStatus}'. User must already be suspended.`
+                : `Cannot unban a user with status '${previousStatus}'.`
+            );
+          }
+          newStatus = intendedStatus;
+          if (action === "ban") {
+            tx.update(userRef, {
+              status: newStatus,
+              bannedAt: admin.firestore.FieldValue.serverTimestamp(),
+              bannedBy: uid,
+              bannedByName: adminName,
+              lastModified: admin.firestore.FieldValue.serverTimestamp()
+            });
+          } else {
+            tx.update(userRef, {
+              status: newStatus,
+              bannedAt: admin.firestore.FieldValue.delete(),
+              bannedBy: admin.firestore.FieldValue.delete(),
+              bannedByName: admin.firestore.FieldValue.delete(),
+              suspendedAt: admin.firestore.FieldValue.delete(),
+              suspendedBy: admin.firestore.FieldValue.delete(),
+              suspendedByName: admin.firestore.FieldValue.delete(),
+              suspendReason: admin.firestore.FieldValue.delete(),
+              unbannedAt: admin.firestore.FieldValue.serverTimestamp(),
+              unbannedBy: uid,
+              lastModified: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
         });
-      } else { // reinstate
-        if (previousStatus !== "suspended") {
-          throw new HttpsError("failed-precondition", `Cannot reinstate a user with status '${previousStatus}'.`);
+      } catch (error) {
+        let latestStatus = "";
+        try {
+          const latestSnap = await userRef.get();
+          latestStatus = latestSnap.exists ? String((latestSnap.data() || {}).status || "") : "";
+        } catch (readError) {
+          logger.error("adminModerateUser post-Auth status re-read failed", {
+            targetUserId, action, error: String(readError)
+          });
         }
-        newStatus = "active";
-        tx.update(userRef, {
-          status: newStatus,
-          suspendedAt: admin.firestore.FieldValue.delete(),
-          suspendedBy: admin.firestore.FieldValue.delete(),
-          suspendedByName: admin.firestore.FieldValue.delete(),
-          suspendReason: admin.firestore.FieldValue.delete(),
-          reinstatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          reinstatedBy: uid,
-          lastModified: admin.firestore.FieldValue.serverTimestamp()
-        });
+        if (latestStatus !== intendedStatus) {
+          try {
+            await setUserAuthDisabled(targetUserId, !disableLogin);
+          } catch (rollbackError) {
+            logger.error("adminModerateUser Auth rollback failed", {
+              targetUserId, action, error: String(error), rollbackError: String(rollbackError)
+            });
+          }
+        }
+        if (error instanceof HttpsError) throw error;
+        logger.error("adminModerateUser Firestore stamp failed", { targetUserId, action, error: String(error) });
+        throw new HttpsError("internal", `Could not stamp the ${action}. Login change was rolled back.`);
       }
-    });
+    } else {
+      await db.runTransaction(async (tx) => {
+        const userSnap = await tx.get(userRef);
+        if (!userSnap.exists) {
+          throw new HttpsError("not-found", "User not found.");
+        }
+        const user = userSnap.data() || {};
+        previousStatus = String(user.status || "active");
+
+        if (action === "suspend") {
+          if (previousStatus === "suspended") {
+            throw new HttpsError("failed-precondition", "User is already suspended.");
+          }
+          if (previousStatus === "banned") {
+            throw new HttpsError("failed-precondition", "Cannot suspend a banned user. Unban them first.");
+          }
+          newStatus = "suspended";
+          tx.update(userRef, {
+            status: newStatus,
+            suspendedAt: admin.firestore.FieldValue.serverTimestamp(),
+            suspendedBy: uid,
+            suspendedByName: adminName,
+            suspendReason: reason,
+            lastModified: admin.firestore.FieldValue.serverTimestamp()
+          });
+        } else { // reinstate
+          if (previousStatus !== "suspended") {
+            throw new HttpsError("failed-precondition", `Cannot reinstate a user with status '${previousStatus}'.`);
+          }
+          newStatus = "active";
+          tx.update(userRef, {
+            status: newStatus,
+            suspendedAt: admin.firestore.FieldValue.delete(),
+            suspendedBy: admin.firestore.FieldValue.delete(),
+            suspendedByName: admin.firestore.FieldValue.delete(),
+            suspendReason: admin.firestore.FieldValue.delete(),
+            reinstatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            reinstatedBy: uid,
+            lastModified: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      });
+    }
 
     try {
       await db.collection("user_moderation_log").add({

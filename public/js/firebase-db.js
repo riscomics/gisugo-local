@@ -4544,15 +4544,49 @@ async function getUserManagementNew(startAfterDoc = null) {
   }
 }
 
+function userModerationTimeMs(data, field) {
+  const value = data && data[field];
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
 async function getUserManagementSuspended() {
   const db = getFirestore();
   if (!db) return [];
   try {
-    const snap = await db.collection('users')
-      .where('status', '==', 'suspended')
-      .orderBy('suspendedAt', 'desc')
-      .get();
-    return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+    const [suspendedResult, bannedResult] = await Promise.allSettled([
+      db.collection('users')
+        .where('status', '==', 'suspended')
+        .orderBy('suspendedAt', 'desc')
+        .get(),
+      // Equality-only so this works before a status+bannedAt composite
+      // index is deployed. Sort client-side by bannedAt / suspendedAt.
+      db.collection('users')
+        .where('status', '==', 'banned')
+        .get()
+    ]);
+
+    const mapDocs = (result, label) => {
+      if (result.status === 'fulfilled') {
+        return result.value.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
+      }
+      console.error(`❌ Error loading ${label} users (admin):`, result.reason);
+      return [];
+    };
+
+    const merged = [
+      ...mapDocs(suspendedResult, 'Suspended'),
+      ...mapDocs(bannedResult, 'Banned')
+    ];
+    merged.sort((a, b) => {
+      const aMs = Math.max(userModerationTimeMs(a.data, 'bannedAt'), userModerationTimeMs(a.data, 'suspendedAt'));
+      const bMs = Math.max(userModerationTimeMs(b.data, 'bannedAt'), userModerationTimeMs(b.data, 'suspendedAt'));
+      return bMs - aMs;
+    });
+    return merged;
   } catch (error) {
     console.error('❌ Error loading Suspended users (admin):', error);
     return [];
@@ -4661,12 +4695,12 @@ async function getUserModerationExtras(uid) {
 }
 
 /**
- * Suspend / reinstate a user via the adminModerateUser callable Cloud
- * Function — the ONLY write path for these transitions (firestore.rules
- * gives no client, including admin, a direct write to users.status).
- * See functions/index.js.
+ * Suspend / reinstate / ban / unban a user via the adminModerateUser
+ * callable Cloud Function — the ONLY write path for these transitions
+ * (firestore.rules gives no client, including admin, a direct write to
+ * users.status). See functions/index.js.
  * @param {string} userId
- * @param {'suspend'|'reinstate'} action
+ * @param {'suspend'|'reinstate'|'ban'|'unban'} action
  * @param {string} [reason]
  */
 async function callAdminModerateUser(userId, action, reason = '') {

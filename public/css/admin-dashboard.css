@@ -8810,6 +8810,33 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
+.user-card-header-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.user-mod-status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+    white-space: nowrap;
+}
+
+.user-mod-status-badge.banned {
+    background: rgba(220, 38, 38, 0.18);
+    color: #f87171;
+    border: 1px solid rgba(220, 38, 38, 0.45);
+}
+
 .user-card-rating {
     display: flex;
     align-items: center;
@@ -9526,6 +9553,14 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 .perm-ban-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.perm-ban-btn.unban-user-btn {
+    background: linear-gradient(135deg, #3498db 0%, #2563eb 100%);
+}
+
+.perm-ban-btn.unban-user-btn:hover {
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 /* Permanent Ban IP Display */

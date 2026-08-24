@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 microtasklist drafted 2026-08-24, not built.** Phase 11 parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 coded 2026-08-24 (callable + confirm UI + Suspended queue). Not owner-tested, not deployed.** Phase 11 parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -130,7 +130,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban User = disable Auth login (keep evidence). Button still toasts “not built yet.” | Decided; microtasklist 2026-08-24; not built |
+| 9 | Permanently Ban User = disable Auth login (keep evidence). Ch 1–3 coded 2026-08-24. Ch 4–5 (owner test + leftover audit) not done. | Ch 1–3 coded; not owner-tested; not deployed |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
@@ -376,7 +376,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 - [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
       NOT hard delete.** New phase, not folded back into Phase 3. Rationale (owner):
       reviews, gig/application history, messages, moderation log stay query-able.
-      Button still toasts “not built yet” (account is not affected).
+      **Ch 1–3 coded 2026-08-24. Not owner-tested. Not deployed.**
       **Locked product:**
       • Ban only from the Suspended tab (cascade already ran on suspend).
       • `adminModerateUser` action `'ban'`: Auth `disabled: true`,
@@ -400,12 +400,12 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       **Not this phase:** IP block, data wipe, Phase 12 lockdown,
       self-delete product, Ban from the New tab.
       **Microtasklist**
-      1. **[ ] Callable `ban` + `unban`.** Extend
+      1. **[x] Callable `ban` + `unban`.** Extend
          `adminModerateUser`. Auth disable/enable + status + audit
          log. No media wipe. No second cascade.
-      2. **[ ] Confirm UI.** Honest copy. Hourglass. Wire Ban and
+      2. **[x] Confirm UI.** Honest copy. Hourglass. Wire Ban and
          Unban. Remove the “not built yet” toast.
-      3. **[ ] Suspended queue.** Show banned users. Badge. Restore
+      3. **[x] Suspended queue.** Show banned users. Badge. Restore
          refuses banned.
       4. **[ ] Owner test.** Suspend → Ban → cannot log in. Evidence
          and Storage files remain. Unban → can log in. Gigs stay

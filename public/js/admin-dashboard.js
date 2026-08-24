@@ -7994,7 +7994,8 @@ function normalizeUserForDisplay(id, data) {
     if (verification.businessVerified) verificationStatus = 'BUSINESS VERIFIED';
     else if (verification.proVerified) verificationStatus = 'PRO VERIFIED';
 
-    const isSuspended = d.status === 'suspended';
+    const isBanned = d.status === 'banned';
+    const isSuspended = d.status === 'suspended' || isBanned;
 
     return {
         id,
@@ -8003,7 +8004,7 @@ function normalizeUserForDisplay(id, data) {
         rating: Number(d.averageRating != null ? d.averageRating : d.rating) || 0,
         reviewCount: Number(d.totalReviews != null ? d.totalReviews : d.reviewCount) || 0,
         verificationStatus,
-        status: isSuspended ? 'suspended' : 'new',
+        status: isBanned ? 'banned' : (isSuspended ? 'suspended' : 'new'),
         registeredDate: d.accountCreated ? new Date(d.accountCreated) : new Date(0),
         birthdate: d.dateOfBirth || null,
         age: calculateAgeFromDOB(d.dateOfBirth),
@@ -8028,6 +8029,10 @@ function normalizeUserForDisplay(id, data) {
             reason: d.suspendReason || '',
             duration: 'indefinite',
             notes: ''
+        } : null,
+        bannedInfo: isBanned ? {
+            bannedBy: d.bannedByName || 'Unknown admin',
+            bannedDate: formatGigTimestamp ? formatGigTimestamp(d.bannedAt) : ''
         } : null
     };
 }
@@ -8067,7 +8072,7 @@ async function loadUserCards(tabType, options = {}) {
                 : { users: [], lastDoc: null, hasMore: false };
             const normalized = result.users
                 .map(r => normalizeUserForDisplay(r.id, r.data))
-                .filter(u => u.status !== 'suspended');
+                .filter(u => u.status !== 'suspended' && u.status !== 'banned');
             fetchedUsers = append ? [...allUsers, ...normalized] : normalized;
             usersNewLastDoc = result.lastDoc;
             usersNewHasMore = result.hasMore;
@@ -8153,6 +8158,9 @@ function generateUserCardHTML(user) {
     
     const safeName = escapeHtml(user.fullName || '');
     const ageLabel = Number.isFinite(user.age) ? `${user.age} years old` : 'Age not specified';
+    const bannedBadge = user.status === 'banned'
+        ? '<span class="user-mod-status-badge banned">Banned</span>'
+        : '';
 
     return `
         <div class="user-card" data-user-id="${user.id}">
@@ -8160,7 +8168,10 @@ function generateUserCardHTML(user) {
             <div class="user-card-info">
                 <div class="user-card-header">
                     <div class="user-card-name">${safeName}</div>
-                    <div class="user-card-status ${statusClass}">${user.verificationStatus}</div>
+                    <div class="user-card-header-badges">
+                        ${bannedBadge}
+                        <div class="user-card-status ${statusClass}">${user.verificationStatus}</div>
+                    </div>
                 </div>
                 <div class="user-card-rating">
                     <span class="user-card-reviews">${user.reviewCount}</span>
@@ -8267,6 +8278,10 @@ function displayUserDetails(user) {
     
     // Update status badge
     document.getElementById('userStatusBadge').textContent = user.verificationStatus;
+    const desktopModerationBadge = document.getElementById('userModerationBadge');
+    if (desktopModerationBadge) {
+        desktopModerationBadge.style.display = user.status === 'banned' ? 'inline-block' : 'none';
+    }
     
     // Update social links (always show all 3 icons)
     const socialLinksContainer = document.getElementById('userSocialLinks');
@@ -8392,7 +8407,10 @@ function updateUserActionButtons(user) {
     const suspendBtn = document.getElementById('suspendUserBtn');
     const restoreBtn = document.getElementById('restoreUserBtn');
     
-    if (user.status === 'suspended') {
+    if (user.status === 'banned') {
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (restoreBtn) restoreBtn.style.display = 'none';
+    } else if (user.status === 'suspended') {
         if (suspendBtn) suspendBtn.style.display = 'none';
         if (restoreBtn) restoreBtn.style.display = 'inline-block';
     } else {
@@ -8427,8 +8445,8 @@ function updateUserFooterSections(user) {
     } else if (user.status === 'verified') {
         // Show revoke button
         if (bigRevokeSection) bigRevokeSection.style.display = 'block';
-    } else if (user.status === 'suspended') {
-        // Show suspended info and permanent ban section
+    } else if (user.status === 'suspended' || user.status === 'banned') {
+        // Show suspended info and permanent ban / unban section
         if (suspendedInfoSection && user.suspendedInfo) {
             suspendedInfoSection.style.display = 'block';
             document.getElementById('suspendedBy').textContent = user.suspendedInfo.suspendedBy;
@@ -8461,9 +8479,37 @@ function updateUserFooterSections(user) {
                 }
             }
         }
+        const bannedInfoBlock = document.getElementById('bannedInfoBlock');
+        if (bannedInfoBlock) {
+            if (user.status === 'banned' && user.bannedInfo) {
+                bannedInfoBlock.style.display = 'block';
+                const bannedByEl = document.getElementById('bannedBy');
+                const bannedDateEl = document.getElementById('bannedDate');
+                if (bannedByEl) bannedByEl.textContent = user.bannedInfo.bannedBy;
+                if (bannedDateEl) bannedDateEl.textContent = user.bannedInfo.bannedDate;
+            } else {
+                bannedInfoBlock.style.display = 'none';
+            }
+        }
         if (permBanSection) {
             permBanSection.style.display = 'block';
             document.getElementById('userIpAddress').textContent = user.ipAddress;
+            const permBanText = document.getElementById('permBanSectionText');
+            const permBanBtn = document.getElementById('permBanUserBtn');
+            const unbanBtn = document.getElementById('unbanUserBtn');
+            if (user.status === 'banned') {
+                if (permBanText) {
+                    permBanText.innerHTML = '<strong>Banned:</strong> Login is disabled. Evidence (reviews, gigs, applications, messages, logs, uploaded files) stays on file. Unban re-enables login and does not relist their gigs.';
+                }
+                if (permBanBtn) permBanBtn.style.display = 'none';
+                if (unbanBtn) unbanBtn.style.display = 'block';
+            } else {
+                if (permBanText) {
+                    permBanText.innerHTML = '<strong>Danger Zone:</strong> Permanent ban disables this account\'s login. Reviews, gigs, applications, messages, logs, and uploaded files stay on file as evidence. This is not a data delete and not an IP block.';
+                }
+                if (permBanBtn) permBanBtn.style.display = 'block';
+                if (unbanBtn) unbanBtn.style.display = 'none';
+            }
         }
     }
 }
@@ -8495,6 +8541,15 @@ function initializeUserActions() {
         restoreBtn.addEventListener('click', () => {
             if (currentUserData) {
                 showRestoreUserConfirmation();
+            }
+        });
+    }
+
+    const unbanBtn = document.getElementById('unbanUserBtn');
+    if (unbanBtn) {
+        unbanBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showUnbanUserConfirmation();
             }
         });
     }
@@ -9091,20 +9146,37 @@ function initializeUserConfirmationOverlays() {
         });
     }
     
-    // Permanent Ban
+    // Permanent Ban -- overlay stays open through the callable (hourglass),
+    // same as Gig Moderation suspend/delete. Closed by permanentlyBanUser().
     const permBanConfirm = document.getElementById('confirmPermBanUserBtn');
     const permBanCancel = document.getElementById('cancelPermBanUserBtn');
     
     if (permBanConfirm) {
         permBanConfirm.addEventListener('click', () => {
             permanentlyBanUser(currentUserData);
-            document.getElementById('permBanUserConfirmOverlay').classList.remove('active');
         });
     }
     
     if (permBanCancel) {
         permBanCancel.addEventListener('click', () => {
+            if (userModerationActionInFlight) return;
             document.getElementById('permBanUserConfirmOverlay').classList.remove('active');
+        });
+    }
+
+    const unbanConfirm = document.getElementById('confirmUnbanUserBtn');
+    const unbanCancel = document.getElementById('cancelUnbanUserBtn');
+
+    if (unbanConfirm) {
+        unbanConfirm.addEventListener('click', () => {
+            unbanUser(currentUserData);
+        });
+    }
+
+    if (unbanCancel) {
+        unbanCancel.addEventListener('click', () => {
+            if (userModerationActionInFlight) return;
+            document.getElementById('unbanUserConfirmOverlay').classList.remove('active');
         });
     }
     
@@ -9112,11 +9184,12 @@ function initializeUserConfirmationOverlays() {
     const approveOverlay = document.getElementById('approveVerificationConfirmOverlay');
     const revokeOverlay = document.getElementById('revokeVerificationConfirmOverlay');
     const permBanOverlay = document.getElementById('permBanUserConfirmOverlay');
+    const unbanOverlay = document.getElementById('unbanUserConfirmOverlay');
     
-    [approveOverlay, revokeOverlay, permBanOverlay].forEach(overlay => {
+    [approveOverlay, revokeOverlay, permBanOverlay, unbanOverlay].forEach(overlay => {
         if (overlay) {
             overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) {
+                if (e.target === overlay && !userModerationActionInFlight) {
                     overlay.classList.remove('active');
                 }
             });
@@ -9130,6 +9203,10 @@ function showSuspendUserConfirmation() {
 }
 
 function showRestoreUserConfirmation() {
+    if (currentUserData && currentUserData.status === 'banned') {
+        showToast('This user is banned. Use Unban, not Restore.', 'error', 3000);
+        return;
+    }
     const overlay = document.getElementById('restoreUserConfirmOverlay');
     overlay.classList.add('active');
 }
@@ -9145,7 +9222,24 @@ function showRevokeVerificationConfirmation() {
 }
 
 function showPermBanUserConfirmation() {
+    if (currentUserData && currentUserData.status === 'banned') {
+        showToast('This user is already banned.', 'error', 3000);
+        return;
+    }
+    if (currentUserData && currentUserData.status !== 'suspended') {
+        showToast('Ban is only available from the Suspended tab after a suspend.', 'error', 3000);
+        return;
+    }
     const overlay = document.getElementById('permBanUserConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function showUnbanUserConfirmation() {
+    if (!currentUserData || currentUserData.status !== 'banned') {
+        showToast('Unban is only available for banned users.', 'error', 3000);
+        return;
+    }
+    const overlay = document.getElementById('unbanUserConfirmOverlay');
     overlay.classList.add('active');
 }
 
@@ -9295,6 +9389,11 @@ async function suspendUser(user, suspensionData) {
  * Gigs Listed overlay. See functions/index.js adminModerateUser comment.
  */
 async function restoreUser(user) {
+    if (!user || user.status === 'banned') {
+        showToast('This user is banned. Use Unban, not Restore.', 'error', 3000);
+        document.getElementById('restoreUserConfirmOverlay')?.classList.remove('active');
+        return;
+    }
     if (userModerationActionInFlight) return;
     userModerationActionInFlight = true;
     const confirmBtn = document.getElementById('confirmRestoreUserBtn');
@@ -9358,14 +9457,70 @@ function revokeVerification(user) {
     showToast(`${user.fullName}'s verification has been revoked`, 'success', 2000);
 }
 
-// Deliberately NOT wired to any backend action -- what "permanently ban"
-// should actually do (disable Firebase Auth login vs. hard-delete the
-// account/data) is an open design decision, not yet made (see
-// docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md). Silently removing the user
-// from the local list here would look like success while doing nothing to
-// the real account -- worse than just saying so.
-function permanentlyBanUser(user) {
-    showToast('Permanent Ban (disable login) is not built yet -- this account was NOT affected. Use Suspend for now.', 'error', 4000);
+async function permanentlyBanUser(user) {
+    if (!user || userModerationActionInFlight) return;
+    if (user.status !== 'suspended') {
+        showToast('Ban is only available after a suspend.', 'error', 3000);
+        return;
+    }
+    userModerationActionInFlight = true;
+    setGigConfirmOverlayBusy('permBanUserConfirmOverlay', true);
+    setGigConfirmHourglass('permBanUserHourglass', true);
+
+    try {
+        const result = await callAdminModerateUser(user.id, 'ban');
+        document.getElementById('permBanUserConfirmOverlay')?.classList.remove('active');
+
+        if (!result.success) {
+            showToast(result.message || `Could not ban ${user.fullName}.`, 'error', 3000);
+            return;
+        }
+
+        closeUserDetail();
+        loadUserCards(currentUserTab);
+        showToast(`${user.fullName} has been banned — login disabled.`, 'success', 2000);
+    } catch (error) {
+        console.error('❌ Error banning user:', error);
+        document.getElementById('permBanUserConfirmOverlay')?.classList.remove('active');
+        showToast('Something went wrong banning this user.', 'error', 3000);
+    } finally {
+        userModerationActionInFlight = false;
+        setGigConfirmHourglass('permBanUserHourglass', false);
+        setGigConfirmOverlayBusy('permBanUserConfirmOverlay', false);
+    }
+}
+
+async function unbanUser(user) {
+    if (!user || userModerationActionInFlight) return;
+    if (user.status !== 'banned') {
+        showToast('Unban is only available for banned users.', 'error', 3000);
+        return;
+    }
+    userModerationActionInFlight = true;
+    setGigConfirmOverlayBusy('unbanUserConfirmOverlay', true);
+    setGigConfirmHourglass('unbanUserHourglass', true);
+
+    try {
+        const result = await callAdminModerateUser(user.id, 'unban');
+        document.getElementById('unbanUserConfirmOverlay')?.classList.remove('active');
+
+        if (!result.success) {
+            showToast(result.message || `Could not unban ${user.fullName}.`, 'error', 3000);
+            return;
+        }
+
+        closeUserDetail();
+        loadUserCards(currentUserTab);
+        showToast(`${user.fullName} has been unbanned — login re-enabled.`, 'success', 2000);
+    } catch (error) {
+        console.error('❌ Error unbanning user:', error);
+        document.getElementById('unbanUserConfirmOverlay')?.classList.remove('active');
+        showToast('Something went wrong unbanning this user.', 'error', 3000);
+    } finally {
+        userModerationActionInFlight = false;
+        setGigConfirmHourglass('unbanUserHourglass', false);
+        setGigConfirmOverlayBusy('unbanUserConfirmOverlay', false);
+    }
 }
 
 function initializeUserDetailOverlay() {
@@ -9392,6 +9547,7 @@ function initializeUserDetailOverlay() {
     const contactBtn = document.getElementById('userOverlayContactBtn');
     const suspendBtn = document.getElementById('userOverlaySuspendBtn');
     const restoreBtn = document.getElementById('userOverlayRestoreBtn');
+    const unbanBtn = document.getElementById('userOverlayUnbanBtn');
     
     if (contactBtn) {
         contactBtn.addEventListener('click', () => {
@@ -9410,6 +9566,12 @@ function initializeUserDetailOverlay() {
             showRestoreUserConfirmation();
         });
     }
+
+    if (unbanBtn) {
+        unbanBtn.addEventListener('click', () => {
+            showUnbanUserConfirmation();
+        });
+    }
 }
 
 function showUserDetailOverlay(user) {
@@ -9421,6 +9583,10 @@ function showUserDetailOverlay(user) {
     document.getElementById('userOverlayReviewsCount').textContent = user.reviewCount;
     updateStars('userOverlayStars', user.rating);
     document.getElementById('userOverlayStatusBadge').textContent = user.verificationStatus;
+    const overlayModerationBadge = document.getElementById('userOverlayModerationBadge');
+    if (overlayModerationBadge) {
+        overlayModerationBadge.style.display = user.status === 'banned' ? 'inline-block' : 'none';
+    }
     
     // Update social links in header (always show all 3 icons)
     const overlaySocialLinksContainer = document.getElementById('userOverlaySocialLinks');
@@ -9450,13 +9616,20 @@ function showUserDetailOverlay(user) {
     // Update action buttons
     const suspendBtn = document.getElementById('userOverlaySuspendBtn');
     const restoreBtn = document.getElementById('userOverlayRestoreBtn');
+    const overlayUnbanBtn = document.getElementById('userOverlayUnbanBtn');
     
-    if (user.status === 'suspended') {
+    if (user.status === 'banned') {
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (restoreBtn) restoreBtn.style.display = 'none';
+        if (overlayUnbanBtn) overlayUnbanBtn.style.display = 'inline-block';
+    } else if (user.status === 'suspended') {
         if (suspendBtn) suspendBtn.style.display = 'none';
         if (restoreBtn) restoreBtn.style.display = 'inline-block';
+        if (overlayUnbanBtn) overlayUnbanBtn.style.display = 'none';
     } else {
         if (suspendBtn) suspendBtn.style.display = 'inline-block';
         if (restoreBtn) restoreBtn.style.display = 'none';
+        if (overlayUnbanBtn) overlayUnbanBtn.style.display = 'none';
     }
     
     // Build body content (photo, info boxes, intro). fullName/education/
@@ -9585,7 +9758,7 @@ function showUserDetailOverlay(user) {
                 </div>
             </div>
         `;
-    } else if (user.status === 'suspended' && user.suspendedInfo) {
+    } else if ((user.status === 'suspended' || user.status === 'banned') && user.suspendedInfo) {
         // Format duration for display
         const durationText = formatSuspensionDuration(user.suspendedInfo);
         
@@ -9597,6 +9770,20 @@ function showUserDetailOverlay(user) {
                 <div class="suspended-info-text" style="white-space: pre-wrap; line-height: 1.5;">${escapeHtml(user.suspendedInfo.notes)}</div>
             `;
         }
+
+        const bannedRows = (user.status === 'banned' && user.bannedInfo) ? `
+                    <div class="suspended-info-label" style="margin-top: 1rem;">BANNED BY:</div>
+                    <div class="suspended-info-text">${escapeHtml(user.bannedInfo.bannedBy || '')}</div>
+                    <div class="suspended-info-label" style="margin-top: 1rem;">BAN DATE:</div>
+                    <div class="suspended-info-text">${escapeHtml(user.bannedInfo.bannedDate || '')}</div>
+        ` : '';
+
+        const banSectionCopy = user.status === 'banned'
+            ? '<strong>Banned:</strong> Login is disabled. Evidence stays on file. Unban re-enables login and does not relist their gigs.'
+            : '<strong>Danger Zone:</strong> Permanent ban disables this account\'s login. Reviews, gigs, applications, messages, logs, and uploaded files stay on file as evidence. This is not a data delete and not an IP block.';
+        const banSectionButton = user.status === 'banned'
+            ? '<button class="perm-ban-btn unban-user-btn" onclick="showUnbanUserConfirmation()">UNBAN USER</button>'
+            : '<button class="perm-ban-btn" onclick="showPermBanUserConfirmation()">PERMANENTLY BAN USER</button>';
         
         bodyHTML += `
             <div class="user-detail-footer" style="margin-top: 1rem;">
@@ -9613,22 +9800,18 @@ function showUserDetailOverlay(user) {
                     <div class="suspended-info-label" style="margin-top: 1rem;">DURATION:</div>
                     <div class="suspended-info-text">${durationText}</div>
                     ${notesHTML}
+                    ${bannedRows}
                 </div>
                 <div class="perm-ban-section" style="display: block;">
                     <div class="perm-ban-warning">
                         <div class="perm-ban-icon">🚫</div>
-                        <div class="perm-ban-text">
-                            <strong>Danger Zone:</strong> Permanent ban will disable the account's login
-                            (decided -- not a data-deleting ban, see
-                            docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md) but is not built yet. This
-                            button currently does nothing to the account.
-                        </div>
+                        <div class="perm-ban-text">${banSectionCopy}</div>
                     </div>
                     <div class="perm-ban-ip-display">
                         <div class="perm-ban-ip-label">Last Signup IP:</div>
                         <div class="perm-ban-ip-value">${escapeHtml(String(user.ipAddress || ''))}</div>
                     </div>
-                    <button class="perm-ban-btn" onclick="showPermBanUserConfirmation()">PERMANENTLY BAN USER</button>
+                    ${banSectionButton}
                 </div>
             </div>
         `;

@@ -213,15 +213,16 @@ service cloud.firestore {
       // OR authenticated users can update statistics (for job completion)
       // OR authenticated users can update review stats (averageRating, totalReviews)
       // Owner is explicitly blocked from touching moderation fields (status/
-      // suspend*/reinstate*) -- otherwise a suspended user could just save
-      // their own profile again to quietly clear their own suspension. Those
-      // fields are admin-only, written exclusively via the adminModerateUser
-      // callable (Admin SDK, bypasses these rules). See functions/index.js.
+      // suspend*/reinstate*/banned*/unbanned*) -- otherwise a suspended or
+      // banned user could just save their own profile again to quietly
+      // clear their own moderation. Those fields are admin-only, written
+      // exclusively via the adminModerateUser callable (Admin SDK, bypasses
+      // these rules). See functions/index.js.
       allow update: if (isOwner(userId)
         && isValidProfile()
         && request.resource.data.userId == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ['status', 'suspendedAt', 'suspendedBy', 'suspendedByName', 'suspendReason', 'reinstatedAt', 'reinstatedBy']))
+          ['status', 'suspendedAt', 'suspendedBy', 'suspendedByName', 'suspendReason', 'reinstatedAt', 'reinstatedBy', 'bannedAt', 'bannedBy', 'bannedByName', 'unbannedAt', 'unbannedBy']))
         || (isAuthenticated() && isUpdatingStatistics())
         || (isAuthenticated() && isUpdatingReviewStats());
       
