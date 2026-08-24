@@ -4616,16 +4616,27 @@ function initializeGigLoadMore() {
     });
 }
 
+function gigModerationStatusBadge(status) {
+    const raw = String(status || '').toLowerCase();
+    if (raw === 'completed') return { label: 'Completed', className: 'completed' };
+    if (raw === 'suspended') return { label: 'Suspended', className: 'suspended' };
+    if (raw === 'active') return { label: 'Live', className: 'live' };
+    const label = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : 'Unknown';
+    return { label, className: 'other' };
+}
+
 function generateGigCardHTML(gig) {
     const safeTitle = escapeHtml(gig.title || '');
     const safeThumb = escapeHtml(gig.thumbnail || GIG_MODERATION_FALLBACK_AVATAR);
     const priceLabel = gig.price !== '' ? `₱${gig.price}` : '₱—';
+    const statusBadge = gigModerationStatusBadge(gig.status);
     return `
         <div class="gig-card" data-gig-id="${gig.gigId}" data-poster-id="${gig.posterId}">
             <div class="gig-thumbnail">
                 <img src="${safeThumb}" alt="${safeTitle}">
             </div>
             <div class="gig-card-content">
+                <span class="gig-mod-status-badge ${statusBadge.className}">${escapeHtml(statusBadge.label)}</span>
                 <div class="gig-card-title">${safeTitle}</div>
                 <div class="gig-card-meta">
                     <div class="gig-card-schedule">
@@ -4852,7 +4863,14 @@ function populateGigDetailPanel(gig) {
     const bigSuspendSection = document.getElementById('bigSuspendSection');
     const permDeleteSection = document.getElementById('permDeleteSection');
     
-    if (gig.status === 'suspended') {
+    if (gig.status === 'completed') {
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (ignoreBtn) ignoreBtn.style.display = 'none';
+        if (relistBtn) relistBtn.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'inline-block';
+        if (bigSuspendSection) bigSuspendSection.style.display = 'none';
+        if (permDeleteSection) permDeleteSection.style.display = 'none';
+    } else if (gig.status === 'suspended') {
         // Suspended: Hide SUSPEND/IGNORE, Show RELIST/CLOSE, Hide BIG SUSPEND, Show PERM DELETE section
         if (suspendBtn) suspendBtn.style.display = 'none';
         if (ignoreBtn) ignoreBtn.style.display = 'none';
@@ -5491,7 +5509,12 @@ function showGigOverlay(gig) {
     const overlayRelistBtn = document.getElementById('gigOverlayRelistBtn');
     const overlayCloseBtn = document.getElementById('gigOverlayCloseBtn');
     
-    if (gig.status === 'suspended') {
+    if (gig.status === 'completed') {
+        if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'none';
+        if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'none';
+        if (overlayRelistBtn) overlayRelistBtn.style.display = 'none';
+        if (overlayCloseBtn) overlayCloseBtn.style.display = 'inline-block';
+    } else if (gig.status === 'suspended') {
         // Suspended: Hide SUSPEND/IGNORE, Show RELIST/CLOSE
         if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'none';
         if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'none';

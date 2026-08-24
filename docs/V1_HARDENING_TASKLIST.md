@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers started 2026-08-23.** Phases 9, 11 stay parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 Ch 1–4 live 2026-08-21.** Storage + Traffic owner-tested; User Activity Refresh later `ok` after Analytics Data API enable. Ch 6 leftover audit not done. **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). Phases 9, 11 stay parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -882,56 +882,38 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          functions/index.js` clean. `storage.rules` public
          reads unchanged (`profile_photos` / `job_photos`
          `allow read: if true`).
-- [ ] **deleteJob() application + coin leftovers — STARTED 2026-08-23.**
-      Owner admin-delete test (restaurant gig `E5ZAgwvwRLUIybH9zUHZ`)
-      proved photo cleanup, but application cleanup failed.
-      **Confirmed live:**
-      • Gig + photo gone. Jobs 68 / Gig Photos 68.
-      • Job listed 4 `applicationIds`; 2 docs already gone.
-      • Client `batch.delete()` of a missing doc is denied
-        (`resource.data` is empty) and **aborts the whole batch**.
-      • 2 leftovers remain: `KKdWoKheirV0LSH8BcAW` (rejected) and
-        `etpxQ7xTpjmPw0h6owCN` (voided), both GISUGO Operations.
-      • Those two do **not** hold a coin (`isApplicationHoldingCoin`
-        is pending/accepted/hired only). Do not refund. Applicant
-        is 9/10.
-      • Coin refund also failed because client cannot write another
-        user's `applicationCoins*`.
-      • Applications delete rules: applicant or poster only — no
-        admin bypass. Do **not** widen that for Phase 12; use
-        Admin SDK callable instead.
-      **Locked product:**
-      • `cleanupDeletedJobApplications` callable. Poster or admin.
-      • Skip missing IDs. Skip apps whose `jobId` does not match.
-      • Refund only if `isApplicationHoldingCoin`. Then delete.
-      • `deleteJob()` calls this before the Firestore job delete.
-      • Client fallback deletes existing docs one-by-one; still
-        cannot refund another user's coins (accepted until
-        function is up).
-      • Do not touch Phase 12 lockdown in this pass.
-      **Microtasklist**
-      1. **[x] Diagnose from the owner test log — 2026-08-23.**
-      2. **[x] Callable + `deleteJob()` wire — 2026-08-23
-         (not live until Deploy).**
-         `functions/cleanup-job-applications.js` +
-         `cleanupDeletedJobApplications`. Client skip-missing
-         fallback. Audit `applicationsDeleted` = actual count.
-      3. **[x] Delete the 2 leftover test apps — 2026-08-23.**
-         Admin SDK. No coin refund. Applications 96 → 94.
-         GISUGO Operations stayed 9/10.
-      4. **[ ] Owner retest.** After Deploy, delete a gig that
-         still has a live applicant. Console must not show the
-         batch permission error. Applications count drops. Held
-         coins return only for pending/accepted/hired.
-      5. **[x] Query by jobId, not only applicationIds — 2026-08-24
-         (not live until Deploy).** Empty `applicationIds` still
-         runs cleanup. Callable + client fallback both list
-         `applications` where `jobId` matches, then merge any
-         listed IDs. Closes the “5th withdrawn app not on the
-         array” hole.
-      6. **[x] Delete the 7 dead-gig leftovers — 2026-08-24.**
-         Admin SDK. No coin refund. Applications 94 → 87.
-         Live leftover scan after delete: 0 stranded.
+- [x] **deleteJob() application + coin leftovers — CLOSED 2026-08-24.**
+      **Owner retest + audit 2026-08-24.** Dashboard suspend → delete
+      of live “Deliver one pallet of plush toys…” (`SfYhDHE9fwtGNO41qxL4`).
+      Console: `cleanupDeletedJobApplications` succeeded. No batch
+      permission error. Job gone. All 3 application records gone
+      (Chris pending + 2 already-closed GISUGO Ops). Dead-gig leftover
+      scan 0. Jobs 67. Applications 84. Chris 10/10 (`job_deleted`).
+      GISUGO Operations stayed 9/10. Gig Analytics 100 is a create-only
+      lifetime counter and did not drop.
+      **Live callers of `deleteJob()`:** Gig Moderation permanent delete
+      (this test) and owner My Gigs delete (same function, not retested
+      separately today).
+      **Locked product (shipped `8f52ddf`):** callable queries by
+      `jobId`, skips missing IDs, refunds only pending/accepted/hired
+      still holding a coin. Client fallback is one-by-one. Do not
+      widen application delete rules. Do not touch Phase 12 here.
+- [ ] **Admin name change does not update stamped names — ADDED 2026-08-24.**
+      Not a launch blocker (users cannot self-edit names). Worth fixing before
+      granting a user-requested rename.
+      **Confirmed live:** View Applications and Offered-tab “Offered By”
+      still show “Android Samsung”. Live profile is “GISUGO Operations”.
+      Hiring cards use the same job stamps (`hiredWorkerName` /
+      `posterName`). Working-tab “Working For” can look current when that
+      other person never renamed.
+      **Cause:** names are copied onto `applications.applicantName` and
+      `jobs.posterName` / `hiredWorkerName` at write time. Those cards
+      render the stamp. Ratings already backfill from `users/{uid}`.
+      `scripts/admin-rename-user.js` updates `users.fullName` + Auth
+      `displayName` only. Prior fix (`getFreshOwnDisplayName`) was the
+      user’s own name in chat.
+      **Locked:** do not let users self-rename. Admin rename must rewrite
+      stamped names, or those cards must read `users.fullName`.
 - [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
       Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
       Confirm plumbing when started.
