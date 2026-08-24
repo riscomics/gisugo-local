@@ -2585,3 +2585,18 @@ section {
   }
 }
 
+/* Phone compact: thumbnail play button at 50% of the 70px base (320–411px) */
+@media (max-width: 411px) {
+  .play-button {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+    padding-left: 3px;
+    box-shadow: 0 2px 10px var(--accent-glow);
+  }
+
+  .video-thumbnail-overlay:hover .play-button {
+    box-shadow: 0 3px 15px var(--accent-glow);
+  }
+}
+
