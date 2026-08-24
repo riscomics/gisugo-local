@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=30">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=31">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2646,6 +2646,9 @@
             <!-- Suspend Confirmation Overlay -->
             <div class="confirm-overlay" id="suspendConfirmOverlay">
                 <div class="confirm-modal">
+                    <div class="send-hourglass-overlay" id="suspendGigHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
                     <div class="confirm-icon suspend-icon">⚠️</div>
                     <h3 class="confirm-title">Suspend This Gig?</h3>
                     <p class="confirm-message" id="suspendConfirmMessage">
@@ -2661,6 +2664,9 @@
             <!-- Relist Confirmation Overlay -->
             <div class="confirm-overlay" id="relistConfirmOverlay">
                 <div class="confirm-modal">
+                    <div class="send-hourglass-overlay" id="relistGigHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
                     <div class="confirm-icon relist-icon">✓</div>
                     <h3 class="confirm-title">Relist This Gig?</h3>
                     <p class="confirm-message" id="relistConfirmMessage">
@@ -2691,6 +2697,9 @@
             <!-- Delete Confirmation Overlay -->
             <div class="confirm-overlay" id="deleteConfirmOverlay">
                 <div class="confirm-modal">
+                    <div class="send-hourglass-overlay" id="deleteGigHourglass" aria-hidden="true">
+                        <span class="send-hourglass-icon" aria-hidden="true">⌛</span>
+                    </div>
                     <div class="confirm-icon delete-icon">🗑️</div>
                     <h3 class="confirm-title">Permanently Delete This Gig?</h3>
                     <p class="confirm-message" id="deleteConfirmMessage">
@@ -3838,7 +3847,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=27"></script>
+    <script src="public/js/admin-dashboard.js?v=29"></script>
     
     
 </body>

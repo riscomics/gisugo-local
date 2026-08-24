@@ -4943,21 +4943,43 @@ function showSuspendConfirmation() {
 
 function hideSuspendConfirmation() {
     const overlay = document.getElementById('suspendConfirmOverlay');
+    setGigConfirmHourglass('suspendGigHourglass', false);
+    setGigConfirmOverlayBusy('suspendConfirmOverlay', false);
     if (overlay) {
         overlay.classList.remove('show');
         document.body.style.overflow = '';
     }
 }
 
+function setGigConfirmHourglass(hourglassId, visible) {
+    const hourglass = document.getElementById(hourglassId);
+    if (!hourglass) return;
+    hourglass.classList.toggle('is-visible', visible);
+    hourglass.setAttribute('aria-hidden', visible ? 'false' : 'true');
+}
+
+function setGigConfirmOverlayBusy(overlayId, busy) {
+    const overlay = document.getElementById(overlayId);
+    if (!overlay) return;
+    overlay.querySelectorAll('button').forEach((btn) => {
+        btn.disabled = busy;
+    });
+}
+
 async function confirmSuspendGig() {
     if (!currentGigData || gigModerationActionInFlight) return;
     const gigId = currentGigData.gigId;
     gigModerationActionInFlight = true;
+    setGigConfirmOverlayBusy('suspendConfirmOverlay', true);
+    setGigConfirmHourglass('suspendGigHourglass', true);
 
-    const result = await callAdminModerateGig(gigId, 'suspend');
-
-    gigModerationActionInFlight = false;
-    hideSuspendConfirmation();
+    let result = { success: false, message: 'Could not suspend gig' };
+    try {
+        result = await callAdminModerateGig(gigId, 'suspend');
+    } finally {
+        gigModerationActionInFlight = false;
+        hideSuspendConfirmation();
+    }
 
     if (!result.success) {
         showToast(result.message || 'Could not suspend gig', 'error');
@@ -4993,6 +5015,8 @@ function showRelistConfirmation() {
 
 function hideRelistConfirmation() {
     const overlay = document.getElementById('relistConfirmOverlay');
+    setGigConfirmHourglass('relistGigHourglass', false);
+    setGigConfirmOverlayBusy('relistConfirmOverlay', false);
     if (overlay) {
         overlay.classList.remove('show');
         document.body.style.overflow = '';
@@ -5003,11 +5027,16 @@ async function confirmRelistGig() {
     if (!currentGigData || gigModerationActionInFlight) return;
     const gigId = currentGigData.gigId;
     gigModerationActionInFlight = true;
+    setGigConfirmOverlayBusy('relistConfirmOverlay', true);
+    setGigConfirmHourglass('relistGigHourglass', true);
 
-    const result = await callAdminModerateGig(gigId, 'reinstate');
-
-    gigModerationActionInFlight = false;
-    hideRelistConfirmation();
+    let result = { success: false, message: 'Could not relist gig' };
+    try {
+        result = await callAdminModerateGig(gigId, 'reinstate');
+    } finally {
+        gigModerationActionInFlight = false;
+        hideRelistConfirmation();
+    }
 
     if (!result.success) {
         showToast(result.message || 'Could not relist gig', 'error');
@@ -5100,6 +5129,8 @@ function showDeleteConfirmation() {
 
 function hideDeleteConfirmation() {
     const overlay = document.getElementById('deleteConfirmOverlay');
+    setGigConfirmHourglass('deleteGigHourglass', false);
+    setGigConfirmOverlayBusy('deleteConfirmOverlay', false);
     if (overlay) {
         overlay.classList.remove('show');
         document.body.style.overflow = '';
@@ -5110,18 +5141,23 @@ async function confirmDeleteGig() {
     if (!currentGigData || gigModerationActionInFlight) return;
     const gigId = currentGigData.gigId;
     gigModerationActionInFlight = true;
+    setGigConfirmOverlayBusy('deleteConfirmOverlay', true);
+    setGigConfirmHourglass('deleteGigHourglass', true);
 
     // Reuses the same battle-tested deleteJob() the gig owner's own listing
     // deletion flow uses (firebase-db.js) -- photo cleanup, application
     // cleanup + coin release, audit log, then the Firestore delete itself.
     // Works for an admin here because firestore.rules already allows
     // isAdmin() on jobs delete (no new Cloud Function needed for this one).
-    const result = (typeof deleteJob === 'function')
-        ? await deleteJob(gigId)
-        : { success: false, message: 'deleteJob() unavailable' };
-
-    gigModerationActionInFlight = false;
-    hideDeleteConfirmation();
+    let result = { success: false, message: 'deleteJob() unavailable' };
+    try {
+        result = (typeof deleteJob === 'function')
+            ? await deleteJob(gigId)
+            : { success: false, message: 'deleteJob() unavailable' };
+    } finally {
+        gigModerationActionInFlight = false;
+        hideDeleteConfirmation();
+    }
 
     if (!result.success) {
         showToast(result.message || 'Could not delete gig', 'error');

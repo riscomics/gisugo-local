@@ -6682,6 +6682,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
 }
 
 .confirm-modal {
+    position: relative;
+    overflow: hidden;
     background: #1a222e;
     border-radius: 16px;
     border: 1px solid rgba(230, 214, 174, 0.28);
