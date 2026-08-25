@@ -670,6 +670,74 @@ exports.syncPhoneLoginEmail = onCall(
   }
 );
 
+function bannedPhoneDocId(normalizedE164) {
+  return String(normalizedE164 || "").replace(/\D/g, "");
+}
+
+async function assertPhoneWritable(uid, normalized) {
+  const banSnap = await db.collection("banned_phones").doc(bannedPhoneDocId(normalized)).get();
+  if (banSnap.exists) {
+    const bannedUid = String((banSnap.data() || {}).bannedUid || "");
+    if (bannedUid && bannedUid !== uid) {
+      throw new HttpsError("failed-precondition", "This phone number cannot be used.");
+    }
+  }
+
+  const takenSnap = await db.collection("user_private")
+    .where("phoneNumber", "==", normalized)
+    .limit(8)
+    .get();
+  const takenByOther = takenSnap.docs.some((doc) => doc.id !== uid);
+  if (takenByOther) {
+    throw new HttpsError("failed-precondition", "This phone number is already registered.");
+  }
+}
+
+async function stampBannedPhone(targetUserId, adminUid, adminName) {
+  const privateSnap = await db.collection("user_private").doc(targetUserId).get();
+  const stored = privateSnap.exists ? String((privateSnap.data() || {}).phoneNumber || "") : "";
+  const normalized = normalizePhoneForLogin(stored);
+  if (!normalized) {
+    logger.warn("adminModerateUser ban: no usable phone to stamp", { targetUserId });
+    return { stamped: false };
+  }
+  await db.collection("banned_phones").doc(bannedPhoneDocId(normalized)).set({
+    phone: normalized,
+    bannedUid: targetUserId,
+    bannedAt: admin.firestore.FieldValue.serverTimestamp(),
+    bannedBy: adminUid,
+    bannedByName: adminName
+  }, { merge: true });
+  return { stamped: true, phone: normalized };
+}
+
+// Phase 9 phone banlist + uniqueness. The only write path for
+// user_private.phoneNumber (rules block client writes). Ban stamps
+// banned_phones; Unban leaves the entry so only that uid can reuse it.
+exports.saveUserPhone = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const raw = String(request.data?.phone || "").trim();
+    const normalized = normalizePhoneForLogin(raw);
+    if (!normalized) {
+      throw new HttpsError("invalid-argument", "Please enter a valid phone number.");
+    }
+
+    await assertPhoneWritable(uid, normalized);
+
+    await db.collection("user_private").doc(uid).set({
+      phoneNumber: normalized,
+      lastModified: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return { status: "saved", phone: normalized };
+  }
+);
+
 exports.getFaceVerificationMediaAccess = onCall(
   { region: "asia-southeast1", cors: true },
   async (request) => {
@@ -2016,6 +2084,16 @@ exports.adminModerateUser = onCall(
           });
         }
       });
+    }
+
+    if (action === "ban") {
+      try {
+        await stampBannedPhone(targetUserId, uid, adminName);
+      } catch (error) {
+        logger.error("adminModerateUser banned_phones stamp failed", {
+          targetUserId, error: String(error)
+        });
+      }
     }
 
     try {

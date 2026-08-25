@@ -1022,7 +1022,7 @@ async function createJob(jobData) {
       // Pricing
       priceOffer: jobData.priceOffer || jobData.paymentAmount,
       gigUseType: jobData.gigUseType || 'Personal',
-
+      
       // Extras (category-specific fields)
       extras: jobData.extras || [],
       
@@ -1200,7 +1200,7 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
     if (filters.region) {
       jobs = jobs.filter(job => job.region === filters.region);
     }
-
+    
     // City was previously accepted by callers (e.g. the listing page's City picker) but
     // silently ignored here -- gigs were only ever narrowed down to Region, so picking a
     // specific City had no filtering effect at all (2026-08-04 user report: switching City
@@ -1210,7 +1210,7 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
     }
     
     if (filters.gigUseType && filters.gigUseType !== 'GIG TYPE') {
-      jobs = jobs.filter(job =>
+      jobs = jobs.filter(job => 
         (((job && job.gigUseType) || '').toUpperCase()) === filters.gigUseType.toUpperCase()
       );
     }
@@ -1660,9 +1660,9 @@ async function deleteJob(jobId) {
   
   if (!db) {
     return { success: false, message: 'Jobs backend unavailable' };
-  }
-  
-  try {
+      }
+      
+      try {
     // Get job data for audit and photo cleanup
     const jobDoc = await db.collection('jobs').doc(jobId).get();
     
@@ -4345,10 +4345,10 @@ async function getAdminAnalytics() {
   // permitted Firestore reads and are fetched independently of each other
   // so a problem with one can never zero out the other.
   const [usersResult, jobsResult] = await Promise.allSettled([
-    db.collection('users').get(),
-    db.collection('jobs').where('status', '==', 'reported').get()
-  ]);
-
+      db.collection('users').get(),
+      db.collection('jobs').where('status', '==', 'reported').get()
+    ]);
+    
   if (usersResult.status === 'rejected') {
     console.error('❌ Error getting total users count:', usersResult.reason);
   }
@@ -4649,7 +4649,7 @@ function listedGigPostedMs(value) {
 function slimListedGigFromDoc(doc) {
   const data = doc.data() || {};
   const title = String(data.title || '').trim();
-  return {
+    return {
     id: doc.id,
     title: title || 'Untitled gig',
     status: String(data.status || 'unknown').trim() || 'unknown',

@@ -288,18 +288,14 @@ explicit Ship, per standing rule):
   `submitSignupLocation`). Suspension "Duration" field hidden in the confirm form (markup kept,
   not deleted) — no auto-expiry/auto-restore Cloud Function exists, so every suspension is
   indefinite until an admin manually clicks Restore.
-- **Permanently Ban User — Ch 1–3 coded 2026-08-24, not owner-tested, not deployed.** Ban is
-  only from the Suspended tab. `adminModerateUser` actions `'ban'` / `'unban'`: Auth
-  `disabled` plus `users.status = 'banned'` / `'active'`. Cascade already ran on suspend;
-  ban does **not** re-run it and does **not** call `wipeAccountMedia`. Suspended tab lists
-  `suspended` and `banned`. Restore refuses banned users (Unban is the separate extra-confirm
-  action). Confirm copy: disable login, keep evidence, no IP block. Tracked in
-  `docs/V1_HARDENING_TASKLIST.md` (Phase 9 Ch 4 owner test + Ch 5 leftover audit still open).
+- **Permanently Ban User — Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness
+  (`saveUserPhone`, Ban stamps `banned_phones`) coded 2026-08-25, not deployed.
+  Owner Ban test deferred. See `docs/V1_HARDENING_TASKLIST.md` Phase 9.
 - **User Management Contact — now live (Phase 8 Ch 4, 2026-08-15/17).** Same callable
   (`admin_user_contact`). No recipient dropdown. Topic is Message from GISUGO. Appends only
   an open no-`jobId` GISUGO thread — does not join a gig Contact thread. Notify is Phase 8
-  Ch 5 (`support_admin_message`). Permanently Ban Ch 1–3 coded 2026-08-24
-  (not owner-tested, not deployed).
+  Ch 5 (`support_admin_message`). Permanently Ban Ch 1–3 live 2026-08-24;
+  phone banlist is the next Phase 9 build.
 
 ---
 

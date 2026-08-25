@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 coded 2026-08-24 (callable + confirm UI + Suspended queue). Not owner-tested, not deployed.** Phase 11 parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness coded 2026-08-25, **not deployed.** Owner Ban test deferred (after this ships, or after dummy-account deletes right before launch). Phase 11 parked.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -130,7 +130,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban User = disable Auth login (keep evidence). Ch 1–3 coded 2026-08-24. Ch 4–5 (owner test + leftover audit) not done. | Ch 1–3 coded; not owner-tested; not deployed |
+| 9 | Permanently Ban = Auth disable (Ch 1–3 live). Phone banlist coded 2026-08-25, not deployed. Ban test deferred. | Ch 1–3 live; banlist coded, not deployed; Ban test deferred |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
 | 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
@@ -373,45 +373,61 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          newest tickets (fine at V1 volume); admin Reply stamps
          `role: 'worker'` (Alerts filters by type; both tabs intentional);
          Settings tray-off not owner-tested; admin Messages stays glance.
-- [ ] **Phase 9: Build "Permanently Ban User" — DECIDED (2026-08-10): Disable Auth login,
-      NOT hard delete.** New phase, not folded back into Phase 3. Rationale (owner):
-      reviews, gig/application history, messages, moderation log stay query-able.
-      **Ch 1–3 coded 2026-08-24. Not owner-tested. Not deployed.**
-      **Locked product:**
-      • Ban only from the Suspended tab (cascade already ran on suspend).
-      • `adminModerateUser` action `'ban'`: Auth `disabled: true`,
-        `users.status = 'banned'`, stamp `bannedAt` / `bannedBy` /
-        `bannedByName`. Log to `user_moderation_log`.
-      • Same guards as suspend: not self; only super_admin may ban
-        another admin.
-      • Must already be `suspended`. Do not re-run
-        `executeBanCascadeOnUserSuspend`. Do **not** call
-        `wipeAccountMedia`.
-      • Confirm overlay copy must match this: disable login, keep
-        evidence. Current copy (“cannot be undone” + IP block) is
-        wrong — no IP block this phase.
-      • Extra confirm + hourglass. Toast only after the callable
-        succeeds.
-      • Suspended tab lists `suspended` and `banned`. Banned badge.
-        Restore refuses banned users.
-      • `'unban'`: Auth `disabled: false`, status `active`. Extra
-        confirm. Does not relist gigs (same as Restore after suspend).
-      • No Data Privacy Act issue — nothing is deleted.
-      **Not this phase:** IP block, data wipe, Phase 12 lockdown,
-      self-delete product, Ban from the New tab.
+- [ ] **Phase 9: Permanently Ban User — DECIDED (2026-08-10): Disable Auth login,
+      NOT hard delete.** Evidence stays query-able. **Ch 1–3 live 2026-08-24.**
+      **Locked 2026-08-25 (order):**
+      1. Phone banlist + uniqueness write path **first** (signup + Edit Profile).
+      2. Owner keeps phone+password signup to mint dummy test accounts.
+      3. Phone+password **sunset later** (signup **and** login UI gone, plus
+         server reject of **new** `*@phone.gisugo.app` creates). Not this
+         build. Existing social login stays.
+      4. Owner Ban test **deferred** — after the banlist ships, **or** after
+         dummy-account deletes right before launch. Not now.
+      5. Dummy deletes = Auth user + `users` / `user_private` /
+         `security_metadata`. **Do not** put those fake numbers on the
+         banlist.
+      6. Permaban IP **later**, after launch. Not a launch gate.
+      7. Signup velocity limit **already live** (`checkSignupRateLimit`:
+         25/hour per IP, 8/hour per IP+device, 15 min block). Hits at
+         **profile submit**, not at the Google/Facebook tap. Do not build
+         a second limiter. Fail-open if the callable errors.
+      8. Phone-gate is not a banlist door. Signup + Edit Profile are
+         enough; audit leftover phoneless accounts before launch.
+      **Ban (already live):** Suspended tab only; Auth `disabled`;
+      `status='banned'`; no second cascade; no `wipeAccountMedia`; Unban
+      re-enables login and does not relist gigs.
+      **Banlist write (next build):** one server path. Normalize phone.
+      Reject if on the banlist or already on another live `user_private`.
+      Ban copies that user’s current phone onto the list (no admin typing).
+      Unban frees that number for **that uid only**. Delete-without-ban
+      does not stamp the list.
+      **Parked (not next):** suspend-cascade leftovers (refund coins on
+      auto-suspended listings; close + notify worker when a hired
+      *customer* is banned). Phone+password sunset. Permaban IP.
+      **Not this phase:** data wipe, Phase 12, self-delete, Ban from New,
+      SMS OTP.
       **Microtasklist**
-      1. **[x] Callable `ban` + `unban`.** Extend
-         `adminModerateUser`. Auth disable/enable + status + audit
-         log. No media wipe. No second cascade.
-      2. **[x] Confirm UI.** Honest copy. Hourglass. Wire Ban and
-         Unban. Remove the “not built yet” toast.
-      3. **[x] Suspended queue.** Show banned users. Badge. Restore
-         refuses banned.
-      4. **[ ] Owner test.** Suspend → Ban → cannot log in. Evidence
-         and Storage files remain. Unban → can log in. Gigs stay
-         suspended.
-      5. **[ ] Leftover audit.** Syntax, no wipe path, confirm copy
-         matches the lock, toast only after success.
+      1. **[x] Callable `ban` + `unban`.** Live 2026-08-24.
+      2. **[x] Confirm UI.** Live 2026-08-24.
+      3. **[x] Suspended queue.** Live 2026-08-24.
+      4. **[x] Phone banlist + uniqueness write.** `saveUserPhone` callable.
+         Signup + Edit Profile. Client cannot write `phoneNumber`. Unban
+         leaves the list entry (that uid only). Coded 2026-08-25, not
+         deployed.
+      5. **[x] Wire Ban to stamp `user_private.phoneNumber` onto the list.**
+         Coded 2026-08-25, not deployed.
+      6. **[ ] Pre-launch phone audit.** Every live account has a unique
+         normalized phone, or is cleaned / gated.
+      7. **[ ] Dummy test-account delete (no banlist).** Auth + Firestore
+         docs. US fakes do not go on the list.
+      8. **[ ] Owner Ban test (deferred).** After 4–5, or after 7 right
+         before launch. Suspend → Ban → cannot log in / same social
+         blocked / old phone refused on a new account. Evidence stays.
+         Unban → login works; gigs stay suspended.
+      9. **[ ] Leftover audit** after the banlist ships (not the deferred
+         Ban test).
+      10. **[ ] Phone+password sunset (later).** Kill signup + login UI
+          and reject new synthetic-email creates. After dummies are done.
 - [ ] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14). Not shelving yet.**
       New phase (Phase 4 stays closed). Owner confirmed the test loop (text + photo both
       ways, Mark Resolved, hourglass). **Leave the in-app desk on.** Do not flip a shelf

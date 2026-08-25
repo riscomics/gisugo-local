@@ -1439,6 +1439,33 @@ async function handleFormSubmission(event) {
       if (methods) methods.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    // Phone banlist + uniqueness before the public profile write.
+    // Phone+password Auth already exists here; if the number is banned or
+    // taken, delete that leftover Auth user so the mailbox is not stranded.
+    if (typeof savePrivatePhone !== 'function') {
+      hideLoadingOverlay();
+      isSigningUp = false;
+      showInputGuideHint('Could not save your phone number. Please try again.', 'SIGN UP FAILED', '⚠️');
+      return;
+    }
+    const phoneResult = await savePrivatePhone(userId, buildFullPhoneNumber());
+    if (!phoneResult || phoneResult.success === false) {
+      if (profileData.authProvider === 'password' &&
+          typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+        try { await firebase.auth().currentUser.delete(); } catch (authDeleteError) {
+          console.error('⚠️ Failed to roll back Auth after phone reject:', authDeleteError);
+        }
+      }
+      hideLoadingOverlay();
+      isSigningUp = false;
+      const phoneMsg = (phoneResult && phoneResult.message) || 'This phone number cannot be used.';
+      showError('phone', phoneMsg);
+      const phoneEl = document.getElementById('phone');
+      if (phoneEl) phoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showInputGuideHint(phoneMsg, 'SIGN UP', 'ℹ️');
+      return;
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // UPLOAD PHOTO TO STORAGE (if selected)
@@ -1509,14 +1536,6 @@ async function handleFormSubmission(event) {
         console.log('📞 Calling createUserProfile...');
         await createUserProfile(userId, profileData);
         console.log('✅ Profile saved to Firestore successfully');
-
-        // Store the phone in owner-only private storage (kept off the public doc).
-        if (typeof savePrivatePhone === 'function') {
-          const phoneResult = await savePrivatePhone(userId, buildFullPhoneNumber());
-          if (!phoneResult || phoneResult.success === false) {
-            console.warn('⚠️ Could not save private phone at signup:', phoneResult && phoneResult.message);
-          }
-        }
       } catch (profileError) {
         // This is CRITICAL - profile save failed
         console.error('❌ CRITICAL: Failed to save profile to Firestore:', profileError);

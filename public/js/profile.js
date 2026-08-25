@@ -2784,17 +2784,27 @@ async function saveProfileChanges() {
         }
       }
       
+      if (typeof savePrivatePhone === 'function') {
+        const phoneResult = await savePrivatePhone(userId, phoneNumber);
+        if (!phoneResult || phoneResult.success === false) {
+          hideSavingModal();
+          const phoneMsg = (phoneResult && phoneResult.message) || 'This phone number cannot be used.';
+          if (typeof showLinkModal === 'function') {
+            showLinkModal('warning', 'Phone not saved', phoneMsg);
+          } else {
+            alert(phoneMsg);
+          }
+          return;
+        }
+      }
+
       const result = await updateUserProfile(userId, updates);
       
       if (result.success) {
         console.log('✅ Profile saved to Firestore!');
 
-        // Save the phone to owner-only private storage (never the public doc).
         if (typeof savePrivatePhone === 'function') {
-          const phoneResult = await savePrivatePhone(userId, phoneNumber);
-          if (!phoneResult || phoneResult.success === false) {
-            console.warn('⚠️ Could not save private phone:', phoneResult && phoneResult.message);
-          } else if (phoneNumber !== editProfileLoadedPhone && typeof syncPhonePasswordOnPhoneChange === 'function') {
+          if (phoneNumber !== editProfileLoadedPhone && typeof syncPhonePasswordOnPhoneChange === 'function') {
             // Number actually changed: re-point the phone+password login
             // credential at the new number (no-op for accounts without one).
             try {

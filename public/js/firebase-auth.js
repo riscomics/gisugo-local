@@ -1854,23 +1854,23 @@ async function updateUserProfile(userId, updates) {
 }
 
 /**
- * Store a user's phone number in the owner-only `user_private` collection.
- * Phone is a contact field for the Direct-contact reveal flow; it must NOT live
- * on the public `users` doc (world-readable) or it would be scrapable straight
- * from the API. The reveal callable reads it from here on the server side.
+ * Store a user's phone via the saveUserPhone callable — the only write
+ * path for user_private.phoneNumber (uniqueness + banlist). userId is
+ * kept for call-site compat; the server uses the signed-in Auth uid.
  */
 async function savePrivatePhone(userId, phoneNumber) {
-  const db = getFirestore();
-  if (!db || !userId) return { success: false, message: 'No database or user id' };
+  if (!userId) return { success: false, message: 'No user id' };
+  if (typeof firebase === 'undefined' || !firebase.functions) {
+    return { success: false, message: 'Phone save requires Firebase.' };
+  }
   try {
-    await db.collection('user_private').doc(userId).set({
-      phoneNumber: phoneNumber || '',
-      lastModified: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-    return { success: true };
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('saveUserPhone');
+    const response = await callable({ phone: phoneNumber });
+    return { success: true, phone: response && response.data && response.data.phone };
   } catch (error) {
     console.error('❌ Error saving private phone:', error);
-    return { success: false, message: error.message };
+    const message = (error && error.message) || 'Could not save this phone number.';
+    return { success: false, message: message };
   }
 }
 

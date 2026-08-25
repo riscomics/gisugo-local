@@ -239,10 +239,20 @@ service cloud.firestore {
     // USER_PRIVATE COLLECTION (Owner-only sensitive profile metadata)
     // ═══════════════════════════════════════════════════════════════
     match /user_private/{userId} {
-      // Only owner (or admin) can read/write private profile metadata.
+      // Owner/admin can read and write non-phone private metadata
+      // (Face Verification paths, locationShared). phoneNumber is
+      // callable-only (saveUserPhone / Ban stamp) so uniqueness and
+      // the banlist cannot be bypassed from the client.
       allow read: if isOwner(userId) || isAdmin();
-      allow create, update: if isOwner(userId) || isAdmin();
+      allow create: if (isOwner(userId) || isAdmin())
+        && !request.resource.data.keys().hasAny(['phoneNumber']);
+      allow update: if (isOwner(userId) || isAdmin())
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['phoneNumber']);
       allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /banned_phones/{phoneKey} {
+      allow read, write: if false;
     }
 
     match /security_metadata/{userId} {
