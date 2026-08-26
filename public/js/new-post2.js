@@ -922,9 +922,9 @@ function buildJobCategoryGrid(categoryDropdown) {
     {
       title: '🏢 POPULAR FOR BUSINESS',
       items: [
-        { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
-        { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Transporter' },
         { value: 'solicitor', icon: '📣', color: '#eab308', label: 'Solicitor' },
+        { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Transporter' },
+        { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Shopper' },
         { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Basic Cleaner' }
       ]
     },
@@ -936,6 +936,7 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
         { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
         { value: 'mechanic', icon: '👨🏻‍🔧', color: '#ef4444', label: 'Mechanic' },
+        { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
         { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
       ]
     },
@@ -970,7 +971,6 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'hugas', icon: '🍽️', color: '#06b6d4', label: 'Washer' },
         { value: 'laba', icon: '👕', color: '#8b5cf6', label: 'Laba' },
         { value: 'luto', icon: '🍳', color: '#f97316', label: 'Cook' },
-        { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Shopper' },
         { value: 'barber', icon: '💇🏻', color: '#3b82f6', label: 'Barber' },
         { value: 'pila', icon: '🧍🏻', color: '#0ea5e9', label: 'Line-Up' },
         { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' },

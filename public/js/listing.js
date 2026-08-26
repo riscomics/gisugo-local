@@ -3557,10 +3557,10 @@ function initJobcatButtonAutoResize() {
 
   // Job categories synced with homepage order/sections
   const jobCategories = [
-    // POPULAR REQUESTS FROM BUSINESS OWNERS
-    { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'hero' },
-    { emoji: '📦', label: 'Transporter', page: 'hatod.html', section: 'hero' },
+    // POPULAR FOR BUSINESS — same order as homepage hero
     { emoji: '📣', label: 'Solicitor', page: 'solicitor.html', section: 'hero' },
+    { emoji: '📦', label: 'Transporter', page: 'hatod.html', section: 'hero' },
+    { emoji: '🛒', label: 'Shopper', page: 'kompra.html', section: 'hero' },
     { emoji: '🧹', label: 'Basic Cleaner', page: 'limpyo.html', section: 'hero' },
 
     // MAINTENANCE & TRADES
@@ -3569,6 +3569,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'maintenance' },
     { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'maintenance' },
     { emoji: '👨🏻‍🔧', label: 'Mechanic', page: 'mechanic.html', section: 'maintenance' },
+    { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'maintenance' },
     { emoji: '🚚', label: 'Movers', page: 'hakot.html', section: 'maintenance' },
 
     // CONSTRUCTION
@@ -3602,7 +3603,6 @@ function initJobcatButtonAutoResize() {
     { emoji: '🍽️', label: 'Washer', page: 'hugas.html', section: 'home' },
     { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'home' },
     { emoji: '🍳', label: 'Cook', page: 'luto.html', section: 'home' },
-    { emoji: '🛒', label: 'Shopper', page: 'kompra.html', section: 'home' },
     { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'home' },
     { emoji: '🧍🏻', label: 'Line-Up', page: 'pila.html', section: 'home' },
     { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'home' },
