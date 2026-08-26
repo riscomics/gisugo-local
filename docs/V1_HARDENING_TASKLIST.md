@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness coded 2026-08-25, **not deployed.** Owner Ban test deferred (after this ships, or after dummy-account deletes right before launch). Phase 11 parked.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness **live 2026-08-25.** Owner Ban test deferred (after dummy-account deletes right before launch, or when you choose). **Phase 11 hide pass live 2026-08-26;** keepers still unwired.
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -130,9 +130,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban = Auth disable (Ch 1–3 live). Phone banlist coded 2026-08-25, not deployed. Ban test deferred. | Ch 1–3 live; banlist coded, not deployed; Ban test deferred |
+| 9 | Permanently Ban = Auth disable + phone banlist/uniqueness. Ban test deferred. Permaban IP later. | Ch 1–5 live; Ban test + sunset + dummy delete still open |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
-| 11 | Settings **product**: for each leftover control, wire it for real or remove/hide it so the panel does not imply fake power. Includes Maintenance / Tech Warning composers. | Not started, not next |
+| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. | Hide pass live 2026-08-26; keepers still unwired |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
@@ -412,10 +412,9 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       3. **[x] Suspended queue.** Live 2026-08-24.
       4. **[x] Phone banlist + uniqueness write.** `saveUserPhone` callable.
          Signup + Edit Profile. Client cannot write `phoneNumber`. Unban
-         leaves the list entry (that uid only). Coded 2026-08-25, not
-         deployed.
+         leaves the list entry (that uid only). **Live 2026-08-25.**
       5. **[x] Wire Ban to stamp `user_private.phoneNumber` onto the list.**
-         Coded 2026-08-25, not deployed.
+         **Live 2026-08-25.**
       6. **[ ] Pre-launch phone audit.** Every live account has a unique
          normalized phone, or is cleaned / gated.
       7. **[ ] Dummy test-account delete (no banlist).** Auth + Firestore
@@ -424,8 +423,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          before launch. Suspend → Ban → cannot log in / same social
          blocked / old phone refused on a new account. Evidence stays.
          Unban → login works; gigs stay suspended.
-      9. **[ ] Leftover audit** after the banlist ships (not the deferred
-         Ban test).
+      9. **[ ] Leftover audit** after you run the deferred Ban test.
       10. **[ ] Phone+password sunset (later).** Kill signup + login UI
           and reject new synthetic-email creates. After dummies are done.
 - [ ] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14). Not shelving yet.**
@@ -489,16 +487,22 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          `contact-reveal.js` (tap opens the app, number is not page text).
       7. **Full-phase audit (after owner shelf).** Syntax, rules, no leftover fake Reply path, flag actually
          off on production, Email/WhatsApp is the only public conversation door.
-- [ ] **Phase 11: Settings product — wire or remove leftover controls. Not started,
-      not next (parked; owner picks).** Phase 5 only moved storage. The Settings
-      panel still presents System Status, User Management thresholds, Gig Moderation
-      limits, Financial / G-Coin, Communication, Security, Notifications, Performance,
-      and Feature Toggles as if they do something. Confirmed 2026-08-11: **zero** of
-      those fields are read by live app or Cloud Functions. Maintenance Mode and
-      Technical Warning composers still write unread `localStorage` keys
-      (`maintenanceData`, `techWarningData`). This phase is a field-by-field pass:
-      keep + enforce, or hide/remove so the UI does not imply fake power. Do not
-      reopen Phase 5. Do not start until owner prioritizes it.
+- [ ] **Phase 11: Settings product — hide dead controls, then wire keepers.
+      Hide pass live 2026-08-26.** Phase 5 storage stays. Dead rows removed
+      (Financial, Chat, Security, Notifications, Performance, Feature
+      Toggles, plus unused System Status / User / Gig knobs). Keepers still
+      save-only — not enforced. Composers still write `localStorage` until
+      their wire step. Do not reopen Phase 5.
+      **Keep + wire (one at a time):**
+      1. **[ ] Suspend new gig posts** on `new-post2` + why notice.
+      2. **[ ] Pause Support write** + why notice.
+      3. **[ ] Tech-difficulties warning** + compose (public banner; Firestore).
+      4. **[ ] Maintenance mode** + compose + resume time (public cover; Firestore).
+      5. **[ ] Pause new registration.**
+      6. **[ ] Max active gigs** (`0` = no cap).
+      7. **[ ] Min gig price ₱** (live default 50; Settings owns the number).
+      8. **[ ] Max gig price ₱** (live default 100000).
+      9. **[ ] Leftover audit** after the last keeper. Drop the “not enforced” banner.
 - [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
       Do this **after remaining product phases are done**, immediately **before** the full-platform
       test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until

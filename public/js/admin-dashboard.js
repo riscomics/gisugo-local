@@ -7067,72 +7067,20 @@ function initializeDropdownFilters() {
 // Default settings values -- also used to seed platform_settings/general on
 // its very first read, and as the fallback if Firestore is unreachable.
 const DEFAULT_SETTINGS = {
-    // System Status
+    // System Status (Phase 11 keepers)
     suspendGigs: false,
-    suspendChats: false,
     suspendMessages: false,
-    suspendCoins: false,
     techDifficulties: false,
     maintenanceMode: false,
     maintenanceResumeTime: '',
-    
+
     // User Management
     allowRegistration: true,
-    requireEmailVerify: true,
-    requirePhoneVerify: false,
-    idVerifyThreshold: 500,
-    autoBanThreshold: 5,
-    deletionGracePeriod: 30,
-    
+
     // Gig Moderation
-    firstGigApproval: true,
     maxActiveGigs: 10,
-    minGigPrice: 5,
-    maxGigPrice: 10000,
-    autoFlagKeywords: '',
-    
-    // Financial Controls
-    commissionRate: 15,
-    showServiceFees: true,
-    payoutFrequency: 'weekly',
-    minPayoutAmount: 25,
-    refundAutoApproval: 50,
-    gCoinRate: 100,
-    dailyCoinLimit: 1000,
-    
-    // Communication Controls
-    maxMessageLength: 2000,
-    allowChatUploads: true,
-    maxFileSize: 5,
-    profanityFilter: true,
-    spamThreshold: 10,
-    
-    // Security
-    loginAttemptLimit: 5,
-    sessionTimeout: 60,
-    require2FA: false,
-    blockedIPs: '',
-    
-    // Notifications
-    emailNotifications: true,
-    pushNotifications: true,
-    flaggedAlertThreshold: 5,
-    maintenanceLeadTime: 24,
-    
-    // Performance
-    rateLimit: 100,
-    searchResultsPerPage: 20,
-    dataRetentionPeriod: 365,
-    backupFrequency: 'daily',
-    
-    // Feature Toggles
-    // "showHomepageVideoForLoggedIn" removed 2026-08-11 -- replaced by a
-    // code-level video+thumbnail swap in index.html (see
-    // HOME_VIDEO_LOGGED_OUT/HOME_VIDEO_LOGGED_IN there), no longer a setting.
-    featuredGigs: true,
-    reviewsSystem: true,
-    directMessaging: false,
-    darkMode: true
+    minGigPrice: 50,
+    maxGigPrice: 100000
 };
 
 async function initializeSystemSettings() {
