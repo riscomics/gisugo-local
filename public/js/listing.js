@@ -3570,7 +3570,6 @@ function initJobcatButtonAutoResize() {
     { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'maintenance' },
     { emoji: '👨🏻‍🔧', label: 'Mechanic', page: 'mechanic.html', section: 'maintenance' },
     { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'maintenance' },
-    { emoji: '🚚', label: 'Movers', page: 'hakot.html', section: 'maintenance' },
 
     // CONSTRUCTION
     { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'construction' },
@@ -3608,6 +3607,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'home' },
     { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'home' },
     { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'home' },
+    { emoji: '🚚', label: 'Movers', page: 'hakot.html', section: 'home' },
 
     // CREATIVE & MEDIA
     { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'creative' },

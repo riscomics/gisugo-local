@@ -936,8 +936,7 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
         { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
         { value: 'mechanic', icon: '👨🏻‍🔧', color: '#ef4444', label: 'Mechanic' },
-        { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
-        { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
+        { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' }
       ]
     },
     {
@@ -975,7 +974,8 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'pila', icon: '🧍🏻', color: '#0ea5e9', label: 'Line-Up' },
         { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' },
         { value: 'massage', icon: '💆🏻‍♀️', color: '#a855f7', label: 'Massager' },
-        { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' }
+        { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' },
+        { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
       ]
     },
     {
