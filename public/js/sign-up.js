@@ -57,7 +57,7 @@ const SIGNUP_I18N = {
     fullNameLabel: 'Full Name *',
     aboutMe: 'About Me',
     summaryLabel: 'Introduction & Summary *',
-    aboutHint: 'Tell potential customers about yourself, your experience, and why they can trust you.',
+    aboutHint: 'Say a quick introduction about yourself to the Gisugo community. This is what other users will read on your profile.',
     backgroundOptional: 'User Background (Optional)',
     dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
@@ -81,7 +81,7 @@ const SIGNUP_I18N = {
     confirmPasswordLabel: 'Confirm Password *',
     nameLockNote: "⚠️ Enter your real name correctly — it can't be changed later without admin approval.",
     phoneLabel: 'Phone Number *',
-    phoneNote: '📞 Required. Customers use this to contact you when you apply for or are hired for a gig.',
+    phoneNote: '📞 Required. Gisugo customers can only contact workers with phone numbers.',
     phoneConsent: 'By continuing, you agree your phone number may be shared with a customer when you apply for or are hired for their gig.',
     emailOptionalLabel: 'Email Address (Optional)'
   },
@@ -105,7 +105,7 @@ const SIGNUP_I18N = {
     fullNameLabel: 'Full Name *',
     aboutMe: 'About Me',
     summaryLabel: 'Introduction & Summary *',
-    aboutHint: 'Isulti sa potential customers ang imong background, experience, ug ngano kasaligan ka.',
+    aboutHint: 'Magsulti og mubo nga introduction bahin nimo para sa Gisugo community. Mao ni ang basahon sa ubang users sa imong profile.',
     backgroundOptional: 'User Background (Optional)',
     dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
@@ -129,7 +129,7 @@ const SIGNUP_I18N = {
     confirmPasswordLabel: 'Kumpirmaha ang Password *',
     nameLockNote: '⚠️ Isulat ug tama ang tinuod nimong ngalan — dili na ni mausab human mag-sign up gawas kung aprobahan sa admin.',
     phoneLabel: 'Phone Number *',
-    phoneNote: '📞 Kinahanglan. Gamiton kini sa customer aron kontakon ka kung mo-apply ka o na-hire para sa gig.',
+    phoneNote: '📞 Kinahanglan. Ang mga customer sa Gisugo makakontak ra sa mga worker nga naay phone number.',
     phoneConsent: 'Sa pagpadayon, mouyon ka nga ang imong phone number mahimong i-share sa customer kung mo-apply ka o na-hire para sa ilang gig.',
     emailOptionalLabel: 'Email Address (Opsyonal)'
   },
@@ -153,7 +153,7 @@ const SIGNUP_I18N = {
     fullNameLabel: 'Full Name *',
     aboutMe: 'About Me',
     summaryLabel: 'Introduction & Summary *',
-    aboutHint: 'Sabihin sa potential customers ang tungkol sa iyo, experience mo, at bakit ka mapagkakatiwalaan.',
+    aboutHint: 'Maglagay ng maikling introduction tungkol sa iyo para sa Gisugo community. Ito ang babasahin ng ibang users sa profile mo.',
     backgroundOptional: 'User Background (Optional)',
     dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
@@ -177,7 +177,7 @@ const SIGNUP_I18N = {
     confirmPasswordLabel: 'Kumpirmahin ang Password *',
     nameLockNote: '⚠️ Ilagay nang tama ang totoong pangalan mo — hindi na ito mababago pagkatapos mag-sign up maliban kung aprubahan ng admin.',
     phoneLabel: 'Phone Number *',
-    phoneNote: '📞 Kailangan. Ginagamit ito ng customer para kontakin ka kapag nag-apply ka o na-hire para sa isang gig.',
+    phoneNote: '📞 Kailangan. Ang mga customer ng Gisugo ay makakakontak lang sa mga worker na may phone number.',
     phoneConsent: 'Sa pagpapatuloy, sumasang-ayon ka na maaaring ibahagi ang phone number mo sa isang customer kapag nag-apply ka o na-hire para sa kanilang gig.',
     emailOptionalLabel: 'Email Address (Opsyonal)'
   }
