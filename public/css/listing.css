@@ -1864,11 +1864,17 @@ body::-webkit-scrollbar {
 }
 
 .job-preview-card.pay-per-hour {
-  background: linear-gradient(135deg, #3f4f36 0%, #43543a 100%);
+  background: linear-gradient(160deg, #2f5f94 0%, #1e4a7a 55%, #16365c 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12),
+              0 2px 8px rgba(0,0,0,0.08),
+              inset 0 1px 0 rgba(186, 214, 245, 0.22);
 }
 
 .job-preview-card.pay-per-hour-alt {
-  background: linear-gradient(135deg, #35442d 0%, #394931 100%);
+  background: linear-gradient(160deg, #275384 0%, #1a3f68 55%, #122d4d 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12),
+              0 2px 8px rgba(0,0,0,0.08),
+              inset 0 1px 0 rgba(186, 214, 245, 0.18);
 }
 
 /* Hover states with glow effect */
@@ -1895,14 +1901,22 @@ body::-webkit-scrollbar {
 
 .job-preview-card.pay-per-hour:hover,
 .job-preview-card.pay-per-hour:focus {
-  background: linear-gradient(135deg, #4a5c41 0%, #4e6145 100%);
-  border-color: rgba(16,185,129,0.4);
+  background: linear-gradient(160deg, #3a6eaa 0%, #265890 55%, #1c4570 100%);
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2),
+              0 6px 20px rgba(37, 99, 235, 0.22),
+              0 0 30px rgba(37, 99, 235, 0.12),
+              inset 0 1px 0 rgba(186, 214, 245, 0.28);
 }
 
 .job-preview-card.pay-per-hour-alt:hover,
 .job-preview-card.pay-per-hour-alt:focus {
-  background: linear-gradient(135deg, #404f35 0%, #445439 100%);
-  border-color: rgba(16,185,129,0.4);
+  background: linear-gradient(160deg, #32629a 0%, #214e80 55%, #173a60 100%);
+  border-color: rgba(96, 165, 250, 0.45);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2),
+              0 6px 20px rgba(37, 99, 235, 0.22),
+              0 0 30px rgba(37, 99, 235, 0.12),
+              inset 0 1px 0 rgba(186, 214, 245, 0.24);
 }
 
 /* Active (pressed) state */
@@ -3099,11 +3113,11 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.pay-per-hour {
-    background: #3f4f36; /* Green for Per Hour */
+    background: linear-gradient(160deg, #2f5f94 0%, #1e4a7a 55%, #16365c 100%); /* Navy for Business */
   }
   
   .job-preview-card.pay-per-hour-alt {
-    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+    background: linear-gradient(160deg, #275384 0%, #1a3f68 55%, #122d4d 100%); /* Darker navy for consecutive Business */
   }
   
   .job-preview-card:hover, .job-preview-card:focus {
