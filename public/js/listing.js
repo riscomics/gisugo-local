@@ -1740,12 +1740,6 @@ function renderJobBatch(batchSize, headerSpacer) {
     PAGINATION.currentIndex + jobsToRender
   );
   
-  // Track pay type for consecutive styling (continue from last displayed job)
-  let previousPayType = PAGINATION.displayedJobs.length > 0 
-    ? PAGINATION.displayedJobs[PAGINATION.displayedJobs.length - 1].rate || 'Personal'
-    : null;
-  let consecutiveCount = 0;
-  
   // Determine if this is the initial load or a pagination batch
   const isInitialLoad = PAGINATION.displayedJobs.length === 0;
   
@@ -1756,16 +1750,9 @@ function renderJobBatch(batchSize, headerSpacer) {
   
   jobsToProcess.forEach((cardData) => {
     const currentPayType = cardData.rate || 'Personal';
-    
-    // Track consecutive cards of same pay type for subtle variations
-    if (currentPayType === previousPayType) {
-      consecutiveCount++;
-    } else {
-      consecutiveCount = 0;
-      previousPayType = currentPayType;
-    }
-    
-    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
+    // Alternate shade by feed position so Personal→Business still stripes.
+    const shadeIndex = PAGINATION.displayedJobs.length;
+    const jobCard = createJobPreviewCard(cardData, currentPayType, shadeIndex);
     
     const parent = headerSpacer.parentNode;
     const emptyState = document.getElementById('listingEmptyState');
@@ -2520,7 +2507,7 @@ function getCurrentCategory() {
 // }
 // ============================================================================
 
-function createJobPreviewCard(cardData, payType = 'Personal', consecutiveCount = 0) {
+function createJobPreviewCard(cardData, payType = 'Personal', shadeIndex = 0) {
   const cardElement = document.createElement('a');
   const safeTemplateUrl = sanitizeUrl(cardData.templateUrl, '#');
   cardElement.href = safeTemplateUrl;
@@ -2543,12 +2530,12 @@ function createJobPreviewCard(cardData, payType = 'Personal', consecutiveCount =
   cardElement.setAttribute('data-job-title', cardData.title || '');
   cardElement.setAttribute('data-job-description', cardData.title || ''); // Can be expanded
   
-  // Determine background class based on gig use type and consecutive count
+  // Type picks navy title vs not; shadeIndex stripes the shared slate body.
   let bgClass;
   if (payType === 'Business') {
-    bgClass = consecutiveCount % 2 === 0 ? 'pay-per-hour' : 'pay-per-hour-alt';
+    bgClass = shadeIndex % 2 === 0 ? 'pay-per-hour' : 'pay-per-hour-alt';
   } else {
-    bgClass = consecutiveCount % 2 === 0 ? 'pay-per-job' : 'pay-per-job-alt';
+    bgClass = shadeIndex % 2 === 0 ? 'pay-per-job' : 'pay-per-job-alt';
   }
   
   cardElement.className = `job-preview-card ${bgClass}`;
