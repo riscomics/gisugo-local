@@ -1870,17 +1870,17 @@ body::-webkit-scrollbar {
 }
 
 .job-preview-card.pay-per-hour {
-  background: linear-gradient(160deg, #1a3f68 0%, #122d4d 55%, #0c1e38 100%);
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   box-shadow: 0 4px 16px rgba(0,0,0,0.12),
               0 2px 8px rgba(0,0,0,0.08),
-              inset 0 1px 0 rgba(120, 150, 190, 0.12);
+              inset 0 1px 0 rgba(200, 210, 225, 0.12);
 }
 
 .job-preview-card.pay-per-hour-alt {
-  background: linear-gradient(160deg, #163556 0%, #0f2744 55%, #0a1a30 100%);
+  background: linear-gradient(180deg, #151a24 0%, #252e3c 100%);
   box-shadow: 0 4px 16px rgba(0,0,0,0.12),
               0 2px 8px rgba(0,0,0,0.08),
-              inset 0 1px 0 rgba(120, 150, 190, 0.1);
+              inset 0 1px 0 rgba(200, 210, 225, 0.1);
 }
 
 /* Hover states with glow effect */
@@ -1915,22 +1915,22 @@ body::-webkit-scrollbar {
 
 .job-preview-card.pay-per-hour:hover,
 .job-preview-card.pay-per-hour:focus {
-  background: linear-gradient(160deg, #1e4a7a 0%, #16365c 55%, #102848 100%);
+  background: linear-gradient(180deg, #1f2838 0%, #364153 100%);
   border-color: rgba(96, 165, 250, 0.28);
   box-shadow: 0 12px 40px rgba(0,0,0,0.2),
-              0 6px 20px rgba(14, 35, 68, 0.35),
-              0 0 30px rgba(14, 35, 68, 0.2),
-              inset 0 1px 0 rgba(120, 150, 190, 0.16);
+              0 6px 20px rgba(16,185,129,0.15),
+              0 0 30px rgba(16,185,129,0.1),
+              inset 0 1px 0 rgba(200, 210, 225, 0.16);
 }
 
 .job-preview-card.pay-per-hour-alt:hover,
 .job-preview-card.pay-per-hour-alt:focus {
-  background: linear-gradient(160deg, #1a4270 0%, #122d4d 55%, #0c2040 100%);
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
   border-color: rgba(96, 165, 250, 0.28);
   box-shadow: 0 12px 40px rgba(0,0,0,0.2),
-              0 6px 20px rgba(14, 35, 68, 0.35),
-              0 0 30px rgba(14, 35, 68, 0.2),
-              inset 0 1px 0 rgba(120, 150, 190, 0.14);
+              0 6px 20px rgba(16,185,129,0.15),
+              0 0 30px rgba(16,185,129,0.1),
+              inset 0 1px 0 rgba(200, 210, 225, 0.14);
 }
 
 /* Active (pressed) state */
@@ -3127,11 +3127,11 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.pay-per-hour {
-    background: linear-gradient(160deg, #1a3f68 0%, #122d4d 55%, #0c1e38 100%); /* Deep navy for Business */
+    background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%); /* Filter/header slate for Business */
   }
   
   .job-preview-card.pay-per-hour-alt {
-    background: linear-gradient(160deg, #163556 0%, #0f2744 55%, #0a1a30 100%); /* Darker navy for consecutive Business */
+    background: linear-gradient(180deg, #151a24 0%, #252e3c 100%); /* Darker filter slate for consecutive Business */
   }
   
   .job-preview-card:hover, .job-preview-card:focus {
