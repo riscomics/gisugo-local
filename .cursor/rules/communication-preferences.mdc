@@ -19,6 +19,15 @@ multiple-choice tool prompt. Do not use `AskQuestion` for this user. Instead:
 Always lead responses with a short "TLDR" line/section before the detailed explanation
 (explicitly requested, repeatedly).
 
+## Skip UI verification — ship immediately
+
+The user verifies live themselves. Do **not** run browser walkthroughs, computerUse
+recordings, or other long UI verification after a code change.
+
+After the work is done, **ship immediately** (Cloud: PR + squash-merge; Desktop:
+`scripts/ship-everything.ps1`). Do not wait for them to say Deploy. This is standing
+for every completed task (locked 2026-08-27).
+
 ## Location snapshot -> future listings feed (do not re-litigate this)
 
 The signup/profile GPS location capture (`ph-regions-geo.js`, `submitSignupLocation`,
