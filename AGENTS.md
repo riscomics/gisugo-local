@@ -62,6 +62,17 @@ There is **no lint config, no test suite, and no build**. As a syntax/build prox
 node --check functions/index.js
 ```
 
+### Skip UI verification — ship immediately (user verifies live)
+
+**Hard rule (2026-08-27):** Do **not** run browser walkthroughs, computerUse recordings, screenshot passes, or other long UI verification. The user verifies on production themselves.
+
+After the code change is done, **ship immediately** — do not wait for the user to say Deploy:
+
+- **CLOUD:** finish → PR → squash-merge yourself → *"Deployed — live in ~2 min."*
+- **DESKTOP:** run `scripts/ship-everything.ps1` → *"Deployed — live on https://gisugo.com now."*
+
+This is standing for every completed task. The production-data script rule above still applies when making auth/phone/count claims.
+
 ### Deploying to production
 
 > ⛔ **STOP — STEP 0 (MANDATORY, DO THIS FIRST). Detect your environment BEFORE any deploy action.**
@@ -109,7 +120,7 @@ Optional: `-Only hosting` / `-Only hosting,functions` to override auto target de
 
 Tell the user (one line): *"Deployed — live on https://gisugo.com now."* (git + Firebase synced)
 
-**Code changes only** (no deploy language): finish the work and say it's ready — wait for the user to say **Deploy**. Do not ship until then.
+**Every completed task ships.** Do not wait for the user to say Deploy. Skip browser verification — they check live themselves.
 
 Also see always-on rule: `.cursor/rules/deploy-means-ship.mdc`
 
@@ -117,13 +128,12 @@ Also see always-on rule: `.cursor/rules/deploy-means-ship.mdc`
 
 #### ☁️ CLOUD AGENT — ship procedure (ONLY when no local `firebase` CLI)
 
-**Deploy / go live** (including "deploy and merge") means: finish changes → open PR if needed →
+**Every completed task ships:** finish changes → open PR if needed →
 **squash and merge it yourself** → tell user *"Deployed — live in ~2 min."* Never push straight to
 `main` without a PR. **Never run `firebase deploy`** from the Cloud Agent environment (merge to
 `main` triggers GitHub Actions, which deploys).
 
-**Changes only** (no deploy language): open a PR when work is done; tell user they can say
-**Deploy** to go live. Do not merge.
+Do not wait for the user to say **Deploy**. Do not run browser / computerUse verification first.
 
 If merge fails (permissions, checks), say so in one line and give the PR link — that is the only case where the user may need to tap merge themselves.
 
