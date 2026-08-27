@@ -11,9 +11,10 @@
 //
 // ============================================================================
 
-// Launch feed bucket (Phase 11 keeper later). Hardcoded ON until Settings exists.
+// Launch feed bucket. Default ON. Settings writes launchBucketOn to
+// platform_settings/public; apply + listing read it via resolveLaunchFeedBucketOn().
 // ON: stay live; at 20 apps notify to review (no pause) and listing second sort.
-// OFF: pause + block apply at 10 (today's untested logic).
+// OFF: pause + block apply at 10.
 window.GisugoGigFeedPolicy = {
   launchBucketOn: true,
   bucketMinApps: 20,
@@ -32,6 +33,20 @@ function launchFeedBucketMinApps() {
 function maturePauseAtApps() {
   const n = Number(window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.maturePauseAt);
   return Number.isFinite(n) && n > 0 ? n : 10;
+}
+
+async function resolveLaunchFeedBucketOn() {
+  try {
+    if (typeof getPublicPlatformPolicy === 'function') {
+      const policy = await getPublicPlatformPolicy();
+      const on = !policy || policy.launchBucketOn !== false;
+      if (window.GisugoGigFeedPolicy) window.GisugoGigFeedPolicy.launchBucketOn = on;
+      return on;
+    }
+  } catch (_) {
+    // fail-open to hardcoded launch default
+  }
+  return isLaunchFeedBucketOn();
 }
 
 // ============================================================================
@@ -1019,6 +1034,41 @@ async function createJob(jobData) {
     }
     
     console.log('🎯 Final poster data:', { posterName, posterThumbnail });
+
+    const policy = await getPublicPlatformPolicy();
+    if (policy.suspendGigs) {
+      return {
+        success: false,
+        message: 'New gig posts are paused right now. Please try again later.'
+      };
+    }
+    const postedPrice = Number(jobData.priceOffer || jobData.paymentAmount);
+    if (Number.isFinite(postedPrice) && postedPrice > 0) {
+      if (postedPrice < policy.minGigPrice) {
+        return {
+          success: false,
+          message: `Payment amount must be at least ₱${policy.minGigPrice}.`
+        };
+      }
+      if (postedPrice > policy.maxGigPrice) {
+        return {
+          success: false,
+          message: `Payment amount cannot exceed ₱${policy.maxGigPrice}.`
+        };
+      }
+    }
+    if (policy.maxActiveGigs > 0) {
+      const activeSnap = await db.collection('jobs')
+        .where('posterId', '==', currentUser.uid)
+        .where('status', '==', 'active')
+        .get();
+      if (activeSnap.size >= policy.maxActiveGigs) {
+        return {
+          success: false,
+          message: `You already have ${policy.maxActiveGigs} active gigs. Close or complete one before posting another.`
+        };
+      }
+    }
     
     const jobDoc = {
       // Basic Job Information
@@ -1442,6 +1492,23 @@ async function updateJob(jobId, jobData) {
       console.log(`⚠️ Invalid category provided, resolved to: ${finalCategory}`);
     }
     
+    const policy = await getPublicPlatformPolicy();
+    const postedPrice = Number(jobData.priceOffer || jobData.paymentAmount);
+    if (Number.isFinite(postedPrice) && postedPrice > 0) {
+      if (postedPrice < policy.minGigPrice) {
+        return {
+          success: false,
+          message: `Payment amount must be at least ₱${policy.minGigPrice}.`
+        };
+      }
+      if (postedPrice > policy.maxGigPrice) {
+        return {
+          success: false,
+          message: `Payment amount cannot exceed ₱${policy.maxGigPrice}.`
+        };
+      }
+    }
+
     const updateData = {
       title: jobData.title || '',
       description: jobData.description || '',
@@ -2113,8 +2180,9 @@ async function applyForJob(jobId, applicationData) {
     
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
     
+    const launchFeedOn = await resolveLaunchFeedBucketOn();
     // Mature mode only: block apply at the pause cap. Launch bucket stays live.
-    if (!isLaunchFeedBucketOn() && totalPendingApplications >= maturePauseAtApps()) {
+    if (!launchFeedOn && totalPendingApplications >= maturePauseAtApps()) {
       console.warn('🛑 Gig has reached maximum applications — paused (mature mode)');
       return {
         success: false,
@@ -2277,7 +2345,7 @@ async function applyForJob(jobId, applicationData) {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
-        } else if (isLaunchFeedBucketOn() && newTotalApplications === launchFeedBucketMinApps()) {
+        } else if (launchFeedOn && newTotalApplications === launchFeedBucketMinApps()) {
           const deletePromises = existingNotifSnapshot.docs.map((doc) => db.collection('notifications').doc(doc.id).delete());
           await Promise.all(deletePromises);
           await createNotification(job.posterId, {
@@ -2287,7 +2355,7 @@ async function applyForJob(jobId, applicationData) {
             message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
             actionRequired: true
           });
-        } else if (!isLaunchFeedBucketOn() && newTotalApplications === maturePauseAtApps()) {
+        } else if (!launchFeedOn && newTotalApplications === maturePauseAtApps()) {
           await db.collection('jobs').doc(jobId).update({
             status: 'paused',
             pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -5304,6 +5372,103 @@ window.getPlatformBroadcastsForUser = getPlatformBroadcastsForUser;
 // them here fixes the cross-browser-consistency bug, it does not make them
 // functional. See docs/V1_HARDENING_TASKLIST.md Phase 5.
 const PLATFORM_SETTINGS_DOC_PATH = ['platform_settings', 'general'];
+const PLATFORM_SETTINGS_PUBLIC_DOC_PATH = ['platform_settings', 'public'];
+const SAFE_PUBLIC_PLATFORM_POLICY = {
+  suspendGigs: false,
+  suspendMessages: false,
+  techDifficulties: false,
+  techWarningTitle: '',
+  techWarningMessage: '',
+  techWarningSeverity: 'medium',
+  techWarningEta: '',
+  maintenanceMode: false,
+  maintenanceResumeTime: '',
+  maintenanceTitle: '',
+  maintenanceMessage: '',
+  maintenanceStartTime: '',
+  maintenanceEndTime: '',
+  maintenanceContact: '',
+  allowRegistration: true,
+  maxActiveGigs: 0,
+  minGigPrice: 50,
+  maxGigPrice: 100000,
+  launchBucketOn: true
+};
+let _publicPlatformPolicyCache = { at: 0, value: null };
+
+function buildPublicPlatformPolicy(settings = {}) {
+  const src = settings && typeof settings === 'object' ? settings : {};
+  const maxActive = Number(src.maxActiveGigs);
+  const minPrice = Number(src.minGigPrice);
+  const maxPrice = Number(src.maxGigPrice);
+  return {
+    suspendGigs: src.suspendGigs === true,
+    suspendMessages: src.suspendMessages === true,
+    techDifficulties: src.techDifficulties === true,
+    techWarningTitle: String(src.techWarningTitle || ''),
+    techWarningMessage: String(src.techWarningMessage || ''),
+    techWarningSeverity: String(src.techWarningSeverity || 'medium'),
+    techWarningEta: String(src.techWarningEta || ''),
+    maintenanceMode: src.maintenanceMode === true,
+    maintenanceResumeTime: String(src.maintenanceResumeTime || ''),
+    maintenanceTitle: String(src.maintenanceTitle || ''),
+    maintenanceMessage: String(src.maintenanceMessage || ''),
+    maintenanceStartTime: String(src.maintenanceStartTime || ''),
+    maintenanceEndTime: String(src.maintenanceEndTime || ''),
+    maintenanceContact: String(src.maintenanceContact || ''),
+    allowRegistration: src.allowRegistration !== false,
+    maxActiveGigs: Number.isFinite(maxActive) && maxActive > 0 ? maxActive : 0,
+    minGigPrice: Number.isFinite(minPrice) && minPrice >= 0 ? minPrice : 50,
+    maxGigPrice: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : 100000,
+    launchBucketOn: src.launchBucketOn !== false
+  };
+}
+
+function invalidatePublicPlatformPolicyCache() {
+  _publicPlatformPolicyCache = { at: 0, value: null };
+}
+
+async function syncPublicPlatformPolicy(settings) {
+  const db = getFirestore();
+  if (!db) return false;
+  const publicPolicy = buildPublicPlatformPolicy(settings);
+  await db.collection(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[0])
+    .doc(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[1])
+    .set({
+      ...publicPolicy,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: false });
+  _publicPlatformPolicyCache = { at: Date.now(), value: publicPolicy };
+  return true;
+}
+
+/**
+ * Public keeper flags for the live site. Fail-open to SAFE_PUBLIC_PLATFORM_POLICY
+ * when the doc is missing or the read fails (never lock the site on a blip).
+ */
+async function getPublicPlatformPolicy() {
+  const cached = _publicPlatformPolicyCache;
+  if (cached.value && (Date.now() - cached.at) < 15000) {
+    return { ...cached.value };
+  }
+  const db = getFirestore();
+  if (!db) return { ...SAFE_PUBLIC_PLATFORM_POLICY };
+  try {
+    const ref = db.collection(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[0])
+      .doc(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[1]);
+    const snap = await ref.get({ source: 'server' });
+    if (!snap.exists) {
+      _publicPlatformPolicyCache = { at: Date.now(), value: { ...SAFE_PUBLIC_PLATFORM_POLICY } };
+      return { ...SAFE_PUBLIC_PLATFORM_POLICY };
+    }
+    const policy = buildPublicPlatformPolicy(snap.data() || {});
+    _publicPlatformPolicyCache = { at: Date.now(), value: policy };
+    return { ...policy };
+  } catch (error) {
+    console.warn('⚠️ Public platform policy read failed (fail-open):', error && error.message ? error.message : error);
+    return { ...SAFE_PUBLIC_PLATFORM_POLICY };
+  }
+}
 
 /**
  * Read the shared platform settings doc. If it doesn't exist yet (first ever
@@ -5363,6 +5528,11 @@ async function savePlatformSettings(settings) {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: firebase.auth().currentUser ? firebase.auth().currentUser.uid : null
     }, { merge: false });
+    try {
+      await syncPublicPlatformPolicy(settings);
+    } catch (publicError) {
+      console.error('❌ Failed to sync public platform policy:', publicError);
+    }
     return true;
   } catch (error) {
     console.error('❌ Error saving platform settings:', error);
@@ -5372,6 +5542,10 @@ async function savePlatformSettings(settings) {
 
 window.getPlatformSettings = getPlatformSettings;
 window.savePlatformSettings = savePlatformSettings;
+window.getPublicPlatformPolicy = getPublicPlatformPolicy;
+window.buildPublicPlatformPolicy = buildPublicPlatformPolicy;
+window.syncPublicPlatformPolicy = syncPublicPlatformPolicy;
+window.invalidatePublicPlatformPolicyCache = invalidatePublicPlatformPolicyCache;
 
 // Ad Placement (Phase 6) — one public config doc. One-shot .get(), no
 // listener. Public read (category pages are logged-out). Write is isAdmin().

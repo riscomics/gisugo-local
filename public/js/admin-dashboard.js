@@ -7073,15 +7073,30 @@ const DEFAULT_SETTINGS = {
     techDifficulties: false,
     maintenanceMode: false,
     maintenanceResumeTime: '',
+    techWarningTitle: '',
+    techWarningMessage: '',
+    techWarningSeverity: 'medium',
+    techWarningEta: '',
+    maintenanceTitle: '',
+    maintenanceMessage: '',
+    maintenanceStartTime: '',
+    maintenanceEndTime: '',
+    maintenanceContact: '',
 
     // User Management
     allowRegistration: true,
 
     // Gig Moderation
-    maxActiveGigs: 10,
+    maxActiveGigs: 0,
     minGigPrice: 50,
-    maxGigPrice: 100000
+    maxGigPrice: 10000,
+    launchBucketOn: true
 };
+const SETTINGS_COMPOSER_KEYS = [
+    'techWarningTitle', 'techWarningMessage', 'techWarningSeverity', 'techWarningEta',
+    'maintenanceTitle', 'maintenanceMessage', 'maintenanceStartTime', 'maintenanceEndTime', 'maintenanceContact'
+];
+let loadedSettingsComposer = {};
 
 async function initializeSystemSettings() {
     console.log('⚙️ Initializing System Settings...');
@@ -7161,6 +7176,12 @@ function initializeCollapsibleCategories() {
 // return false) if Firestore is unreachable so this never blocks dashboard load.
 async function loadSettings() {
     const settings = await getPlatformSettings(DEFAULT_SETTINGS);
+    SETTINGS_COMPOSER_KEYS.forEach((key) => {
+        loadedSettingsComposer[key] = settings[key] != null ? settings[key] : DEFAULT_SETTINGS[key];
+    });
+    if (typeof syncPublicPlatformPolicy === 'function') {
+        try { await syncPublicPlatformPolicy(settings); } catch (_) {}
+    }
 
     // Apply settings to form elements
     Object.keys(DEFAULT_SETTINGS).forEach(key => {
@@ -7191,6 +7212,10 @@ function saveSettings() {
             
             // Collect all settings from form elements
             Object.keys(DEFAULT_SETTINGS).forEach(key => {
+                if (SETTINGS_COMPOSER_KEYS.includes(key)) {
+                    settings[key] = loadedSettingsComposer[key] != null ? loadedSettingsComposer[key] : DEFAULT_SETTINGS[key];
+                    return;
+                }
                 const element = document.getElementById(key);
                 if (!element) return;
                 
@@ -7470,6 +7495,11 @@ function initializeTechWarningComposer() {
             };
             
             saveTechWarningData(warningData);
+            loadedSettingsComposer.techWarningTitle = warningData.title || '';
+            loadedSettingsComposer.techWarningMessage = warningData.message || '';
+            loadedSettingsComposer.techWarningSeverity = warningData.severity || 'medium';
+            loadedSettingsComposer.techWarningEta = warningData.eta || '';
+            persistComposerSettingsToFirestore();
             
             // Show success feedback
             const originalText = saveBtn.innerHTML;
@@ -7537,6 +7567,26 @@ function updateCharCounter(input, counter, maxLength) {
     }
 }
 
+async function persistComposerSettingsToFirestore() {
+    try {
+        const current = await getPlatformSettings(DEFAULT_SETTINGS);
+        const merged = { ...DEFAULT_SETTINGS, ...current, ...loadedSettingsComposer };
+        const launchEl = document.getElementById('launchBucketOn');
+        if (launchEl) merged.launchBucketOn = launchEl.checked;
+        const formKeys = Object.keys(DEFAULT_SETTINGS).filter((key) => !SETTINGS_COMPOSER_KEYS.includes(key));
+        formKeys.forEach((key) => {
+            const element = document.getElementById(key);
+            if (!element) return;
+            if (element.type === 'checkbox') merged[key] = element.checked;
+            else if (element.type === 'number') merged[key] = parseFloat(element.value) || 0;
+            else if (element.type === 'text' || element.type === 'datetime-local') merged[key] = element.value;
+        });
+        await savePlatformSettings(merged);
+    } catch (error) {
+        console.warn('⚠️ Could not persist composer copy to Firestore:', error);
+    }
+}
+
 // Save technical warning data to localStorage
 function saveTechWarningData(data) {
     localStorage.setItem('techWarningData', JSON.stringify(data));
@@ -7544,6 +7594,14 @@ function saveTechWarningData(data) {
 
 // Load technical warning data from localStorage
 function loadTechWarningData() {
+    if (loadedSettingsComposer.techWarningTitle || loadedSettingsComposer.techWarningMessage) {
+        return {
+            title: loadedSettingsComposer.techWarningTitle,
+            message: loadedSettingsComposer.techWarningMessage,
+            severity: loadedSettingsComposer.techWarningSeverity || 'medium',
+            eta: loadedSettingsComposer.techWarningEta || ''
+        };
+    }
     const saved = localStorage.getItem('techWarningData');
     return saved ? JSON.parse(saved) : null;
 }
@@ -7690,6 +7748,12 @@ function initializeMaintenanceComposer() {
             };
             
             saveMaintenanceData(maintenanceData);
+            loadedSettingsComposer.maintenanceTitle = maintenanceData.title || '';
+            loadedSettingsComposer.maintenanceMessage = maintenanceData.message || '';
+            loadedSettingsComposer.maintenanceStartTime = maintenanceData.startTime || '';
+            loadedSettingsComposer.maintenanceEndTime = maintenanceData.endTime || '';
+            loadedSettingsComposer.maintenanceContact = maintenanceData.contact || '';
+            persistComposerSettingsToFirestore();
             
             // Show success feedback
             const originalText = saveBtn.innerHTML;
@@ -7767,6 +7831,15 @@ function saveMaintenanceData(data) {
 
 // Load maintenance data from localStorage
 function loadMaintenanceData() {
+    if (loadedSettingsComposer.maintenanceTitle || loadedSettingsComposer.maintenanceMessage) {
+        return {
+            title: loadedSettingsComposer.maintenanceTitle,
+            message: loadedSettingsComposer.maintenanceMessage,
+            startTime: loadedSettingsComposer.maintenanceStartTime || '',
+            endTime: loadedSettingsComposer.maintenanceEndTime || '',
+            contact: loadedSettingsComposer.maintenanceContact || ''
+        };
+    }
     const saved = localStorage.getItem('maintenanceData');
     return saved ? JSON.parse(saved) : null;
 }

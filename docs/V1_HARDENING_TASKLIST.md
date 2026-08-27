@@ -117,7 +117,7 @@ See `AGENTS.md` § "verify production data."
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
 (Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness **live 2026-08-25.** Owner Ban test deferred (after dummy-account deletes right before launch, or when you choose). **Phase 11 hide pass live 2026-08-26;** keepers still unwired.
+**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness **live 2026-08-25.** Owner Ban test deferred (after dummy-account deletes right before launch, or when you choose). **Phase 11 hide pass live 2026-08-26;** keepers wired locally 2026-08-27 (Deploy to go live).
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -132,7 +132,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban = Auth disable + phone banlist/uniqueness. Ban test deferred. Permaban IP later. | Ch 1–5 live; Ban test + sunset + dummy delete still open |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
-| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. Includes launch-feed bucket ON/OFF (web feature before the switch). | Hide pass live 2026-08-26; keepers still unwired |
+| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. Includes launch-feed bucket ON/OFF (web feature before the switch). | Keepers wired 2026-08-27 (not live until Deploy) |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
@@ -494,24 +494,19 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       save-only — not enforced. Composers still write `localStorage` until
       their wire step. Do not reopen Phase 5.
       **Keep + wire (one at a time):**
-      1. **[ ] Suspend new gig posts** on `new-post2` + why notice.
-      2. **[ ] Pause Support write** + why notice.
-      3. **[ ] Tech-difficulties warning** + compose (public banner; Firestore).
-      4. **[ ] Maintenance mode** + compose + resume time (public cover; Firestore).
-      5. **[ ] Pause new registration.**
-      6. **[ ] Max active gigs** (`0` = no cap).
-      7. **[ ] Min gig price ₱** (live default 50; Settings owns the number).
-      8. **[ ] Max gig price ₱** (live default 100000).
-      9. **[ ] Launch feed bucket (web feature first, then Settings).** Web ON
-         path built 2026-08-27 (hardcoded ON; Settings switch still later). Simple
-         ON/OFF. **ON (launch):** gigs stay live; at **20** apps they leave the
-         default due-date feed for a second due-date sort; customer still gets
-         “review applications,” not paused/off-market. **OFF (mature):** today’s
-         pause-at-**10** + force-review. Retune 20 later = code + Deploy, not a
-         number field. Build both behaviors on web **before** the Settings row
-         (no dead switch). Before native starts. Do not implement pause-at-10
-         in Expo.
-      10. **[ ] Leftover audit** after the last keeper. Drop the “not enforced” banner.
+      1. **[x] Suspend new gig posts** on `new-post2` + why notice (2026-08-27).
+      2. **[x] Pause Support write** + why notice (2026-08-27).
+      3. **[x] Tech-difficulties warning** + compose (public banner; Firestore).
+      4. **[x] Maintenance mode** + compose + resume time (public cover; Firestore).
+      5. **[x] Pause new registration.**
+      6. **[x] Max active gigs** (`0` = no cap).
+      7. **[x] Min gig price ₱** (Settings owns the number).
+      8. **[x] Max gig price ₱**
+      9. **[x] Launch feed bucket Settings ON/OFF** (feature was already live
+         hardcoded ON; switch now reads `platform_settings/public`).
+      10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
+         Composers persist to Firestore + public policy. Login / admin-dashboard
+         never get the maintenance cover. Policy read fails open.
 - [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
       Do this **after remaining product phases are done**, immediately **before** the full-platform
       test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until

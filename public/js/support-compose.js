@@ -384,6 +384,15 @@
   async function handleComposeSubmit(event) {
     if (event) event.preventDefault();
     if (isSubmitting) return;
+    if (typeof getPublicPlatformPolicy === 'function') {
+      try {
+        const policy = await getPublicPlatformPolicy();
+        if (policy && policy.suspendMessages) {
+          showComposeStatus('error', 'Support paused', 'Support messages are paused right now. Please try again later.');
+          return;
+        }
+      } catch (_) {}
+    }
     if (!validateComposeForm()) {
       showComposeStatus('error', 'Check the form', 'Please fix the highlighted fields and try again.');
       return;
@@ -585,7 +594,18 @@
 
     document.getElementById('closeComposeModal')?.addEventListener('click', () => closeSupportComposeModal());
     document.getElementById('cancelComposeBtn')?.addEventListener('click', () => closeSupportComposeModal());
-    document.getElementById('openSupportComposeBtn')?.addEventListener('click', () => openSupportComposeModal());
+    document.getElementById('openSupportComposeBtn')?.addEventListener('click', async () => {
+      if (typeof getPublicPlatformPolicy === 'function') {
+        try {
+          const policy = await getPublicPlatformPolicy();
+          if (policy && policy.suspendMessages) {
+            showComposeStatus('error', 'Support paused', 'Support messages are paused right now. You can still read your tickets.');
+            return;
+          }
+        } catch (_) {}
+      }
+      openSupportComposeModal();
+    });
     document.getElementById('composeStatusOkBtn')?.addEventListener('click', () => {
       const overlay = document.getElementById('composeStatusOverlay');
       const wasSuccess = overlay && overlay.dataset.kind === 'success';

@@ -63,36 +63,75 @@ const DEFAULT_SETTINGS = {
   techDifficulties: false,
   maintenanceMode: false,
   maintenanceResumeTime: '',
+  techWarningTitle: '',
+  techWarningMessage: '',
+  techWarningSeverity: 'medium',
+  techWarningEta: '',
+  maintenanceTitle: '',
+  maintenanceMessage: '',
+  maintenanceStartTime: '',
+  maintenanceEndTime: '',
+  maintenanceContact: '',
   allowRegistration: true,
-  maxActiveGigs: 10,
+  maxActiveGigs: 0,
   minGigPrice: 50,
-  maxGigPrice: 100000
+  maxGigPrice: 10000,
+  launchBucketOn: true
 };
 
 async function main() {
   const ref = db.collection('platform_settings').doc('general');
   const snap = await ref.get();
 
-  if (snap.exists) {
-    console.log('ℹ️  platform_settings/general already exists -- nothing to seed. Current data:');
-    console.log(JSON.stringify(snap.data(), null, 2));
-    return;
+  let generalData = snap.exists ? snap.data() : null;
+  if (!snap.exists) {
+    console.log(apply ? '✏️  Seeding platform_settings/general with defaults...' : '🔍 DRY RUN -- would seed platform_settings/general with:');
+    console.log(JSON.stringify(DEFAULT_SETTINGS, null, 2));
+    if (apply) {
+      await ref.set({
+        ...DEFAULT_SETTINGS,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedBy: 'seed-script'
+      });
+      generalData = DEFAULT_SETTINGS;
+      console.log('✅ Seeded platform_settings/general.');
+    }
+  } else {
+    console.log('ℹ️  platform_settings/general already exists.');
   }
 
-  console.log(apply ? '✏️  Seeding platform_settings/general with defaults...' : '🔍 DRY RUN -- would seed platform_settings/general with:');
-  console.log(JSON.stringify(DEFAULT_SETTINGS, null, 2));
+  const publicPayload = {
+    suspendGigs: !!(generalData && generalData.suspendGigs),
+    suspendMessages: !!(generalData && generalData.suspendMessages),
+    techDifficulties: !!(generalData && generalData.techDifficulties),
+    techWarningTitle: String((generalData && generalData.techWarningTitle) || ''),
+    techWarningMessage: String((generalData && generalData.techWarningMessage) || ''),
+    techWarningSeverity: String((generalData && generalData.techWarningSeverity) || 'medium'),
+    techWarningEta: String((generalData && generalData.techWarningEta) || ''),
+    maintenanceMode: !!(generalData && generalData.maintenanceMode),
+    maintenanceResumeTime: String((generalData && generalData.maintenanceResumeTime) || ''),
+    maintenanceTitle: String((generalData && generalData.maintenanceTitle) || ''),
+    maintenanceMessage: String((generalData && generalData.maintenanceMessage) || ''),
+    maintenanceStartTime: String((generalData && generalData.maintenanceStartTime) || ''),
+    maintenanceEndTime: String((generalData && generalData.maintenanceEndTime) || ''),
+    maintenanceContact: String((generalData && generalData.maintenanceContact) || ''),
+    allowRegistration: !generalData || generalData.allowRegistration !== false,
+    maxActiveGigs: Number(generalData && generalData.maxActiveGigs) > 0 ? Number(generalData.maxActiveGigs) : 0,
+    minGigPrice: Number(generalData && generalData.minGigPrice) >= 0 ? Number(generalData.minGigPrice) : 50,
+    maxGigPrice: Number(generalData && generalData.maxGigPrice) > 0 ? Number(generalData.maxGigPrice) : 100000,
+    launchBucketOn: !generalData || generalData.launchBucketOn !== false,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
 
   if (!apply) {
+    console.log('🔍 DRY RUN -- would write platform_settings/public:');
+    console.log(JSON.stringify({ ...publicPayload, updatedAt: '(server timestamp)' }, null, 2));
     console.log('\nRe-run with --apply to write this for real.');
     return;
   }
 
-  await ref.set({
-    ...DEFAULT_SETTINGS,
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedBy: 'seed-script'
-  });
-  console.log('✅ Seeded platform_settings/general.');
+  await db.collection('platform_settings').doc('public').set(publicPayload, { merge: false });
+  console.log('✅ Synced platform_settings/public.');
 }
 
 main()

@@ -32,6 +32,19 @@ admin.initializeApp();
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
+
+async function readPublicPlatformPolicySafe() {
+  try {
+    const snap = await db.collection("platform_settings").doc("public").get();
+    if (!snap.exists) return null;
+    return snap.data() || null;
+  } catch (error) {
+    logger.warn("Public platform policy read failed (fail-open)", {
+      message: error && error.message ? error.message : String(error)
+    });
+    return null;
+  }
+}
 const execFileAsync = promisify(execFile);
 const FACE_MEDIA_URL_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const FV_NORMALIZER_VERSION = "fv-normalizer-v1";
@@ -510,6 +523,16 @@ function normalizeFingerprint(value) {
 exports.checkSignupRateLimit = onCall(
   { region: "asia-southeast1", cors: true },
   async (request) => {
+    const publicPolicy = await readPublicPlatformPolicySafe();
+    if (publicPolicy && publicPolicy.allowRegistration === false) {
+      return {
+        allowed: false,
+        retryAfterSec: 0,
+        reason: "registration_paused",
+        message: "New registration is paused right now. Existing accounts can still log in."
+      };
+    }
+
     const now = Date.now();
     const ip = getCallerIp(request);
     const deviceFingerprint = normalizeFingerprint(request.data?.deviceFingerprint);
@@ -2605,6 +2628,14 @@ exports.appendSupportUserMessage = onCall(
     const uid = request.auth?.uid || "";
     if (!uid) {
       throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const publicPolicy = await readPublicPlatformPolicySafe();
+    if (publicPolicy && publicPolicy.suspendMessages === true) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Support messages are paused right now. Please try again later."
+      );
     }
 
     const requestId = String(request.data?.requestId || "").trim();

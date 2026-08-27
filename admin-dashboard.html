@@ -3088,9 +3088,8 @@
                     <h1 class="section-title">System Settings</h1>
                     <p class="section-subtitle">Configure platform settings and features</p>
                     <div class="settings-enforcement-notice">
-                        <span class="settings-enforcement-icon">⚠️</span>
-                        <span>These controls save to the database. They are not enforced on the live site
-                        yet — we will wire them one at a time.</span>
+                        <span class="settings-enforcement-icon">🟢</span>
+                        <span>These controls are live. Save to apply them to the website (and later the native app).</span>
                     </div>
                 </div>
                 
@@ -3210,7 +3209,7 @@
                                     <label class="setting-label">Maximum Active Gigs Per User</label>
                                     <span class="setting-description">Cap concurrent live gigs. 0 = no cap</span>
                                 </div>
-                                <input type="number" id="maxActiveGigs" class="setting-input" value="10" min="0" step="1">
+                                <input type="number" id="maxActiveGigs" class="setting-input" value="0" min="0" step="1">
                             </div>
                             
                             <div class="setting-row">
@@ -3224,9 +3223,20 @@
                             <div class="setting-row">
                                 <div class="setting-info">
                                     <label class="setting-label">Maximum Gig Price (₱)</label>
-                                    <span class="setting-description">Ceiling price for new posts (matches live ₱100,000 default)</span>
+                                    <span class="setting-description">Ceiling price for new posts (matches live ₱10,000 default)</span>
                                 </div>
-                                <input type="number" id="maxGigPrice" class="setting-input" value="100000" min="1" step="100">
+                                <input type="number" id="maxGigPrice" class="setting-input" value="10000" min="1" step="100">
+                            </div>
+
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Launch feed bucket</label>
+                                    <span class="setting-description">ON: stay live; 20+ apps move to High interest. OFF: pause and block apply at 10</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="launchBucketOn" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -3439,7 +3449,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js?v=20260821ga"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=21"></script>
+    <script src="public/js/firebase-db.js?v=71"></script>
     <script src="public/js/firebase-storage.js"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     
@@ -3451,7 +3461,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=32"></script>
+    <script src="public/js/admin-dashboard.js?v=34"></script>
     
     
 </body>

@@ -46,7 +46,12 @@ const SHARED_MENU_DEPENDENCY_SCRIPTS = [
   {
     key: 'firebase-db',
     match: 'public/js/firebase-db.js',
-    src: 'public/js/firebase-db.js?v=31'
+    src: 'public/js/firebase-db.js?v=71'
+  },
+  {
+    key: 'platform-policy',
+    match: 'public/js/platform-policy.js',
+    src: 'public/js/platform-policy.js?v=1'
   },
   {
     key: 'firebase-auth-helper',

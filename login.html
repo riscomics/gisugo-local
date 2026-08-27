@@ -856,8 +856,8 @@
   <!-- OAuth debug panel removed 2026-07-14 (kept at public/js/oauth-debug-panel.js;
        restore steps in docs/V1_HARDENING_TASKLIST.md Track G) -->
   <script src="public/js/firebase-config.js?v=20260821ga"></script>
-  <script src="public/js/firebase-auth.js?v=42"></script>
-  <script src="public/js/firebase-db.js"></script>
+  <script src="public/js/firebase-auth.js?v=44"></script>
+  <script src="public/js/firebase-db.js?v=71"></script>
   <script src="public/js/firebase-storage.js"></script>
   
   <script>
@@ -867,6 +867,11 @@
       const loadingText = document.getElementById('loadingText');
       const googleSignInBtn = document.getElementById('googleSignInBtn');
       const facebookSignInBtn = document.getElementById('facebookSignInBtn');
+      try {
+        if (new URLSearchParams(window.location.search).get('registration') === 'paused') {
+          showError('login', 'New registration is paused right now. Existing accounts can still log in.');
+        }
+      } catch (_) {}
       
       // Function to show friendly welcome animation
       function showWelcomeAnimation() {

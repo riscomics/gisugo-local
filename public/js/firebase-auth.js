@@ -1598,6 +1598,19 @@ async function logout() {
  * @returns {Promise<void>}
  */
 async function createUserProfile(userId, profileData) {
+  if (typeof getPublicPlatformPolicy === 'function') {
+    try {
+      const policy = await getPublicPlatformPolicy();
+      if (policy && policy.allowRegistration === false) {
+        throw new Error('New registration is paused right now. Existing accounts can still log in.');
+      }
+    } catch (policyError) {
+      if (policyError && /registration is paused/i.test(policyError.message || '')) {
+        throw policyError;
+      }
+    }
+  }
+
   const db = getFirestore();
   
   if (!db) {
@@ -2138,7 +2151,7 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
   }
   if (known === false) {
     gisugoAuthLog('handleAuthRedirect: no profile (write probe) -> go sign-up');
-    routeAuthedUserToSignup(user, signupRedirect);
+    await routeAuthedUserToSignup(user, signupRedirect);
     return;
   }
 
@@ -2164,7 +2177,7 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
     window.location.href = defaultRedirect;
   } else {
     gisugoAuthLog('handleAuthRedirect: go sign-up');
-    routeAuthedUserToSignup(user, signupRedirect);
+    await routeAuthedUserToSignup(user, signupRedirect);
   }
 }
 
@@ -2172,7 +2185,18 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
  * Stash the authenticated user's info for the sign-up page to prefill, then send
  * them there to finish creating their profile.
  */
-function routeAuthedUserToSignup(user, signupRedirect) {
+async function routeAuthedUserToSignup(user, signupRedirect) {
+  try {
+    if (typeof getPublicPlatformPolicy === 'function') {
+      const policy = await getPublicPlatformPolicy();
+      if (policy && policy.allowRegistration === false) {
+        gisugoAuthLog('handleAuthRedirect: registration paused, sign out new user');
+        try { await firebase.auth().signOut(); } catch (e) {}
+        window.location.href = 'login.html?registration=paused';
+        return;
+      }
+    }
+  } catch (e) {}
   try {
     sessionStorage.setItem('gisugo_pending_auth', JSON.stringify({
       uid: user.uid,

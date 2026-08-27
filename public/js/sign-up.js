@@ -387,6 +387,23 @@ document.addEventListener('DOMContentLoaded', async function() {
   initializePhonePasswordSignup();
   checkPendingAuth(); // Check if redirected from login with pending auth
   checkExistingAuthUser(); // Check if user is already authenticated
+  if (typeof getPublicPlatformPolicy === 'function') {
+    getPublicPlatformPolicy().then((policy) => {
+      if (!policy || policy.allowRegistration !== false) return;
+      const notice = document.createElement('div');
+      notice.style.cssText = 'margin:12px 16px;padding:14px;border-radius:12px;background:#7f1d1d;color:#fee2e2;border:1px solid #ef4444;font-weight:700;';
+      notice.textContent = 'New registration is paused right now. Existing accounts can still log in.';
+      const host = document.querySelector('form') || document.body;
+      host.parentNode.insertBefore(notice, host);
+      ['googleSignInBtn', 'facebookSignInBtn', 'phoneSignupToggleBtn'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+      });
+      document.querySelectorAll('#signupForm button[type="submit"], form button[type="submit"]').forEach((btn) => {
+        btn.disabled = true;
+      });
+    }).catch(() => {});
+  }
 
   // If a Facebook-app device login was mid-flight when this page (re)loaded
   // (e.g. returned from the FB app into a fresh tab), resume it.
@@ -1365,6 +1382,18 @@ async function handleFormSubmission(event) {
   // Show loading overlay
   showLoadingOverlay();
 
+  if (typeof getPublicPlatformPolicy === 'function') {
+    try {
+      const policy = await getPublicPlatformPolicy();
+      if (policy && policy.allowRegistration === false) {
+        hideLoadingOverlay();
+        isSigningUp = false;
+        showInputGuideHint('New registration is paused right now. Existing accounts can still log in.', 'REGISTRATION PAUSED', '⏸️');
+        return;
+      }
+    } catch (_) {}
+  }
+
   const rateLimit = await checkSignupRateLimitGuard();
   if (!rateLimit.allowed) {
     hideLoadingOverlay();
@@ -1573,7 +1602,14 @@ async function handleFormSubmission(event) {
 
         hideLoadingOverlay();
         isSigningUp = false;
-        showInputGuideHint('Failed to save your profile. Please try again.', 'SIGN UP FAILED', '⚠️');
+        const paused = /registration is paused/i.test((profileError && profileError.message) || '');
+        showInputGuideHint(
+          paused
+            ? 'New registration is paused right now. Existing accounts can still log in.'
+            : 'Failed to save your profile. Please try again.',
+          paused ? 'REGISTRATION PAUSED' : 'SIGN UP FAILED',
+          paused ? '⏸️' : '⚠️'
+        );
         return;
       }
     } else {

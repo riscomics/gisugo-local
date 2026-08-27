@@ -818,12 +818,18 @@ function validateCurrentStep() {
         showToast('Please enter a valid payment amount', 'error');
         return false;
       }
-      if (amount < 50) {
-        showToast('Payment amount must be at least ₱50', 'error');
+      const minPrice = window._gisugoPostPolicy && Number.isFinite(window._gisugoPostPolicy.minGigPrice)
+        ? window._gisugoPostPolicy.minGigPrice
+        : 50;
+      const maxPrice = window._gisugoPostPolicy && Number.isFinite(window._gisugoPostPolicy.maxGigPrice)
+        ? window._gisugoPostPolicy.maxGigPrice
+        : 100000;
+      if (amount < minPrice) {
+        showToast(`Payment amount must be at least ₱${minPrice}`, 'error');
         return false;
       }
-      if (amount > 100000) {
-        showToast('Payment amount cannot exceed ₱100,000', 'error');
+      if (amount > maxPrice) {
+        showToast(`Payment amount cannot exceed ₱${maxPrice}`, 'error');
         return false;
       }
       return true;
@@ -3437,8 +3443,31 @@ function initializeSuccessLangTabs() {
   console.log('🌐 Success language tabs initialized');
 }
 
+async function applyNewPostPolicyGates() {
+  if (typeof getPublicPlatformPolicy !== 'function') return;
+  try {
+    const policy = await getPublicPlatformPolicy();
+    window._gisugoPostPolicy = policy;
+    const params = new URLSearchParams(window.location.search);
+    const isEditOnly = !!params.get('edit') && !params.get('relist');
+    if (policy.suspendGigs && !isEditOnly) {
+      const notice = document.createElement('div');
+      notice.id = 'gisugoPostSuspendedNotice';
+      notice.style.cssText = 'margin:16px;padding:16px;border-radius:12px;background:#7f1d1d;color:#fee2e2;border:1px solid #ef4444;font-weight:700;';
+      notice.textContent = 'New gig posts are paused right now. You can still browse gigs. Please try again later.';
+      const host = document.querySelector('main') || document.body;
+      host.insertBefore(notice, host.firstChild);
+      document.querySelectorAll('button, input, select, textarea').forEach((el) => {
+        if (el.id === 'backBtn' || (el.closest && el.closest('header'))) return;
+        el.disabled = true;
+      });
+    }
+  } catch (_) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 ========== NEW POST 2 LOADING ==========');
+  applyNewPostPolicyGates();
   console.log('Current URL:', window.location.href);
   console.log('Initial state:', JSON.stringify(np2State, null, 2));
   

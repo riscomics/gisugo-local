@@ -13,6 +13,26 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+
+    // Phase 11 public keeper flags. Missing doc = fail-open (gates off).
+    function publicPolicyPath() {
+      return /databases/$(database)/documents/platform_settings/public;
+    }
+    function publicPolicyExists() {
+      return exists(publicPolicyPath());
+    }
+    function publicPolicy() {
+      return get(publicPolicyPath()).data;
+    }
+    function isGigPostingSuspended() {
+      return publicPolicyExists() && publicPolicy().suspendGigs == true;
+    }
+    function isSupportWritePaused() {
+      return publicPolicyExists() && publicPolicy().suspendMessages == true;
+    }
+    function isRegistrationPaused() {
+      return publicPolicyExists() && publicPolicy().allowRegistration == false;
+    }
     
     // Check if user is the owner of a resource
     function isOwner(userId) {
@@ -207,7 +227,8 @@ service cloud.firestore {
       allow create: if isAuthenticated() 
         && request.auth.uid == userId 
         && isValidProfile()
-        && request.resource.data.userId == userId;
+        && request.resource.data.userId == userId
+        && !isRegistrationPaused();
       
       // Only the owner can update their own profile
       // OR authenticated users can update statistics (for job completion)
@@ -279,7 +300,8 @@ service cloud.firestore {
       // Only authenticated users can create jobs
       allow create: if isAuthenticated()
         && isValidJob()
-        && request.resource.data.posterId == request.auth.uid;
+        && request.resource.data.posterId == request.auth.uid
+        && !isGigPostingSuspended();
       
       // Job poster can update their own job
       // OR any authenticated user can increment applicationCount (when applying)
@@ -587,7 +609,8 @@ service cloud.firestore {
             && request.resource.data.requester.userId is string
             && request.resource.data.requester.userId == request.auth.uid)
           || (!isAuthenticated() && request.resource.data.requester.userId == null)
-        );
+        )
+        && !isSupportWritePaused();
 
       // Admin can manage lifecycle/reply fields only -- NOT the requester's original
       // submission content (subject/message/requester/categoryCode/referenceId stay
@@ -650,16 +673,9 @@ service cloud.firestore {
     // PLATFORM SETTINGS (Admin Dashboard — Phase 5)
     // ═══════════════════════════════════════════════════════════════
     match /platform_settings/{docId} {
-      // Admin-only read (tightened 2026-08-11): this used to be public read
-      // because index.html's homepage video gate (`showHomepageVideoForLoggedIn`)
-      // read this doc for every visitor, logged in or not. That field/feature
-      // was removed (replaced by a zero-cost code-level video swap in
-      // index.html — see HOME_VIDEO_LOGGED_OUT/HOME_VIDEO_LOGGED_IN there), so
-      // there is no longer any public-facing consumer of this doc — only the
-      // Admin Dashboard reads it now. Narrowed to isAdmin(), same tier as
-      // platform_analytics, since these are internal config values with no
-      // remaining reason for anonymous/public exposure.
-      allow read: if isAdmin();
+      // public: keeper flags + composed notices for the live site / native.
+      // general: full admin Settings doc (admin-only).
+      allow read: if docId == 'public' || isAdmin();
 
       // Only a super admin can change platform-wide settings — same "full
       // admin powers" tier as granting/revoking other admins (see isSuperAdmin()).

@@ -1502,6 +1502,24 @@ async function filterAndSortJobs() {
     throw new Error('Listings backend unavailable');
   }
 
+  if (typeof getPublicPlatformPolicy === 'function') {
+    try {
+      const policy = await getPublicPlatformPolicy();
+      if (window.GisugoGigFeedPolicy) {
+        window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
+      }
+      const feedSection = document.getElementById('launchFeedFilterSection');
+      const feedFooter = document.getElementById('filterDisplayFeed');
+      if (!isLaunchFeedBucketOn()) {
+        if (feedSection) feedSection.style.display = 'none';
+        if (feedFooter && feedFooter.parentElement) feedFooter.parentElement.style.display = 'none';
+        activeFeedBucket = 'due';
+      } else if (feedSection) {
+        feedSection.style.display = '';
+      }
+    } catch (_) {}
+  }
+
   if (shouldUseFirebase) {
     try {
       listingTrace('firebase:begin');

@@ -11445,6 +11445,15 @@ async function sendReply() {
         showToast('This message cannot be replied to here.');
         return;
     }
+    if (typeof getPublicPlatformPolicy === 'function') {
+        try {
+            const policy = await getPublicPlatformPolicy();
+            if (policy && policy.suspendMessages) {
+                showToast('Support messages are paused right now. Please try again later.');
+                return;
+            }
+        } catch (_) {}
+    }
     if (sendBtn && sendBtn.disabled) return;
     const originalSendHtml = sendBtn ? sendBtn.innerHTML : '';
     if (sendBtn) {
