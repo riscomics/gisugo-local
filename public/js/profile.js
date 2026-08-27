@@ -1939,6 +1939,7 @@ function handleAccountAction(action) {
 // ===== NOTIFICATION SETTINGS OVERLAY =====
 const NOTIF_PUSH_TYPE_KEYS = [
   'application_received',
+  'gig_review_needed',
   'offer_accepted',
   'offer_rejected',
   'worker_resigned',

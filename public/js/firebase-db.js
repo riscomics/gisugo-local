@@ -11,6 +11,29 @@
 //
 // ============================================================================
 
+// Launch feed bucket (Phase 11 keeper later). Hardcoded ON until Settings exists.
+// ON: stay live; at 20 apps notify to review (no pause) and listing second sort.
+// OFF: pause + block apply at 10 (today's untested logic).
+window.GisugoGigFeedPolicy = {
+  launchBucketOn: true,
+  bucketMinApps: 20,
+  maturePauseAt: 10
+};
+
+function isLaunchFeedBucketOn() {
+  return window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.launchBucketOn !== false;
+}
+
+function launchFeedBucketMinApps() {
+  const n = Number(window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.bucketMinApps);
+  return Number.isFinite(n) && n > 0 ? n : 20;
+}
+
+function maturePauseAtApps() {
+  const n = Number(window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.maturePauseAt);
+  return Number.isFinite(n) && n > 0 ? n : 10;
+}
+
 // ============================================================================
 // JOBS COLLECTION
 // ============================================================================
@@ -2090,9 +2113,9 @@ async function applyForJob(jobId, applicationData) {
     
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
     
-    // Block if gig already has 10+ applications (paused)
-    if (totalPendingApplications >= 10) {
-      console.warn('🛑 Gig has reached maximum applications (10) - currently paused');
+    // Mature mode only: block apply at the pause cap. Launch bucket stays live.
+    if (!isLaunchFeedBucketOn() && totalPendingApplications >= maturePauseAtApps()) {
+      console.warn('🛑 Gig has reached maximum applications — paused (mature mode)');
       return {
         success: false,
         message: 'This gig is currently paused due to high interest. The poster is reviewing applications.'
@@ -2234,7 +2257,7 @@ async function applyForJob(jobId, applicationData) {
         const existingNotifSnapshot = await db.collection('notifications')
           .where('recipientId', '==', job.posterId)
           .where('jobId', '==', jobId)
-          .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
+          .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused', 'gig_review_needed'])
           .get();
         
         if (newTotalApplications === 1) {
@@ -2254,19 +2277,29 @@ async function applyForJob(jobId, applicationData) {
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
-        } else if (newTotalApplications === 10) {
+        } else if (isLaunchFeedBucketOn() && newTotalApplications === launchFeedBucketMinApps()) {
+          const deletePromises = existingNotifSnapshot.docs.map((doc) => db.collection('notifications').doc(doc.id).delete());
+          await Promise.all(deletePromises);
+          await createNotification(job.posterId, {
+            type: 'gig_review_needed',
+            jobId: jobId,
+            jobTitle: job.title || 'Your Gig',
+            message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
+            actionRequired: true
+          });
+        } else if (!isLaunchFeedBucketOn() && newTotalApplications === maturePauseAtApps()) {
           await db.collection('jobs').doc(jobId).update({
             status: 'paused',
             pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
             pauseReason: 'auto_paused_max_applications'
           });
-          const deletePromises = existingNotifSnapshot.docs.map(doc => db.collection('notifications').doc(doc.id).delete());
+          const deletePromises = existingNotifSnapshot.docs.map((doc) => db.collection('notifications').doc(doc.id).delete());
           await Promise.all(deletePromises);
           await createNotification(job.posterId, {
             type: 'gig_auto_paused',
             jobId: jobId,
             jobTitle: job.title || 'Your Gig',
-            message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
+            message: `🛑 Your gig "${job.title}" has been paused. You've received ${maturePauseAtApps()} applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
             actionRequired: true
           });
         }
@@ -3606,6 +3639,7 @@ const CUSTOMER_NOTIFICATION_COUNTER_TYPES = new Set([
   'application_received',
   'application_milestone',
   'gig_auto_paused',
+  'gig_review_needed',
   'offer_rejected',
   'worker_resigned',
   'worker_feedback_received',

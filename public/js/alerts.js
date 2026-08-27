@@ -830,7 +830,7 @@ async function initializeCustomerMessagesTab() {
 
 // Source-of-truth alert types currently emitted by backend flows (jobs.js + firebase-db.js).
 const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided', 'support_admin_message'];
-const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received', 'worker_banned_gig_reopened', 'support_admin_message'];
+const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'gig_review_needed', 'offer_rejected', 'worker_resigned', 'worker_feedback_received', 'worker_banned_gig_reopened', 'support_admin_message'];
 
 // Retained for compatibility with legacy datasets and planned interview workflow.
 // NOTE: No current producer emits this type in the active backend flow.
@@ -886,6 +886,7 @@ function getLocalizedAlertMessage(notif, type) {
             application_received: `Your gig "${jobTitle}" has received an application. Review it in Gigs Manager.`,
             application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
             gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
+            gig_review_needed: `Your gig "${jobTitle}" has 20 applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
             offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
             worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
             worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
@@ -906,6 +907,7 @@ function getLocalizedAlertMessage(notif, type) {
             application_received: `Ang imong gig "${jobTitle}" nakadawat ug application. I-review sa Gigs Manager.`,
             application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
             gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
+            gig_review_needed: `Ang imong gig "${jobTitle}" naa nay 20 ka applications. I-review sa Gigs Manager — hire usa o i-reject ang dili nimo gamiton.`,
             offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
             worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
@@ -926,6 +928,7 @@ function getLocalizedAlertMessage(notif, type) {
             application_received: `Ang gig mo na "${jobTitle}" ay may natanggap na application. I-review sa Gigs Manager.`,
             application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
             gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
+            gig_review_needed: `May 20 applications na ang gig mo na "${jobTitle}". I-review sa Gigs Manager — mag-hire o i-reject ang hindi mo gagamitin.`,
             offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
             worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
@@ -1393,6 +1396,7 @@ async function handleNotificationTypeNavigation(notificationItem) {
         case 'application_received':
         case 'application_milestone':
         case 'gig_auto_paused':
+        case 'gig_review_needed':
             {
                 const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
                 openJobsManager(route.role, route.tab, route.jobId);
@@ -3557,8 +3561,8 @@ function generateNotificationHTML(notification) {
     // Add theme class based on notification type
     let themeClass = '';
     const notifType = transformed.type || '';
-    if (notifType === 'application_milestone') {
-        themeClass = 'theme-attention'; // Yellow/orange for 5+ applications
+    if (notifType === 'application_milestone' || notifType === 'gig_review_needed') {
+        themeClass = 'theme-attention'; // Yellow/orange for review-needed
     } else if (notifType === 'gig_auto_paused') {
         themeClass = 'theme-alert'; // Red for auto-paused gigs
     }
@@ -3636,6 +3640,11 @@ function transformFirebaseNotification(notif) {
             icon = '🛑';
             iconClass = 'alert-icon';
             title = 'Gig Auto-Paused';
+            break;
+        case 'gig_review_needed':
+            icon = '📋';
+            iconClass = 'milestone-icon';
+            title = 'Review applications';
             break;
         case 'offer_rejected':
             icon = '❌';

@@ -132,7 +132,7 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
 | 9 | Permanently Ban = Auth disable + phone banlist/uniqueness. Ban test deferred. Permaban IP later. | Ch 1–5 live; Ban test + sunset + dummy delete still open |
 | 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
-| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. | Hide pass live 2026-08-26; keepers still unwired |
+| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. Includes launch-feed bucket ON/OFF (web feature before the switch). | Hide pass live 2026-08-26; keepers still unwired |
 | 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
@@ -502,7 +502,16 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       6. **[ ] Max active gigs** (`0` = no cap).
       7. **[ ] Min gig price ₱** (live default 50; Settings owns the number).
       8. **[ ] Max gig price ₱** (live default 100000).
-      9. **[ ] Leftover audit** after the last keeper. Drop the “not enforced” banner.
+      9. **[ ] Launch feed bucket (web feature first, then Settings).** Web ON
+         path built 2026-08-27 (hardcoded ON; Settings switch still later). Simple
+         ON/OFF. **ON (launch):** gigs stay live; at **20** apps they leave the
+         default due-date feed for a second due-date sort; customer still gets
+         “review applications,” not paused/off-market. **OFF (mature):** today’s
+         pause-at-**10** + force-review. Retune 20 later = code + Deploy, not a
+         number field. Build both behaviors on web **before** the Settings row
+         (no dead switch). Before native starts. Do not implement pause-at-10
+         in Expo.
+      10. **[ ] Leftover audit** after the last keeper. Drop the “not enforced” banner.
 - [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
       Do this **after remaining product phases are done**, immediately **before** the full-platform
       test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until

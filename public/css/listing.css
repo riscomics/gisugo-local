@@ -1426,6 +1426,14 @@ body::-webkit-scrollbar {
   transition: all 0.35s ease-out;
 }
 
+.filter-display-text:has(#filterDisplayFeed) {
+  gap: clamp(2px, 1vw, 10px);
+}
+
+.filter-display-text:has(#filterDisplayFeed) .filter-display-value {
+  font-size: clamp(10px, 2.6vw, 15px);
+}
+
 .filter-display-label {
   font-size: clamp(8px, 2vw, 12px); /* Better balance for mobile viewports */
   font-weight: 600;

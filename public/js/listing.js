@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260823a';
+const LISTING_CSS_VERSION = '20260827a';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';
@@ -606,6 +606,7 @@ function saveFilterPrefs(region, city) {
 let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
 let activePay = "GIG TYPE";
+let activeFeedBucket = "due";
 
 // Only trust a saved region if it still exists in the current region data (defensive
 // against future data changes), and only trust a saved city if it's still one of that
@@ -1253,7 +1254,7 @@ function normalizeListingCardNavigation(card, category) {
 }
 
 const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
-const LISTING_CACHE_PREFIX = 'listing-cache-v1:';
+const LISTING_CACHE_PREFIX = 'listing-cache-v2:';
 const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 
 // Ticket counter so an older, slower filterAndSortJobs() call can tell it's been
@@ -1262,12 +1263,27 @@ const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 // of overwriting what the newer call already rendered.
 let listingRequestGeneration = 0;
 
-function buildListingCacheKey(category, region, city, payType) {
+function isLaunchFeedBucketOn() {
+  return !window.GisugoGigFeedPolicy || window.GisugoGigFeedPolicy.launchBucketOn !== false;
+}
+
+function launchFeedBucketMinApps() {
+  const n = Number(window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.bucketMinApps);
+  return Number.isFinite(n) && n > 0 ? n : 20;
+}
+
+function jobApplicationCount(job) {
+  const n = Number(job && job.applicationCount);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function buildListingCacheKey(category, region, city, payType, feedBucket) {
   const safeCategory = String(category || '').toLowerCase();
   const safeRegion = String(region || '').toUpperCase();
   const safeCity = String(city || '').toUpperCase();
   const safePayType = String(payType || 'GIG TYPE').toUpperCase();
-  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safeCity}:${safePayType}`;
+  const safeFeed = String(feedBucket || activeFeedBucket || 'due').toLowerCase();
+  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safeCity}:${safePayType}:${safeFeed}`;
 }
 
 function readListingCache(cacheKey) {
@@ -1345,7 +1361,8 @@ function getListingJobsSignature(jobs) {
     job && job.price,
     job && job.title,
     job && job.status,
-    job && job.photo
+    job && job.photo,
+    job && job.applicationCount
   ].join(':'));
   return `${jobs.length}:${parts.join('|')}`;
 }
@@ -1384,7 +1401,7 @@ async function filterAndSortJobs() {
   const myRequestGeneration = ++listingRequestGeneration;
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
-  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay, activeFeedBucket);
   const viewStateKey = buildListingViewStateKey(cacheKey);
   let renderedFromCache = false;
   let cachedJobsSignature = '';
@@ -1472,7 +1489,8 @@ async function filterAndSortJobs() {
       createdAt: getDatePostedIso(firebaseJob),
       // Store full date object for sorting and expiration checking
       fullDate: date,
-      scheduledTimestamp: date ? date.getTime() : 0
+      scheduledTimestamp: date ? date.getTime() : 0,
+      applicationCount: Number(firebaseJob.applicationCount) || 0
     };
   }
 
@@ -1572,6 +1590,16 @@ async function filterAndSortJobs() {
       const filterRate = activePay.toUpperCase();
       return jobRate === filterRate;
     });
+  }
+
+  // Launch feed: default due-date list hides 20+ apps; second sort is only those.
+  if (isLaunchFeedBucketOn()) {
+    const minBusy = launchFeedBucketMinApps();
+    if (activeFeedBucket === 'busy') {
+      filteredJobs = filteredJobs.filter((job) => jobApplicationCount(job) >= minBusy);
+    } else {
+      filteredJobs = filteredJobs.filter((job) => jobApplicationCount(job) < minBusy);
+    }
   }
 
   // ============================================================================
@@ -1700,7 +1728,7 @@ async function filterAndSortJobs() {
 
 window.addEventListener('pagehide', () => {
   const currentCategory = getCurrentCategory();
-  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay, activeFeedBucket);
   const viewStateKey = buildListingViewStateKey(cacheKey);
   // Refresh cache timestamp when leaving listings so TTL starts from departure.
   if (Array.isArray(PAGINATION.allJobs) && PAGINATION.allJobs.length > 0) {
@@ -3231,6 +3259,44 @@ function initJobcatButtonAutoResize() {
   const cityList = document.getElementById('cityPickerList');
   const payOptionJob = document.getElementById('payOptionJob');
   const payOptionHour = document.getElementById('payOptionHour');
+
+  function injectLaunchFeedFilter() {
+    if (!isLaunchFeedBucketOn()) return;
+    const body = document.querySelector('#gamingFilterPanel .filter-panel-body');
+    const display = document.getElementById('filterDisplay');
+    if (body && !document.getElementById('feedOptionDue')) {
+      const section = document.createElement('div');
+      section.className = 'filter-section';
+      section.id = 'launchFeedFilterSection';
+      section.innerHTML = `
+        <div class="filter-section-title">FEED</div>
+        <div class="pay-type-selector">
+          <div class="pay-type-option active" data-value="due" id="feedOptionDue">
+            <div class="pay-type-icon">📅</div>
+            <div class="pay-type-label">Due date</div>
+          </div>
+          <div class="pay-type-option" data-value="busy" id="feedOptionBusy">
+            <div class="pay-type-icon">🔥</div>
+            <div class="pay-type-label">High interest</div>
+          </div>
+        </div>
+      `;
+      body.appendChild(section);
+    }
+    if (display && !document.getElementById('filterDisplayFeed')) {
+      const item = document.createElement('div');
+      item.className = 'filter-display-item';
+      item.innerHTML = `
+        <div class="filter-display-label">Feed</div>
+        <div class="filter-display-value" id="filterDisplayFeed">DUE DATE</div>
+      `;
+      display.appendChild(item);
+    }
+  }
+  injectLaunchFeedFilter();
+  const feedOptionDue = document.getElementById('feedOptionDue');
+  const feedOptionBusy = document.getElementById('feedOptionBusy');
+  const filterDisplayFeed = document.getElementById('filterDisplayFeed');
   
   // Region/City initialize from the shared top-level activeRegion/activeCity, which by this
   // point already reflect either a restored saved filter preference (see
@@ -3371,6 +3437,9 @@ function initJobcatButtonAutoResize() {
     if (selectedPayType === 'personal') payTypeText = 'PERSONAL';
     else if (selectedPayType === 'business') payTypeText = 'BUSINESS';
     if (filterDisplayPay) filterDisplayPay.textContent = payTypeText; // always short (SELECT/PERSONAL/BUSINESS), never needs truncation
+    if (filterDisplayFeed) {
+      filterDisplayFeed.textContent = activeFeedBucket === 'busy' ? 'HIGH INT' : 'DUE DATE';
+    }
   }
   
   // Region button click - open modal (prevent panel from closing)
@@ -3465,6 +3534,23 @@ function initJobcatButtonAutoResize() {
       updateFilterDisplay();
       filterAndSortJobs();
     });
+  }
+
+  function setLaunchFeedBucket(nextBucket) {
+    const next = nextBucket === 'busy' ? 'busy' : 'due';
+    if (activeFeedBucket === next) return;
+    activeFeedBucket = next;
+    if (feedOptionDue) feedOptionDue.classList.toggle('active', next === 'due');
+    if (feedOptionBusy) feedOptionBusy.classList.toggle('active', next === 'busy');
+    updateFilterDisplay();
+    filterAndSortJobs();
+  }
+
+  if (feedOptionDue) {
+    feedOptionDue.addEventListener('click', () => setLaunchFeedBucket('due'));
+  }
+  if (feedOptionBusy) {
+    feedOptionBusy.addEventListener('click', () => setLaunchFeedBucket('busy'));
   }
   
   // Initialize display on load
