@@ -4373,6 +4373,39 @@ function formatGigTimestamp(ts) {
     }
 }
 
+function renderReportedByInfoHtml(gig) {
+    const reporters = Array.isArray(gig && gig.reportedBy) ? gig.reportedBy : [];
+    if (!reporters.length) {
+        const count = Number(gig && gig.reportCount) || 0;
+        return `<div class="reported-by-loading">${count} report${count === 1 ? '' : 's'} — loading details…</div>`;
+    }
+    return reporters.map((reporter) => {
+        const name = escapeHtml(reporter.reporterName || 'A user');
+        const avatar = escapeHtml(reporter.reporterAvatar || GIG_MODERATION_FALLBACK_AVATAR);
+        const date = escapeHtml(reporter.reportDate || '');
+        const subject = String(reporter.subject || '').trim();
+        const message = String(reporter.message || '').trim();
+        const subjectHtml = subject
+            ? `<span class="reporter-subject">${escapeHtml(subject)}</span>`
+            : '';
+        const messageHtml = message
+            ? `<span class="reporter-message">${escapeHtml(message)}</span>`
+            : '';
+        return `
+            <div class="reported-by-entry">
+                <div class="reported-by-profile">
+                    <img src="${avatar}" alt="${name}" class="reporter-avatar">
+                    <div class="reporter-details">
+                        <span class="reporter-name">${name}</span>
+                        ${date ? `<span class="report-date">${date}</span>` : ''}
+                    </div>
+                </div>
+                ${subjectHtml || messageHtml ? `<div class="reporter-copy">${subjectHtml}${messageHtml}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
 // Handles both shapes seen on job docs: a plain "YYYY-MM-DD" string
 // (new-post2.js jobDate, no time component) and a Firestore Timestamp
 // (legacy scheduledDate). The plain string is parsed manually instead of
@@ -4806,26 +4839,7 @@ function populateGigDetailPanel(gig) {
     const reportedBySection = document.getElementById('reportedBySection');
     const reportedByInfo = document.getElementById('reportedByInfo');
     if (gig.status === 'reported' || gig.status === 'suspended') {
-        if (gig.reportedBy && gig.reportedBy.length > 0) {
-            const firstReporter = gig.reportedBy[0];
-            const additionalCount = gig.reportedBy.length - 1;
-            const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
-
-            reportedByInfo.innerHTML = `
-                <div class="reported-by-profile">
-                    <img src="${escapeHtml(firstReporter.reporterAvatar)}" alt="${escapeHtml(firstReporter.reporterName)}" class="reporter-avatar">
-                    <div class="reporter-details">
-                        <span class="reporter-name">${escapeHtml(firstReporter.reporterName)}${countBadge}</span>
-                        <span class="report-date">${escapeHtml(firstReporter.reportDate)}</span>
-                    </div>
-                </div>
-            `;
-        } else {
-            // reportCount is authoritative and known immediately; the
-            // per-reporter list is fetched async (see loadGigReportsIntoCurrentGig)
-            // and may not have resolved yet, or gig_reports lookup failed.
-            reportedByInfo.innerHTML = `<div class="reported-by-loading">${gig.reportCount || 0} report${gig.reportCount === 1 ? '' : 's'} — loading details…</div>`;
-        }
+        reportedByInfo.innerHTML = renderReportedByInfoHtml(gig);
         reportedBySection.style.display = 'block';
     } else {
         reportedBySection.style.display = 'none';
@@ -5586,26 +5600,10 @@ function generateGigOverlayContent(gig) {
     // known immediately and shown as a fallback while that resolves.
     let reportedByHTML = '';
     if (gig.status === 'reported' || gig.status === 'suspended') {
-        let bodyHTML;
-        if (gig.reportedBy && gig.reportedBy.length > 0) {
-            const firstReporter = gig.reportedBy[0];
-            const additionalCount = gig.reportedBy.length - 1;
-            const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
-            bodyHTML = `
-                    <div class="reported-by-profile">
-                        <img src="${escapeHtml(firstReporter.reporterAvatar)}" alt="${escapeHtml(firstReporter.reporterName)}" class="reporter-avatar">
-                        <div class="reporter-details">
-                            <span class="reporter-name">${escapeHtml(firstReporter.reporterName)}${countBadge}</span>
-                            <span class="report-date">${escapeHtml(firstReporter.reportDate)}</span>
-                        </div>
-                    </div>`;
-        } else {
-            bodyHTML = `<div class="reported-by-loading">${gig.reportCount || 0} report${gig.reportCount === 1 ? '' : 's'} — loading details…</div>`;
-        }
         reportedByHTML = `
             <div class="reported-by-section">
                 <div class="reported-by-label">REPORTED BY:</div>
-                <div class="reported-by-info">${bodyHTML}</div>
+                <div class="reported-by-info">${renderReportedByInfoHtml(gig)}</div>
             </div>
         `;
     }

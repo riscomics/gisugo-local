@@ -555,40 +555,31 @@ that the whole dashboard section is finished forever.
       **What users should feel after 12:** nothing new. Apply, Hire, Accept, Alerts
       still work the same. The change is who is *allowed* to write the underlying
       docs.
-      **Ship order (do not skip):** functions + client first with **today’s rules
-      still open** → prove the loop → then lock rules → then full-platform QA.
+      **Do not skip the order.** Functions first (rules still open) → prove Apply /
+      Hire / Accept still work → then lock rules → then the full pre-launch test.
       **Microtasklist**
-      1. **[ ] Inventory live call sites** before writing functions. Grep every
-         `createNotification` / hire / accept / reject-others / broad application
-         read. Mark live vs dead. Do not “fix six sites” that nothing calls.
-      2. **[ ] Cloud Function: create notification.** One callable (or a tight
-         set) that all live client creates go through. Carry today’s dedup
-         (do not invent a new alert model). Client stops writing other people’s
-         `notifications` docs.
-      3. **[ ] Cloud Function: worker-accept → reject the others.** The accepting
-         worker must not update other applicants’ docs from the browser. Server
-         does the sweep, the “not selected” notices, and the coin releases that
-         already happen today.
-      4. **[ ] Switch the live client call sites** to those functions. **Keep
-         current Firestore rules up** so Apply / Hire / Accept do not die mid-ship.
-         Scope remaining application *reads* to `applicantId == me` or
-         `gigOwnerId == me`. Auto-pause / pending count must use the number
-         already stored on the job, not a scan of every application.
-      5. **[ ] Indexes** for the new owner-scoped queries (`gigOwnerId` composites)
-         + deploy indexes. Wait until they are ready before relying on those
-         queries in production.
-      6. **[ ] Prove the loop** on live data before locking rules: Apply → owner
-         reviews → Hire → worker Accept → Alerts on both sides. Desktop/Android
-         SDK **and** iOS REST. If this fails, do **not** lock rules.
-      7. **[ ] Lock rules.** Notifications: create/update/delete = server only;
-         read = recipient only. Applications: read = applicant or gig owner;
-         create must stamp `gigOwnerId` to the real poster. This is the actual
-         launch-gate ship.
-      8. **[ ] After 12 (not this build):** full-platform QA — Ban test, dummy
-         deletes, remaining Phase 11 keeper smokes, phone+password retirement,
-         the same Apply/Hire/Accept walkthrough on a quiet window.
-      Do **not** mark V1 complete until chapter 7 ships. Dummy accounts stay until
-      after 12 (you still need them for the Ban test). Permaban IP is after launch.
+      1. **[ ] List the live call sites.** Find every place the app creates an
+         alert for someone else, or a worker accept rejects the other applicants.
+         Skip dead code.
+      2. **[ ] Server: create alert.** One Cloud Function. The browser stops
+         writing into other people’s notification inboxes. Keep today’s alert
+         types and dedup. No new alert design.
+      3. **[ ] Server: accept rejects the others.** When a worker accepts, the
+         server (not the browser) rejects the other pending applicants, sends
+         the “not selected” notices, and does the coin releases we already do.
+      4. **[ ] Point the live buttons at those functions.** Apply / Hire / Accept
+         keep using today’s loose rules so they do not break mid-ship. Owner
+         and worker reads of applications become “mine only.” Pending-count
+         uses the number already on the gig, not a scan of every application.
+      5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
+         they are ready before relying on them live.
+      6. **[ ] Prove it.** Apply → review → Hire → Accept. Alerts on both
+         sides. Phone and desktop. If this fails, do not lock rules.
+      7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
+         signed-in stranger cannot read everyone’s applications or alerts via
+         the API.
+      8. **[ ] After 12 (not this build).** Full pre-launch pass: Ban test,
+         dummy deletes, remaining Settings smokes, phone+password retirement.
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
