@@ -133,8 +133,9 @@ that the whole dashboard section is finished forever.
 - **Phase 11 — keeper builds are done.** Live 2026-08-27. #3 owner-tested 2026-08-28.
   Remaining keeper on/off smokes sit on the **pre-launch QA** list after Phase 12.
 - **Phase 12 — next build (launch gate), then the full test pass.** See the Phase 12
-  entry for the microtasklist. After the rules lock ships: Apply → hire → accept, Ban
-  test, dummy deletes, remaining keeper smokes, phone+password retirement.
+  entry for the microtasklist. After the rules lock ships: Apply → hire → accept, then
+  the **Pre-launch QA** list (Ban test, dummy deletes, remaining keeper smokes,
+  phone+password retirement, leak + extra-cost catch-up).
 
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
@@ -578,8 +579,29 @@ that the whole dashboard section is finished forever.
       7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
          signed-in stranger cannot read everyone’s applications or alerts via
          the API.
-      8. **[ ] After 12 (not this build).** Full pre-launch pass: Ban test,
-         dummy deletes, remaining Settings smokes, phone+password retirement.
+      8. **[ ] After 12 (not this build).** Full **Pre-launch QA** (see the
+         list immediately below). Not part of the Phase 12 build.
+
+- [ ] **Pre-launch QA (after Phase 12 — not during the 12 build).**
+      Owner forgot to have leak / extra-cost checks done as each admin Phase
+      shipped. This list is that catch-up plus the other launch leftovers.
+      1. **[ ] Ban test** (owner). After dummy deletes, or after leftover
+         cleanup — same order already locked under Phase 9.
+      2. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
+         `security_metadata`. Do **not** stamp those numbers on the banlist.
+      3. **[ ] Leftover audit** after the Ban test.
+      4. **[ ] Remaining Phase 11 keeper on/off smokes** (#3 already accepted).
+      5. **[ ] Phone+password retirement** — small later *build*, after dummies
+         so test accounts can still be minted.
+      6. **[ ] Pre-launch phone audit.**
+      7. **[ ] Leak + extra-cost catch-up** (skipped during Phases 1–11).
+         Walk the live admin dashboard for stacked click listeners, leftover
+         live listeners, and repeat / unbounded reads. **Known skip
+         (2026-08-28):** `attachGigCardHandlers` — every gig-card rebuild may
+         add another click listener if the same card nodes are reused. Confirm
+         live vs orphaned, then fix only what is actually stacking or wasting
+         reads. Not a dashboard rewrite. Reported By already had its own pass
+         (skip repeat fetch + patch-only UI, 2026-08-28).
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
@@ -2276,6 +2298,8 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    V1 complete until this ships.
 6. **Final cross-device / full-platform QA pass** + remaining Track E items (incl. iPad-mini
    header layout + legacy-iPhone data-loading stalls) **after Phase 12**, before release.
+   Includes the **Pre-launch QA** list in Track C (Ban / dummies / keeper smokes /
+   leak + extra-cost catch-up).
 7. **Privacy + Terms rewrite** + **in-app account deletion** (BUILD_PLAN deferred backlog — Meta/user
    facing).
 
