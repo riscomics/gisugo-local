@@ -119,33 +119,22 @@ that the whole dashboard section is finished forever.
 
 **Still open (read this first):**
 
-- **Phase 9 leftovers (not a new Ban product).** Ban + phone banlist are already live.
-  Still to do, in this order, **after Phase 12 / right before launch** (unless you choose
-  sooner): (1) dummy-account deletes — wipe Auth + `users` / `user_private` /
-  `security_metadata`, do **not** put those numbers on the banlist; (2) owner Ban test —
-  Suspend → Ban → cannot log in, same Google/Facebook blocked, old phone refused on a
-  new account, Unban restores login and does not relist gigs; (3) leftover audit after
-  that test; (4) phone+password sunset — remove signup + login UI and reject new
-  `*@phone.gisugo.app` creates (needed so dummy minting can finish first); (5) pre-launch
-  phone audit — every live account has a unique normalized phone, or is cleaned / gated.
-  Permaban IP is **after launch**, not a launch gate. Do not build a second signup
-  rate limiter.
-- **Phase 10 leftover (owner-owned, not an agent build).** In-app Support thread is live
-  (Ch 1–4). Email + WhatsApp as the public door is parked until you shelf the in-app
-  desk yourself. Do not hide Reply until that swap ships together.
-- **Phase 11 leftover (tests, not more wiring).** Keepers are **live** (Deployed
-  2026-08-27). Live Settings: no gig cap, ₱50 min, ₱10,000 max, all pause switches off,
-  launch-feed ON. Owner tested **#3 tech warning** 2026-08-28 (centered). Remaining
-  keeper switches (#1–2, #4–8, launch-feed OFF) are a short on/off smoke on the
-  **pre-launch QA** list after Phase 12 — not a new Settings build. Do not flip
-  maintenance or pause-registration as a casual live test.
-- **Phase 12 — next build, then the full test pass.** This is the launch gate. It is
-  **not** “review everything.” It is the last **code** job: move cross-user notification
-  create and worker-accept “reject the other applicants” into Cloud Functions, **then**
-  lock `applications` / `notifications` rules so a logged-in stranger cannot read
-  everyone’s inbox via the API. After that lock ships, do the **full-platform QA**
-  (Apply → hire → accept, Ban test, dummy deletes, remaining keeper smokes, phone
-  sunset). Do not mark V1 complete until 12 ships.
+- **Phase 9 — Ban product builds are done.** Ban + phone banlist are live. Not a new Ban
+  feature. Remaining, **after Phase 12 / right before launch** (unless you choose sooner):
+  (1) dummy-account deletes — wipe Auth + `users` / `user_private` / `security_metadata`,
+  do **not** put those numbers on the banlist; (2) owner Ban test; (3) leftover audit
+  after that test; (4) **phone+password retirement** — small later *build* (remove signup
+  + login UI and reject new `*@phone.gisugo.app` creates), after dummies are gone so you
+  can still mint test accounts; (5) pre-launch phone audit. Permaban IP is **after
+  launch**. Do not build a second signup rate limiter.
+- **Phase 10 — retired as an open phase.** In-app Support stays **on** (it works). The
+  Email / WhatsApp shelf plan stays in this file as reference only. Do **not** hide
+  Reply. Do **not** start Chapters 5–7 unless you reopen this on purpose.
+- **Phase 11 — keeper builds are done.** Live 2026-08-27. #3 owner-tested 2026-08-28.
+  Remaining keeper on/off smokes sit on the **pre-launch QA** list after Phase 12.
+- **Phase 12 — next build (launch gate), then the full test pass.** See the Phase 12
+  entry for the microtasklist. After the rules lock ships: Apply → hire → accept, Ban
+  test, dummy deletes, remaining keeper smokes, phone+password retirement.
 
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
@@ -159,10 +148,10 @@ that the whole dashboard section is finished forever.
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. Uniqueness already holds the number after Unban while it is on `user_private`. | Ban + banlist **live**. Still open: dummy deletes, Ban test, phone audit, phone+password sunset. Permaban IP after launch. |
-| 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked (owner) |
-| 11 | Settings **product**: hide dead controls, then wire keepers. Launch-feed ON/OFF reads `platform_settings/public`. | **Live** 2026-08-27. #3 owner-tested 2026-08-28. Other keeper smokes = pre-launch QA. |
-| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. **After** that lock: full-platform QA (not part of the build itself). | Launch gate — **not started** |
+| 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. | Ban **builds done**. Still open: dummy deletes, Ban test, phone audit, phone+password retirement (small later build). |
+| 10 | In-app Support thread (Ch 1–4) live 2026-08-14. Email/WhatsApp shelf written as reference only — not an open build. | **Retired as open work.** Engine stays on. |
+| 11 | Settings keepers + launch-feed switch. | **Builds done.** #3 tested. Other smokes = pre-launch QA. |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **not started** |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -457,12 +446,13 @@ that the whole dashboard section is finished forever.
       9. **[ ] Leftover audit** after you run the deferred Ban test.
       10. **[ ] Phone+password sunset (later).** Kill signup + login UI
           and reject new synthetic-email creates. After dummies are done.
-- [ ] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14). Not shelving yet.**
+- [x] **Phase 10: Support thread engine — Chapters 1–4 LIVE (2026-08-14).
+      Retired as an open phase 2026-08-28.** Owner: in-app Support works; leave it
+      on. Chapters 5–7 (Email / WhatsApp shelf) stay below as **reference only** —
+      not an agent task, not next, not a launch gate. Do **not** hide Reply. Do
+      **not** start 5–7 unless the owner reopens this on purpose.
       New phase (Phase 4 stays closed). Owner confirmed the test loop (text + photo both
-      ways, Mark Resolved, hourglass). **Leave the in-app desk on.** Do not flip a shelf
-      flag, hide Reply, or put Email/WhatsApp in front until the owner does that work and
-      updates these docs. Chapters 5–7 stay written below as the later swap plan, not as
-      the next agent build.
+      ways, Mark Resolved, hourglass). **Leave the in-app desk on.**
       Original 2026-08-14 intent (still the later swap, not current): email + an official
       WhatsApp number will eventually be the public door; in-app support stays in repo so
       a later "use the desk" decision is a flag flip — same shelf pattern as chat
@@ -486,8 +476,8 @@ that the whole dashboard section is finished forever.
       until business opens the in-app desk.
       **Supersedes** the 2026-08-12 "defer Email/WhatsApp until scale" line in Track E
       (that entry is kept as history and pointed here).
-      **Microtasklist — Chapters 1–4 done and live. Do not start 5–6 until the owner
-      shelves. Chapters 5+6 still ship together when that happens.**
+      **Microtasklist — Chapters 1–4 done and live. Chapters 5–7 are reference only
+      (retired 2026-08-28). Do not start them unless the owner reopens Phase 10.**
       1. **[x] Schema + rules + callable.** `support_requests` gets a `messages[]` list
          (sender, text, photo thumb/full, timestamp) and `lastSender: 'user'|'admin'`.
          Existing single `reply` object is migrated into the list on read/write so old
@@ -543,34 +533,62 @@ that the whole dashboard section is finished forever.
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. Policy read fails open.
-- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Not started.**
-      This is the **next agent build**. It is a security lock, not a new user-facing
-      feature and not the “test everything” pass.
-      **What is wrong today:** any signed-in user can, via the API / dev tools (not
-      the GISUGO UI), read every application and every notification, and write
-      notifications into other people’s inboxes. The app screens already hide that.
-      Public launch makes the API gap a launch gate.
-      **Why it cannot be a one-line rules change:** Apply, Hire, Accept, and “worker
-      accepted → reject the other applicants” are *supposed* to write across users.
-      Tight rules would break those flows unless they move to Cloud Functions first.
-      **What already exists:** `gigOwnerId` stamp + backfill; push and unread counters
-      already run on the server. Phase 12 *finishes* that design. Full scope:
-      `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
-      **Ship order (do not skip):**
-      1. Cloud Functions + switch the live client call sites. **Keep today’s rules up**
-         so Apply / Hire / Accept keep working while the functions land.
-      2. Prove Apply → review → hire → accept → alerts still work (Android/desktop
-         SDK and iOS REST).
-      3. Then lock rules: notifications create/update/delete = server only; read =
-         recipient only. Applications read = applicant or gig owner; create must
-         stamp `gigOwnerId`.
-      4. **Then** the full-platform QA / public-launch test pass — Ban test, dummy
-         deletes, remaining Phase 11 keeper smokes, phone+password sunset, the
-         usual Apply/Hire/Accept walkthrough. That pass is **after** 12, not Phase 12
-         itself.
-      Do **not** mark V1 complete until step 3 ships. Phone+password sunset and
-      dummy deletes stay sequenced after 12 (you still need dummy accounts until
-      then). Permaban IP is after launch.
+- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Not started. Next build.**
+      This is a **security lock**, not a new screen and not the “test everything” pass.
+      Full map: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
+      **What is wrong today (API only, not the GISUGO UI):** any signed-in account can
+      read every application and every notification, and write a notification into
+      someone else’s inbox, by talking to Firestore directly (browser console / a
+      script). The website already only shows you your own stuff. That gap is fine
+      for a tester-only site. It is not fine for public launch.
+      **Why it cannot be a one-line rules change:** several real flows *must* write
+      across users — Apply (worker writes the owner an alert), Hire (owner writes
+      the worker), Accept (worker writes the owner), and the hard one: **worker
+      accepts → reject every other pending applicant** (one worker updating other
+      workers’ application docs). If we tighten rules first, those buttons break.
+      So the writes move to Cloud Functions first; rules lock last.
+      **What already exists (do not redo):** every new application already stamps
+      `gigOwnerId`; old applications were backfilled. Push and unread counters
+      already run on the server when a notification doc is created. Phase 12
+      *finishes* that design: the *create* of the notification (and the reject-others
+      sweep) must also be server-side, then rules can match.
+      **What users should feel after 12:** nothing new. Apply, Hire, Accept, Alerts
+      still work the same. The change is who is *allowed* to write the underlying
+      docs.
+      **Ship order (do not skip):** functions + client first with **today’s rules
+      still open** → prove the loop → then lock rules → then full-platform QA.
+      **Microtasklist**
+      1. **[ ] Inventory live call sites** before writing functions. Grep every
+         `createNotification` / hire / accept / reject-others / broad application
+         read. Mark live vs dead. Do not “fix six sites” that nothing calls.
+      2. **[ ] Cloud Function: create notification.** One callable (or a tight
+         set) that all live client creates go through. Carry today’s dedup
+         (do not invent a new alert model). Client stops writing other people’s
+         `notifications` docs.
+      3. **[ ] Cloud Function: worker-accept → reject the others.** The accepting
+         worker must not update other applicants’ docs from the browser. Server
+         does the sweep, the “not selected” notices, and the coin releases that
+         already happen today.
+      4. **[ ] Switch the live client call sites** to those functions. **Keep
+         current Firestore rules up** so Apply / Hire / Accept do not die mid-ship.
+         Scope remaining application *reads* to `applicantId == me` or
+         `gigOwnerId == me`. Auto-pause / pending count must use the number
+         already stored on the job, not a scan of every application.
+      5. **[ ] Indexes** for the new owner-scoped queries (`gigOwnerId` composites)
+         + deploy indexes. Wait until they are ready before relying on those
+         queries in production.
+      6. **[ ] Prove the loop** on live data before locking rules: Apply → owner
+         reviews → Hire → worker Accept → Alerts on both sides. Desktop/Android
+         SDK **and** iOS REST. If this fails, do **not** lock rules.
+      7. **[ ] Lock rules.** Notifications: create/update/delete = server only;
+         read = recipient only. Applications: read = applicant or gig owner;
+         create must stamp `gigOwnerId` to the real poster. This is the actual
+         launch-gate ship.
+      8. **[ ] After 12 (not this build):** full-platform QA — Ban test, dummy
+         deletes, remaining Phase 11 keeper smokes, phone+password retirement,
+         the same Apply/Hire/Accept walkthrough on a quiet window.
+      Do **not** mark V1 complete until chapter 7 ships. Dummy accounts stay until
+      after 12 (you still need them for the Ban test). Permaban IP is after launch.
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
