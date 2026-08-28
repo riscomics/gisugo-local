@@ -5081,7 +5081,7 @@ function showIgnoreConfirmation() {
     
     if (overlay && currentGigData) {
         const safeTitle = escapeHtml(currentGigData.title || '');
-        const safeThreshold = escapeHtml(String((currentGigData.reportCount || 0) + 10));
+        const safeThreshold = escapeHtml(String((currentGigData.reportCount || 0) + 2));
         message.innerHTML = `<strong>${safeTitle}</strong> will be hidden from "Reported" and requires ${safeThreshold} total reports to reappear.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
@@ -5114,7 +5114,7 @@ async function confirmIgnoreGig() {
 
     clearGigDetail();
     loadGigCards('reported');
-    showToast('Reports ignored. Gig will reappear after 10 more unique reports.', 'success');
+    showToast('Reports ignored. Gig will reappear after 2 more unique reports.', 'success');
     console.log(`🙈 Gig ${gigId} ignored`);
 }
 

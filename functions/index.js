@@ -1763,7 +1763,7 @@ exports.refreshTrafficSnapshot = onCall(
 // path that is allowed to write reportCount/status:'reported' -- the owner
 // update rule in firestore.rules explicitly blocks the job poster from
 // touching either, so a reported gig can't quietly un-report itself.
-const GIG_REPORT_THRESHOLD_DEFAULT = 10;
+const GIG_REPORT_THRESHOLD_DEFAULT = 2;
 
 exports.syncGigReportCountersOnCreate = onDocumentCreated(
   { document: "gig_reports/{reportId}", region: "asia-southeast1" },
@@ -1791,7 +1791,8 @@ exports.syncGigReportCountersOnCreate = onDocumentCreated(
         if (newCount >= threshold && job.status === "active") {
           update.status = "reported";
           // Lock the threshold in explicitly (was implicit default before)
-          // so a future "Ignore" action has a real number to add +10 to.
+          // so a future "Ignore" action has a real number to add the
+          // launch step (+2) onto.
           update.reportThreshold = threshold;
         }
         tx.update(jobRef, update);
@@ -1897,7 +1898,7 @@ exports.adminModerateGig = onCall(
         newStatus = "active";
         tx.update(jobRef, {
           status: newStatus,
-          reportThreshold: currentCount + 10,
+          reportThreshold: currentCount + GIG_REPORT_THRESHOLD_DEFAULT,
           lastModified: admin.firestore.FieldValue.serverTimestamp()
         });
       }
