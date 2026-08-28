@@ -113,11 +113,40 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-22)
+### Phase roster (macro — updated 2026-08-28)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
-that the whole dashboard section is finished forever. **Phase 10 in-app engine is live**
-(Chapters 1–4). Shelf + Email/WhatsApp is **parked — owner will do it**, not an agent task.
-**Phase 8 Contact + notify shipped (Ch 1–6), owner tested + audit 2026-08-17** (Settings tray toggle skipped, accepted). **Phase 6 Ad Placement shipped (Ch 1–6); inventory owner-tested 2026-08-19.** **Phase 7 closed 2026-08-24** (Ch 1–5 owner-tested; Ch 6 leftover audit). **Storage hygiene closed 2026-08-23** (sweep + prevent accumulation Ch 1–8). Overview tile tour parked. **deleteJob() application + coin leftovers closed 2026-08-24** (owner retest + audit). **Phase 9 Ch 1–3 live 2026-08-24.** Phone banlist + uniqueness **live 2026-08-25.** Owner Ban test deferred (after dummy-account deletes right before launch, or when you choose). **Phase 11 hide pass live 2026-08-26;** keepers wired locally 2026-08-27 (Deploy to go live).
+that the whole dashboard section is finished forever.
+
+**Still open (read this first):**
+
+- **Phase 9 leftovers (not a new Ban product).** Ban + phone banlist are already live.
+  Still to do, in this order, **after Phase 12 / right before launch** (unless you choose
+  sooner): (1) dummy-account deletes — wipe Auth + `users` / `user_private` /
+  `security_metadata`, do **not** put those numbers on the banlist; (2) owner Ban test —
+  Suspend → Ban → cannot log in, same Google/Facebook blocked, old phone refused on a
+  new account, Unban restores login and does not relist gigs; (3) leftover audit after
+  that test; (4) phone+password sunset — remove signup + login UI and reject new
+  `*@phone.gisugo.app` creates (needed so dummy minting can finish first); (5) pre-launch
+  phone audit — every live account has a unique normalized phone, or is cleaned / gated.
+  Permaban IP is **after launch**, not a launch gate. Do not build a second signup
+  rate limiter.
+- **Phase 10 leftover (owner-owned, not an agent build).** In-app Support thread is live
+  (Ch 1–4). Email + WhatsApp as the public door is parked until you shelf the in-app
+  desk yourself. Do not hide Reply until that swap ships together.
+- **Phase 11 leftover (tests, not more wiring).** Keepers are **live** (Deployed
+  2026-08-27). Live Settings: no gig cap, ₱50 min, ₱10,000 max, all pause switches off,
+  launch-feed ON. Owner tested **#3 tech warning** 2026-08-28 (centered). Remaining
+  keeper switches (#1–2, #4–8, launch-feed OFF) are a short on/off smoke on the
+  **pre-launch QA** list after Phase 12 — not a new Settings build. Do not flip
+  maintenance or pause-registration as a casual live test.
+- **Phase 12 — next build, then the full test pass.** This is the launch gate. It is
+  **not** “review everything.” It is the last **code** job: move cross-user notification
+  create and worker-accept “reject the other applicants” into Cloud Functions, **then**
+  lock `applications` / `notifications` rules so a logged-in stranger cannot read
+  everyone’s inbox via the API. After that lock ships, do the **full-platform QA**
+  (Apply → hire → accept, Ban test, dummy deletes, remaining keeper smokes, phone
+  sunset). Do not mark V1 complete until 12 ships.
+
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
 | Phase | What it actually was | Status |
@@ -126,14 +155,14 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
 | 2 | Gig Moderation queues (suspend / reinstate / ignore / delete). Admin **Contact** button was **never** in this phase — see 8. | Shipped |
 | 3 | User Management (suspend / reinstate). **Permanently Ban** and **Contact** were **never** in this phase — see 8 / 9. | Shipped |
 | 4 | Support **admin** queue: one-slot `reply`, Mark Resolved, broadcasts. Thread follow-up is 10 (now live). | Shipped (admin half only) |
-| 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Not “Settings is a finished product.” After the homepage-video toggle was removed (2026-08-11), **zero** fields are live/enforced. The panel still shows ~46 switches that save and do nothing, plus unused Maintenance / Tech Warning composers still on their own localStorage keys. Product leftover is 11. | Shipped (cabinet only) |
+| 5 | Settings **storage only** — `localStorage` → Firestore `platform_settings/general`. Cabinet only. Product (hide dead rows + wire keepers) is Phase 11, now live. | Shipped (cabinet only) |
 | 6 | Ad Placement: persist the existing admin panel to Firestore; listing / profile / gig-detail read that config (no live listener). Frequency is the only cadence control. Inventory thumbnails (Hosting only). | Shipped (Ch 1–6; inventory test 2026-08-19) |
 | 7 | Wire Overview’s Storage Usage / User Activity / Traffic & Costs to real snapshots (own Storage counter + GA4 + Cloud Monitoring estimate). | Shipped (Ch 6 leftover audit 2026-08-24) |
 | 8 | Admin **Contact** on Gig Moderation + User Management. Lands in the live Support thread (`support_requests`), not `chat_threads`. Gig Contact, User Management Contact, notify (menu / Support icon / Alerts / tray). | Shipped (Ch 1–6, 2026-08-17) |
-| 9 | Permanently Ban = Auth disable + phone banlist/uniqueness. Ban test deferred. Permaban IP later. | Ch 1–5 live; Ban test + sunset + dummy delete still open |
-| 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked |
-| 11 | Settings **product**: hide dead controls, then wire keepers one at a time. Includes launch-feed bucket ON/OFF (web feature before the switch). | Keepers wired 2026-08-27 (not live until Deploy) |
-| 12 | Track B lockdown: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Last build before full-platform QA / public launch. | Launch gate — after remaining build, not started |
+| 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. Uniqueness already holds the number after Unban while it is on `user_private`. | Ban + banlist **live**. Still open: dummy deletes, Ban test, phone audit, phone+password sunset. Permaban IP after launch. |
+| 10 | Support thread engine (chat *pattern*, not `chat_threads`). Chapters 1–4 shipped and **left live** 2026-08-14. Shelf + Email/WhatsApp (Ch 5–6) is owner-owned later — do **not** hide Reply. | Engine live; shelf parked (owner) |
+| 11 | Settings **product**: hide dead controls, then wire keepers. Launch-feed ON/OFF reads `platform_settings/public`. | **Live** 2026-08-27. #3 owner-tested 2026-08-28. Other keeper smokes = pre-launch QA. |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. **After** that lock: full-platform QA (not part of the build itself). | Launch gate — **not started** |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -381,8 +410,8 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       3. Phone+password **sunset later** (signup **and** login UI gone, plus
          server reject of **new** `*@phone.gisugo.app` creates). Not this
          build. Existing social login stays.
-      4. Owner Ban test **deferred** — after the banlist ships, **or** after
-         dummy-account deletes right before launch. Not now.
+      4. Owner Ban test **deferred** — after dummy-account deletes right
+         before launch (after Phase 12), **or** when you choose. Not now.
       5. Dummy deletes = Auth user + `users` / `user_private` /
          `security_metadata`. **Do not** put those fake numbers on the
          banlist.
@@ -396,11 +425,13 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       **Ban (already live):** Suspended tab only; Auth `disabled`;
       `status='banned'`; no second cascade; no `wipeAccountMedia`; Unban
       re-enables login and does not relist gigs.
-      **Banlist write (next build):** one server path. Normalize phone.
+      **Banlist write (live 2026-08-25):** one server path. Normalize phone.
       Reject if on the banlist or already on another live `user_private`.
       Ban copies that user’s current phone onto the list (no admin typing).
-      Unban frees that number for **that uid only**. Delete-without-ban
-      does not stamp the list.
+      Unban leaves the stamp; that uid can log in again. Delete-without-ban
+      does not stamp the list. Same Google/Facebook after Ban = Auth refuses
+      (`user-disabled`). `banned_phones` is not “every registered phone” —
+      only numbers stamped on Ban.
       **Parked (not next):** suspend-cascade leftovers (refund coins on
       auto-suspended listings; close + notify worker when a hired
       *customer* is banned). Phone+password sunset. Permaban IP.
@@ -487,16 +518,21 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
          `contact-reveal.js` (tap opens the app, number is not page text).
       7. **Full-phase audit (after owner shelf).** Syntax, rules, no leftover fake Reply path, flag actually
          off on production, Email/WhatsApp is the only public conversation door.
-- [ ] **Phase 11: Settings product — hide dead controls, then wire keepers.
-      Hide pass live 2026-08-26.** Phase 5 storage stays. Dead rows removed
-      (Financial, Chat, Security, Notifications, Performance, Feature
-      Toggles, plus unused System Status / User / Gig knobs). Keepers still
-      save-only — not enforced. Composers still write `localStorage` until
-      their wire step. Do not reopen Phase 5.
-      **Keep + wire (one at a time):**
+- [x] **Phase 11: Settings product — hide dead controls, then wire keepers.
+      Hide pass live 2026-08-26. Keepers Deployed 2026-08-27.** Phase 5 storage
+      stays. Dead rows removed. Public site reads `platform_settings/public`
+      (fail-open if the doc cannot be read). Login and admin-dashboard never
+      get the maintenance cover. Do not reopen Phase 5.
+      **Live numbers (2026-08-27):** max active gigs `0` (no cap), min ₱50,
+      max ₱10,000, launch-feed ON, all pause switches off.
+      **Owner tests:** #3 tech warning centered and accepted 2026-08-28.
+      Remaining keeper on/off smokes sit on the pre-launch QA list after
+      Phase 12 (not more wiring).
+      **Keep + wire (done):**
       1. **[x] Suspend new gig posts** on `new-post2` + why notice (2026-08-27).
       2. **[x] Pause Support write** + why notice (2026-08-27).
       3. **[x] Tech-difficulties warning** + compose (public banner; Firestore).
+         Owner-tested 2026-08-28 (centered).
       4. **[x] Maintenance mode** + compose + resume time (public cover; Firestore).
       5. **[x] Pause new registration.**
       6. **[x] Max active gigs** (`0` = no cap).
@@ -507,23 +543,34 @@ that the whole dashboard section is finished forever. **Phase 10 in-app engine i
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. Policy read fails open.
-- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate.**
-      Do this **after remaining product phases are done**, immediately **before** the full-platform
-      test pass, **before** public launch. Do **not** mark V1 / dashboard work complete until
-      this ships. Not next while Phases 6 / 7 / 9 / 11 (and any other chosen leftovers)
-      are still open. Full scope: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
-      **Why last:** flipping rules too early breaks Apply / Hire / Accept. Doing it after
-      launch has the same code size but a bigger blast radius. Quiet window + full QA after
-      the lock is the point.
+- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Not started.**
+      This is the **next agent build**. It is a security lock, not a new user-facing
+      feature and not the “test everything” pass.
+      **What is wrong today:** any signed-in user can, via the API / dev tools (not
+      the GISUGO UI), read every application and every notification, and write
+      notifications into other people’s inboxes. The app screens already hide that.
+      Public launch makes the API gap a launch gate.
+      **Why it cannot be a one-line rules change:** Apply, Hire, Accept, and “worker
+      accepted → reject the other applicants” are *supposed* to write across users.
+      Tight rules would break those flows unless they move to Cloud Functions first.
+      **What already exists:** `gigOwnerId` stamp + backfill; push and unread counters
+      already run on the server. Phase 12 *finishes* that design. Full scope:
+      `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
       **Ship order (do not skip):**
-      1. Cloud Functions + switch client call sites. **Keep current rules up.**
-      2. Prove Apply → review → hire → accept → alerts still work (SDK + iOS REST).
-      3. Then lock rules: notifications create/update/delete = server; read = recipient
-         only. Applications read = applicant or `gigOwnerId`; create enforces the stamp.
-      4. Then full-platform QA. Not before step 3.
-      Groundwork already shipped (`gigOwnerId` stamp + backfill). Push + unread counters
-      already run server-side. This phase completes that architecture; it is not new
-      Firebase setup and is not a cost project.
+      1. Cloud Functions + switch the live client call sites. **Keep today’s rules up**
+         so Apply / Hire / Accept keep working while the functions land.
+      2. Prove Apply → review → hire → accept → alerts still work (Android/desktop
+         SDK and iOS REST).
+      3. Then lock rules: notifications create/update/delete = server only; read =
+         recipient only. Applications read = applicant or gig owner; create must
+         stamp `gigOwnerId`.
+      4. **Then** the full-platform QA / public-launch test pass — Ban test, dummy
+         deletes, remaining Phase 11 keeper smokes, phone+password sunset, the
+         usual Apply/Hire/Accept walkthrough. That pass is **after** 12, not Phase 12
+         itself.
+      Do **not** mark V1 complete until step 3 ships. Phone+password sunset and
+      dummy deletes stay sequenced after 12 (you still need dummy accounts until
+      then). Permaban IP is after launch.
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
