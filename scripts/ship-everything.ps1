@@ -134,7 +134,7 @@ if ($branch -ne "main") {
   Write-Host "WARN: on branch '$branch' (expected main). Continuing." -ForegroundColor Yellow
 }
 
-$dirty = Get-ShippableDirty
+$dirty = @(Get-ShippableDirty)
 if ($dirty.Count -gt 0) {
   Write-Step ("Uncommitted shippable files (" + $dirty.Count + ")")
   $dirty | ForEach-Object { Write-Host ("  {0} {1}" -f $_.Status, $_.Path) }
@@ -157,7 +157,7 @@ if ($dirty.Count -gt 0) {
   Write-Ok "No shippable uncommitted changes (noise like .firebase cache ignored)"
 }
 
-$still = Get-ShippableDirty
+$still = @(Get-ShippableDirty)
 if ($still.Count -gt 0) {
   Write-Fail "Shippable files still dirty after commit - aborting before push/deploy"
 }
@@ -245,7 +245,7 @@ if ($LASTEXITCODE -ne 0) { Write-Fail "firebase deploy failed" }
 Write-Step "Post-ship lock check"
 $local2 = (git rev-parse HEAD).Trim()
 $remote2 = (git rev-parse $remoteRef).Trim()
-$dirty2 = Get-ShippableDirty
+$dirty2 = @(Get-ShippableDirty)
 if ($local2 -ne $remote2) {
   Write-Fail ("Post-deploy git drift: local " + $local2.Substring(0, 7) + " vs remote " + $remote2.Substring(0, 7))
 }
