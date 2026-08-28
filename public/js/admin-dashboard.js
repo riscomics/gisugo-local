@@ -4716,16 +4716,34 @@ function loadGigDetails(gigId) {
         populateGigDetailPanel(gig);
     }
 
-    // "Reported By" list is fetched on demand (not stored on the job doc) --
-    // only relevant for reported/suspended gigs, but harmless to skip
-    // otherwise since gig_reports would just come back empty.
+    // "Reported By" list is fetched on demand (not stored on the job doc).
     if (gig.status === 'reported' || gig.status === 'suspended') {
         loadGigReportsIntoCurrentGig(gigId);
     }
 }
 
+let gigReportsFetchInFlightId = '';
+
+function patchReportedByUi(gig) {
+    const html = renderReportedByInfoHtml(gig);
+    const desktopInfo = document.getElementById('reportedByInfo');
+    if (desktopInfo) desktopInfo.innerHTML = html;
+    const overlay = document.getElementById('gigDetailOverlay');
+    if (overlay && overlay.style.display === 'flex') {
+        const overlayInfo = overlay.querySelector('.reported-by-info');
+        if (overlayInfo) overlayInfo.innerHTML = html;
+    }
+}
+
 async function loadGigReportsIntoCurrentGig(gigId) {
     if (typeof getGigReportsForJob !== 'function') return;
+    const alreadyLoaded = currentGigData
+        && currentGigData.gigId === gigId
+        && Array.isArray(currentGigData.reportedBy)
+        && currentGigData.reportedBy.length > 0;
+    if (alreadyLoaded) return;
+    if (gigReportsFetchInFlightId === gigId) return;
+    gigReportsFetchInFlightId = gigId;
     try {
         const reports = await getGigReportsForJob(gigId);
         // Guard against the admin having clicked to a different gig while this was in flight.
@@ -4737,14 +4755,11 @@ async function loadGigReportsIntoCurrentGig(gigId) {
             subject: r.subject || '',
             message: r.message || ''
         }));
-        // Re-render whichever view is currently showing this gig.
-        if (window.innerWidth <= 887) {
-            showGigOverlay(currentGigData);
-        } else {
-            populateGigDetailPanel(currentGigData);
-        }
+        patchReportedByUi(currentGigData);
     } catch (error) {
         console.warn('⚠️ Could not load gig reports for detail panel:', error);
+    } finally {
+        if (gigReportsFetchInFlightId === gigId) gigReportsFetchInFlightId = '';
     }
 }
 
