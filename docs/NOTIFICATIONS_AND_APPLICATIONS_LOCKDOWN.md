@@ -1,7 +1,10 @@
 # Notifications & Applications — Security Lockdown Scope
 
 > Status: **Groundwork done · Full lockdown is Phase 12 (launch gate)**
-> Last updated: 2026-08-17
+> Last updated: 2026-08-28
+> **Step 1 live-door map is in `docs/V1_HARDENING_TASKLIST.md` (Phase 12).**
+> Apply / Hire / Accept are the spine, not the whole list. Two Accept doors
+> exist; the Messages chat card does **not** reject other applicants today.
 > READ THIS FIRST whenever notifications or application-access rules come up. It exists so
 > the full scope is known up front and we never "discover walls" mid-change again.
 >

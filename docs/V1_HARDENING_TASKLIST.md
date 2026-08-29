@@ -132,10 +132,10 @@ that the whole dashboard section is finished forever.
   Reply. Do **not** start Chapters 5–7 unless you reopen this on purpose.
 - **Phase 11 — keeper builds are done.** Live 2026-08-27. #3 owner-tested 2026-08-28.
   Remaining keeper on/off smokes sit on the **pre-launch QA** list after Phase 12.
-- **Phase 12 — next build (launch gate), then the full test pass.** See the Phase 12
-  entry for the microtasklist. After the rules lock ships: Apply → hire → accept, then
-  the **Pre-launch QA** list (Ban test, dummy deletes, remaining keeper smokes,
-  phone+password retirement, leak + extra-cost catch-up).
+- **Phase 12 — next build (launch gate), then the full test pass.** Step 1
+  live-door map is written (2026-08-28). Not only Apply / Hire / Accept.
+  Do not start the Cloud Function until that map is accepted. After the
+  rules lock ships: prove every live door, then the **Pre-launch QA** list.
 
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
@@ -152,7 +152,7 @@ that the whole dashboard section is finished forever.
 | 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. | Ban **builds done**. Still open: dummy deletes, Ban test, phone audit, phone+password retirement (small later build). |
 | 10 | In-app Support thread (Ch 1–4) live 2026-08-14. Email/WhatsApp shelf written as reference only — not an open build. | **Retired as open work.** Engine stays on. |
 | 11 | Settings keepers + launch-feed switch. | **Builds done.** #3 tested. Other smokes = pre-launch QA. |
-| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **not started** |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Step 1 mapped** (2026-08-28). Function not started. |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -559,28 +559,114 @@ that the whole dashboard section is finished forever.
       **Do not skip the order.** Functions first (rules still open) → prove Apply /
       Hire / Accept still work → then lock rules → then the full pre-launch test.
       **Microtasklist**
-      1. **[ ] List the live call sites.** Find every place the app creates an
-         alert for someone else, or a worker accept rejects the other applicants.
-         Skip dead code.
+      1. **[x] List the live call sites.** Mapped 2026-08-28 (this session).
+         Not only Apply / Hire / Accept — every live door that writes another
+         person’s application or inbox, plus the reads that would die after
+         lock. Dead / leftover code skipped. Full table is immediately below
+         this list; keep `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`
+         in sync. **Do not start step 2 until this map is accepted.**
       2. **[ ] Server: create alert.** One Cloud Function. The browser stops
          writing into other people’s notification inboxes. Keep today’s alert
-         types and dedup. No new alert design.
+         types and dedup. No new alert design. Must cover every **LIVE write**
+         in the Step 1 map (not a subset).
       3. **[ ] Server: accept rejects the others.** When a worker accepts, the
          server (not the browser) rejects the other pending applicants, sends
          the “not selected” notices, and does the coin releases we already do.
-      4. **[ ] Point the live buttons at those functions.** Apply / Hire / Accept
-         keep using today’s loose rules so they do not break mid-ship. Owner
-         and worker reads of applications become “mine only.” Pending-count
-         uses the number already on the gig, not a scan of every application.
+         Both Accept doors (Gigs Manager **and** Messages chat card) must
+         call this. Today the chat card does **not** reject the others —
+         that is a live gap the clerk closes.
+      4. **[ ] Point the live buttons at those functions.** Every live door
+         from the Step 1 map. Keep today’s loose rules so they do not break
+         mid-ship. Owner and worker reads of applications become “mine only.”
+         Pending-count uses the number already on the gig, not a scan of
+         every application.
       5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
          they are ready before relying on them live.
-      6. **[ ] Prove it.** Apply → review → Hire → Accept. Alerts on both
-         sides. Phone and desktop. If this fails, do not lock rules.
+      6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
+         and desktop. Apply → review → Hire → Accept (both doors) is the
+         spine; void / resign / complete / withdraw / reject-applicant /
+         feedback / Support reply must also still fire their alerts. If
+         this fails, do not lock rules.
       7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
          signed-in stranger cannot read everyone’s applications or alerts via
          the API.
       8. **[ ] After 12 (not this build).** Full **Pre-launch QA** (see the
          list immediately below). Not part of the Phase 12 build.
+
+      **Step 1 map (2026-08-28) — live doors the clerk must keep working**
+
+      Roles: **Worker**, **Customer** (gig owner), **Admin**. Same person
+      can be both worker and customer. iOS uses the REST apply path.
+
+      **A. Cross-user alerts (browser writes someone else’s inbox today)**
+
+      | # | Live door | Who taps | Alert type(s) | After clerk |
+      |---|---|---|---|---|
+      | A1 | Apply (`applyForJob` ← gig page) | Worker | `application_received`, milestone / `gig_review_needed` / `gig_auto_paused` (also **deletes/updates** the owner’s older apply alerts) | Owner still gets the same Alerts. Dedup stays. Worker must not read the owner’s inbox. |
+      | A2 | Hire (`hireWorker` ← Gigs Manager overlay) | Customer | `offer_sent` (also **deletes** that worker’s old offer rows for this gig) | Worker still gets the offer. Owner must not wipe another inbox from the browser. |
+      | A3 | Accept — Gigs Manager Offered tab (`moveJobFromOfferedToAccepted`) | Worker | `offer_accepted` to owner; then `not_selected` grouped alerts to the other applicants | Same as today on this door. Sweep moves to step 3. |
+      | A4 | Accept — Messages chat card (`acceptGigOfferInChat`) | Worker | `offer_accepted` only. **Does not** reject others today (code says so on purpose). | Must use the **same** server sweep as A3 or the other applicants stay pending forever. Expected product fix, not a new screen. |
+      | A5 | Decline offer — Gigs Manager + chat (`rejectGigOffer` / `rejectGigOfferInChat`) | Worker | `offer_rejected` | Owner still sees the decline; gig goes back to active. |
+      | A6 | Owner rejects one applicant (`rejectApplication`) | Customer | grouped `manual_reject` / slots-reopened | That worker still gets the courtesy alert. Grouping must run on the server (it reads **that worker’s** unread alerts). |
+      | A7 | Void / relist — Gigs Manager **and** Messages Gig Status (`jobs.js` + `relistGigFromChat`) | Customer | `contract_voided` | Hired worker still gets voided. Two UI doors, same clerk. |
+      | A8 | Resign — Gigs Manager **and** Messages Gig Status (`jobs.js` + `resignGigFromChat`) | Worker | `worker_resigned` | Owner still gets resign. Two UI doors, same clerk. |
+      | A9 | Complete — Gigs Manager **and** Messages Gig Status (`jobs.js` + `completeGigFromChat`) | Customer | `job_completed` | Hired worker still gets complete. Two UI doors, same clerk. |
+      | A10 | Customer leaves feedback | Customer | `feedback_received` | Worker still gets it. |
+      | A11 | Worker leaves feedback | Worker | `worker_feedback_received` | Customer still gets it. |
+      | A12 | Admin Support **Reply** (`replyToSupportRequest`) | Admin | `support_admin_message` | User still gets the Support alert. Admin Contact **already** writes this on the server — do not invent a second type. |
+
+      **Already server (do not redo):** Ban cascade `worker_banned_gig_reopened`; Admin Contact `support_admin_message`; push + unread counters when a notification doc is created.
+
+      **B. Application writes that are not “just Hire”**
+
+      | # | Live door | Who | What the browser does today | After lock if we forget it |
+      |---|---|---|---|---|
+      | B1 | Accept sweep (A3 only today) | Worker | Reads **all pending** apps on the gig, marks them rejected, releases their coins, sends A3 grouped alerts | Other applicants stay pending; coins stay held. **Hard clerk.** |
+      | B2 | Hire | Customer | Sets chosen app to `accepted`; leaves others pending on purpose | Still allowed as owner→that app if rules stay “owner or applicant.” Keep. |
+      | B3 | Decline / withdraw / resign | Worker | Updates **own** application | Stays client-OK (own doc). |
+      | B4 | Owner reject / void / complete | Customer | Updates the hired or rejected worker’s application | Stays client-OK if owner can update apps they own (`gigOwnerId`). |
+      | B5 | Delete gig (`deleteJob`) | Customer or Admin | Server callable first (`cleanupDeletedJobApplications`); client fallback scans all apps on the gig | Prefer the existing function. Client scan of `jobId` only will die after lock. |
+      | B6 | Coin release helper | Mixed | Reads one application by id, releases that worker’s coin | Single-doc get is OK if caller is owner or applicant. Do not turn this into a collection scan. |
+
+      **C. Reads that break after lock (and/or waste money today)**
+
+      | # | Live door | Today | After lock | Cost rule |
+      |---|---|---|---|---|
+      | C1 | Apply duplicate check (SDK path) | Scans **all** applications for the gig, then filters to me | Query dies. REST path is already `jobId` + `applicantId` — SDK must match. | Never scan the whole gig’s applicants to see if *I* applied. |
+      | C2 | Apply pending-count fallback | Uses `jobs.applicationCount` first (good). Fallback scans pending on the gig | Fallback dies for the worker. | Use the number on the gig only. |
+      | C3 | `syncJobApplicationCount` | Re-counts pending by `jobId` after apply / withdraw / decline / void / resign / reject | Worker cannot run that query after lock. | Do not recount from the browser. Increment / set the field, or let the clerk do it. |
+      | C4 | Owner applicant list (`getJobApplications`) | All apps where `jobId` == this gig | Query dies unless scoped `gigOwnerId` == me (+ `jobId`). | Small list, indexed. No platform-wide scan. |
+      | C5 | Gig-page “already applied?” (`dynamic-job.js`) | Already `jobId` + `applicantId` | Survives lock. | Keep. |
+      | C6 | Worker My Applications (`getWorkerApplications`) | Already `applicantId` == me | Survives lock. | Keep. |
+
+      **D. Own inbox (must keep working — not a clerk write)**
+
+      Alerts page, menu badge, mark read, delete own alert: `getUserNotifications` /
+      `subscribeToUserNotifications` / `markNotificationRead` / `deleteNotification`.
+      After lock these stay **recipient-only**. Do not move them to a function
+      unless a later pass needs it.
+
+      **E. Not this lock (different collections — will not brick from Phase 12 rules)**
+
+      Chat threads, Support ticket body (already a function), gig reports,
+      reviews create, listings browse, Ban, Settings keepers.
+
+      **F. Dead / skip (do not build for these)**
+
+      - `autoRejectOtherApplications` in `jobs.js` — UI card animation only, **never called**.
+      - `fixApplicationCounts` / `cleanup-duplicate-applications.html` — one-off admin tool, not a user button.
+      - `interview_request` — display leftover only; nothing creates it.
+      - Chat-accept copies inside `alerts.js` / `support.js` — those pages have **no** thread list. Live chat door is `messages.html`. The clerk still covers `acceptGigOfferInChat` because Messages calls it.
+
+      **G. Expected effects (honest)**
+
+      - Users should feel the same buttons and the same alert types.
+      - **One real behavior change:** Accept from the Messages card will start
+        rejecting the other pending applicants (same as Accept on Gigs Manager).
+        Today it does not. That is the brick-wall we cannot leave.
+      - Cost: Apply’s SDK “scan every applicant on this gig” and every
+        `syncJobApplicationCount` recount go away. Function runs are cheap;
+        those scans are what hit the bank.
 
 - [ ] **Pre-launch QA (after Phase 12 — not during the 12 build).**
       Owner forgot to have leak / extra-cost checks done as each admin Phase
