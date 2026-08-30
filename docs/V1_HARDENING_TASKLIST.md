@@ -737,9 +737,11 @@ that the whole dashboard section is finished forever.
             (`submitCustomerFeedback`) use `createUserAlert`.
             `jobs.html` on `jobs.js?v=164`. **Stopped here** — Admin
             Reply not wired.
-         10. **[ ] A12 Admin Reply.** `support_admin_message` via
-             `createUserAlert`. Contact stays on the existing server
-             write.
+         10. **[x] A12 Admin Reply.** `replyToSupportRequest` calls
+             `createUserAlert` (`support_admin_message`). Contact
+             stays on the existing server write.
+             `admin-dashboard.html` on `firebase-db.js?v=75`.
+             **Stopped here** — C3 recount not wired.
          11. **[ ] C3 recount.** `syncJobApplicationCount` must stop
              scanning pending apps from the browser (worker cannot do
              that after lock). Increment / set `applicationCount` on

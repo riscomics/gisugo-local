@@ -4979,8 +4979,9 @@ async function replyToSupportRequest(requestId, replyMessage, photoMeta = null) 
       const ticketJobId = String(data.jobId || '').trim();
       const ticketJobTitle = String(data.jobTitle || '').trim();
       try {
-        await createNotification(requesterId, {
+        await callCreateUserAlert({
           type: 'support_admin_message',
+          recipientId: requesterId,
           role: 'worker',
           jobId: ticketJobId,
           jobTitle: ticketJobTitle,
