@@ -572,6 +572,46 @@ that the whole dashboard section is finished forever.
          writing into other people’s notification inboxes. Keep today’s alert
          types and dedup. No new alert design. Must cover every **LIVE write**
          in the Step 1 map (not a subset).
+         **Not this step:** wiring live buttons (that is Step 4), Accept
+         sweep (Step 3), locking rules (Step 7).
+         **Step 2 microtasklist (do in order; audit + smoke each; stop
+         after 2.9 — do not start Step 3/4 in the same pass):**
+         1. **[ ] Lock the contract (no code).** One callable
+            (`asia-southeast1`, signed-in required). Three write shapes,
+            not twelve functions:
+            (a) **simple create** + optional `dedupeKey` (A3, A5, A7–A12);
+            (b) **replace-then-create** (A1 owner apply-alerts, A2 old
+            `offer_sent`);
+            (c) **grouped slots-reopened** (A6; Step 3 will reuse this).
+            Allowlist = today’s live types only. Caller must be allowed
+            (poster / hired worker / applicant / admin) from the job,
+            application, or Support ticket — do not trust the client’s
+            `recipientId` alone. Contact + Ban stay on their existing
+            server writes. Native apps will call this same function later.
+         2. **[ ] Skeleton.** Add the callable. Reject unsigned, unknown
+            type, missing job/ticket when required. No inbox write yet.
+            `node --check functions/index.js`.
+         3. **[ ] Who-may-send.** Enforce the contract from 2.1 with
+            single-doc reads (job / application / ticket). No collection
+            scans.
+         4. **[ ] Simple create + dedupe.** Same fields as today’s
+            `createNotification` (type, role, message, jobId, titles,
+            `dedupeKey` doc id). One inbox row. Existing push + unread
+            triggers fire from that row — do not send push or bump
+            counters inside this function.
+         5. **[ ] A1 replace.** Server does the owner apply-alert
+            update/delete, then create. Worker never reads the owner’s
+            inbox.
+         6. **[ ] A2 replace.** Server deletes that worker’s old
+            `offer_sent` for this gig, then creates the fresh offer.
+         7. **[ ] A6 group.** Server batches `application_slots_reopened_batch`
+            the way today’s helper does (6-hour window, one card).
+         8. **[ ] Deploy functions only.** Rules stay open. Do **not**
+            change `createNotification` or any live button yet.
+         9. **[ ] Controlled smoke.** One signed-in call that is allowed,
+            one that is not. Confirm: one new inbox row, badge/push still
+            come from the existing triggers, rejected call writes nothing.
+            If this fails, do not wire buttons and do not start Step 3.
       3. **[ ] Server: accept rejects the others.** Live door is Gigs Manager
          Offered-tab Accept only. The server (not the browser) rejects the
          other pending applicants, sends the “not selected” notices, and
