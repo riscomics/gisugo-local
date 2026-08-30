@@ -724,9 +724,14 @@ that the whole dashboard section is finished forever.
             Browser grouped-closure helper no longer used on this
             door. `jobs.html` on `firebase-db.js?v=73`. **Stopped
             here** — Void / resign / complete not wired.
-         8. **[ ] A7–A9 Void / resign / complete.** Both Gigs Manager
-            and Messages Gig Status doors, same clerk. One pair at a
-            time if needed.
+         8. **[x] A7–A9 Void / resign / complete.** Both Gigs Manager
+            (`jobs.js`) and Messages Gig Status (`relistGigFromChat` /
+            `resignGigFromChat` / `completeGigFromChat`) use
+            `createUserAlert`. Void/resign helpers rewritten; both
+            complete sites rewritten. `jobs.html` on
+            `firebase-db.js?v=74` + `jobs.js?v=163`; `messages.html`
+            on `firebase-db.js?v=74`. **Stopped here** — Feedback
+            not wired.
          9. **[ ] A10–A11 Feedback.** Both directions via
             `createUserAlert`.
          10. **[ ] A12 Admin Reply.** `support_admin_message` via

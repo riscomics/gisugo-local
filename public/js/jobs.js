@@ -5262,14 +5262,16 @@ function initializeCompleteJobConfirmationHandlers() {
                     }
                 }
                 
-                // Step 2b: Send notification to worker about completion (with feedback reminder)
+                // Worker alert: clerk writes job_completed. Do not fail Complete if it fails.
                 try {
-                    if (typeof createNotification === 'function' && jobData.hiredWorkerId) {
-                        const customerProfile = await getUserProfile(jobData.posterId);
+                    if (typeof callCreateUserAlert === 'function' && jobData.hiredWorkerId) {
+                        const customerProfile = typeof getUserProfile === 'function'
+                            ? await getUserProfile(jobData.posterId)
+                            : null;
                         const customerName = customerProfile?.fullName || 'Customer';
-                        
-                        await createNotification(jobData.hiredWorkerId, {
+                        await callCreateUserAlert({
                             type: 'job_completed',
+                            recipientId: jobData.hiredWorkerId,
                             jobId: jobId,
                             jobTitle: jobData.title || 'Gig',
                             message: `"${jobData.title}" has been marked as complete by ${customerName}.`,
@@ -5280,7 +5282,6 @@ function initializeCompleteJobConfirmationHandlers() {
                     }
                 } catch (notifError) {
                     console.error('❌ Error creating completion notification:', notifError);
-                    // Don't fail the completion if notification fails
                 }
                 
                 // Step 3: Update customer statistics

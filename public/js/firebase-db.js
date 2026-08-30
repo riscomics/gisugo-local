@@ -2947,16 +2947,20 @@ async function completeGigFromChat(jobId) {
       }
     }
 
-    if (hiredWorkerId && typeof createNotification === 'function') {
-      await createNotification(hiredWorkerId, {
-        type: 'job_completed',
-        jobId: safeJobId,
-        jobTitle: jobData.title || 'Gig',
-        message: `Gig "${jobData.title || 'Gig'}" has been marked completed.`,
-        actionRequired: false
-      }).catch((error) => {
+    if (hiredWorkerId) {
+      try {
+        await callCreateUserAlert({
+          type: 'job_completed',
+          recipientId: hiredWorkerId,
+          jobId: safeJobId,
+          jobTitle: jobData.title || 'Gig',
+          message: `Gig "${jobData.title || 'Gig'}" has been marked completed.`,
+          actionRequired: false,
+          dedupeKey: `job_completed_${safeJobId}_worker_${hiredWorkerId}`
+        });
+      } catch (error) {
         console.warn('⚠️ Completion notification skipped:', error);
-      });
+      }
     }
 
     return { success: true, message: 'Gig marked as completed' };
@@ -5989,16 +5993,13 @@ async function sendContractVoidedNotification(workerId, workerName, jobId, jobTi
   console.log('📋 Worker:', workerName, '| Job:', jobTitle);
   
   try {
-    // Use existing createNotification() function
-    const result = await createNotification(workerId, {
+    const result = await callCreateUserAlert({
       type: 'contract_voided',
+      recipientId: workerId,
       jobId: jobId,
-      jobTitle: jobTitle,
+      jobTitle: jobTitle || 'Gig',
       message: `Your contract for "${jobTitle}" has been voided. Reason: ${voidReason}`,
-      actionRequired: false,
-      // Additional data for future use
-      voidReason: voidReason,
-      customerName: customerName
+      actionRequired: false
     });
     
     if (result.success) {
@@ -6061,16 +6062,13 @@ async function sendWorkerResignedNotification(customerId, customerName, jobId, j
   console.log('📋 Customer:', customerName, '| Worker:', workerName, '| Job:', jobTitle);
   
   try {
-    // Use existing createNotification() function
-    const result = await createNotification(customerId, {
+    const result = await callCreateUserAlert({
       type: 'worker_resigned',
+      recipientId: customerId,
       jobId: jobId,
-      jobTitle: jobTitle,
+      jobTitle: jobTitle || 'Gig',
       message: `${workerName} has resigned from "${jobTitle}". Reason: ${resignReason}. Your job is now active for new applications.`,
-      actionRequired: false,
-      // Additional data for future reference
-      workerName: workerName,
-      resignReason: resignReason  // Matches job field naming
+      actionRequired: false
     });
     
     if (result.success) {
