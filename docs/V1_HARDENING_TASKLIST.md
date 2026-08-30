@@ -709,12 +709,12 @@ that the whole dashboard section is finished forever.
             (replace-offer). Browser no longer deletes/writes `offer_sent`.
             `jobs.html` on `firebase-db.js?v=72`. **Stopped here** — Accept
             not wired.
-         5. **[ ] A3 Accept.** After today’s job flip + own-coin +
+         5. **[x] A3 Accept.** After today’s job flip + own-coin +
             `offer_accepted` (via `createUserAlert`), call
-            `workerAcceptRejectOthers`. **Delete** the browser pending
-            scan / reject / coin / grouped-alert block in
-            `moveJobFromOfferedToAccepted`. Own `offer_sent` cleanup
-            (own inbox) can stay client.
+            `workerAcceptRejectOthers`. Browser pending scan / reject /
+            coin / grouped-alert block deleted. Own `offer_sent`
+            cleanup stays client. `jobs.html` on `jobs.js?v=161`.
+            **Stopped here** — Decline not wired.
          6. **[ ] A5 Decline.** `offer_rejected` via `createUserAlert`.
          7. **[ ] A6 Owner reject.** Slots-reopened via `createUserAlert`
             (owner is allowed). Stop

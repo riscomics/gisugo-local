@@ -4665,16 +4665,17 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                 showLoadingOverlay('Processing acceptance...');
             }
             
-            // Create notification for customer about offer acceptance
+            // Owner alert: clerk writes offer_accepted. Do not fail Accept if it fails.
             try {
-                if (typeof createNotification === 'function' && jobData && jobData.posterId) {
-                    console.log('✅ createNotification function exists');
+                if (typeof callCreateUserAlert === 'function' && jobData && jobData.posterId) {
                     const currentUser = firebase.auth().currentUser;
-                    const workerProfile = await getUserProfile(currentUser.uid);
+                    const workerProfile = typeof getUserProfile === 'function'
+                        ? await getUserProfile(currentUser.uid)
+                        : null;
                     const workerName = workerProfile?.fullName || 'Worker';
-                    
-                    const result = await createNotification(jobData.posterId, {
+                    const result = await callCreateUserAlert({
                         type: 'offer_accepted',
+                        recipientId: jobData.posterId,
                         jobId: jobId,
                         jobTitle: jobData.title || 'Your Gig',
                         message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
@@ -4682,11 +4683,10 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                     });
                     console.log('✅ Acceptance notification result:', result);
                 } else {
-                    console.error('❌ createNotification not found or missing job data');
+                    console.error('❌ callCreateUserAlert not found or missing job data');
                 }
             } catch (notifError) {
                 console.error('❌ Error creating acceptance notification:', notifError);
-                // Don't fail the acceptance if notification fails
             }
             
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
@@ -4710,50 +4710,13 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                 console.warn('⚠️ Could not clean up offer notifications:', cleanupError);
             }
             
-            // Now that worker has accepted, reject all other pending applications for this job
+            // Reject the others + slots-reopened alerts + their coins: server sweep only.
             try {
-                const otherApps = await db.collection('applications')
-                    .where('jobId', '==', jobId)
-                    .where('status', '==', 'pending')
-                    .get();
-                if (!otherApps.empty) {
-                    const batch = db.batch();
-                    const rejectedApplicants = [];
-                    otherApps.docs.forEach(doc => {
-                        const app = doc.data() || {};
-                        rejectedApplicants.push({
-                            applicantId: app.applicantId || '',
-                            jobId: app.jobId || jobId,
-                            jobTitle: app.jobTitle || jobData?.title || 'Gig'
-                        });
-                        batch.update(doc.ref, {
-                            status: 'rejected',
-                            rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
-                    });
-                    await batch.commit();
-                    console.log(`✅ Rejected ${otherApps.size} other pending application(s) after worker accepted`);
-
-                    if (typeof createGroupedApplicationClosureNotification === 'function') {
-                        const notifyPromises = rejectedApplicants
-                            .filter((entry) => !!entry.applicantId)
-                            .map((entry) => createGroupedApplicationClosureNotification(entry.applicantId, {
-                                outcomeType: 'not_selected',
-                                jobId: entry.jobId,
-                                jobTitle: entry.jobTitle
-                            }).catch((error) => {
-                                console.warn('⚠️ Could not queue grouped not-selected notification:', error);
-                            }));
-                        await Promise.all(notifyPromises);
-                    }
-
-                    if (typeof releaseApplicationCoinForApplication === 'function') {
-                        const releasePromises = otherApps.docs.map((doc) =>
-                            releaseApplicationCoinForApplication(doc.id, 'not_selected_after_hire')
-                                .catch((error) => console.warn('⚠️ Could not release coin for rejected application:', error))
-                        );
-                        await Promise.all(releasePromises);
-                    }
+                if (typeof callWorkerAcceptRejectOthers === 'function') {
+                    const sweep = await callWorkerAcceptRejectOthers(jobId);
+                    console.log('✅ Accept sweep result:', sweep);
+                } else {
+                    console.warn('⚠️ callWorkerAcceptRejectOthers unavailable; others stay pending');
                 }
             } catch (rejectError) {
                 console.warn('⚠️ Could not reject other applications:', rejectError);
