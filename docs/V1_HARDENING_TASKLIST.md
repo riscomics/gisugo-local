@@ -742,11 +742,14 @@ that the whole dashboard section is finished forever.
              stays on the existing server write.
              `admin-dashboard.html` on `firebase-db.js?v=75`.
              **Stopped here** — C3 recount not wired.
-         11. **[ ] C3 recount.** `syncJobApplicationCount` must stop
-             scanning pending apps from the browser (worker cannot do
-             that after lock). Increment / set `applicationCount` on
-             the gig, or skip the write when the number is already
-             known. Do **not** change `getJobApplications` here.
+         11. **[x] C3 recount.** `syncJobApplicationCount` no longer
+             scans pending apps. Callers set a known count. Hire
+             stamps `heldPendingCount` so decline / void-from-hired /
+             resign-from-hired can restore the badge. After Accept
+             the count stays 0. `getJobApplications` unchanged.
+             `firebase-db.js?v=76` on jobs / messages / dynamic-job /
+             my-applications; `jobs.js?v=165`. **Stopped here** —
+             leftover audit not done.
          12. **[ ] Leftover audit.** Grep: no live door still calls
              `createNotification` / grouped-closure / browser
              reject-others except dead/retired chat copies. Rules still

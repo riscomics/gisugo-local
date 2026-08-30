@@ -700,14 +700,16 @@ async function markApplicationCoinReleasedViaFirestoreRest(applicationId, releas
  * Set jobs.applicationCount from a live pending query (REST / iOS path).
  * Optionally appends applicationId to applicationIds (apply flow).
  */
-async function syncJobApplicationCountViaFirestoreRest(jobId, applicationId = '', headers = null) {
+async function syncJobApplicationCountViaFirestoreRest(jobId, applicationId = '', headers = null, setCount = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for job REST update');
   const safeJobId = String(jobId || '').trim();
   if (!safeJobId) throw new Error('Missing job id for applicationCount sync');
 
-  const pending = await fetchPendingApplicationsByJobViaFirestoreRest(safeJobId, 11, headers);
-  const correctCount = Array.isArray(pending) ? pending.length : 0;
+  const correctCount = Math.max(0, Number(setCount));
+  if (!Number.isFinite(Number(setCount)) || Number(setCount) < 0) {
+    throw new Error('setCount is required for applicationCount write');
+  }
   const safeApplicationId = String(applicationId || '').trim();
 
   const fieldTransforms = [];
@@ -751,14 +753,34 @@ async function incrementJobApplicationCountViaFirestoreRest(jobId, applicationId
 }
 
 /**
- * Authoritative jobs.applicationCount = number of pending applications.
- * Prefer this over FieldValue.increment(±1) so Listings badges cannot drift.
+ * After hire, other applicants stay pending but the badge is forced to 0.
+ * heldPendingCount is that leftover number. Restore it when the offer
+ * ends before Accept (decline / void-from-hired / resign-from-hired).
+ * After Accept the sweep already closed those rows, so the count is 0.
+ * @param {Object|null} jobData
+ * @returns {number|null} count to write, or null when unknown (skip)
+ */
+function resolveApplicationCountAfterOfferEnd(jobData) {
+  const status = String((jobData && jobData.status) || '').toLowerCase();
+  if (status === 'accepted') return 0;
+  if (status === 'hired') {
+    const held = Number(jobData && jobData.heldPendingCount);
+    return (Number.isFinite(held) && held >= 0) ? held : null;
+  }
+  return null;
+}
+
+/**
+ * Write jobs.applicationCount from a number the caller already knows.
+ * Does not scan applications. After lock a worker cannot query pending
+ * apps on someone else's gig.
  * @param {string} jobId
- * @param {{ applicationIdToUnion?: string, skipWriteIfCountEquals?: number }} [options]
+ * @param {{ setCount?: number, applicationIdToUnion?: string, skipWriteIfCountEquals?: number }} [options]
+ *   setCount — pending count to store. Required unless skipping.
  *   applicationIdToUnion — apply flow: also union the new app id into applicationIds.
  *     When set, failures THROW (the union is required for later job-delete cleanup).
- *   skipWriteIfCountEquals — bulk repair: skip the job write when count already matches.
- * @returns {Promise<number>} pending count (or -1 on soft failure)
+ *   skipWriteIfCountEquals — skip the job write when setCount already matches.
+ * @returns {Promise<number>} written count (or -1 on soft skip/failure)
  */
 async function syncJobApplicationCount(jobId, options = {}) {
   const db = getFirestore();
@@ -769,13 +791,17 @@ async function syncJobApplicationCount(jobId, options = {}) {
     return -1;
   }
 
-  try {
-    const pendingApps = await db.collection('applications')
-      .where('jobId', '==', safeJobId)
-      .where('status', '==', 'pending')
-      .get();
-    const correctCount = pendingApps.size;
+  const hasSetCount = Number.isFinite(options.setCount);
+  const correctCount = hasSetCount ? Math.max(0, Number(options.setCount)) : null;
+  if (!hasSetCount) {
+    if (Number.isFinite(options.skipWriteIfCountEquals)) {
+      return options.skipWriteIfCountEquals;
+    }
+    console.warn('⚠️ syncJobApplicationCount skipped (no setCount):', safeJobId);
+    return -1;
+  }
 
+  try {
     if (!unionId
         && Number.isFinite(options.skipWriteIfCountEquals)
         && options.skipWriteIfCountEquals === correctCount) {
@@ -1914,7 +1940,9 @@ async function withdrawWorkerApplication(applicationId) {
       withdrawnAt: firebase.firestore.FieldValue.serverTimestamp()
     });
 
-    await syncJobApplicationCount(appData.jobId);
+    const jobSnap = await db.collection('jobs').doc(appData.jobId).get();
+    const currentCount = Number((jobSnap.data() || {}).applicationCount) || 0;
+    await syncJobApplicationCount(appData.jobId, { setCount: Math.max(0, currentCount - 1) });
 
     await releaseApplicationCoinForApplication(safeApplicationId, 'withdrawn');
     return { success: true, message: 'Application withdrawn successfully' };
@@ -2272,12 +2300,12 @@ async function applyForJob(jobId, applicationData) {
     });
     if (useRestPrimaryForApply) {
       await withFirestoreReadTimeout(
-        syncJobApplicationCountViaFirestoreRest(jobId, appRef.id, restAuthHeaders),
+        syncJobApplicationCountViaFirestoreRest(jobId, appRef.id, restAuthHeaders, totalPendingApplications + 1),
         applyWriteTimeoutMs
       );
     } else {
       await withFirestoreReadTimeout(
-        syncJobApplicationCount(jobId, { applicationIdToUnion: appRef.id }),
+        syncJobApplicationCount(jobId, { applicationIdToUnion: appRef.id, setCount: totalPendingApplications + 1 }),
         applyWriteTimeoutMs
       );
     }
@@ -2470,8 +2498,8 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
       agreedPrice: agreedPrice, // Store the agreed price
       hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
       // Offer-out UI: badge shows 0 until worker responds (other pendings stay pending).
-      // rejectGigOfferInChat / jobs reject-offer path recounts via syncJobApplicationCount.
-      applicationCount: 0
+      applicationCount: 0,
+      heldPendingCount: Math.max(0, (Number(jobData.applicationCount) || 0) - 1)
     });
     
     // Update application status of the chosen applicant to 'accepted' (offer extended)
@@ -2661,7 +2689,10 @@ async function rejectGigOfferInChat(jobId) {
       await Promise.all(releasePromises);
     }
 
-    await syncJobApplicationCount(safeJobId);
+    const declineCount = resolveApplicationCountAfterOfferEnd(jobData);
+    if (declineCount !== null) {
+      await syncJobApplicationCount(safeJobId, { setCount: declineCount });
+    }
 
     try {
       const workerProfile = await getUserProfile(currentUser.uid);
@@ -2771,7 +2802,10 @@ async function relistGigFromChat(jobId, reason) {
       }
     }
 
-    await syncJobApplicationCount(safeJobId);
+    const voidCount = resolveApplicationCountAfterOfferEnd(jobData);
+    if (voidCount !== null) {
+      await syncJobApplicationCount(safeJobId, { setCount: voidCount });
+    }
 
     if (hiredWorkerId && typeof sendContractVoidedNotification === 'function') {
       await sendContractVoidedNotification(
@@ -2865,7 +2899,10 @@ async function resignGigFromChat(jobId, reason) {
       console.warn('⚠️ Resigned application update skipped:', appError);
     }
 
-    await syncJobApplicationCount(safeJobId);
+    const resignCount = resolveApplicationCountAfterOfferEnd(jobData);
+    if (resignCount !== null) {
+      await syncJobApplicationCount(safeJobId, { setCount: resignCount });
+    }
 
     if (customerId && typeof sendWorkerResignedNotification === 'function') {
       await sendWorkerResignedNotification(
@@ -3121,7 +3158,8 @@ async function rejectApplication(applicationId) {
     });
     await releaseApplicationCoinForApplication(applicationId, 'rejected');
 
-    await syncJobApplicationCount(appData.jobId);
+    const rejectCount = Math.max(0, (Number(jobData.applicationCount) || 0) - 1);
+    await syncJobApplicationCount(appData.jobId, { setCount: rejectCount });
 
     // Slots-reopened alert: clerk groups on that worker’s inbox. Do not fail reject if it fails.
     try {
@@ -5931,6 +5969,7 @@ window.getUserProfile = getUserProfile;
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
 window.syncJobApplicationCount = syncJobApplicationCount;
+window.resolveApplicationCountAfterOfferEnd = resolveApplicationCountAfterOfferEnd;
 window.hireWorker = hireWorker;
 window.acceptGigOfferInChat = acceptGigOfferInChat;
 window.rejectGigOfferInChat = rejectGigOfferInChat;

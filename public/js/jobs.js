@@ -4754,8 +4754,12 @@ async function rejectGigOffer(jobId) {
                 throw new Error('User not authenticated');
             }
             
-            // Update job: remove hired worker info and set status back to active
-            await db.collection('jobs').doc(jobId).update({
+            const priorJobSnap = await db.collection('jobs').doc(jobId).get();
+            const priorJob = priorJobSnap.exists ? (priorJobSnap.data() || {}) : {};
+            const restoreCount = typeof resolveApplicationCountAfterOfferEnd === 'function'
+                ? resolveApplicationCountAfterOfferEnd(priorJob)
+                : null;
+            const declineJobUpdate = {
                 status: 'active',
                 hiredWorkerId: firebase.firestore.FieldValue.delete(),
                 hiredWorkerName: firebase.firestore.FieldValue.delete(),
@@ -4764,8 +4768,11 @@ async function rejectGigOffer(jobId) {
                 hiredAt: firebase.firestore.FieldValue.delete(),
                 acceptedAt: firebase.firestore.FieldValue.delete(),
                 rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
-                // applicationCount will be restored after tallying pending applications below
-            });
+            };
+            if (restoreCount !== null) {
+                declineJobUpdate.applicationCount = restoreCount;
+            }
+            await db.collection('jobs').doc(jobId).update(declineJobUpdate);
             
             console.log('✅ Job offer rejected in Firebase, job restored to active');
             
@@ -4805,9 +4812,8 @@ async function rejectGigOffer(jobId) {
                     await Promise.all(releasePromises);
                 }
                 
-                if (typeof syncJobApplicationCount === 'function') {
-                    const restored = await syncJobApplicationCount(jobId);
-                    console.log(`✅ Restored applicationCount to ${restored} pending application(s)`);
+                if (restoreCount !== null) {
+                    console.log(`✅ Restored applicationCount to ${restoreCount} pending application(s)`);
                 }
             } catch (appError) {
                 console.error('⚠️ Error updating application status:', appError);
@@ -5494,6 +5500,12 @@ function initializeRelistJobConfirmationHandlers() {
                         console.log('🔥 Relisting job in Firebase...');
                         console.log('📋 Job ID:', jobId);
                         console.log('📋 Hired Worker ID:', hiredWorkerId);
+
+                        const priorVoidSnap = await db.collection('jobs').doc(jobId).get();
+                        const priorVoidJob = priorVoidSnap.exists ? (priorVoidSnap.data() || {}) : {};
+                        const voidRestoreCount = typeof resolveApplicationCountAfterOfferEnd === 'function'
+                            ? resolveApplicationCountAfterOfferEnd(priorVoidJob)
+                            : null;
                         
                         // Update job: remove hired worker info, set status back to active, add relist metadata
                         await db.collection('jobs').doc(jobId).update({
@@ -5594,8 +5606,8 @@ function initializeRelistJobConfirmationHandlers() {
                             }
                         }
 
-                        if (typeof syncJobApplicationCount === 'function') {
-                            await syncJobApplicationCount(jobId);
+                        if (voidRestoreCount !== null && typeof syncJobApplicationCount === 'function') {
+                            await syncJobApplicationCount(jobId, { setCount: voidRestoreCount });
                         }
                         
                         // Hide loading animation
@@ -5843,8 +5855,11 @@ function initializeResignJobConfirmationHandlers() {
                         }
                     }
 
-                    if (typeof syncJobApplicationCount === 'function') {
-                        await syncJobApplicationCount(jobId);
+                    const resignRestoreCount = typeof resolveApplicationCountAfterOfferEnd === 'function'
+                        ? resolveApplicationCountAfterOfferEnd(jobData)
+                        : null;
+                    if (resignRestoreCount !== null && typeof syncJobApplicationCount === 'function') {
+                        await syncJobApplicationCount(jobId, { setCount: resignRestoreCount });
                     }
                     
                     // ═══════════════════════════════════════════════════════════════
