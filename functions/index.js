@@ -17,7 +17,7 @@ const {
   fetchTrafficFromMonitoring
 } = require("./overview-snapshots");
 const { wipeAccountMedia } = require("./wipe-account-media");
-const { cleanupJobApplications, isSafeId } = require("./cleanup-job-applications");
+const { cleanupJobApplications, isSafeId, isApplicationHoldingCoin, refundApplicationCoin } = require("./cleanup-job-applications");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -3494,6 +3494,106 @@ exports.createUserAlert = onCall(
       });
     }
     return writeSimpleUserAlert(payload);
+  }
+);
+
+// ============================================================================
+// PHASE 12 STEP 3 — Accept sweep (reject the others)
+// ============================================================================
+// Gigs Manager Offered-tab Accept only. Sweep-only: does not mark the gig
+// accepted and does not send offer_accepted. Live Accept button still does
+// that in the browser until Step 4. Slots cards are written here (worker
+// cannot call createUserAlert for A6).
+const ACCEPT_SWEEP_JOB_STATUSES = new Set(["hired", "accepted"]);
+const ACCEPT_SWEEP_COIN_REASON = "not_selected_after_hire";
+
+async function loadPendingOthersForAcceptSweep(jobId, callerUid) {
+  const snap = await db.collection("applications")
+    .where("jobId", "==", jobId)
+    .where("status", "==", "pending")
+    .get();
+  return snap.docs
+    .map((doc) => ({ id: doc.id, ...(doc.data() || {}) }))
+    .filter((app) => String(app.applicantId || "").trim() !== callerUid);
+}
+
+exports.workerAcceptRejectOthers = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const callerUid = String(request.auth?.uid || "").trim();
+    if (!callerUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const jobId = String((request.data && request.data.jobId) || "").trim();
+    const dryRun = request.data && request.data.dryRun === true;
+    if (!jobId || !isSafeId(jobId)) {
+      throw new HttpsError("invalid-argument", "jobId is required.");
+    }
+
+    const jobSnap = await db.collection("jobs").doc(jobId).get();
+    if (!jobSnap.exists) {
+      throw new HttpsError("not-found", "Gig not found.");
+    }
+    const job = jobSnap.data() || {};
+    const hiredWorkerId = String(job.hiredWorkerId || "").trim();
+    const status = String(job.status || "").toLowerCase();
+    if (callerUid !== hiredWorkerId) {
+      throw new HttpsError("permission-denied", "Only the hired worker can run this sweep.");
+    }
+    if (!ACCEPT_SWEEP_JOB_STATUSES.has(status)) {
+      throw new HttpsError("failed-precondition", `Cannot sweep a gig with status '${status}'.`);
+    }
+
+    const others = await loadPendingOthersForAcceptSweep(jobId, callerUid);
+    const jobTitle = String(job.title || "Gig");
+    if (dryRun) {
+      return {
+        success: true,
+        dryRun: true,
+        jobId,
+        wouldReject: others.length,
+        applicantIds: others.map((app) => String(app.applicantId || "")).filter(Boolean)
+      };
+    }
+
+    const FieldValue = admin.firestore.FieldValue;
+    let rejected = 0;
+    let coinsReleased = 0;
+    let alertsWritten = 0;
+    for (const app of others) {
+      const appRef = db.collection("applications").doc(app.id);
+      const applicantId = String(app.applicantId || "").trim();
+      const updatePayload = {
+        status: "rejected",
+        rejectedAt: FieldValue.serverTimestamp()
+      };
+      if (isApplicationHoldingCoin(app) && isSafeId(applicantId)) {
+        await refundApplicationCoin(db, FieldValue, applicantId, ACCEPT_SWEEP_COIN_REASON);
+        updatePayload.coinHeld = false;
+        updatePayload.coinReleaseReason = ACCEPT_SWEEP_COIN_REASON;
+        updatePayload.coinReleasedAt = FieldValue.serverTimestamp();
+        coinsReleased += 1;
+      }
+      await appRef.update(updatePayload);
+      rejected += 1;
+      if (applicantId) {
+        await upsertSlotsReopenedAlert({
+          recipientId: applicantId,
+          jobId,
+          jobTitle: String(app.jobTitle || jobTitle)
+        });
+        alertsWritten += 1;
+      }
+    }
+
+    return {
+      success: true,
+      jobId,
+      rejected,
+      coinsReleased,
+      alertsWritten
+    };
   }
 );
 

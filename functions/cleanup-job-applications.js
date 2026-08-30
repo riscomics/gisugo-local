@@ -84,5 +84,6 @@ async function cleanupJobApplications(db, FieldValue, options) {
 module.exports = {
   isSafeId,
   isApplicationHoldingCoin,
+  refundApplicationCoin,
   cleanupJobApplications
 };

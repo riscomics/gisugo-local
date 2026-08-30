@@ -623,7 +623,7 @@ that the whole dashboard section is finished forever.
             Did **not** write a live Alerts row on purpose (no test junk
             in a real inbox). First real row is Step 4 when a button is
             pointed at this clerk. Do not start Step 3 until owner says Go.
-      3. **[ ] Server: accept rejects the others.** Live door is Gigs Manager
+      3. **[~] Server: accept rejects the others.** Live door is Gigs Manager
          Offered-tab Accept only. The server (not the browser) rejects the
          other pending applicants, sends the “not selected” notices, and
          does the coin releases we already do. Chat Accept is retired
@@ -638,7 +638,7 @@ that the whole dashboard section is finished forever.
          `upsertSlotsReopenedAlert`). Do not change Step 2 for that.
          **Step 3 microtasklist (do in order; audit + smoke each; stop
          after 3.8 — do not wire the Accept button, that is Step 4):**
-         1. **[ ] Lock the contract (no code).** One callable
+         1. **[x] Lock the contract (no code).** One callable
             (`asia-southeast1`, signed-in required), e.g.
             `workerAcceptRejectOthers`. Input: `jobId` only. Caller must
             be `jobs.hiredWorkerId`. Job status `hired` or `accepted`
@@ -646,22 +646,22 @@ that the whole dashboard section is finished forever.
             **not** mark the gig accepted here, do **not** send
             `offer_accepted` here (that stays Step 2/4). Chat Accept
             is not a door.
-         2. **[ ] Skeleton.** Reject unsigned, missing `jobId`, caller
+         2. **[x] Skeleton.** Reject unsigned, missing `jobId`, caller
             is not the hired worker, wrong job status. No application
             writes yet. `node --check`.
-         3. **[ ] Load the others.** Admin SDK: pending applications on
+         3. **[x] Load the others.** Admin SDK: pending applications on
             **this gig only** (`jobId` + `status == pending`). Skip the
             caller’s own row if it is still pending. No platform scan.
-         4. **[ ] Reject those rows.** Same as today: `status: rejected`,
+         4. **[x] Reject those rows.** Same as today: `status: rejected`,
             `rejectedAt`. Do not touch the hired worker’s application
             here (own coin / own status stay on the Accept button until
             Step 4).
-         5. **[ ] Release their coins.** Same rules as
+         5. **[x] Release their coins.** Same rules as
             `releaseApplicationCoinForApplication` / the delete-gig
             helper already on the server (`coinHeld`, increment that
             worker’s `applicationCoinsCurrent`). Reason:
             `not_selected_after_hire`.
-         6. **[ ] Slots-reopened cards.** For each rejected applicant,
+         6. **[x] Slots-reopened cards.** For each rejected applicant,
             call `upsertSlotsReopenedAlert` **inside this function**.
             Do **not** call `createUserAlert` as the worker (A6 would
             deny). Same 6-hour grouped card as owner-reject.
