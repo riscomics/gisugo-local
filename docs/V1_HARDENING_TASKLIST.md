@@ -577,12 +577,19 @@ that the whole dashboard section is finished forever.
          **Step 2 microtasklist (do in order; audit + smoke each; stop
          after 2.9 — do not start Step 3/4 in the same pass):**
          1. **[ ] Lock the contract (no code).** One callable
-            (`asia-southeast1`, signed-in required). Three write shapes,
-            not twelve functions:
-            (a) **simple create** + optional `dedupeKey` (A3, A5, A7–A12);
-            (b) **replace-then-create** (A1 owner apply-alerts, A2 old
-            `offer_sent`);
-            (c) **grouped slots-reopened** (A6; Step 3 will reuse this).
+            (`asia-southeast1`, signed-in required). Every live A-door is
+            in this step. Three write shapes (not twelve functions) —
+            the shape is *how* the clerk writes, not a shorter door list:
+            (a) **simple create** + optional `dedupeKey` — Accept (A3),
+            decline (A5), void (A7), resign (A8), complete (A9), both
+            feedbacks (A10–A11), Admin Reply (A12);
+            (b) **replace-then-create** — Apply (A1: update/delete the
+            owner’s older apply alerts, then write the new one) and Hire
+            (A2: delete that worker’s old `offer_sent` for this gig, then
+            write the fresh offer). Same inbox row as today; extra cleanup
+            first so we do not stack junk;
+            (c) **grouped slots-reopened** — owner rejects one applicant
+            (A6). Step 3 will reuse this for “not selected.”
             Allowlist = today’s live types only. Caller must be allowed
             (poster / hired worker / applicant / admin) from the job,
             application, or Support ticket — do not trust the client’s
