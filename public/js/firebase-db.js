@@ -3119,12 +3119,14 @@ async function rejectApplication(applicationId) {
 
     await syncJobApplicationCount(appData.jobId);
 
-    // Send grouped courtesy closure notification to applicant (6-hour batch window).
+    // Slots-reopened alert: clerk groups on that worker’s inbox. Do not fail reject if it fails.
     try {
-      await createGroupedApplicationClosureNotification(appData.applicantId, {
-        outcomeType: 'manual_reject',
+      await callCreateUserAlert({
+        type: 'application_slots_reopened_batch',
+        recipientId: appData.applicantId,
         jobId: appData.jobId,
-        jobTitle: jobData.title || appData.jobTitle || 'Gig'
+        jobTitle: jobData.title || appData.jobTitle || 'Gig',
+        applicationId: applicationId
       });
     } catch (notifyError) {
       console.warn('⚠️ Manual reject grouped notification skipped:', notifyError);

@@ -719,9 +719,11 @@ that the whole dashboard section is finished forever.
             on Gigs Manager `processRejectGigConfirmation`. Chat
             decline left on the old helper (retired). `jobs.html` on
             `jobs.js?v=162`. **Stopped here** — Owner reject not wired.
-         7. **[ ] A6 Owner reject.** Slots-reopened via `createUserAlert`
-            (owner is allowed). Stop
-            `createGroupedApplicationClosureNotification` on this door.
+         7. **[x] A6 Owner reject.** `rejectApplication` calls
+            `createUserAlert` (`application_slots_reopened_batch`).
+            Browser grouped-closure helper no longer used on this
+            door. `jobs.html` on `firebase-db.js?v=73`. **Stopped
+            here** — Void / resign / complete not wired.
          8. **[ ] A7–A9 Void / resign / complete.** Both Gigs Manager
             and Messages Gig Status doors, same clerk. One pair at a
             time if needed.
