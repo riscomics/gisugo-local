@@ -152,7 +152,7 @@ that the whole dashboard section is finished forever.
 | 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. | Ban **builds done**. Still open: dummy deletes, Ban test, phone audit, phone+password retirement (small later build). |
 | 10 | In-app Support thread (Ch 1–4) live 2026-08-14. Email/WhatsApp shelf written as reference only — not an open build. | **Retired as open work.** Engine stays on. |
 | 11 | Settings keepers + launch-feed switch. | **Builds done.** #3 tested. Other smokes = pre-launch QA. |
-| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Step 1 mapped** (2026-08-28). Function not started. |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Step 2 clerk live** (`createUserAlert`). Buttons not wired. Step 3 not started. |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -568,7 +568,8 @@ that the whole dashboard section is finished forever.
          retired; leftovers stay in repo, cleanup not a priority).
          **One step at a time:** finish + audit + smoke that step before
          starting the next. Do not batch 2–7.
-      2. **[~] Server: create alert.** One Cloud Function. The browser stops
+      2. **[x] Server: create alert.** `createUserAlert` live 2026-08-30.
+         Live buttons still write the old way (Step 4). One Cloud Function. The browser stops
          writing into other people’s notification inboxes. Keep today’s alert
          types and dedup. No new alert design. Must cover every **LIVE write**
          in the Step 1 map (not a subset).
@@ -613,12 +614,15 @@ that the whole dashboard section is finished forever.
             `offer_sent` for this gig, then creates the fresh offer.
          7. **[x] A6 group.** Server batches `application_slots_reopened_batch`
             the way today’s helper does (6-hour window, one card).
-         8. **[ ] Deploy functions only.** Rules stay open. Do **not**
-            change `createNotification` or any live button yet.
-         9. **[ ] Controlled smoke.** One signed-in call that is allowed,
-            one that is not. Confirm: one new inbox row, badge/push still
-            come from the existing triggers, rejected call writes nothing.
-            If this fails, do not wire buttons and do not start Step 3.
+         8. **[x] Deploy functions only.** Rules stay open. Did **not**
+            change `createNotification` or any live button.
+         9. **[x] Controlled smoke (2026-08-30).** Unsigned → 401.
+            Unknown type → 400. Wrong recipient → 403, no write.
+            Allowed `dryRun` for simple (`job_completed`) and
+            `replace_apply` (`application_received`) → 200, no inbox row.
+            Did **not** write a live Alerts row on purpose (no test junk
+            in a real inbox). First real row is Step 4 when a button is
+            pointed at this clerk. Do not start Step 3 until owner says Go.
       3. **[ ] Server: accept rejects the others.** Live door is Gigs Manager
          Offered-tab Accept only. The server (not the browser) rejects the
          other pending applicants, sends the “not selected” notices, and
