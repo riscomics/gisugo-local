@@ -732,8 +732,11 @@ that the whole dashboard section is finished forever.
             `firebase-db.js?v=74` + `jobs.js?v=163`; `messages.html`
             on `firebase-db.js?v=74`. **Stopped here** — Feedback
             not wired.
-         9. **[ ] A10–A11 Feedback.** Both directions via
-            `createUserAlert`.
+         9. **[x] A10–A11 Feedback.** Customer→worker
+            (`submitJobCompletionFeedback`) and worker→customer
+            (`submitCustomerFeedback`) use `createUserAlert`.
+            `jobs.html` on `jobs.js?v=164`. **Stopped here** — Admin
+            Reply not wired.
          10. **[ ] A12 Admin Reply.** `support_admin_message` via
              `createUserAlert`. Contact stays on the existing server
              write.

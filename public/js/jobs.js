@@ -6223,16 +6223,18 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     
     console.log('✅ Job review metadata prepared');
     
-    // 4. Create notification for worker about customer feedback
+    // Worker alert: clerk writes feedback_received. Do not fail feedback if it fails.
     try {
-      if (typeof createNotification === 'function') {
+      if (typeof callCreateUserAlert === 'function' && workerUserId) {
         const jobDoc = await jobRef.get();
         const jobData = jobDoc.data();
-        const customerProfile = await getUserProfile(customerUserId);
+        const customerProfile = typeof getUserProfile === 'function'
+          ? await getUserProfile(customerUserId)
+          : null;
         const customerName = customerProfile?.fullName || 'Customer';
-        
-        await createNotification(workerUserId, {
+        await callCreateUserAlert({
           type: 'feedback_received',
+          recipientId: workerUserId,
           jobId: jobId,
           jobTitle: jobData.title || 'Completed Gig',
           message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Leave your feedback in Gigs Manager > Completed. To view received feedback, open Profile > Feedback (Worker).`,
@@ -6243,7 +6245,6 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
       }
     } catch (notifError) {
       console.error('❌ Error creating feedback notification:', notifError);
-      // Don't fail the feedback submission if notification fails
     }
     
     // Commit all operations atomically
@@ -10190,16 +10191,18 @@ async function submitCustomerFeedback() {
             await batch.commit();
             console.log('✅ Worker feedback and review submitted successfully');
             
-            // Send notification to customer about worker feedback
+            // Owner alert: clerk writes worker_feedback_received. Do not fail feedback if it fails.
             try {
-                if (typeof createNotification === 'function') {
+                if (typeof callCreateUserAlert === 'function' && targetUserId) {
                     const jobDoc = await jobRef.get();
                     const jobData = jobDoc.data();
-                    const workerProfile = await getUserProfile(currentUserId);
+                    const workerProfile = typeof getUserProfile === 'function'
+                        ? await getUserProfile(currentUserId)
+                        : null;
                     const workerName = workerProfile?.fullName || 'Worker';
-                    
-                    await createNotification(targetUserId, {
+                    await callCreateUserAlert({
                         type: 'worker_feedback_received',
+                        recipientId: targetUserId,
                         jobId: jobId,
                         jobTitle: jobData.title || 'Completed Gig',
                         message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}". To read it, open Profile > Feedback (Customer).`,
@@ -10210,7 +10213,6 @@ async function submitCustomerFeedback() {
                 }
             } catch (notifError) {
                 console.error('❌ Error creating worker feedback notification:', notifError);
-                // Don't fail the feedback submission if notification fails
             }
             
             // Update customer's rating stats (calculate proper average)
