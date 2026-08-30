@@ -568,7 +568,7 @@ that the whole dashboard section is finished forever.
          retired; leftovers stay in repo, cleanup not a priority).
          **One step at a time:** finish + audit + smoke that step before
          starting the next. Do not batch 2–7.
-      2. **[ ] Server: create alert.** One Cloud Function. The browser stops
+      2. **[~] Server: create alert.** One Cloud Function. The browser stops
          writing into other people’s notification inboxes. Keep today’s alert
          types and dedup. No new alert design. Must cover every **LIVE write**
          in the Step 1 map (not a subset).
@@ -576,7 +576,7 @@ that the whole dashboard section is finished forever.
          sweep (Step 3), locking rules (Step 7).
          **Step 2 microtasklist (do in order; audit + smoke each; stop
          after 2.9 — do not start Step 3/4 in the same pass):**
-         1. **[ ] Lock the contract (no code).** One callable
+         1. **[x] Lock the contract (no code).** One callable
             (`asia-southeast1`, signed-in required). Every live A-door is
             in this step. Three write shapes (not twelve functions) —
             the shape is *how* the clerk writes, not a shorter door list:
@@ -595,23 +595,23 @@ that the whole dashboard section is finished forever.
             application, or Support ticket — do not trust the client’s
             `recipientId` alone. Contact + Ban stay on their existing
             server writes. Native apps will call this same function later.
-         2. **[ ] Skeleton.** Add the callable. Reject unsigned, unknown
+         2. **[x] Skeleton.** Add the callable. Reject unsigned, unknown
             type, missing job/ticket when required. No inbox write yet.
             `node --check functions/index.js`.
-         3. **[ ] Who-may-send.** Enforce the contract from 2.1 with
+         3. **[x] Who-may-send.** Enforce the contract from 2.1 with
             single-doc reads (job / application / ticket). No collection
             scans.
-         4. **[ ] Simple create + dedupe.** Same fields as today’s
+         4. **[x] Simple create + dedupe.** Same fields as today’s
             `createNotification` (type, role, message, jobId, titles,
             `dedupeKey` doc id). One inbox row. Existing push + unread
             triggers fire from that row — do not send push or bump
             counters inside this function.
-         5. **[ ] A1 replace.** Server does the owner apply-alert
+         5. **[x] A1 replace.** Server does the owner apply-alert
             update/delete, then create. Worker never reads the owner’s
             inbox.
-         6. **[ ] A2 replace.** Server deletes that worker’s old
+         6. **[x] A2 replace.** Server deletes that worker’s old
             `offer_sent` for this gig, then creates the fresh offer.
-         7. **[ ] A6 group.** Server batches `application_slots_reopened_batch`
+         7. **[x] A6 group.** Server batches `application_slots_reopened_batch`
             the way today’s helper does (6-hour window, one card).
          8. **[ ] Deploy functions only.** Rules stay open. Do **not**
             change `createNotification` or any live button yet.

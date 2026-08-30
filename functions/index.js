@@ -2987,3 +2987,513 @@ exports.createOrAppendAdminSupportMessage = onCall(
     return { success: true, action: "created", requestId: docRef.id };
   }
 );
+
+// ============================================================================
+// PHASE 12 STEP 2 — create-alert clerk
+// ============================================================================
+// One callable for every live cross-user Alerts write (Step 1 map).
+// Live buttons still use the browser until Step 4. Rules stay open.
+// Push + unread counters stay on the existing notification triggers.
+// Do not send push or bump counters here.
+const CREATE_USER_ALERT_TYPES = new Set([
+  "application_received",
+  "application_milestone",
+  "gig_review_needed",
+  "gig_auto_paused",
+  "offer_sent",
+  "offer_accepted",
+  "offer_rejected",
+  "contract_voided",
+  "worker_resigned",
+  "job_completed",
+  "feedback_received",
+  "worker_feedback_received",
+  "application_slots_reopened_batch",
+  "support_admin_message"
+]);
+const APPLY_OWNER_ALERT_TYPES = new Set([
+  "application_received",
+  "application_milestone",
+  "gig_review_needed",
+  "gig_auto_paused"
+]);
+const SLOTS_REOPENED_ALERT_TYPE = "application_slots_reopened_batch";
+const APPLICATION_CLOSURE_BATCH_WINDOW_MS = 6 * 60 * 60 * 1000;
+const ALERT_MESSAGE_MAX_CHARS = 2000;
+
+function createUserAlertShape(type) {
+  if (APPLY_OWNER_ALERT_TYPES.has(type)) return "replace_apply";
+  if (type === "offer_sent") return "replace_offer";
+  if (type === SLOTS_REOPENED_ALERT_TYPE) return "group_slots";
+  return "simple";
+}
+
+function inferCreateUserAlertRole(type, explicitRole) {
+  const role = String(explicitRole || "").toLowerCase();
+  if (role === "worker" || role === "customer") return role;
+  if (
+    type === "offer_sent"
+    || type === "job_completed"
+    || type === "feedback_received"
+    || type === "contract_voided"
+    || type === SLOTS_REOPENED_ALERT_TYPE
+    || type === "support_admin_message"
+  ) {
+    return "worker";
+  }
+  return "customer";
+}
+
+function buildSlotsReopenedAlertMessage(count) {
+  const safeCount = Math.max(1, Number(count) || 1);
+  return safeCount === 1
+    ? "1 application slot just opened — find your next gig!"
+    : `${safeCount} application slots just opened — find your next gigs!`;
+}
+
+function buildCreateUserAlertDedupeId(recipientId, type, jobId, dedupeKey) {
+  const rawKey = `${recipientId}::${type}::${jobId}::${dedupeKey}`;
+  return `dedupe_${encodeURIComponent(rawKey).slice(0, 1400)}`;
+}
+
+async function loadJobForAlert(jobId) {
+  const snap = await db.collection("jobs").doc(jobId).get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Gig not found.");
+  }
+  return snap.data() || {};
+}
+
+async function loadApplicationForAlert(applicationId) {
+  const snap = await db.collection("applications").doc(applicationId).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() || {}) };
+}
+
+async function findApplicationForJobApplicant(jobId, applicantId) {
+  const snap = await db.collection("applications")
+    .where("jobId", "==", jobId)
+    .where("applicantId", "==", applicantId)
+    .limit(3)
+    .get();
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...(snap.docs[0].data() || {}) };
+}
+
+function applicationStatus(app) {
+  return String((app && app.status) || "").toLowerCase();
+}
+
+async function assertCallerMaySendAlert({
+  type,
+  callerUid,
+  recipientId,
+  jobId,
+  job,
+  applicationId,
+  supportRequestId
+}) {
+  if (callerUid === recipientId) {
+    throw new HttpsError("invalid-argument", "Cannot send this alert to yourself.");
+  }
+
+  if (type === "support_admin_message") {
+    const adminDoc = await db.collection("admins").doc(callerUid).get();
+    if (!adminDoc.exists) {
+      throw new HttpsError("permission-denied", "Admin access required.");
+    }
+    const ticketId = String(supportRequestId || "").trim();
+    if (!ticketId) {
+      throw new HttpsError("invalid-argument", "supportRequestId is required.");
+    }
+    const ticketSnap = await db.collection("support_requests").doc(ticketId).get();
+    if (!ticketSnap.exists) {
+      throw new HttpsError("not-found", "Support ticket not found.");
+    }
+    const ticket = ticketSnap.data() || {};
+    const requesterId = String(
+      (ticket.requester && ticket.requester.userId) || ticket.userId || ""
+    ).trim();
+    if (!requesterId || requesterId !== recipientId) {
+      throw new HttpsError("permission-denied", "Recipient is not the ticket requester.");
+    }
+    return;
+  }
+
+  if (!jobId || !job) {
+    throw new HttpsError("invalid-argument", "jobId is required.");
+  }
+  const posterId = String(job.posterId || "").trim();
+  const hiredWorkerId = String(job.hiredWorkerId || "").trim();
+  const voidedWorkerId = String(job.voidedWorkerId || "").trim();
+  const resignedWorkerId = String(job.resignedWorkerId || "").trim();
+  if (!posterId) {
+    throw new HttpsError("failed-precondition", "Gig has no poster.");
+  }
+
+  let app = null;
+  const safeAppId = String(applicationId || "").trim();
+  if (safeAppId) {
+    app = await loadApplicationForAlert(safeAppId);
+    if (app && String(app.jobId || "") !== jobId) {
+      throw new HttpsError("failed-precondition", "Application does not belong to this gig.");
+    }
+  }
+
+  const requireApplicant = async (uid) => {
+    if (app && String(app.applicantId || "") === uid) return app;
+    const found = await findApplicationForJobApplicant(jobId, uid);
+    if (!found) {
+      throw new HttpsError("permission-denied", "No application on this gig for that user.");
+    }
+    return found;
+  };
+
+  if (APPLY_OWNER_ALERT_TYPES.has(type)) {
+    if (callerUid === posterId || recipientId !== posterId) {
+      throw new HttpsError("permission-denied", "Only an applicant can alert the gig owner.");
+    }
+    await requireApplicant(callerUid);
+    return;
+  }
+
+  if (type === "offer_sent") {
+    if (callerUid !== posterId) {
+      throw new HttpsError("permission-denied", "Only the gig owner can send an offer.");
+    }
+    const hiredApp = await requireApplicant(recipientId);
+    const status = applicationStatus(hiredApp);
+    if (status !== "pending" && status !== "accepted" && status !== "hired") {
+      throw new HttpsError("failed-precondition", "Recipient is not the hired applicant.");
+    }
+    return;
+  }
+
+  if (type === "offer_accepted") {
+    if (recipientId !== posterId || callerUid !== hiredWorkerId) {
+      throw new HttpsError("permission-denied", "Only the hired worker can send this alert.");
+    }
+    return;
+  }
+
+  if (type === "offer_rejected") {
+    if (recipientId !== posterId) {
+      throw new HttpsError("permission-denied", "Offer-rejected alerts go to the gig owner.");
+    }
+    const ownApp = await requireApplicant(callerUid);
+    const status = applicationStatus(ownApp);
+    if (status !== "rejected_by_worker" && status !== "accepted" && status !== "hired") {
+      throw new HttpsError("failed-precondition", "You do not have an offer on this gig.");
+    }
+    return;
+  }
+
+  if (type === "contract_voided") {
+    if (callerUid !== posterId) {
+      throw new HttpsError("permission-denied", "Only the gig owner can send this alert.");
+    }
+    if (recipientId !== hiredWorkerId && recipientId !== voidedWorkerId) {
+      const voidedApp = await requireApplicant(recipientId);
+      if (applicationStatus(voidedApp) !== "voided") {
+        throw new HttpsError("permission-denied", "Recipient is not the voided worker.");
+      }
+    }
+    return;
+  }
+
+  if (type === "worker_resigned") {
+    if (recipientId !== posterId) {
+      throw new HttpsError("permission-denied", "Resign alerts go to the gig owner.");
+    }
+    if (callerUid !== hiredWorkerId && callerUid !== resignedWorkerId) {
+      const resignedApp = await requireApplicant(callerUid);
+      if (applicationStatus(resignedApp) !== "resigned") {
+        throw new HttpsError("permission-denied", "Only the hired worker can send this alert.");
+      }
+    }
+    return;
+  }
+
+  if (type === "job_completed" || type === "feedback_received") {
+    if (callerUid !== posterId) {
+      throw new HttpsError("permission-denied", "Only the gig owner can send this alert.");
+    }
+    if (recipientId !== hiredWorkerId) {
+      throw new HttpsError("permission-denied", "Recipient is not the hired worker.");
+    }
+    return;
+  }
+
+  if (type === "worker_feedback_received") {
+    if (recipientId !== posterId || callerUid !== hiredWorkerId) {
+      throw new HttpsError("permission-denied", "Only the hired worker can send this alert.");
+    }
+    return;
+  }
+
+  if (type === SLOTS_REOPENED_ALERT_TYPE) {
+    if (callerUid !== posterId) {
+      throw new HttpsError("permission-denied", "Only the gig owner can send this alert.");
+    }
+    await requireApplicant(recipientId);
+    return;
+  }
+
+  throw new HttpsError("invalid-argument", "Unknown alert type.");
+}
+
+function buildCreateUserAlertDoc({
+  recipientId,
+  type,
+  role,
+  jobId,
+  jobTitle,
+  message,
+  actionRequired,
+  dedupeKey,
+  title,
+  supportRequestId,
+  link
+}) {
+  const nowTs = admin.firestore.Timestamp.now();
+  const notification = {
+    recipientId,
+    type,
+    role,
+    jobId: jobId || "",
+    jobTitle: jobTitle || "",
+    message,
+    createdAt: nowTs,
+    read: false,
+    actionRequired: !!actionRequired,
+    dedupeKey: dedupeKey || null
+  };
+  if (title) notification.title = title;
+  if (supportRequestId) notification.supportRequestId = supportRequestId;
+  if (link) notification.link = link;
+  return notification;
+}
+
+async function writeSimpleUserAlert(payload) {
+  const { recipientId, type, jobId, dedupeKey } = payload;
+  if (dedupeKey) {
+    const docId = buildCreateUserAlertDedupeId(recipientId, type, jobId, dedupeKey);
+    const notifRef = db.collection("notifications").doc(docId);
+    const existing = await notifRef.get();
+    if (existing.exists) {
+      return { success: true, notificationId: existing.id, deduped: true, shape: "simple" };
+    }
+    await notifRef.set(buildCreateUserAlertDoc(payload), { merge: false });
+    return { success: true, notificationId: notifRef.id, deduped: false, shape: "simple" };
+  }
+  const notifRef = await db.collection("notifications").add(buildCreateUserAlertDoc(payload));
+  return { success: true, notificationId: notifRef.id, deduped: false, shape: "simple" };
+}
+
+async function replaceApplyOwnerAlerts(payload) {
+  const { recipientId, type, jobId, jobTitle, message, actionRequired } = payload;
+  const existingSnap = await db.collection("notifications")
+    .where("recipientId", "==", recipientId)
+    .where("jobId", "==", jobId)
+    .where("type", "in", [
+      "application_received",
+      "application_milestone",
+      "gig_auto_paused",
+      "gig_review_needed"
+    ])
+    .get();
+
+  if (type === "application_milestone") {
+    if (existingSnap.empty) {
+      return { success: true, skipped: true, reason: "no_existing_apply_alert", shape: "replace_apply" };
+    }
+    const first = existingSnap.docs[0];
+    await first.ref.update({
+      type: "application_milestone",
+      message,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return { success: true, notificationId: first.id, updated: true, shape: "replace_apply" };
+  }
+
+  if (type === "gig_review_needed" || type === "gig_auto_paused") {
+    const deletes = existingSnap.docs.map((doc) => doc.ref.delete());
+    await Promise.all(deletes);
+  }
+
+  return writeSimpleUserAlert({
+    recipientId,
+    type,
+    role: "customer",
+    jobId,
+    jobTitle,
+    message,
+    actionRequired,
+    dedupeKey: ""
+  }).then((result) => ({ ...result, shape: "replace_apply", replaced: existingSnap.size }));
+}
+
+async function replaceOfferSentAlert(payload) {
+  const existingSnap = await db.collection("notifications")
+    .where("recipientId", "==", payload.recipientId)
+    .where("jobId", "==", payload.jobId)
+    .where("type", "==", "offer_sent")
+    .get();
+  if (!existingSnap.empty) {
+    await Promise.all(existingSnap.docs.map((doc) => doc.ref.delete()));
+  }
+  const result = await writeSimpleUserAlert({ ...payload, role: "worker", dedupeKey: "" });
+  return { ...result, shape: "replace_offer", replaced: existingSnap.size };
+}
+
+async function upsertSlotsReopenedAlert({ recipientId, jobId, jobTitle }) {
+  const nowMs = Date.now();
+  const windowEndsAt = new Date(nowMs + APPLICATION_CLOSURE_BATCH_WINDOW_MS);
+  const batchSnapshot = await db.collection("notifications")
+    .where("recipientId", "==", recipientId)
+    .where("type", "==", SLOTS_REOPENED_ALERT_TYPE)
+    .where("read", "==", false)
+    .get();
+
+  const activeBatchDoc = batchSnapshot.docs.find((doc) => {
+    const data = doc.data() || {};
+    const ends = data.batchWindowEndsAt;
+    const endsMs = ends && typeof ends.toMillis === "function" ? ends.toMillis() : 0;
+    return endsMs > nowMs;
+  });
+
+  if (activeBatchDoc) {
+    const data = activeBatchDoc.data() || {};
+    const existingTitles = Array.isArray(data.jobTitles) ? data.jobTitles : [];
+    const existingIds = Array.isArray(data.jobIds) ? data.jobIds : [];
+    if (jobId && !existingIds.includes(jobId)) existingIds.push(jobId);
+    if (jobTitle && !existingTitles.includes(jobTitle)) existingTitles.push(jobTitle);
+    const closureCount = Math.max(1, Number(data.closureCount || 0) + 1);
+    await activeBatchDoc.ref.update({
+      closureCount,
+      message: buildSlotsReopenedAlertMessage(closureCount),
+      jobId: jobId || data.jobId || "",
+      jobTitle: jobTitle || data.jobTitle || "",
+      jobIds: existingIds.slice(0, 25),
+      jobTitles: existingTitles.slice(0, 25),
+      batchWindowEndsAt: admin.firestore.Timestamp.fromDate(windowEndsAt),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return {
+      success: true,
+      notificationId: activeBatchDoc.id,
+      grouped: true,
+      shape: "group_slots"
+    };
+  }
+
+  const notification = buildCreateUserAlertDoc({
+    recipientId,
+    type: SLOTS_REOPENED_ALERT_TYPE,
+    role: "worker",
+    jobId,
+    jobTitle,
+    message: buildSlotsReopenedAlertMessage(1),
+    actionRequired: false,
+    dedupeKey: ""
+  });
+  notification.updatedAt = notification.createdAt;
+  notification.batchWindowEndsAt = admin.firestore.Timestamp.fromDate(windowEndsAt);
+  notification.closureCount = 1;
+  notification.jobIds = jobId ? [jobId] : [];
+  notification.jobTitles = jobTitle ? [jobTitle] : [];
+  const notifRef = await db.collection("notifications").add(notification);
+  return {
+    success: true,
+    notificationId: notifRef.id,
+    grouped: false,
+    shape: "group_slots"
+  };
+}
+
+exports.createUserAlert = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const callerUid = String(request.auth?.uid || "").trim();
+    if (!callerUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const data = request.data || {};
+    const type = String(data.type || "").trim();
+    const recipientId = String(data.recipientId || "").trim();
+    const jobId = String(data.jobId || "").trim();
+    const jobTitle = String(data.jobTitle || "").trim();
+    const message = String(data.message || "").trim().slice(0, ALERT_MESSAGE_MAX_CHARS);
+    const dedupeKey = String(data.dedupeKey || "").trim();
+    const title = String(data.title || "").trim();
+    const supportRequestId = String(data.supportRequestId || "").trim();
+    const link = String(data.link || "").trim();
+    const applicationId = String(data.applicationId || "").trim();
+    const dryRun = data.dryRun === true;
+
+    if (!CREATE_USER_ALERT_TYPES.has(type)) {
+      throw new HttpsError("invalid-argument", "Unknown or retired alert type.");
+    }
+    if (!recipientId) {
+      throw new HttpsError("invalid-argument", "recipientId is required.");
+    }
+    if (type === "support_admin_message") {
+      if (!supportRequestId) {
+        throw new HttpsError("invalid-argument", "supportRequestId is required.");
+      }
+    } else if (!jobId) {
+      throw new HttpsError("invalid-argument", "jobId is required.");
+    }
+    if (type !== SLOTS_REOPENED_ALERT_TYPE && type !== "application_milestone" && !message) {
+      throw new HttpsError("invalid-argument", "message is required.");
+    }
+
+    const job = jobId ? await loadJobForAlert(jobId) : null;
+    await assertCallerMaySendAlert({
+      type,
+      callerUid,
+      recipientId,
+      jobId,
+      job,
+      applicationId,
+      supportRequestId
+    });
+
+    const shape = createUserAlertShape(type);
+    const role = inferCreateUserAlertRole(type, data.role);
+    if (dryRun) {
+      return { success: true, dryRun: true, shape, type, recipientId };
+    }
+
+    const payload = {
+      recipientId,
+      type,
+      role,
+      jobId,
+      jobTitle: jobTitle || String((job && job.title) || ""),
+      message,
+      actionRequired: !!data.actionRequired,
+      dedupeKey,
+      title,
+      supportRequestId,
+      link
+    };
+
+    if (shape === "replace_apply") {
+      return replaceApplyOwnerAlerts(payload);
+    }
+    if (shape === "replace_offer") {
+      return replaceOfferSentAlert(payload);
+    }
+    if (shape === "group_slots") {
+      return upsertSlotsReopenedAlert({
+        recipientId,
+        jobId,
+        jobTitle: payload.jobTitle
+      });
+    }
+    return writeSimpleUserAlert(payload);
+  }
+);
+
