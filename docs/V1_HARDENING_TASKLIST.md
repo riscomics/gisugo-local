@@ -677,11 +677,66 @@ that the whole dashboard section is finished forever.
             owner says Go.
       4. **[ ] Point the live buttons at those functions.** Every live door
          from the Step 1 map. Keep today’s loose rules so they do not break
-         mid-ship. **This step is also the desktop-scan countermeasure:**
-         owner/worker application reads become “mine only”; pending-count
-         uses the number already on the gig (`applicationCount`); SDK Apply
-         duplicate-check becomes `jobId` + `applicantId` like the iOS REST
-         path. No scan of a gig’s full applicant pile. No platform scan.
+         mid-ship. **This step is also the desktop-scan countermeasure**
+         for Apply (C1–C2) and stop-the-recount (C3). **Do not change
+         `getJobApplications` (C4) in this step** — that query needs the
+         Step 5 `gigOwnerId` index first or the Hire overlay goes empty.
+         **Step 3 review (2026-08-30, good to move on):** Sweep clerk
+         matches the contract (hired worker only, this-gig pending only,
+         skip caller, reject + coins + internal slots cards). Does not
+         mark the gig accepted or send `offer_accepted`. Accept button
+         still calls `moveJobFromOfferedToAccepted` only. Chat Accept
+         not built. Unsigned call to the live function → 401.
+         **Token mint failure (not a product bug):** the signed-in
+         deny/`dryRun` used Admin `createCustomToken` on this PC to fake
+         a login without opening GISUGO. That mint died with “public
+         client certificate URL is an invalid URL” — local Admin SDK /
+         cert setup, not the sweep function and not GISUGO login. The
+         live function already answered the unsigned call. Do not treat
+         that as Accept being broken. Do not rebuild Step 3 for it.
+         **Step 4 microtasklist (one door at a time; audit each; rules
+         stay open; stop before Step 5/6/7):**
+         1. **[ ] Client helper only.** One wrapper that calls
+            `createUserAlert` and one that calls
+            `workerAcceptRejectOthers` (`asia-southeast1`). No button
+            uses them yet. No rules change.
+         2. **[ ] A1 Apply alerts.** Background apply alerts go through
+            `createUserAlert` (replace shape). Browser stops reading the
+            owner’s inbox. Job pause / count logic stays as today except
+            C1–C2 below.
+         3. **[ ] C1 + C2 (Apply cost).** SDK duplicate-check becomes
+            `jobId` + `applicantId` like iOS REST. Pending count uses
+            `jobs.applicationCount` only — drop the fallback scan.
+         4. **[ ] A2 Hire offer.** `hireWorker` stops deleting/writing
+            `offer_sent` from the browser; calls `createUserAlert`.
+         5. **[ ] A3 Accept.** After today’s job flip + own-coin +
+            `offer_accepted` (via `createUserAlert`), call
+            `workerAcceptRejectOthers`. **Delete** the browser pending
+            scan / reject / coin / grouped-alert block in
+            `moveJobFromOfferedToAccepted`. Own `offer_sent` cleanup
+            (own inbox) can stay client.
+         6. **[ ] A5 Decline.** `offer_rejected` via `createUserAlert`.
+         7. **[ ] A6 Owner reject.** Slots-reopened via `createUserAlert`
+            (owner is allowed). Stop
+            `createGroupedApplicationClosureNotification` on this door.
+         8. **[ ] A7–A9 Void / resign / complete.** Both Gigs Manager
+            and Messages Gig Status doors, same clerk. One pair at a
+            time if needed.
+         9. **[ ] A10–A11 Feedback.** Both directions via
+            `createUserAlert`.
+         10. **[ ] A12 Admin Reply.** `support_admin_message` via
+             `createUserAlert`. Contact stays on the existing server
+             write.
+         11. **[ ] C3 recount.** `syncJobApplicationCount` must stop
+             scanning pending apps from the browser (worker cannot do
+             that after lock). Increment / set `applicationCount` on
+             the gig, or skip the write when the number is already
+             known. Do **not** change `getJobApplications` here.
+         12. **[ ] Leftover audit.** Grep: no live door still calls
+             `createNotification` / grouped-closure / browser
+             reject-others except dead/retired chat copies. Rules still
+             open. If a live door is still on the old write, do not
+             start Step 5.
       5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
          they are ready before relying on them live.
       6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
