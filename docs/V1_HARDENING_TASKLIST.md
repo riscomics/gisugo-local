@@ -564,29 +564,32 @@ that the whole dashboard section is finished forever.
          person’s application or inbox, plus the reads that would die after
          lock. Dead / leftover code skipped. Full table is immediately below
          this list; keep `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`
-         in sync. **Do not start step 2 until this map is accepted.**
+         in sync. **Owner accepted the map 2026-08-29** (chat Accept/Reject
+         retired; leftovers stay in repo, cleanup not a priority).
+         **One step at a time:** finish + audit + smoke that step before
+         starting the next. Do not batch 2–7.
       2. **[ ] Server: create alert.** One Cloud Function. The browser stops
          writing into other people’s notification inboxes. Keep today’s alert
          types and dedup. No new alert design. Must cover every **LIVE write**
          in the Step 1 map (not a subset).
-      3. **[ ] Server: accept rejects the others.** When a worker accepts, the
-         server (not the browser) rejects the other pending applicants, sends
-         the “not selected” notices, and does the coin releases we already do.
-         Both Accept doors (Gigs Manager **and** Messages chat card) must
-         call this. Today the chat card does **not** reject the others —
-         that is a live gap the clerk closes.
+      3. **[ ] Server: accept rejects the others.** Live door is Gigs Manager
+         Offered-tab Accept only. The server (not the browser) rejects the
+         other pending applicants, sends the “not selected” notices, and
+         does the coin releases we already do. Chat Accept is retired
+         (2026-08-29) — do not build a second sweep for it.
       4. **[ ] Point the live buttons at those functions.** Every live door
          from the Step 1 map. Keep today’s loose rules so they do not break
-         mid-ship. Owner and worker reads of applications become “mine only.”
-         Pending-count uses the number already on the gig, not a scan of
-         every application.
+         mid-ship. **This step is also the desktop-scan countermeasure:**
+         owner/worker application reads become “mine only”; pending-count
+         uses the number already on the gig (`applicationCount`); SDK Apply
+         duplicate-check becomes `jobId` + `applicantId` like the iOS REST
+         path. No scan of a gig’s full applicant pile. No platform scan.
       5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
          they are ready before relying on them live.
       6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
-         and desktop. Apply → review → Hire → Accept (both doors) is the
-         spine; void / resign / complete / withdraw / reject-applicant /
-         feedback / Support reply must also still fire their alerts. If
-         this fails, do not lock rules.
+         and desktop. Spine: Apply → review → Hire → Accept (Gigs Manager).
+         Also void / resign / complete / withdraw / reject-applicant /
+         feedback / Support reply. If this fails, do not lock rules.
       7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
          signed-in stranger cannot read everyone’s applications or alerts via
          the API.
@@ -605,8 +608,8 @@ that the whole dashboard section is finished forever.
       | A1 | Apply (`applyForJob` ← gig page) | Worker | `application_received`, milestone / `gig_review_needed` / `gig_auto_paused` (also **deletes/updates** the owner’s older apply alerts) | Owner still gets the same Alerts. Dedup stays. Worker must not read the owner’s inbox. |
       | A2 | Hire (`hireWorker` ← Gigs Manager overlay) | Customer | `offer_sent` (also **deletes** that worker’s old offer rows for this gig) | Worker still gets the offer. Owner must not wipe another inbox from the browser. |
       | A3 | Accept — Gigs Manager Offered tab (`moveJobFromOfferedToAccepted`) | Worker | `offer_accepted` to owner; then `not_selected` grouped alerts to the other applicants | Same as today on this door. Sweep moves to step 3. |
-      | A4 | Accept — Messages chat card (`acceptGigOfferInChat`) | Worker | `offer_accepted` only. **Does not** reject others today (code says so on purpose). | Must use the **same** server sweep as A3 or the other applicants stay pending forever. Expected product fix, not a new screen. |
-      | A5 | Decline offer — Gigs Manager + chat (`rejectGigOffer` / `rejectGigOfferInChat`) | Worker | `offer_rejected` | Owner still sees the decline; gig goes back to active. |
+      | A4 | ~~Accept — Messages chat card~~ | — | Retired 2026-08-29. Phone/text replaced chat as the talk path. Code may still exist; do not build for it. Cleanup later, not a priority. | — |
+      | A5 | Decline offer — Gigs Manager (`rejectGigOffer`) | Worker | `offer_rejected` | Owner still sees the decline; gig goes back to active. Chat decline is retired with A4. |
       | A6 | Owner rejects one applicant (`rejectApplication`) | Customer | grouped `manual_reject` / slots-reopened | That worker still gets the courtesy alert. Grouping must run on the server (it reads **that worker’s** unread alerts). |
       | A7 | Void / relist — Gigs Manager **and** Messages Gig Status (`jobs.js` + `relistGigFromChat`) | Customer | `contract_voided` | Hired worker still gets voided. Two UI doors, same clerk. |
       | A8 | Resign — Gigs Manager **and** Messages Gig Status (`jobs.js` + `resignGigFromChat`) | Worker | `worker_resigned` | Owner still gets resign. Two UI doors, same clerk. |
@@ -656,17 +659,20 @@ that the whole dashboard section is finished forever.
       - `autoRejectOtherApplications` in `jobs.js` — UI card animation only, **never called**.
       - `fixApplicationCounts` / `cleanup-duplicate-applications.html` — one-off admin tool, not a user button.
       - `interview_request` — display leftover only; nothing creates it.
-      - Chat-accept copies inside `alerts.js` / `support.js` — those pages have **no** thread list. Live chat door is `messages.html`. The clerk still covers `acceptGigOfferInChat` because Messages calls it.
+      - Chat Accept / Reject (`acceptGigOfferInChat` / `rejectGigOfferInChat`)
+        and the copies inside `alerts.js` / `support.js`. Owner retired this
+        2026-08-29 (users talk by phone/text). Cleanup later if the extra JS
+        weight matters. Not a clerk door. Hide or dead-end the leftover
+        card before the Step 7 lock if it is still tappable, so it cannot
+        fail after rules close.
 
       **G. Expected effects (honest)**
 
       - Users should feel the same buttons and the same alert types.
-      - **One real behavior change:** Accept from the Messages card will start
-        rejecting the other pending applicants (same as Accept on Gigs Manager).
-        Today it does not. That is the brick-wall we cannot leave.
-      - Cost: Apply’s SDK “scan every applicant on this gig” and every
-        `syncJobApplicationCount` recount go away. Function runs are cheap;
-        those scans are what hit the bank.
+      - No product change to Accept: Gigs Manager remains the only live door.
+      - Cost (done in **Step 4**, not later): Apply’s SDK “scan every
+        applicant on this gig” and every `syncJobApplicationCount` recount
+        go away. Function runs are cheap; those scans are what hit the bank.
 
 - [ ] **Pre-launch QA (after Phase 12 — not during the 12 build).**
       Owner forgot to have leak / extra-cost checks done as each admin Phase
