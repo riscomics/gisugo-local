@@ -2486,34 +2486,18 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
     
     console.log('🔔 About to create offer notification for worker:', appData.applicantId);
     
-    // Create notification for worker about the gig offer (delete old ones first to prevent duplicates)
+    // Offer alert: clerk deletes stale offer_sent for this gig, then writes one row.
     try {
-      if (typeof createNotification === 'function') {
-        // Delete ALL existing offer_sent notifications for this worker (any job) to avoid stale ones
-        const existingNotifs = await db.collection('notifications')
-          .where('recipientId', '==', appData.applicantId)
-          .where('jobId', '==', jobId)
-          .where('type', '==', 'offer_sent')
-          .get();
-        
-        if (!existingNotifs.empty) {
-          const deletePromises = existingNotifs.docs.map(doc => doc.ref.delete());
-          await Promise.all(deletePromises);
-          console.log(`🗑️ Deleted ${existingNotifs.size} old offer notification(s) for this job`);
-        }
-        
-        // Create fresh notification
-        const result = await createNotification(appData.applicantId, {
-          type: 'offer_sent',
-          jobId: jobId,
-          jobTitle: jobData.title || 'Gig',
-          message: `You've been offered the gig "${jobData.title}"! Check Gigs Manager > Offered tab to accept or decline.`,
-          actionRequired: true
-        });
-        console.log('✅ Offer notification result:', result);
-      } else {
-        console.error('❌ createNotification function not found');
-      }
+      const result = await callCreateUserAlert({
+        type: 'offer_sent',
+        recipientId: appData.applicantId,
+        jobId: jobId,
+        jobTitle: jobData.title || 'Gig',
+        message: `You've been offered the gig "${jobData.title}"! Check Gigs Manager > Offered tab to accept or decline.`,
+        actionRequired: true,
+        applicationId: applicationId
+      });
+      console.log('✅ Offer notification result:', result);
     } catch (notifError) {
       console.error('❌ Error creating offer notification:', notifError);
       // Don't fail the hiring if notification fails

@@ -705,8 +705,10 @@ that the whole dashboard section is finished forever.
             `jobId` + `applicantId` + `appliedAt`. Pending count uses
             `jobs.applicationCount` only; missing field counts as 0. No
             fallback scan. **Stopped here** — Hire / Accept not wired.
-         4. **[ ] A2 Hire offer.** `hireWorker` stops deleting/writing
-            `offer_sent` from the browser; calls `createUserAlert`.
+         4. **[x] A2 Hire offer.** `hireWorker` calls `createUserAlert`
+            (replace-offer). Browser no longer deletes/writes `offer_sent`.
+            `jobs.html` on `firebase-db.js?v=72`. **Stopped here** — Accept
+            not wired.
          5. **[ ] A3 Accept.** After today’s job flip + own-coin +
             `offer_accepted` (via `createUserAlert`), call
             `workerAcceptRejectOthers`. **Delete** the browser pending
