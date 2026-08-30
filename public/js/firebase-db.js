@@ -2057,23 +2057,20 @@ async function applyForJob(jobId, applicationData) {
       }
     }
     if (!existingApplications) {
-      const jobApplicationsSnapshot = await withFirestoreReadTimeout(
+      const ownApplicationsSnapshot = await withFirestoreReadTimeout(
         db.collection('applications')
           .where('jobId', '==', jobId)
+          .where('applicantId', '==', currentUser.uid)
+          .orderBy('appliedAt', 'desc')
           .get(),
         applyReadTimeoutMs
       );
-      const matchingApplicationDocs = jobApplicationsSnapshot.docs.filter((doc) => {
-        const data = doc.data() || {};
-        return String(data.applicantId || '') === String(currentUser.uid || '');
-      });
       existingApplications = {
-        size: matchingApplicationDocs.length,
-        docs: matchingApplicationDocs
+        size: ownApplicationsSnapshot.size,
+        docs: ownApplicationsSnapshot.docs
       };
       emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:done', {
-        mode: 'SDK_JOB_SCAN',
-        scanned: jobApplicationsSnapshot.size,
+        mode: 'SDK_OWN_ONLY',
         count: existingApplications.size
       });
     }
@@ -2146,36 +2143,8 @@ async function applyForJob(jobId, applicationData) {
     if (hasPendingCountFromJob) {
       emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'JOB_FIELD', count: totalPendingApplications });
     } else {
-      if (useRestPrimaryForApply) {
-        emitIOSDataTrace('dynamic-job:apply', 'pending:count:start', { mode: 'REST_AUTH' });
-        try {
-          const pendingRows = await withFirestoreReadTimeout(
-            fetchPendingApplicationsByJobViaFirestoreRest(jobId, 11, restAuthHeaders),
-            applyReadTimeoutMs
-          );
-          totalPendingApplications = pendingRows.length;
-          emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'REST_AUTH', count: totalPendingApplications });
-        } catch (pendingError) {
-          emitIOSDataTrace('dynamic-job:apply', 'pending:count:error', {
-            mode: 'REST_AUTH',
-            message: pendingError && pendingError.message ? pendingError.message : String(pendingError)
-          });
-          return {
-            success: false,
-            message: 'Unable to verify gig capacity right now. Please retry.'
-          };
-        }
-      } else {
-        const allApplicationsSnapshot = await withFirestoreReadTimeout(
-          db.collection('applications')
-            .where('jobId', '==', jobId)
-            .where('status', '==', 'pending')
-            .get(),
-          applyReadTimeoutMs
-        );
-        totalPendingApplications = allApplicationsSnapshot.size;
-        emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'SDK', count: totalPendingApplications });
-      }
+      totalPendingApplications = 0;
+      emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'JOB_FIELD_MISSING', count: 0 });
     }
     
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
@@ -2322,36 +2291,30 @@ async function applyForJob(jobId, applicationData) {
     const newTotalApplications = totalPendingApplications + 1;
     Promise.resolve().then(async () => {
       try {
-        const existingNotifSnapshot = await db.collection('notifications')
-          .where('recipientId', '==', job.posterId)
-          .where('jobId', '==', jobId)
-          .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused', 'gig_review_needed'])
-          .get();
-        
+        const applyAlertBase = {
+          recipientId: job.posterId,
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          applicationId: appRef && appRef.id ? appRef.id : ''
+        };
         if (newTotalApplications === 1) {
-          await createNotification(job.posterId, {
+          await callCreateUserAlert({
+            ...applyAlertBase,
             type: 'application_received',
-            jobId: jobId,
-            jobTitle: job.title || 'Your Gig',
             message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
             actionRequired: false
           });
         } else if (newTotalApplications === 5) {
-          if (existingNotifSnapshot.size > 0) {
-            const notifId = existingNotifSnapshot.docs[0].id;
-            await db.collection('notifications').doc(notifId).update({
-              type: 'application_milestone',
-              message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
+          await callCreateUserAlert({
+            ...applyAlertBase,
+            type: 'application_milestone',
+            message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+            actionRequired: false
+          });
         } else if (launchFeedOn && newTotalApplications === launchFeedBucketMinApps()) {
-          const deletePromises = existingNotifSnapshot.docs.map((doc) => db.collection('notifications').doc(doc.id).delete());
-          await Promise.all(deletePromises);
-          await createNotification(job.posterId, {
+          await callCreateUserAlert({
+            ...applyAlertBase,
             type: 'gig_review_needed',
-            jobId: jobId,
-            jobTitle: job.title || 'Your Gig',
             message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
             actionRequired: true
           });
@@ -2361,12 +2324,9 @@ async function applyForJob(jobId, applicationData) {
             pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
             pauseReason: 'auto_paused_max_applications'
           });
-          const deletePromises = existingNotifSnapshot.docs.map((doc) => db.collection('notifications').doc(doc.id).delete());
-          await Promise.all(deletePromises);
-          await createNotification(job.posterId, {
+          await callCreateUserAlert({
+            ...applyAlertBase,
             type: 'gig_auto_paused',
-            jobId: jobId,
-            jobTitle: job.title || 'Your Gig',
             message: `🛑 Your gig "${job.title}" has been paused. You've received ${maturePauseAtApps()} applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
             actionRequired: true
           });
@@ -3817,6 +3777,36 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
     console.error('❌ Error creating grouped application closure notification:', error);
     return { success: false, message: error.message };
   }
+}
+
+function getGisugoFunctions() {
+  if (typeof firebase === 'undefined' || typeof firebase.app !== 'function') return null;
+  const app = firebase.app();
+  if (!app.functions) return null;
+  return app.functions('asia-southeast1');
+}
+
+async function callCreateUserAlert(payload) {
+  const fns = getGisugoFunctions();
+  if (!fns) {
+    return { success: false, message: 'Functions SDK unavailable' };
+  }
+  const callable = fns.httpsCallable('createUserAlert');
+  const response = await callable(payload || {});
+  return (response && response.data) ? response.data : { success: true };
+}
+
+async function callWorkerAcceptRejectOthers(jobId, options = {}) {
+  const fns = getGisugoFunctions();
+  if (!fns) {
+    return { success: false, message: 'Functions SDK unavailable' };
+  }
+  const callable = fns.httpsCallable('workerAcceptRejectOthers');
+  const response = await callable({
+    jobId: String(jobId || '').trim(),
+    dryRun: options.dryRun === true
+  });
+  return (response && response.data) ? response.data : { success: true };
 }
 
 /**
@@ -5973,6 +5963,8 @@ window.getThreadMessages = getThreadMessages;
 window.getUserChatThreads = getUserChatThreads;
 
 // Notifications
+window.callCreateUserAlert = callCreateUserAlert;
+window.callWorkerAcceptRejectOthers = callWorkerAcceptRejectOthers;
 window.createNotification = createNotification;
 window.getUserNotifications = getUserNotifications;
 window.getUserNotificationsPage = getUserNotificationsPage;

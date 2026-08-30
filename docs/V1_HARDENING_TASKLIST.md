@@ -675,7 +675,7 @@ that the whole dashboard section is finished forever.
             was not re-run this pass (local Admin Auth token mint
             failed after the unauth check). Do not start Step 4 until
             owner says Go.
-      4. **[ ] Point the live buttons at those functions.** Every live door
+      4. **[~] Point the live buttons at those functions.** Every live door
          from the Step 1 map. Keep today’s loose rules so they do not break
          mid-ship. **This step is also the desktop-scan countermeasure**
          for Apply (C1–C2) and stop-the-recount (C3). **Do not change
@@ -696,17 +696,15 @@ that the whole dashboard section is finished forever.
          that as Accept being broken. Do not rebuild Step 3 for it.
          **Step 4 microtasklist (one door at a time; audit each; rules
          stay open; stop before Step 5/6/7):**
-         1. **[ ] Client helper only.** One wrapper that calls
-            `createUserAlert` and one that calls
-            `workerAcceptRejectOthers` (`asia-southeast1`). No button
-            uses them yet. No rules change.
-         2. **[ ] A1 Apply alerts.** Background apply alerts go through
-            `createUserAlert` (replace shape). Browser stops reading the
-            owner’s inbox. Job pause / count logic stays as today except
-            C1–C2 below.
-         3. **[ ] C1 + C2 (Apply cost).** SDK duplicate-check becomes
-            `jobId` + `applicantId` like iOS REST. Pending count uses
-            `jobs.applicationCount` only — drop the fallback scan.
+         1. **[x] Client helper only.** `callCreateUserAlert` /
+            `callWorkerAcceptRejectOthers` in `firebase-db.js` (2026-08-30).
+         2. **[x] A1 Apply alerts.** Apply background alerts go through
+            `createUserAlert`. Browser no longer reads the owner’s inbox.
+            `dynamic-job.html` loads Functions compat + `firebase-db.js?v=72`.
+         3. **[x] C1 + C2 (Apply cost).** SDK duplicate-check is
+            `jobId` + `applicantId` + `appliedAt`. Pending count uses
+            `jobs.applicationCount` only; missing field counts as 0. No
+            fallback scan. **Stopped here** — Hire / Accept not wired.
          4. **[ ] A2 Hire offer.** `hireWorker` stops deleting/writing
             `offer_sent` from the browser; calls `createUserAlert`.
          5. **[ ] A3 Accept.** After today’s job flip + own-coin +
