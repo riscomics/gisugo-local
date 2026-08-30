@@ -750,11 +750,16 @@ that the whole dashboard section is finished forever.
              `firebase-db.js?v=76` on jobs / messages / dynamic-job /
              my-applications; `jobs.js?v=165`. **Stopped here** —
              leftover audit not done.
-         12. **[ ] Leftover audit.** Grep: no live door still calls
-             `createNotification` / grouped-closure / browser
-             reject-others except dead/retired chat copies. Rules still
-             open. If a live door is still on the old write, do not
-             start Step 5.
+         12. **[x] Leftover audit.** No live A-door still calls
+             `createNotification`, grouped-closure, or a browser
+             reject-others scan. Remaining old writes are retired
+             chat Accept/Decline only (`acceptGigOfferInChat` /
+             `sendOfferRejectedNotification`). Leftover tappable
+             card still exists in Messages/Alerts/Support when
+             status is `hired` — hide before Step 7. Rules still
+             open. `getJobApplications` (C4) is Step 5, not a
+             leftover write. **Stopped here** — do not start
+             indexes until owner says Go.
       5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
          they are ready before relying on them live.
       6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
