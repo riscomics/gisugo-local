@@ -4539,31 +4539,25 @@ async function processRejectGigConfirmation(jobData) {
         // Remove job from offered data and restore applications for customer
         await rejectGigOffer(jobData.jobId);
         
-        // ═══════════════════════════════════════════════════════════════
-        // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
-        // ═══════════════════════════════════════════════════════════════
+        // Owner alert: clerk writes offer_rejected. Do not fail Decline if it fails.
         try {
-            if (typeof sendOfferRejectedNotification === 'function') {
+            if (typeof callCreateUserAlert === 'function' && jobData.posterId) {
                 const currentUser = firebase.auth ? firebase.auth().currentUser : null;
                 const workerName = currentUser
                     ? await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'A worker')
                     : 'A worker';
-                
-                const notifResult = await sendOfferRejectedNotification(
-                    jobData.posterId,
-                    jobData.posterName,
-                    jobData.jobId,
-                    jobData.title,
-                    workerName
-                );
-                
-                if (notifResult.success) {
-                    console.log('✅ Customer will see notification in Messages > ALERTS tab');
-                }
+                const result = await callCreateUserAlert({
+                    type: 'offer_rejected',
+                    recipientId: jobData.posterId,
+                    jobId: jobData.jobId,
+                    jobTitle: jobData.title || 'Gig',
+                    message: `${workerName} has rejected your job offer for "${jobData.title || 'Gig'}". The job is now available for applications.`,
+                    actionRequired: false
+                });
+                console.log('✅ Decline notification result:', result);
             }
         } catch (notifError) {
             console.error('⚠️ Error sending notification (non-critical):', notifError);
-            // Don't fail reject operation if notification fails
         }
         
         // Hide loading

@@ -715,7 +715,10 @@ that the whole dashboard section is finished forever.
             coin / grouped-alert block deleted. Own `offer_sent`
             cleanup stays client. `jobs.html` on `jobs.js?v=161`.
             **Stopped here** — Decline not wired.
-         6. **[ ] A5 Decline.** `offer_rejected` via `createUserAlert`.
+         6. **[x] A5 Decline.** `offer_rejected` via `createUserAlert`
+            on Gigs Manager `processRejectGigConfirmation`. Chat
+            decline left on the old helper (retired). `jobs.html` on
+            `jobs.js?v=162`. **Stopped here** — Owner reject not wired.
          7. **[ ] A6 Owner reject.** Slots-reopened via `createUserAlert`
             (owner is allowed). Stop
             `createGroupedApplicationClosureNotification` on this door.
