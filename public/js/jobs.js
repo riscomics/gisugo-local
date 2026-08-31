@@ -73,7 +73,10 @@ function getJobsTabSignature(jobs) {
         const status = String(job && job.status || '');
         const apps = String(job && (job.applicationCount != null ? job.applicationCount : ''));
         const price = String(job && (job.agreedPrice != null ? job.agreedPrice : job.priceOffer != null ? job.priceOffer : ''));
-        return `${id}:${status}:${apps}:${price}`;
+        const date = String(job && (job.jobDate || job.scheduledDate) || '');
+        const start = String(job && job.startTime || '');
+        const end = String(job && job.endTime || '');
+        return `${id}:${status}:${apps}:${price}:${date}:${start}:${end}`;
     }).join('|')}`;
 }
 
@@ -159,8 +162,8 @@ function beginJobsTabLoad(tabType, container, loadingHtml) {
 
 function consumeJobsWarmIfMatched(tabType, jobs, warmMeta) {
     const list = Array.isArray(jobs) ? jobs : [];
-    const signature = getJobsTabSignature(list);
     persistJobsTabCache(tabType, list);
+    const signature = getJobsTabSignature(serializeJobsForCache(list));
     if (warmMeta && warmMeta.warm && warmMeta.warmSignature && warmMeta.warmSignature === signature) {
         if (JOBS_WARM && JOBS_WARM.tab === tabType) JOBS_WARM = null;
         console.log(`⚡ Jobs tab "${tabType}" refresh matched cache; skipped rerender`);
@@ -2214,39 +2217,16 @@ function checkIfJobExpired(jobDate, endTime) {
     if (!jobDate || !endTime) return false;
     
     try {
-        const now = new Date();
-        let dateObj;
+        const parsed = parseJobDateInput(jobDate);
+        if (!parsed || isNaN(parsed.getTime())) return false;
+        // Copy so setHours cannot mutate a shared Timestamp/Date on the job object.
+        const dateObj = new Date(parsed.getTime());
         
-        // Handle Firestore Timestamp objects
-        if (jobDate && typeof jobDate.toDate === 'function') {
-            dateObj = jobDate.toDate();
-        }
-        // Handle Date objects
-        else if (jobDate instanceof Date) {
-            dateObj = jobDate;
-        }
-        // Parse string dates
-        else if (typeof jobDate === 'string') {
-            if (jobDate.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(jobDate)) {
-                const [year, month, day] = jobDate.split('-').map(Number);
-                dateObj = new Date(year, month - 1, day);
-            } else if (jobDate.includes(',')) {
-                dateObj = new Date(jobDate);
-            } else {
-                const currentYear = new Date().getFullYear();
-                dateObj = new Date(`${jobDate} ${currentYear}`);
-            }
-        }
-        else {
-            return false;
-        }
-        
-        if (isNaN(dateObj.getTime())) return false;
-        
-        // Parse end time
-        const endTimeMatch = endTime.match(/(\d+)\s*(AM|PM)/i);
+        // Prefer the time after the dash ("10 AM - 11 AM"); fall back to the first clock.
+        const endTimeText = String(endTime);
+        const endTimeMatch = endTimeText.match(/-\s*(\d+)\s*(AM|PM)/i) || endTimeText.match(/(\d+)\s*(AM|PM)/i);
         if (endTimeMatch) {
-            let hour = parseInt(endTimeMatch[1]);
+            let hour = parseInt(endTimeMatch[1], 10);
             const isPM = endTimeMatch[2].toUpperCase() === 'PM';
             
             if (isPM && hour !== 12) hour += 12;
@@ -2254,11 +2234,10 @@ function checkIfJobExpired(jobDate, endTime) {
             
             dateObj.setHours(hour, 0, 0, 0);
         } else {
-            // If no end time, mark as expired at end of job date
             dateObj.setHours(23, 59, 59, 999);
         }
         
-        return dateObj.getTime() < now.getTime();
+        return dateObj.getTime() < Date.now();
     } catch (error) {
         console.warn('Error checking expiration:', error);
         return false;
