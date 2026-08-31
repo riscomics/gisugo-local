@@ -5182,14 +5182,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
   
-  if (isProfileIOSTraceEnabled()) {
-    window.__GISUGO_IOS_TRACE = function(payload) {
-      const route = String(payload && payload.route ? payload.route : '');
-      if (!route.startsWith('profile:')) return;
-      profileTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
-    };
-  }
-
   // Wait for Firebase auth to be ready before loading profile
   await waitForAuthAndLoadProfile();
   applyRequestedProfileTabFromQuery();
@@ -5222,63 +5214,8 @@ document.addEventListener('DOMContentLoaded', async function() {
  */
 const PROFILE_VISIBILITY_SELECTORS = '.profile-subheader, .profile-tabs, .tab-content-wrapper';
 
-const PROFILE_IOS_TRACE_STATE = {
-  maxLines: 20
-};
-
-function isProfileIOSTraceEnabled() {
-  try {
-    const ua = navigator.userAgent || '';
-    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  } catch (_) {
-    return false;
-  }
-}
-
-function ensureProfileTraceOverlay() {
-  if (!isProfileIOSTraceEnabled()) return null;
-  let panel = document.getElementById('profileIosTracePanel');
-  if (panel) return panel;
-  panel = document.createElement('div');
-  panel.id = 'profileIosTracePanel';
-  panel.style.cssText = [
-    'position:fixed',
-    'left:8px',
-    'right:8px',
-    'bottom:8px',
-    'max-height:34vh',
-    'overflow:auto',
-    'padding:8px',
-    'border:1px solid rgba(255,255,255,0.28)',
-    'border-radius:10px',
-    'background:rgba(5,8,20,0.90)',
-    'color:#d8f5ff',
-    'font:11px/1.35 monospace',
-    'z-index:2147483647',
-    'white-space:pre-wrap',
-    'word-break:break-word',
-    'pointer-events:none'
-  ].join(';');
-  document.body.appendChild(panel);
-  return panel;
-}
-
-function profileTrace(event, details) {
-  if (!isProfileIOSTraceEnabled()) return;
-  const panel = ensureProfileTraceOverlay();
-  if (!panel) return;
-  const time = new Date().toISOString().slice(11, 19);
-  const detailText = details === undefined
-    ? ''
-    : (typeof details === 'string' ? details : JSON.stringify(details));
-  const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
-  const rows = panel.textContent ? panel.textContent.split('\n') : [];
-  rows.push(line);
-  if (rows.length > PROFILE_IOS_TRACE_STATE.maxLines) {
-    rows.splice(0, rows.length - PROFILE_IOS_TRACE_STATE.maxLines);
-  }
-  panel.textContent = rows.join('\n');
-  panel.scrollTop = panel.scrollHeight;
+function profileTrace() {
+  // iOS on-screen trace removed after stabilization.
 }
 
 function setProfileShellVisibility(isVisible) {

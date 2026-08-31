@@ -419,7 +419,7 @@ function isIOSWebKitBrowserForDataPath() {
   }
 }
 
-// TEMP iOS trace bridge. Page scripts can register window.__GISUGO_IOS_TRACE(payload).
+// Optional iOS trace bridge. On-screen HUDs were removed after stabilization.
 function emitIOSDataTrace(route, stage, details) {
   if (!isIOSWebKitBrowserForDataPath()) return;
   if (typeof window === 'undefined') return;

@@ -351,63 +351,8 @@ const TAB_RENDER_GUARDS = {
 };
 let faceViewerEscapeListenerKey = null;
 
-const JOBS_IOS_TRACE_STATE = {
-    maxLines: 20
-};
-
-function isJobsIOSTraceEnabled() {
-    try {
-        const ua = navigator.userAgent || '';
-        return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    } catch (_) {
-        return false;
-    }
-}
-
-function ensureJobsTraceOverlay() {
-    if (!isJobsIOSTraceEnabled()) return null;
-    let panel = document.getElementById('jobsIosTracePanel');
-    if (panel) return panel;
-    panel = document.createElement('div');
-    panel.id = 'jobsIosTracePanel';
-    panel.style.cssText = [
-        'position:fixed',
-        'left:8px',
-        'right:8px',
-        'bottom:8px',
-        'max-height:34vh',
-        'overflow:auto',
-        'padding:8px',
-        'border:1px solid rgba(255,255,255,0.28)',
-        'border-radius:10px',
-        'background:rgba(5,8,20,0.90)',
-        'color:#d8f5ff',
-        'font:11px/1.35 monospace',
-        'z-index:2147483647',
-        'white-space:pre-wrap',
-        'word-break:break-word',
-        'pointer-events:none'
-    ].join(';');
-    document.body.appendChild(panel);
-    return panel;
-}
-
-function jobsTrace(event, details) {
-    if (!isJobsIOSTraceEnabled()) return;
-    const panel = ensureJobsTraceOverlay();
-    if (!panel) return;
-    const time = new Date().toISOString().slice(11, 19);
-    const detailText = details === undefined
-        ? ''
-        : (typeof details === 'string' ? details : JSON.stringify(details));
-    const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
-    const rows = panel.textContent ? panel.textContent.split('\n') : [];
-    rows.push(line);
-    if (rows.length > JOBS_IOS_TRACE_STATE.maxLines) {
-        rows.splice(0, rows.length - JOBS_IOS_TRACE_STATE.maxLines);
-    }
-    panel.textContent = rows.join('\n');
-    panel.scrollTop = panel.scrollHeight;
+function jobsTrace() {
+    // iOS on-screen trace removed after stabilization.
 }
 
 function beginTabRender(scope) {
@@ -1174,13 +1119,6 @@ window.addEventListener('beforeunload', function () {
 
 // ===== JOBS PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
-    if (isJobsIOSTraceEnabled()) {
-        window.__GISUGO_IOS_TRACE = function(payload) {
-            const route = String(payload && payload.route ? payload.route : '');
-            if (!route.startsWith('jobs:')) return;
-            jobsTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
-        };
-    }
     if (typeof window.requireVerifiedEmailForPage === 'function') {
         const accessAllowed = await window.requireVerifiedEmailForPage({
             pageName: 'Gigs Manager',

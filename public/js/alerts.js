@@ -156,9 +156,6 @@ const ACTIVE_LISTENERS = {
     supportResponses: null
 };
 
-const MESSAGES_IOS_TRACE_STATE = {
-    maxLines: 20
-};
 const MESSAGES_RUNTIME_DEBUG = false;
 const GIG_TIPS_ACK_STORAGE_KEY = 'gisugo_gig_tips_ack_v1';
 const GIG_TIPS_LANG_DEFAULT = 'en';
@@ -205,59 +202,8 @@ const GIG_TIPS_CONTENT = {
     }
 };
 
-function isMessagesIOSTraceEnabled() {
-    try {
-        const ua = navigator.userAgent || '';
-        return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    } catch (_) {
-        return false;
-    }
-}
-
-function ensureMessagesTraceOverlay() {
-    if (!isMessagesIOSTraceEnabled()) return null;
-    let panel = document.getElementById('messagesIosTracePanel');
-    if (panel) return panel;
-    panel = document.createElement('div');
-    panel.id = 'messagesIosTracePanel';
-    panel.style.cssText = [
-        'position:fixed',
-        'left:8px',
-        'right:8px',
-        'bottom:8px',
-        'max-height:34vh',
-        'overflow:auto',
-        'padding:8px',
-        'border:1px solid rgba(255,255,255,0.28)',
-        'border-radius:10px',
-        'background:rgba(5,8,20,0.90)',
-        'color:#d8f5ff',
-        'font:11px/1.35 monospace',
-        'z-index:2147483647',
-        'white-space:pre-wrap',
-        'word-break:break-word',
-        'pointer-events:none'
-    ].join(';');
-    document.body.appendChild(panel);
-    return panel;
-}
-
-function messagesTrace(event, details) {
-    if (!isMessagesIOSTraceEnabled()) return;
-    const panel = ensureMessagesTraceOverlay();
-    if (!panel) return;
-    const time = new Date().toISOString().slice(11, 19);
-    const detailText = details === undefined
-        ? ''
-        : (typeof details === 'string' ? details : JSON.stringify(details));
-    const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
-    const rows = panel.textContent ? panel.textContent.split('\n') : [];
-    rows.push(line);
-    if (rows.length > MESSAGES_IOS_TRACE_STATE.maxLines) {
-        rows.splice(0, rows.length - MESSAGES_IOS_TRACE_STATE.maxLines);
-    }
-    panel.textContent = rows.join('\n');
-    panel.scrollTop = panel.scrollHeight;
+function messagesTrace() {
+    // iOS on-screen trace removed after stabilization.
 }
 
 function messagesDebug(...args) {
@@ -2241,13 +2187,6 @@ async function loadCustomerInterviews() {
 
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    if (isMessagesIOSTraceEnabled()) {
-        window.__GISUGO_IOS_TRACE = function(payload) {
-            const route = String(payload && payload.route ? payload.route : '');
-            if (!route.startsWith('messages:') && !route.startsWith('alerts:')) return;
-            messagesTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
-        };
-    }
     // One loader only: inline "Loading alerts..." in the list. The delayed full-page
     // overlay ("Loading your alerts...") raced with it and stacked both on first paint.
     MESSAGES_PAGE_LOADING_STATE.hidden = true;
