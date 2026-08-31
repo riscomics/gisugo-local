@@ -13,7 +13,7 @@
 
 // Launch feed bucket. Default ON. Settings writes launchBucketOn to
 // platform_settings/public; apply + listing read it via resolveLaunchFeedBucketOn().
-// ON: stay live; at 20 apps notify to review (no pause) and listing second sort.
+// ON: stay live; at 20 apps notify to review (no pause); listing hides 20+ automatically.
 // OFF: pause + block apply at 10.
 window.GisugoGigFeedPolicy = {
   launchBucketOn: true,
