@@ -760,8 +760,11 @@ that the whole dashboard section is finished forever.
              open. `getJobApplications` (C4) is Step 5, not a
              leftover write. **Stopped here** — do not start
              indexes until owner says Go.
-      5. **[ ] Indexes.** Add the owner-scoped query indexes and wait until
-         they are ready before relying on them live.
+      5. **[~] Indexes.** Added `applications` composite
+         `gigOwnerId` + `jobId` + `appliedAt` desc (2026-08-31).
+         `getJobApplications` still queries `jobId` only until this
+         index is ENABLED. Do not flip the Hire overlay query before
+         that or the list goes empty.
       6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
          and desktop. Spine: Apply → review → Hire → Accept (Gigs Manager).
          Also void / resign / complete / withdraw / reject-applicant /

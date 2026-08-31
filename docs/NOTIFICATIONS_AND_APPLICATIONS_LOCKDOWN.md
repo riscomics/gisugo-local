@@ -90,6 +90,8 @@
 3. **Refactor broad application reads** to be scoped: `applicantId == uid` (worker) or
    `gigOwnerId == uid` (owner). Auto-pause count must rely ONLY on the job's stored counter.
 4. **New composite indexes** (gigOwnerId-based) + index deploy.
+   Index added 2026-08-31 (`gigOwnerId` + `jobId` + `appliedAt` desc).
+   `getJobApplications` still uses `jobId` only until that index is ENABLED.
 5. **Tighten rules**: applications read = applicant or gigOwner; enforce `gigOwnerId ==
    job.posterId` on create. Notifications read/update/delete = recipient only; create = server only.
 6. **One `functions` deploy** (also clears the already-deleted `migrateLegacyProfilePhones`).
