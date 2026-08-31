@@ -763,10 +763,10 @@ that the whole dashboard section is finished forever.
       5. **[x] Indexes.** Added and deployed `applications` composite
          `gigOwnerId` + `jobId` + `appliedAt` desc (2026-08-31).
          `firebase firestore:indexes` lists it with the other ready
-         indexes (no CREATING state). **`getJobApplications` still
-         queries `jobId` only.** Do not flip the Hire overlay until
-         owner says Go — flipping before the index is ready would
-         empty the list. Rules still open. **Stopped here.**
+         indexes (no CREATING state). `getJobApplications` now queries
+         `gigOwnerId` + `jobId` + `appliedAt` desc (2026-08-31).
+         `jobs.html` on `firebase-db.js?v=77`. Rules still open.
+         **Stopped here** — Step 6 prove not started.
       6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
          and desktop. Spine: Apply → review → Hire → Accept (Gigs Manager).
          Also void / resign / complete / withdraw / reject-applicant /

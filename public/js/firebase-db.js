@@ -2394,6 +2394,7 @@ async function applyForJob(jobId, applicationData) {
  */
 async function getJobApplications(jobId) {
   const db = getFirestore();
+  const currentUser = getCurrentUser();
   
   console.log('🔍 firebase-db.js: getJobApplications() called');
   console.log('   Querying with jobId:', jobId);
@@ -2401,10 +2402,14 @@ async function getJobApplications(jobId) {
   if (!db) {
     return [];
   }
+  if (!currentUser || !currentUser.uid) {
+    return [];
+  }
   
   try {
-    console.log('   📡 Querying Firestore: applications where jobId ==', jobId);
+    console.log('   📡 Querying Firestore: applications where gigOwnerId == me and jobId ==', jobId);
     const snapshot = await db.collection('applications')
+      .where('gigOwnerId', '==', currentUser.uid)
       .where('jobId', '==', jobId)
       .orderBy('appliedAt', 'desc')
       .get();
