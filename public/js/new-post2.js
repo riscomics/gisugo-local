@@ -2177,7 +2177,9 @@ function initializeSuccessOverlay() {
   if (gigsManagerBtn) {
     gigsManagerBtn.addEventListener('click', function() {
       showNavLoading('Opening Gigs Manager...');
-      window.location.href = 'jobs.html';
+      // Cold-load Listings with the normal tab spinner. Bare jobs.html would
+      // paint the 2-minute warm cache first and sit on stale cards with no loader.
+      window.location.href = `jobs.html?refresh=${Date.now()}&tab=listings&role=customer`;
     });
   }
   
