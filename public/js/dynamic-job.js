@@ -1864,7 +1864,7 @@ function handleJobApplication() {
   // Submit application to Firebase
   if (typeof applyForJob === 'function') {
     dynamicTrace('fetch:mode', isIOSWebKitBrowserForDataPath() ? 'REST_PRIMARY' : 'SDK');
-    const applySubmitTimeoutMs = isIOSWebKitBrowserForDataPath() ? 34000 : 15000;
+    const applySubmitTimeoutMs = isIOSWebKitBrowserForDataPath() ? 34000 : 22000;
     withDynamicJobTimeout(applyForJob(jobId, applicationData), 'applyForJob', applySubmitTimeoutMs)
       .then(result => {
         // Hide loading
