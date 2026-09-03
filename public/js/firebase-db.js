@@ -2315,10 +2315,11 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('✅ Application submitted:', appRef.id);
     
-    // Await the owner alert (same as Hire/Accept). Fire-and-forget was dropped
-    // when the worker left the gig page — production 2026-09-03: Peter applied
-    // to F2ZqOX5vyujW4KXgcNtV, application existed, owner inbox had no row.
+    // Owner alert is awaited, not fire-and-forget, so leaving the gig page right
+    // after applying cannot drop it. Bounded like every other network step here:
+    // a cold clerk must not fail an apply that is already written and paid for.
     const newTotalApplications = totalPendingApplications + 1;
+    const applyAlertTimeoutMs = useRestPrimaryForApply ? 12000 : 10000;
     try {
       const applyAlertBase = {
         recipientId: job.posterId,
@@ -2326,50 +2327,53 @@ async function applyForJob(jobId, applicationData) {
         jobTitle: job.title || 'Your Gig',
         applicationId: appRef && appRef.id ? appRef.id : ''
       };
-      if (!applyAlertBase.recipientId) {
-        console.error('❌ Apply alert skipped: gig has no posterId');
-      } else if (newTotalApplications === 1) {
-        const alertResult = await callCreateUserAlert({
-          ...applyAlertBase,
+      let applyAlert = null;
+      if (newTotalApplications === 1) {
+        applyAlert = {
           type: 'application_received',
           message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
           actionRequired: false
-        });
-        console.log('✅ Application received alert result:', alertResult);
+        };
       } else if (newTotalApplications === 5) {
-        const alertResult = await callCreateUserAlert({
-          ...applyAlertBase,
+        applyAlert = {
           type: 'application_milestone',
           message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
           actionRequired: false
-        });
-        console.log('✅ Application milestone alert result:', alertResult);
+        };
       } else if (launchFeedOn && newTotalApplications === launchFeedBucketMinApps()) {
-        const alertResult = await callCreateUserAlert({
-          ...applyAlertBase,
+        applyAlert = {
           type: 'gig_review_needed',
           message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
           actionRequired: true
-        });
-        console.log('✅ Gig review-needed alert result:', alertResult);
+        };
       } else if (!launchFeedOn && newTotalApplications === maturePauseAtApps()) {
         await db.collection('jobs').doc(jobId).update({
           status: 'paused',
           pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
           pauseReason: 'auto_paused_max_applications'
         });
-        const alertResult = await callCreateUserAlert({
-          ...applyAlertBase,
+        applyAlert = {
           type: 'gig_auto_paused',
           message: `🛑 Your gig "${job.title}" has been paused. You've received ${maturePauseAtApps()} applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
           actionRequired: true
-        });
-        console.log('✅ Gig auto-paused alert result:', alertResult);
-      } else {
+        };
+      }
+
+      if (!applyAlert) {
         console.log('ℹ️ Apply alert not gated at this count:', newTotalApplications);
+      } else if (!applyAlertBase.recipientId) {
+        console.error('❌ Apply owner alert skipped: gig has no posterId');
+      } else {
+        const alertResult = await withFirestoreReadTimeout(
+          callCreateUserAlert({ ...applyAlertBase, ...applyAlert }),
+          applyAlertTimeoutMs
+        );
+        console.log(`✅ Apply owner alert (${applyAlert.type}) result:`, alertResult);
       }
     } catch (notifError) {
-      console.error('❌ Application notification error:', notifError);
+      // The application is already written and the coin already spent, so alert
+      // trouble must never turn a successful apply into a failure for the worker.
+      console.error('❌ Apply owner alert failed:', notifError);
     }
     
     triggerPushMilestonePrompt('apply');
