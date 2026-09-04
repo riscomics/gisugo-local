@@ -2752,7 +2752,7 @@ async function showHiringOptionsOverlay(jobData) {
                 <button class="listing-option-btn view" id="viewHiringGigPostBtn">
                     VIEW GIG POST
                 </button>
-                <button class="listing-option-btn pause" id="relistJobBtn">
+                <button class="listing-option-btn delete" id="relistJobBtn">
                     RELIST GIG (Retract Offer)
                 </button>
                 <button class="listing-option-btn cancel" id="cancelHiringBtn">
@@ -2771,7 +2771,7 @@ async function showHiringOptionsOverlay(jobData) {
                 ${canWatchFaceVerification ? `<button class="listing-option-btn view" id="watchFaceVerificationBtn">
                     WATCH ${escapeHtml(counterpartName).toUpperCase()} FACE VERIFICATION VIDEO
                 </button>` : ''}
-                <button class="listing-option-btn pause" id="relistJobBtn">
+                <button class="listing-option-btn delete" id="relistJobBtn">
                     RELIST GIG (Void Current Hire)
                 </button>
                 <button class="listing-option-btn cancel" id="cancelHiringBtn">
