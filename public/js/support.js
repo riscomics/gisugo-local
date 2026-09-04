@@ -830,7 +830,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Your ${gigTitleHtml} is now live in Hiring Tab.`,
             job_completed: `Gig "${jobTitle}" has been marked completed.`,
             feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
-            contract_voided: `Customer voided your work on ${gigTitleHtml}.`
+            contract_voided: `Customer voided your work on ${gigTitleHtml}.`,
             application_received: `Someone applied to ${gigTitleHtml}. Click here to review.`,
             application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
             gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
@@ -848,7 +848,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Ang imong ${gigTitleHtml} buhi na sa Hiring Tab.`,
             job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
             feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
-            contract_voided: `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.`
+            contract_voided: `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click diri para i-review.`,
             application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
             gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
@@ -866,7 +866,7 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Live na ang ${gigTitleHtml} mo sa Hiring Tab.`,
             job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
             feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
-            contract_voided: `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.`
+            contract_voided: `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click dito para i-review.`,
             application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
             gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
