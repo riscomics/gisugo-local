@@ -4589,7 +4589,7 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                         recipientId: jobData.posterId,
                         jobId: jobId,
                         jobTitle: jobData.title || 'Your Gig',
-                        message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
+                        message: `${jobData.title || 'Gig'} gig offer was accepted!`,
                         actionRequired: false
                     });
                     console.log('✅ Acceptance notification result:', result);

@@ -2612,7 +2612,7 @@ async function acceptGigOfferInChat(jobId) {
           type: 'offer_accepted',
           jobId: safeJobId,
           jobTitle: jobData.title || 'Gig',
-          message: `${workerName} has accepted your gig offer for "${jobData.title || 'Gig'}"!`,
+          message: `${jobData.title || 'Gig'} gig offer was accepted!`,
           actionRequired: false
         });
       }
