@@ -2315,66 +2315,54 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('✅ Application submitted:', appRef.id);
     
-    // Owner alert is awaited, not fire-and-forget, so leaving the gig page right
-    // after applying cannot drop it. Bounded like every other network step here:
-    // a cold clerk must not fail an apply that is already written and paid for.
+    // Notification/update side effects run in background so apply submit does not stall on iOS.
     const newTotalApplications = totalPendingApplications + 1;
-    const applyAlertTimeoutMs = useRestPrimaryForApply ? 12000 : 10000;
-    try {
-      const applyAlertBase = {
-        recipientId: job.posterId,
-        jobId: jobId,
-        jobTitle: job.title || 'Your Gig',
-        applicationId: appRef && appRef.id ? appRef.id : ''
-      };
-      let applyAlert = null;
-      if (newTotalApplications === 1) {
-        applyAlert = {
-          type: 'application_received',
-          message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
-          actionRequired: false
+    Promise.resolve().then(async () => {
+      try {
+        const applyAlertBase = {
+          recipientId: job.posterId,
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          applicationId: appRef && appRef.id ? appRef.id : ''
         };
-      } else if (newTotalApplications === 5) {
-        applyAlert = {
-          type: 'application_milestone',
-          message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
-          actionRequired: false
-        };
-      } else if (launchFeedOn && newTotalApplications === launchFeedBucketMinApps()) {
-        applyAlert = {
-          type: 'gig_review_needed',
-          message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
-          actionRequired: true
-        };
-      } else if (!launchFeedOn && newTotalApplications === maturePauseAtApps()) {
-        await db.collection('jobs').doc(jobId).update({
-          status: 'paused',
-          pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          pauseReason: 'auto_paused_max_applications'
-        });
-        applyAlert = {
-          type: 'gig_auto_paused',
-          message: `🛑 Your gig "${job.title}" has been paused. You've received ${maturePauseAtApps()} applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
-          actionRequired: true
-        };
+        if (newTotalApplications === 1) {
+          await callCreateUserAlert({
+            ...applyAlertBase,
+            type: 'application_received',
+            message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
+            actionRequired: false
+          });
+        } else if (newTotalApplications === 5) {
+          await callCreateUserAlert({
+            ...applyAlertBase,
+            type: 'application_milestone',
+            message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+            actionRequired: false
+          });
+        } else if (launchFeedOn && newTotalApplications === launchFeedBucketMinApps()) {
+          await callCreateUserAlert({
+            ...applyAlertBase,
+            type: 'gig_review_needed',
+            message: `Your gig "${job.title}" has ${launchFeedBucketMinApps()} applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
+            actionRequired: true
+          });
+        } else if (!launchFeedOn && newTotalApplications === maturePauseAtApps()) {
+          await db.collection('jobs').doc(jobId).update({
+            status: 'paused',
+            pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            pauseReason: 'auto_paused_max_applications'
+          });
+          await callCreateUserAlert({
+            ...applyAlertBase,
+            type: 'gig_auto_paused',
+            message: `🛑 Your gig "${job.title}" has been paused. You've received ${maturePauseAtApps()} applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
+            actionRequired: true
+          });
+        }
+      } catch (notifError) {
+        console.error('❌ Background application notification error:', notifError);
       }
-
-      if (!applyAlert) {
-        console.log('ℹ️ Apply alert not gated at this count:', newTotalApplications);
-      } else if (!applyAlertBase.recipientId) {
-        console.error('❌ Apply owner alert skipped: gig has no posterId');
-      } else {
-        const alertResult = await withFirestoreReadTimeout(
-          callCreateUserAlert({ ...applyAlertBase, ...applyAlert }),
-          applyAlertTimeoutMs
-        );
-        console.log(`✅ Apply owner alert (${applyAlert.type}) result:`, alertResult);
-      }
-    } catch (notifError) {
-      // The application is already written and the coin already spent, so alert
-      // trouble must never turn a successful apply into a failure for the worker.
-      console.error('❌ Apply owner alert failed:', notifError);
-    }
+    });
     
     triggerPushMilestonePrompt('apply');
     return {
@@ -3834,16 +3822,11 @@ function getGisugoFunctions() {
 async function callCreateUserAlert(payload) {
   const fns = getGisugoFunctions();
   if (!fns) {
-    console.error('❌ createUserAlert: Functions SDK unavailable');
     return { success: false, message: 'Functions SDK unavailable' };
   }
   const callable = fns.httpsCallable('createUserAlert');
   const response = await callable(payload || {});
-  const data = (response && response.data) ? response.data : { success: true };
-  if (data && data.success === false) {
-    console.error('❌ createUserAlert failed:', data);
-  }
-  return data;
+  return (response && response.data) ? response.data : { success: true };
 }
 
 async function callWorkerAcceptRejectOthers(jobId, options = {}) {
