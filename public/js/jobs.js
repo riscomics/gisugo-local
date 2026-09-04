@@ -9083,9 +9083,9 @@ async function processHireConfirmation(workerData) {
                     '🎉',
                     'Gig Offer Sent!',
                     `<div style="line-height: 1.6;">
-                        <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
+                        <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a gig offer.</p>
                         <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
-                        <p style="margin: 0; color: #666;">The job will move to your <strong>Hiring</strong> tab.</p>
+                        <p style="margin: 0; color: #666;">The gig will move to your <strong>Hiring</strong> tab.</p>
                     </div>`,
                     async () => {
                         console.log('✅ User closed success overlay');
