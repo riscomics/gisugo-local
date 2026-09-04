@@ -2660,7 +2660,7 @@ body:has(.messages-header) {
 }
 
 .notification-message strong {
-  color: inherit;
+  color: #e6d6ae;
   font-weight: 700;
 }
 
@@ -9509,7 +9509,7 @@ html body.page-support:has(.uniform-header) {
 
 .page-alerts .notification-message strong,
 .page-alerts .notification-message .alert-gig-title {
-  color: inherit;
+  color: #f5edd4;
   font-weight: 700;
   font-family: Arial, Helvetica, sans-serif;
 }
