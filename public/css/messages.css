@@ -9507,6 +9507,13 @@ html body.page-support:has(.uniform-header) {
   margin-bottom: 0.85rem;
 }
 
+.page-alerts .notification-message strong,
+.page-alerts .notification-message .alert-gig-title {
+  color: #f5edd4;
+  font-weight: 700;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 .page-alerts .notification-meta {
   gap: 0.65rem;
   margin-bottom: 0.35rem;

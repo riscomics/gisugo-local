@@ -810,6 +810,7 @@ function tAlertLang(key) {
 
 function getLocalizedAlertMessage(notif, type) {
     const jobTitle = notif.jobTitle || 'Gig';
+    const gigTitleHtml = `<strong class="alert-gig-title">${escapeHtml(String(jobTitle).trim() || 'Gig')}</strong>`;
     const workerName = notif.workerName || 'Worker';
     const closureCount = Math.max(1, Number(notif.closureCount || 1));
     // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
@@ -830,7 +831,7 @@ function getLocalizedAlertMessage(notif, type) {
             job_completed: `Gig "${jobTitle}" has been marked completed.`,
             feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
             contract_voided: `Your contract for "${jobTitle}" has been voided.`,
-            application_received: `Your gig "${jobTitle}" has received an application. Review it in Gigs Manager.`,
+            application_received: `Your gig ${gigTitleHtml} has received an application. Click here to review.`,
             application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
             gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
             gig_review_needed: `Your gig "${jobTitle}" has 20 applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
@@ -848,7 +849,7 @@ function getLocalizedAlertMessage(notif, type) {
             job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
             feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
             contract_voided: `Ang imong kontrata para sa "${jobTitle}" gi-void.`,
-            application_received: `Ang imong gig "${jobTitle}" nakadawat ug application. I-review sa Gigs Manager.`,
+            application_received: `Ang imong gig ${gigTitleHtml} nakadawat ug application. I-click diri para i-review.`,
             application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
             gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
             gig_review_needed: `Ang imong gig "${jobTitle}" naa nay 20 ka applications. I-review sa Gigs Manager — hire usa o i-reject ang dili nimo gamiton.`,
@@ -866,7 +867,7 @@ function getLocalizedAlertMessage(notif, type) {
             job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
             feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
             contract_voided: `Na-void ang kontrata mo para sa "${jobTitle}".`,
-            application_received: `Ang gig mo na "${jobTitle}" ay may natanggap na application. I-review sa Gigs Manager.`,
+            application_received: `Ang gig mo na ${gigTitleHtml} ay may natanggap na application. I-click dito para i-review.`,
             application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
             gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
             gig_review_needed: `May 20 applications na ang gig mo na "${jobTitle}". I-review sa Gigs Manager — mag-hire o i-reject ang hindi mo gagamitin.`,

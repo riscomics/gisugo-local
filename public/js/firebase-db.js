@@ -2331,7 +2331,7 @@ async function applyForJob(jobId, applicationData) {
       if (newTotalApplications === 1) {
         applyAlert = {
           type: 'application_received',
-          message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
+            message: `Your gig "${job.title}" has received an application. Click here to review.`,
           actionRequired: false
         };
       } else if (newTotalApplications === 5) {
