@@ -826,7 +826,7 @@ function getLocalizedAlertMessage(notif, type) {
         : `May ${closureCount} application slots nang bukas ulit — maghanap pa ng mga gig!`;
     const localeMap = {
         english: {
-            offer_sent: `You've been offered the gig ${gigTitleHtml}! Click to accept or decline.`,
+            offer_sent: `Click to Accept or Decline: ${gigTitleHtml}!`,
             offer_accepted: `${workerName} has accepted your gig offer for "${jobTitle}"!`,
             job_completed: `Gig "${jobTitle}" has been marked completed.`,
             feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
@@ -844,7 +844,7 @@ function getLocalizedAlertMessage(notif, type) {
             application_slots_reopened_batch: slotsEn
         },
         bisaya: {
-            offer_sent: `Na-offeran ka sa gig ${gigTitleHtml}! I-click para modawat o modili.`,
+            offer_sent: `I-click para modawat o modili: ${gigTitleHtml}!`,
             offer_accepted: `${workerName} nidawat sa imong gig offer para sa "${jobTitle}"!`,
             job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
             feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
@@ -862,7 +862,7 @@ function getLocalizedAlertMessage(notif, type) {
             application_slots_reopened_batch: slotsBi
         },
         tagalog: {
-            offer_sent: `May offer ka sa gig ${gigTitleHtml}! I-click para tanggapin o tanggihan.`,
+            offer_sent: `I-click para tanggapin o tanggihan: ${gigTitleHtml}!`,
             offer_accepted: `${workerName} ay tinanggap ang gig offer mo para sa "${jobTitle}"!`,
             job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
             feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',

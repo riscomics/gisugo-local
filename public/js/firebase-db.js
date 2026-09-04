@@ -2538,7 +2538,7 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
         recipientId: appData.applicantId,
         jobId: jobId,
         jobTitle: jobData.title || 'Gig',
-        message: `You've been offered the gig ${jobData.title || 'Gig'}! Click to accept or decline.`,
+        message: `Click to Accept or Decline: ${jobData.title || 'Gig'}!`,
         actionRequired: true,
         applicationId: applicationId
       });
