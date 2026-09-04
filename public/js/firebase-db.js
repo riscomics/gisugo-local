@@ -6060,7 +6060,7 @@ async function sendContractVoidedNotification(workerId, workerName, jobId, jobTi
       recipientId: workerId,
       jobId: jobId,
       jobTitle: jobTitle || 'Gig',
-      message: `Your contract for "${jobTitle}" has been voided. Reason: ${voidReason}`,
+      message: `Customer voided your work on ${jobTitle || 'Gig'}.`
       actionRequired: false
     });
     
