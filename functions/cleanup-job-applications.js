@@ -38,6 +38,68 @@ async function refundApplicationCoin(db, FieldValue, applicantId, reason) {
   });
 }
 
+/**
+ * Set remaining apply-coins from this worker's still-held slots (pending, or
+ * unanswered offer). Same count My Applications uses. Use this after owner
+ * reject instead of +1, so a worker who already self-healed to 10 is not
+ * given 11.
+ */
+async function recomputeAndWriteApplicationCoins(db, FieldValue, applicantId, reason) {
+  const safeUserId = String(applicantId || "").trim();
+  if (!isSafeId(safeUserId)) {
+    return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX, heldCount: 0 };
+  }
+
+  const appsSnap = await db.collection("applications").where("applicantId", "==", safeUserId).get();
+  let heldCount = 0;
+  const ambiguousJobIds = [];
+  const jobIdsToFetch = new Set();
+  for (const doc of appsSnap.docs) {
+    const app = doc.data() || {};
+    if (app.coinHeld === false || app.coinReleasedAt) continue;
+    const status = String(app.status || "").toLowerCase();
+    if (status === "pending") {
+      heldCount += 1;
+      continue;
+    }
+    if (status === "accepted" || status === "hired") {
+      const jobId = String(app.jobId || "").trim();
+      if (!jobId) continue;
+      ambiguousJobIds.push(jobId);
+      jobIdsToFetch.add(jobId);
+    }
+  }
+  const jobStatusCache = new Map();
+  if (jobIdsToFetch.size > 0) {
+    const uniqueJobIds = Array.from(jobIdsToFetch);
+    const jobDocs = await Promise.all(
+      uniqueJobIds.map((jobId) => db.collection("jobs").doc(jobId).get())
+    );
+    uniqueJobIds.forEach((jobId, index) => {
+      const jobSnap = jobDocs[index];
+      jobStatusCache.set(
+        jobId,
+        jobSnap && jobSnap.exists ? String((jobSnap.data() || {}).status || "").toLowerCase() : ""
+      );
+    });
+  }
+  for (const jobId of ambiguousJobIds) {
+    if (jobStatusCache.get(jobId) === "hired") heldCount += 1;
+  }
+
+  const userRef = db.collection("users").doc(safeUserId);
+  const userSnap = await userRef.get();
+  const normalized = normalizeApplicationCoins(userSnap.exists ? userSnap.data() || {} : {});
+  const expectedCurrent = Math.max(0, Math.min(normalized.max, normalized.max - heldCount));
+  await userRef.set({
+    applicationCoinsMax: normalized.max,
+    applicationCoinsCurrent: expectedCurrent,
+    applicationCoinLastReleaseReason: reason || "rejected",
+    applicationCoinLastReleasedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  return { current: expectedCurrent, max: normalized.max, heldCount };
+}
+
 async function cleanupJobApplications(db, FieldValue, options) {
   const jobId = String((options && options.jobId) || "").trim();
   const rawIds = Array.isArray(options && options.applicationIds)
@@ -85,5 +147,6 @@ module.exports = {
   isSafeId,
   isApplicationHoldingCoin,
   refundApplicationCoin,
+  recomputeAndWriteApplicationCoins,
   cleanupJobApplications
 };

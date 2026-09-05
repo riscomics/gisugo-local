@@ -3135,69 +3135,35 @@ async function fixApplicationCounts() {
  * @returns {Promise<Object>} - Result object
  */
 async function rejectApplication(applicationId) {
-  const db = getFirestore();
-  
-  if (!db) {
-    return { success: false, message: 'Applications backend unavailable' };
+  const safeApplicationId = String(applicationId || '').trim();
+  if (!safeApplicationId) {
+    return { success: false, message: 'Application ID required' };
   }
-  
+  const fns = getGisugoFunctions();
+  if (!fns) {
+    return { success: false, message: 'Functions SDK unavailable' };
+  }
   try {
-    // Get application data to verify it exists
-    const appDoc = await db.collection('applications').doc(applicationId).get();
-    
-    if (!appDoc.exists) {
-      return { success: false, message: 'Application not found' };
+    const callable = fns.httpsCallable('ownerRejectApplication');
+    const response = await callable({ applicationId: safeApplicationId });
+    const data = (response && response.data) ? response.data : { success: true };
+    if (data && data.success === false) {
+      console.error('❌ ownerRejectApplication failed:', data);
+      return { success: false, message: data.message || 'Failed to reject application' };
     }
-    
-    const appData = appDoc.data();
-    
-    // Verify the current user is the job poster
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      return { success: false, message: 'You must be logged in' };
+    console.log('✅ Application rejected successfully:', safeApplicationId);
+    if (data && data.applicationCount != null) {
+      console.log('✅ Job application count decremented to', data.applicationCount);
     }
-    
-    // Get job to verify poster
-    const jobDoc = await db.collection('jobs').doc(appData.jobId).get();
-    if (!jobDoc.exists) {
-      return { success: false, message: 'Job not found' };
+    if (data && data.coins) {
+      console.log('✅ Worker apply-coins recomputed:', data.coins);
+    } else if (data && data.coinsReleased) {
+      console.warn('⚠️ Application marked released but coin recompute missing');
     }
-    
-    const jobData = jobDoc.data();
-    if (jobData.posterId !== currentUser.uid) {
-      return { success: false, message: 'You are not authorized to reject this application' };
-    }
-    
-    // Update application status to rejected
-    await db.collection('applications').doc(applicationId).update({
-      status: 'rejected',
-      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    await releaseApplicationCoinForApplication(applicationId, 'rejected');
-
-    const rejectCount = Math.max(0, (Number(jobData.applicationCount) || 0) - 1);
-    await syncJobApplicationCount(appData.jobId, { setCount: rejectCount });
-
-    // Slots-reopened alert: clerk groups on that worker’s inbox. Do not fail reject if it fails.
-    try {
-      await callCreateUserAlert({
-        type: 'application_slots_reopened_batch',
-        recipientId: appData.applicantId,
-        jobId: appData.jobId,
-        jobTitle: jobData.title || appData.jobTitle || 'Gig',
-        applicationId: applicationId
-      });
-    } catch (notifyError) {
-      console.warn('⚠️ Manual reject grouped notification skipped:', notifyError);
-    }
-    
-    console.log('✅ Application rejected successfully:', applicationId);
-    console.log('✅ Job application count decremented');
-    return { success: true, message: 'Application rejected successfully!' };
-    
+    return { success: true, message: 'Application rejected successfully!', ...data };
   } catch (error) {
     console.error('❌ Error rejecting application:', error);
-    return { success: false, message: error.message };
+    return { success: false, message: error.message || 'Failed to reject application' };
   }
 }
 
@@ -6002,6 +5968,7 @@ window.getWorkerApplications = getWorkerApplications;
 window.withdrawWorkerApplication = withdrawWorkerApplication;
 window.getUserApplicationCoinStatus = getUserApplicationCoinStatus;
 window.releaseApplicationCoinForApplication = releaseApplicationCoinForApplication;
+window.rejectApplication = rejectApplication;
 
 // Chat
 window.getOrCreateChatThread = getOrCreateChatThread;

@@ -17,7 +17,7 @@ const {
   fetchTrafficFromMonitoring
 } = require("./overview-snapshots");
 const { wipeAccountMedia } = require("./wipe-account-media");
-const { cleanupJobApplications, isSafeId, isApplicationHoldingCoin, refundApplicationCoin } = require("./cleanup-job-applications");
+const { cleanupJobApplications, isSafeId, isApplicationHoldingCoin, refundApplicationCoin, recomputeAndWriteApplicationCoins } = require("./cleanup-job-applications");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -3593,6 +3593,111 @@ exports.workerAcceptRejectOthers = onCall(
       rejected,
       coinsReleased,
       alertsWritten
+    };
+  }
+);
+
+const OWNER_REJECT_COIN_REASON = "rejected";
+
+exports.ownerRejectApplication = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const callerUid = String(request.auth?.uid || "").trim();
+    if (!callerUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const applicationId = String((request.data && request.data.applicationId) || "").trim();
+    if (!applicationId || !isSafeId(applicationId)) {
+      throw new HttpsError("invalid-argument", "applicationId is required.");
+    }
+
+    const appRef = db.collection("applications").doc(applicationId);
+    const appSnap = await appRef.get();
+    if (!appSnap.exists) {
+      throw new HttpsError("not-found", "Application not found.");
+    }
+    const app = appSnap.data() || {};
+    const jobId = String(app.jobId || "").trim();
+    const applicantId = String(app.applicantId || "").trim();
+    const status = String(app.status || "").toLowerCase();
+    if (!jobId || !isSafeId(jobId)) {
+      throw new HttpsError("failed-precondition", "Application is missing a gig.");
+    }
+    if (status !== "pending") {
+      throw new HttpsError("failed-precondition", "Only pending applications can be rejected.");
+    }
+
+    const jobRef = db.collection("jobs").doc(jobId);
+    const jobSnap = await jobRef.get();
+    if (!jobSnap.exists) {
+      throw new HttpsError("not-found", "Gig not found.");
+    }
+    const job = jobSnap.data() || {};
+    const posterId = String(job.posterId || "").trim();
+    if (callerUid !== posterId) {
+      throw new HttpsError("permission-denied", "Only the gig owner can reject this application.");
+    }
+
+    const FieldValue = admin.firestore.FieldValue;
+    const wasHolding = app.coinHeld !== false && !app.coinReleasedAt;
+    const updatePayload = {
+      status: "rejected",
+      rejectedAt: FieldValue.serverTimestamp()
+    };
+    if (wasHolding) {
+      updatePayload.coinHeld = false;
+      updatePayload.coinReleaseReason = OWNER_REJECT_COIN_REASON;
+      updatePayload.coinReleasedAt = FieldValue.serverTimestamp();
+    }
+    await appRef.update(updatePayload);
+
+    const rejectCount = Math.max(0, (Number(job.applicationCount) || 0) - 1);
+    await jobRef.update({ applicationCount: rejectCount });
+
+    let coins = null;
+    if (wasHolding && applicantId) {
+      try {
+        coins = await recomputeAndWriteApplicationCoins(
+          db,
+          FieldValue,
+          applicantId,
+          OWNER_REJECT_COIN_REASON
+        );
+      } catch (coinError) {
+        logger.error("ownerRejectApplication coin recompute failed", {
+          applicationId,
+          applicantId,
+          message: coinError && coinError.message ? coinError.message : String(coinError)
+        });
+      }
+    }
+
+    let alert = null;
+    if (applicantId) {
+      try {
+        alert = await upsertSlotsReopenedAlert({
+          recipientId: applicantId,
+          jobId,
+          jobTitle: String(job.title || app.jobTitle || "Gig")
+        });
+      } catch (alertError) {
+        logger.error("ownerRejectApplication alert failed", {
+          applicationId,
+          applicantId,
+          message: alertError && alertError.message ? alertError.message : String(alertError)
+        });
+      }
+    }
+
+    return {
+      success: true,
+      applicationId,
+      jobId,
+      applicationCount: rejectCount,
+      coinsReleased: wasHolding,
+      coins,
+      alert
     };
   }
 );
