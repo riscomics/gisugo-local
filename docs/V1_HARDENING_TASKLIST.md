@@ -132,10 +132,11 @@ that the whole dashboard section is finished forever.
   Reply. Do **not** start Chapters 5–7 unless you reopen this on purpose.
 - **Phase 11 — keeper builds are done.** Live 2026-08-27. #3 owner-tested 2026-08-28.
   Remaining keeper on/off smokes sit on the **pre-launch QA** list after Phase 12.
-- **Phase 12 — next build (launch gate), then the full test pass.** Step 1
-  live-door map is written (2026-08-28). Not only Apply / Hire / Accept.
-  Do not start the Cloud Function until that map is accepted. After the
-  rules lock ships: prove every live door, then the **Pre-launch QA** list.
+- **Phase 12 — launch gate (in progress).** Steps 1–5 shipped (map, clerks,
+  live buttons, indexes). Step 6 Gigs Manager prove started 2026-09-05
+  (Track B microtasklist). Do **not** lock rules (Step 7) until owner
+  says Go. Messages/chat doors skipped this prove. **Pre-launch QA**
+  is after the lock.
 
 **Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
 
@@ -152,7 +153,7 @@ that the whole dashboard section is finished forever.
 | 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. | Ban **builds done**. Still open: dummy deletes, Ban test, phone audit, phone+password retirement (small later build). |
 | 10 | In-app Support thread (Ch 1–4) live 2026-08-14. Email/WhatsApp shelf written as reference only — not an open build. | **Retired as open work.** Engine stays on. |
 | 11 | Settings keepers + launch-feed switch. | **Builds done.** #3 tested. Other smokes = pre-launch QA. |
-| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Steps 2–3 clerks live**. Buttons not wired. Step 4 not started. |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Steps 1–5 shipped.** Step 6 Gigs Manager prove in progress (2026-09-05). Step 7 rules **not** locked. |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -534,7 +535,7 @@ that the whole dashboard section is finished forever.
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. Policy read fails open.
-- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Not started. Next build.**
+- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Steps 1–5 shipped. Step 6 Gigs Manager prove in progress (2026-09-05). Do not lock rules until owner says Go.**
       This is a **security lock**, not a new screen and not the “test everything” pass.
       Full map: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
       **What is wrong today (API only, not the GISUGO UI):** any signed-in account can
@@ -558,6 +559,7 @@ that the whole dashboard section is finished forever.
       docs.
       **Do not skip the order.** Functions first (rules still open) → prove Apply /
       Hire / Accept still work → then lock rules → then the full pre-launch test.
+      Step 6 is in progress; Step 7 is still waiting on owner Go.
       **Microtasklist**
       1. **[x] List the live call sites.** Mapped 2026-08-28 (this session).
          Not only Apply / Hire / Accept — every live door that writes another
@@ -719,11 +721,18 @@ that the whole dashboard section is finished forever.
             on Gigs Manager `processRejectGigConfirmation`. Chat
             decline left on the old helper (retired). `jobs.html` on
             `jobs.js?v=162`. **Stopped here** — Owner reject not wired.
-         7. **[x] A6 Owner reject.** `rejectApplication` calls
-            `createUserAlert` (`application_slots_reopened_batch`).
-            Browser grouped-closure helper no longer used on this
-            door. `jobs.html` on `firebase-db.js?v=73`. **Stopped
-            here** — Void / resign / complete not wired.
+         7. **[x] A6 Owner reject.** Originally `rejectApplication`
+            called `createUserAlert` (`application_slots_reopened_batch`)
+            and the owner’s browser still wrote the worker’s coins.
+            **During Step 6 prove (2026-09-05, `de898822`):** live door
+            is callable `ownerRejectApplication` — reject the app,
+            decrement `applicationCount`, recompute that worker’s
+            coins, slots-reopened on the server. Client coin write
+            on this door is gone. Proven Operations as owner / Peter
+            as worker. Listing badge refresh (`ed01493b`) is extra,
+            not the coin fix. `jobs.html` on `firebase-db.js?v=89`.
+            **Stopped here (2026-08-30)** — Void / resign / complete
+            were not wired yet (they are now; see 4.8).
          8. **[x] A7–A9 Void / resign / complete.** Both Gigs Manager
             (`jobs.js`) and Messages Gig Status (`relistGigFromChat` /
             `resignGigFromChat` / `completeGigFromChat`) use
@@ -766,11 +775,64 @@ that the whole dashboard section is finished forever.
          indexes (no CREATING state). `getJobApplications` now queries
          `gigOwnerId` + `jobId` + `appliedAt` desc (2026-08-31).
          `jobs.html` on `firebase-db.js?v=77`. Rules still open.
-         **Stopped here** — Step 6 prove not started.
-      6. **[ ] Prove it.** Every live door + role from the Step 1 map, phone
-         and desktop. Spine: Apply → review → Hire → Accept (Gigs Manager).
-         Also void / resign / complete / withdraw / reject-applicant /
-         feedback / Support reply. If this fails, do not lock rules.
+         **Stopped here (2026-08-31)** — Step 6 prove not started then.
+      6. **[~] Prove it.** Started 2026-09-05. Live Chrome/Edge on
+         gisugo.com (not Cursor browser). Spine: Apply → review →
+         Hire → Accept (Gigs Manager). Owner this pass: **Gigs
+         Manager only** — Messages/chat copies of A7–A9 are out.
+         If this fails, do not lock rules.
+         Accounts: GISUGO Operations (`Y3UpEKlCeLT4VsvMX6RQoeRyj6h1`)
+         as customer; Peter J. Ang (`wHSQXBLgqsN9a7DPqDqat8958zw2`)
+         as worker (roles flip when needed). Do not ban super_admin.
+         **Passed this pass (Gigs Manager):**
+         - A1 Apply → owner New Application card.
+         - Review applicants.
+         - A2 Hire → `offer_sent`.
+         - A3 Accept, **one** worker → `offer_accepted`; that
+           worker’s `offer_sent` card removed.
+         - A5 Decline offer + coin refund from the worker session.
+         - A6 Owner Reject + coin refund (`ownerRejectApplication`).
+           App `wDD1grSfNnFoWvVO3lY0` on the catering gig.
+         - A7 Void / relist (Gigs Manager).
+         - A8 Resign (Gigs Manager).
+         - A9 Complete + A10 / A11 both feedbacks.
+         - B3 Withdraw (earlier this pass).
+         - A12 Admin Support Reply → `support_admin_message`
+           (ticket `ScBJ7rj1olYcGw4wUcH8`). Side fix during this
+           prove: Support photo pick blocked originals at 5MB
+           before compress (`57a0c1fc`); camera photos now reach
+           the compressor (25MB sanity ceiling). Proven on ticket
+           `6pLIDEbCAt70WxpYhBt5`.
+         - B5 Delete gig. Leftover closed apps: seafood
+           `xsnkKFRaRNQ8aiYlCu5o` (2 docs, coins already released).
+           Live pending: refrigerated crate `T1SdwhLd2hHe67IUosSs`
+           — callable deleted 3 application docs, leftover 0,
+           Peter coins last reason `job_deleted`. Console
+           “1 related applications cleaned up” is the listing
+           pending badge, not `deleted.length` — not a problem.
+           Console “notifications removed” is leftover copy.
+           `application_received` (and older cards on that gig)
+           stay in Alerts. Owner confirmed 2026-09-05 that is
+           current behavior, not a broken cleanup; **not** pulling
+           those cards this pass. Tap still opens Gigs Manager
+           with nothing to highlight.
+         **Known not-problems this pass:** Firefox showing two
+         identical tray cards when the tab is still backgrounded
+         (one Firestore write; Chrome on the same phone showed
+         one). Edge Tracking Prevention / BloomFilter. Alerts has
+         no working delete control — do not treat that as a Step 6
+         door.
+         **Still Step 6 (before Step 7):**
+         - Two-worker Accept sweep (B1 / A3 others): other pending
+           applicants rejected + their coins. Deferred until one
+           listing has two live pending applies.
+         - iPhone 7 / REST apply smoke (map: iOS uses the REST
+           apply path).
+         - Hide leftover chat Accept/Decline if it is still
+           tappable (Step 4 leftover audit).
+         **Not this Step 6:** Messages Gig Status doors; Ban /
+         dummy deletes / keeper smokes (Pre-launch QA); pulling
+         delete-gig alert cards; locking rules.
       7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
          signed-in stranger cannot read everyone’s applications or alerts via
          the API.
@@ -1301,8 +1363,8 @@ that the whole dashboard section is finished forever.
       GISUGO Operations stayed 9/10. Gig Analytics 100 is a create-only
       lifetime counter and did not drop.
       **Live callers of `deleteJob()`:** Gig Moderation permanent delete
-      (this test) and owner My Gigs delete (same function, not retested
-      separately today).
+      (2026-08-24) and owner My Gigs delete (same function; **retested
+      2026-09-05** on Step 6 — see Phase 12 prove log).
       **Locked product (shipped `8f52ddf`):** callable queries by
       `jobId`, skips missing IDs, refunds only pending/accepted/hired
       still holding a coin. Client fallback is one-by-one. Do not
@@ -2565,10 +2627,10 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    registration (PH telco sender-ID approval), NOT on code. Also the durable fix for the
    cross-provider duplicate-phone gap (verify + link phone on all accounts).
 4. **Block-user feature** (Track C #9). After the dashboard study (confirms admin vs user-only plumbing).
-5. **Phase 12 — Track B lockdown** (launch gate). After remaining product phases, before
-   full-platform QA. Functions + client first; keep old rules up; prove Apply/Hire/Accept;
-   then lock rules. See `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`. Do not mark
-   V1 complete until this ships.
+5. **Phase 12 — Track B lockdown** (launch gate). Steps 1–5 shipped. Step 6
+   Gigs Manager prove in progress (2026-09-05). Keep old rules up until
+   owner says Go on Step 7. See Track B microtasklist. Do not mark
+   V1 complete until the rules lock ships.
 6. **Final cross-device / full-platform QA pass** + remaining Track E items (incl. iPad-mini
    header layout + legacy-iPhone data-loading stalls) **after Phase 12**, before release.
    Includes the **Pre-launch QA** list in Track C (Ban / dummies / keeper smokes /
