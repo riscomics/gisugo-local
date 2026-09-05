@@ -264,6 +264,11 @@
                     alert((result && result.message) || 'Failed to reject application. Please try again.');
                     return;
                 }
+                const pendingNow = document.querySelectorAll('#applicationsList .application-card').length;
+                const nextCount = Math.max(0, pendingNow - (card ? 1 : 0));
+                if (typeof window.updateListingCardApplicationCount === 'function') {
+                    window.updateListingCardApplicationCount(jobId, nextCount);
+                }
             } catch (error) {
                 console.error('Error rejecting application', error);
                 resetCard();
@@ -284,6 +289,9 @@
             setTimeout(function () {
                 card.remove();
                 const remainingCards = document.querySelectorAll('#applicationsList .application-card');
+                if (typeof window.updateListingCardApplicationCount === 'function') {
+                    window.updateListingCardApplicationCount(jobId, remainingCards.length);
+                }
                 if (remainingCards.length === 0) {
                     const applicationsList = getElement('applicationsList');
                     if (applicationsList) {

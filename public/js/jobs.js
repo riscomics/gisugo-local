@@ -131,6 +131,36 @@ function persistJobsTabCache(tabType, jobs) {
     });
 }
 
+function updateListingCardApplicationCount(jobId, count) {
+    const safeJobId = String(jobId || '').trim();
+    const actualCount = Math.max(0, Number(count) || 0);
+    if (!safeJobId) return;
+
+    const listingCard = document.querySelector(`.listing-card[data-job-id="${safeJobId}"]`);
+    if (listingCard) {
+        const appCountElement = listingCard.querySelector('.application-count');
+        if (appCountElement) {
+            appCountElement.textContent = actualCount === 1 ? '1 application' : `${actualCount} applications`;
+        }
+        listingCard.setAttribute('data-application-count', String(actualCount));
+    }
+
+    const uid = getJobsManagerUserId();
+    if (!uid) return;
+    const cache = readJobsManagerCache(uid);
+    const tab = cache && cache.tabs && cache.tabs.listings;
+    if (!tab || !Array.isArray(tab.jobs)) return;
+    let changed = false;
+    const jobs = tab.jobs.map((job) => {
+        const id = String((job && (job.jobId || job.id)) || '');
+        if (id !== safeJobId) return job;
+        if (Number(job.applicationCount) === actualCount) return job;
+        changed = true;
+        return Object.assign({}, job, { applicationCount: actualCount });
+    });
+    if (changed) persistJobsTabCache('listings', jobs);
+}
+
 function applyJobsTabCounts(counts) {
     if (!counts) return;
     const map = [
@@ -7830,22 +7860,8 @@ async function showApplicationsOverlay(jobData) {
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
     
-    // ═══════════════════════════════════════════════════════════════
-    // UPDATE CARD'S DISPLAYED COUNT (in case Firestore count is wrong)
-    // ═══════════════════════════════════════════════════════════════
-    const listingCard = document.querySelector(`.listing-card[data-job-id="${jobData.jobId}"]`);
-    // Always update the card count to match actual pending applications
-    if (listingCard) {
-        const storedCount = parseInt(listingCard.getAttribute('data-application-count')) || 0;
-        if (actualCount !== storedCount) {
-            console.log(`📊 Updating card count from ${storedCount} to ${actualCount}`);
-            const appCountElement = listingCard.querySelector('.application-count');
-            if (appCountElement) {
-                const newText = actualCount === 1 ? '1 application' : `${actualCount} applications`;
-                appCountElement.textContent = newText;
-            }
-            listingCard.setAttribute('data-application-count', actualCount);
-        }
+    if (typeof updateListingCardApplicationCount === 'function') {
+        updateListingCardApplicationCount(jobData.jobId, actualCount);
     }
     
     // Initialize close button handler
