@@ -568,10 +568,15 @@
       photoInput.addEventListener('change', () => {
         const file = photoInput.files && photoInput.files[0];
         if (!file) return;
-        const maxSize = 5 * 1024 * 1024;
         const allowed = ['image/jpeg', 'image/png', 'image/gif'];
-        if (file.size > maxSize) {
-          showComposeStatus('error', 'Photo too large', 'Photo file size must be under 5MB');
+        const tooLarge = typeof global.isSupportPhotoOriginalTooLarge === 'function'
+          ? global.isSupportPhotoOriginalTooLarge(file)
+          : file.size > 25 * 1024 * 1024;
+        if (tooLarge) {
+          const maxMb = typeof global.getSupportPhotoOriginalMaxBytes === 'function'
+            ? Math.round(global.getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+            : 25;
+          showComposeStatus('error', 'Photo too large', `This photo is too large to attach (over ${maxMb}MB).`);
           photoInput.value = '';
           return;
         }

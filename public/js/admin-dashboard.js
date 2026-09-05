@@ -1168,9 +1168,14 @@ function handleReplyAttachment(file) {
         return;
     }
     
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB.');
+    const replyAttachTooLarge = typeof isSupportPhotoOriginalTooLarge === 'function'
+        ? isSupportPhotoOriginalTooLarge(file)
+        : file.size > 25 * 1024 * 1024;
+    if (replyAttachTooLarge) {
+        const maxMb = typeof getSupportPhotoOriginalMaxBytes === 'function'
+            ? Math.round(getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+            : 25;
+        alert(`This photo is too large to attach (over ${maxMb}MB).`);
         return;
     }
     
@@ -4032,10 +4037,15 @@ function initializeSupportReplyModal() {
     photoInput?.addEventListener('change', () => {
         const file = photoInput.files && photoInput.files[0];
         if (!file) return;
-        const maxSize = 5 * 1024 * 1024;
         const allowed = ['image/jpeg', 'image/png', 'image/gif'];
-        if (file.size > maxSize) {
-            showToast('Photo must be under 5MB', 'error', 2500);
+        const tooLarge = typeof isSupportPhotoOriginalTooLarge === 'function'
+            ? isSupportPhotoOriginalTooLarge(file)
+            : file.size > 25 * 1024 * 1024;
+        if (tooLarge) {
+            const maxMb = typeof getSupportPhotoOriginalMaxBytes === 'function'
+                ? Math.round(getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+                : 25;
+            showToast(`This photo is too large to attach (over ${maxMb}MB).`, 'error', 2500);
             photoInput.value = '';
             return;
         }
@@ -5282,8 +5292,14 @@ function initializeContactGigOverlay() {
                 attachInput.value = '';
                 return;
             }
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('Photo must be under 5MB', 'error', 2500);
+            const contactGigTooLarge = typeof isSupportPhotoOriginalTooLarge === 'function'
+                ? isSupportPhotoOriginalTooLarge(file)
+                : file.size > 25 * 1024 * 1024;
+            if (contactGigTooLarge) {
+                const maxMb = typeof getSupportPhotoOriginalMaxBytes === 'function'
+                    ? Math.round(getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+                    : 25;
+                showToast(`This photo is too large to attach (over ${maxMb}MB).`, 'error', 2500);
                 attachInput.value = '';
                 return;
             }
@@ -8965,8 +8981,14 @@ function initializeContactUserOverlay() {
                 attachmentInput.value = '';
                 return;
             }
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('Photo must be under 5MB', 'error', 2500);
+            const contactUserTooLarge = typeof isSupportPhotoOriginalTooLarge === 'function'
+                ? isSupportPhotoOriginalTooLarge(file)
+                : file.size > 25 * 1024 * 1024;
+            if (contactUserTooLarge) {
+                const maxMb = typeof getSupportPhotoOriginalMaxBytes === 'function'
+                    ? Math.round(getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+                    : 25;
+                showToast(`This photo is too large to attach (over ${maxMb}MB).`, 'error', 2500);
                 attachmentInput.value = '';
                 return;
             }

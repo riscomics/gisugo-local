@@ -11731,8 +11731,14 @@ function handleReplyPhotoUpload(event) {
         return;
     }
     
-    if (file.size > 10 * 1024 * 1024) {
-        showToast('Image file is too large. Please select a file under 10MB.');
+    const replyPhotoTooLarge = typeof isSupportPhotoOriginalTooLarge === 'function'
+        ? isSupportPhotoOriginalTooLarge(file)
+        : file.size > 25 * 1024 * 1024;
+    if (replyPhotoTooLarge) {
+        const maxMb = typeof getSupportPhotoOriginalMaxBytes === 'function'
+            ? Math.round(getSupportPhotoOriginalMaxBytes() / (1024 * 1024))
+            : 25;
+        showToast(`This photo is too large to attach (over ${maxMb}MB).`);
         event.target.value = '';
         return;
     }

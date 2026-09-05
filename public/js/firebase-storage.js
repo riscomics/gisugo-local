@@ -19,6 +19,9 @@ const STORAGE_CONFIG = {
   maxProfilePhotoSize: 5 * 1024 * 1024,  // 5MB
   maxJobPhotoSize: 10 * 1024 * 1024,      // 10MB
   maxIdDocumentSize: 10 * 1024 * 1024,    // 10MB
+  // Original Support/Contact file before compressImage. Phone JPEGs often
+  // exceed 5MB; the uploaded thumb/full variants are much smaller.
+  maxSupportOriginalSize: 25 * 1024 * 1024,
   
   // Allowed file types
   allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -94,6 +97,10 @@ function validateFile(file, type = 'job') {
     case 'id':
       maxSize = STORAGE_CONFIG.maxIdDocumentSize;
       allowedTypes = STORAGE_CONFIG.allowedDocumentTypes;
+      break;
+    case 'support':
+      maxSize = STORAGE_CONFIG.maxSupportOriginalSize;
+      allowedTypes = STORAGE_CONFIG.allowedImageTypes;
       break;
     default:
       maxSize = STORAGE_CONFIG.maxJobPhotoSize;
@@ -445,7 +452,7 @@ async function uploadJobPhotoOffline(jobId, file) {
  * @returns {Promise<Object>} - Result with download URLs for both variants
  */
 async function uploadSupportPhoto(referenceId, file, requesterId = null) {
-  const validation = validateFile(file, 'job');
+  const validation = validateFile(file, 'support');
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
   }
@@ -877,8 +884,18 @@ async function uploadWithProgress(path, file, onProgress) {
 // GLOBAL EXPORTS
 // ============================================================================
 
+function getSupportPhotoOriginalMaxBytes() {
+  return STORAGE_CONFIG.maxSupportOriginalSize;
+}
+
+function isSupportPhotoOriginalTooLarge(file) {
+  return !!(file && file.size > getSupportPhotoOriginalMaxBytes());
+}
+
 window.STORAGE_CONFIG = STORAGE_CONFIG;
 window.validateFile = validateFile;
+window.getSupportPhotoOriginalMaxBytes = getSupportPhotoOriginalMaxBytes;
+window.isSupportPhotoOriginalTooLarge = isSupportPhotoOriginalTooLarge;
 window.compressImage = compressImage;
 window.uploadProfilePhoto = uploadProfilePhoto;
 window.uploadJobPhoto = uploadJobPhoto;
