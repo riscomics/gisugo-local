@@ -21,19 +21,13 @@ const FULL_NAME_MAX_CHARS = 25;
 const SUMMARY_MIN_CHARS = 2;
 const SUCCESS_MODAL_I18N = {
   english: [
-    'Record a quick friendly selfie intro.',
-    'Build trust in the GISUGO Community.',
-    'Customers & workers feel safer meeting you.'
+    'Record a quick friendly selfie intro.'
   ],
   bisaya: [
-    'Pag-record ug friendly selfie intro.',
-    'Magpalig-on ug trust sa GISUGO.',
-    'Mas luwas ang customers ug workers.'
+    'Pag-record ug friendly selfie intro.'
   ],
   tagalog: [
-    'Mag-record ng friendly selfie intro.',
-    'Mag-build ng trust sa GISUGO.',
-    'Mas safe ang customers at workers.'
+    'Mag-record ng friendly selfie intro.'
   ]
 };
 
@@ -1936,19 +1930,17 @@ function showEmailVerificationSuccessOverlay(message) {
 }
 
 function applySuccessOverlayMode(verificationMessage = '') {
-  const titleEl = document.querySelector('.success-title');
-  const iconEl = document.querySelector('.success-icon');
-  const kickerEl = document.querySelector('.success-kicker');
+  const root = successOverlay || document.getElementById('successOverlay');
+  if (!root) return;
+  const titleEl = root.querySelector('.success-title');
   const emailNoteEl = document.getElementById('successEmailVerifyNote');
-  const primaryBtn = document.querySelector('.success-btn.secondary.shiny-metal');
-  const secondaryBtn = document.querySelector('.success-actions .success-btn:not(.secondary)');
+  const primaryBtn = root.querySelector('.success-btn.secondary.shiny-metal');
+  const secondaryBtn = root.querySelector('.success-actions .success-btn:not(.secondary)');
 
-  if (!titleEl || !iconEl || !kickerEl || !primaryBtn || !secondaryBtn) return;
+  if (!titleEl || !primaryBtn || !secondaryBtn) return;
 
+  titleEl.textContent = 'Account Created!';
   if (signupSuccessMode === 'email_verification') {
-    titleEl.textContent = 'Account Created!';
-    iconEl.textContent = '📧';
-    kickerEl.textContent = 'VERIFY EMAIL TO UNLOCK FULL ACCESS';
     if (emailNoteEl) {
       emailNoteEl.textContent = verificationMessage;
       emailNoteEl.style.display = 'block';
@@ -1960,9 +1952,6 @@ function applySuccessOverlayMode(verificationMessage = '') {
     return;
   }
 
-  titleEl.textContent = 'Account Created!';
-  iconEl.textContent = '🏆';
-  kickerEl.textContent = 'ACHIEVEMENT UNLOCKED';
   if (emailNoteEl) {
     emailNoteEl.textContent = '';
     emailNoteEl.style.display = 'none';
@@ -2026,11 +2015,7 @@ function applySuccessModalLanguage(lang) {
   const resolvedLang = SUCCESS_MODAL_I18N[lang] ? lang : 'english';
   const lines = SUCCESS_MODAL_I18N[resolvedLang];
   const benefit1 = document.getElementById('successBenefit1');
-  const benefit2 = document.getElementById('successBenefit2');
-  const benefit3 = document.getElementById('successBenefit3');
   if (benefit1) benefit1.textContent = lines[0];
-  if (benefit2) benefit2.textContent = lines[1];
-  if (benefit3) benefit3.textContent = lines[2];
 
   document.querySelectorAll('#successLangTabs .success-lang-tab').forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.successLang === resolvedLang);
