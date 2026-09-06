@@ -133,6 +133,54 @@
       .logout-confirm-btn.confirm:hover {
         background: #ff2222;
       }
+
+      .ios15-warn-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 12, 22, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 99990;
+        padding: 16px;
+      }
+      .ios15-warn-overlay.show {
+        display: flex;
+      }
+      .ios15-warn-modal {
+        width: min(420px, 100%);
+        background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        border-radius: 16px;
+        padding: 22px 20px;
+        color: #f8fafc;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .ios15-warn-emoji { font-size: 34px; line-height: 1; margin-bottom: 8px; }
+      .ios15-warn-title {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
+        font-weight: 800;
+      }
+      .ios15-warn-copy {
+        margin: 0 0 18px;
+        color: #d7e1ef;
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+      .ios15-warn-btn {
+        width: 100%;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 14px;
+        font-size: 0.95rem;
+        font-weight: 800;
+        cursor: pointer;
+        background: linear-gradient(135deg, #f59e0b, #f97316);
+        color: #111827;
+      }
       
       /* Logout Loading Overlay */
       .logout-overlay {
@@ -264,6 +312,15 @@
           <button class="logout-confirm-btn cancel" onclick="cancelLogout()">Stay</button>
           <button class="logout-confirm-btn confirm" onclick="confirmLogout()">Log Out</button>
         </div>
+      </div>
+    </div>
+
+    <div class="ios15-warn-overlay" id="ios15WarnOverlay">
+      <div class="ios15-warn-modal" role="dialog" aria-modal="true" aria-labelledby="ios15WarnTitle">
+        <div class="ios15-warn-emoji">📱</div>
+        <h2 class="ios15-warn-title" id="ios15WarnTitle">This iPhone may have trouble with GISUGO</h2>
+        <p class="ios15-warn-copy">This device is running an older iOS. Some pages can load slowly or get stuck. For the best experience, use a newer iPhone (iOS 16 or later).</p>
+        <button type="button" class="ios15-warn-btn" id="ios15WarnContinue">CONTINUE ANYWAY</button>
       </div>
     </div>
 
@@ -1093,6 +1150,33 @@
           clearTimeout(logoutTimeoutId);
         }
       });
+    </script>
+    <script>
+      (function showIos15HomeWarning() {
+        var STORAGE_KEY = 'gisugo_ios15_home_warn_v1';
+        function iosMajor() {
+          try {
+            var m = (navigator.userAgent || '').match(/(?:iPhone|iPad|iPod).+?OS (\d+)_/);
+            return m ? parseInt(m[1], 10) : null;
+          } catch (e) {
+            return null;
+          }
+        }
+        var version = iosMajor();
+        if (version === null || version > 15) return;
+        try {
+          if (localStorage.getItem(STORAGE_KEY) === '1') return;
+        } catch (e) {}
+        var overlay = document.getElementById('ios15WarnOverlay');
+        var btn = document.getElementById('ios15WarnContinue');
+        if (!overlay || !btn) return;
+        overlay.classList.add('show');
+        btn.addEventListener('click', function onContinue() {
+          try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+          overlay.classList.remove('show');
+          btn.removeEventListener('click', onContinue);
+        });
+      })();
     </script>
 
     
