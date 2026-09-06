@@ -2093,7 +2093,66 @@ function getMissingProfileFields(profile) {
  * report "no profile" and bounce an existing user to sign-up.
  * @returns {Promise<{hasProfile:boolean, errored:boolean}>}
  */
+async function confirmProfileFromServerViaRest(userId) {
+  try {
+    const projectId = (window.firebaseConfig && window.firebaseConfig.projectId)
+      || (typeof firebase !== 'undefined' && firebase.app && firebase.app().options && firebase.app().options.projectId)
+      || '';
+    if (!projectId || !userId) return { hasProfile: false, errored: true };
+
+    const headers = {};
+    const auth = getFirebaseAuth();
+    const currentUser = auth && auth.currentUser;
+    if (currentUser && typeof currentUser.getIdToken === 'function') {
+      const token = await Promise.race([
+        currentUser.getIdToken(),
+        new Promise(function(_, reject) {
+          setTimeout(function() { reject(new Error('token timeout')); }, 8000);
+        })
+      ]);
+      if (token) headers.Authorization = 'Bearer ' + token;
+    }
+
+    const endpoint = 'https://firestore.googleapis.com/v1/projects/'
+      + encodeURIComponent(projectId)
+      + '/databases/(default)/documents/users/'
+      + encodeURIComponent(userId);
+    const response = await Promise.race([
+      fetch(endpoint, { method: 'GET', headers: headers }),
+      new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error('timeout')); }, 8000);
+      })
+    ]);
+
+    if (response.status === 404) {
+      gisugoAuthLog('confirmProfileFromServer REST', { exists: false });
+      return { hasProfile: false, errored: false };
+    }
+    if (!response.ok) {
+      gisugoAuthLog('confirmProfileFromServer REST failed', { status: response.status });
+      return { hasProfile: false, errored: true };
+    }
+
+    const raw = await response.json();
+    const fullName = raw && raw.fields && raw.fields.fullName && raw.fields.fullName.stringValue;
+    const hasProfile = !!(fullName && String(fullName).trim());
+    gisugoAuthLog('confirmProfileFromServer REST', { exists: true, hasFullName: hasProfile });
+    return { hasProfile: hasProfile, errored: false };
+  } catch (error) {
+    gisugoAuthLog('confirmProfileFromServer REST error', {
+      message: (error && error.message) || ''
+    });
+    return { hasProfile: false, errored: true };
+  }
+}
+
 async function confirmProfileFromServer(userId, attempts = 3) {
+  // iPhone 7 / old WebKit: Firestore SDK get({source:'server'}) can hang forever.
+  // REST is one HTTP read with an 8s cap — no WebChannel left open.
+  if (isLikelyIOS()) {
+    return confirmProfileFromServerViaRest(userId);
+  }
+
   const db = getFirestore();
   if (!db) return { hasProfile: false, errored: true };
   // Retry the server read: right after the Facebook popup/app hand-off the
@@ -2160,6 +2219,12 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
   let hasProfile = serverCheck.hasProfile;
 
   if (serverCheck.errored) {
+    // iOS: do not start a second unbounded SDK profile read (same hang as Welcome Back).
+    if (isLikelyIOS()) {
+      gisugoAuthLog('handleAuthRedirect: iOS profile read unreliable, defaulting home');
+      window.location.href = defaultRedirect;
+      return;
+    }
     // Server read failed — fall back to the cache-capable check.
     const fallback = await checkUserHasProfile(user.uid);
     hasProfile = fallback.hasProfile;

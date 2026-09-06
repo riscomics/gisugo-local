@@ -5891,17 +5891,23 @@ async function getUserProfile(userId) {
     if (isIOSWebKitBrowserForDataPath()) {
       try {
         emitIOSDataTrace('profile:load', 'fetch:mode', 'REST');
-        const restProfile = await withFirestoreReadTimeout(fetchUserProfileViaFirestoreRest(userId), 9000);
+        const restHeaders = await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), 8000);
+        const restProfile = await withFirestoreReadTimeout(
+          fetchUserProfileViaFirestoreRest(userId, restHeaders),
+          9000
+        );
         if (restProfile) {
           emitIOSDataTrace('profile:load', 'fetch:done', { found: true, mode: 'REST' });
           return { userId: restProfile.id, ...restProfile };
         }
         emitIOSDataTrace('profile:load', 'fetch:done', { found: false, mode: 'REST' });
+        return null;
       } catch (restError) {
-        console.warn('⚠️ Profile REST fallback failed, trying SDK:', restError);
+        console.warn('⚠️ Profile REST failed on iOS; skipping SDK fallback to avoid hang:', restError);
         const message = (restError && restError.message) ? restError.message : String(restError);
         const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
         emitIOSDataTrace('profile:load', stage, { mode: 'REST', message });
+        return null;
       }
     }
     emitIOSDataTrace('profile:load', 'fetch:mode', 'SDK');
