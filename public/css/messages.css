@@ -2267,6 +2267,30 @@ body:has(.messages-header) {
   box-shadow: none;
 }
 
+.confirm-hire-btn.confirm-btn-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #4a5568 !important;
+  border-color: #4a5568 !important;
+}
+
+.confirm-hire-btn.confirm-btn-locked:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes attentionShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.attention-shake {
+  animation: attentionShake 0.4s ease-in-out;
+}
+
 /* Confirmation Overlay Styles - Mobile positioning */
 .confirmation-overlay {
   position: fixed;

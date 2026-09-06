@@ -19,6 +19,33 @@
         return document.getElementById(id);
     }
 
+    // Same pattern as new-post2: one animationend handler per element (WeakMap),
+    // so repeat taps cannot stack listeners.
+    const shakeEndHandlers = new WeakMap();
+
+    function triggerAttentionShake(element) {
+        if (!element) return;
+        const existingHandler = shakeEndHandlers.get(element);
+        if (existingHandler) {
+            element.removeEventListener('animationend', existingHandler);
+            shakeEndHandlers.delete(element);
+        }
+        element.classList.remove('attention-shake');
+        void element.offsetWidth;
+        element.classList.add('attention-shake');
+        const handleShakeEnd = function () {
+            element.classList.remove('attention-shake');
+            shakeEndHandlers.delete(element);
+        };
+        shakeEndHandlers.set(element, handleShakeEnd);
+        element.addEventListener('animationend', handleShakeEnd, { once: true });
+    }
+
+    function shakeHireDisclaimer() {
+        const overlay = getElement('hireConfirmationOverlay');
+        triggerAttentionShake(overlay && overlay.querySelector('.legal-disclaimer-section'));
+    }
+
     function getCachedHireProfile(userId) {
         const safeUserId = String(userId || '').trim();
         if (!safeUserId) return null;
@@ -756,7 +783,10 @@
         const warningEl = getElement('confirmHireWarning');
         const confirmBtn = getElement('confirmHireBtn');
         const hasActiveTab = tabs.some(function (tab) { return tab.classList.contains('active'); });
-        if (confirmBtn) confirmBtn.disabled = !hasActiveTab;
+        if (confirmBtn) {
+            confirmBtn.classList.toggle('confirm-btn-locked', !hasActiveTab);
+            confirmBtn.disabled = false;
+        }
         if (warningEl) {
             warningEl.style.display = hasActiveTab ? 'none' : 'flex';
         }
@@ -767,6 +797,8 @@
         if (!overlay) return;
         runHireCleanup();
         overlay.classList.remove('show');
+        const disclaimer = overlay.querySelector('.legal-disclaimer-section');
+        if (disclaimer) disclaimer.classList.remove('attention-shake');
     }
 
     function formatGigStatusDate(dateValue) {
@@ -1547,6 +1579,10 @@
         }, { signal: signal });
 
         confirmBtn.addEventListener('click', async function () {
+            if (confirmBtn.classList.contains('confirm-btn-locked')) {
+                shakeHireDisclaimer();
+                return;
+            }
             const applicationId = String(workerData.applicationId || '').trim();
             const jobId = String(workerData.jobId || '').trim();
             if (!applicationId || !jobId || typeof window.hireWorker !== 'function') {

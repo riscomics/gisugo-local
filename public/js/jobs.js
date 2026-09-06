@@ -3941,6 +3941,38 @@ async function updateStatusFacePreview(options = {}) {
     }
 }
 
+const _jobsDisclaimerShakeEndHandlers = new WeakMap();
+
+function triggerDisclaimerAttentionShake(element) {
+    if (!element) return;
+    const existingHandler = _jobsDisclaimerShakeEndHandlers.get(element);
+    if (existingHandler) {
+        element.removeEventListener('animationend', existingHandler);
+        _jobsDisclaimerShakeEndHandlers.delete(element);
+    }
+    element.classList.remove('attention-shake');
+    void element.offsetWidth;
+    element.classList.add('attention-shake');
+    const handleShakeEnd = function() {
+        element.classList.remove('attention-shake');
+        _jobsDisclaimerShakeEndHandlers.delete(element);
+    };
+    _jobsDisclaimerShakeEndHandlers.set(element, handleShakeEnd);
+    element.addEventListener('animationend', handleShakeEnd, { once: true });
+}
+
+function shakeConfirmDisclaimer(modalId) {
+    const overlayId = modalId === 'acceptGig' ? 'confirmAcceptGigOverlay' : 'hireConfirmationOverlay';
+    const overlay = document.getElementById(overlayId);
+    triggerDisclaimerAttentionShake(overlay && overlay.querySelector('.legal-disclaimer-section'));
+}
+
+function clearConfirmDisclaimerShake(overlay) {
+    if (!overlay) return;
+    const disclaimer = overlay.querySelector('.legal-disclaimer-section');
+    if (disclaimer) disclaimer.classList.remove('attention-shake');
+}
+
 function getDisclaimerEnabledMessage(modalId) {
     if (modalId === 'acceptGig') return 'This will confirm your commitment to complete the gig.';
     if (modalId === 'confirmHire') return 'All other applicants will be rejected.';
@@ -3976,7 +4008,8 @@ function refreshDisclaimerGate(modalId) {
     const hasProceedDecision = !!(overlay && overlay.dataset.verificationDecision === 'proceed');
     const canProceed = hasSelectedLanguage && (!requiresDecision || hasProceedDecision);
 
-    confirmBtn.disabled = !canProceed;
+    confirmBtn.classList.toggle('confirm-btn-locked', !hasSelectedLanguage);
+    confirmBtn.disabled = hasSelectedLanguage && !canProceed;
 
     const iconEl = warningEl.querySelector('.final-warning-icon');
     const textEl = warningEl.querySelector('.final-warning-text');
@@ -4180,8 +4213,11 @@ function initializeDisclaimerLanguageTabs(modalId) {
         placeholder.style.display = 'flex';
     }
     
-    // Disable confirm button and set warning baseline
-    if (confirmBtn) confirmBtn.disabled = true;
+    // Lock confirm visually until a language tab is read (clickable so it can shake).
+    if (confirmBtn) {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.add('confirm-btn-locked');
+    }
     if (warningEl) {
         const iconEl = warningEl.querySelector('.final-warning-icon');
         const textEl = warningEl.querySelector('.final-warning-text');
@@ -4250,6 +4286,10 @@ function initializeConfirmAcceptGigHandlers() {
     // Confirm accept button
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
+            if (confirmBtn.classList.contains('confirm-btn-locked')) {
+                shakeConfirmDisclaimer('acceptGig');
+                return;
+            }
             console.log('✅ Final accept gig confirmation clicked!');
             const jobData = {
                 jobId: overlay.dataset.jobId,
@@ -4323,6 +4363,7 @@ function hideConfirmAcceptGigOverlay() {
     clearVerificationReminderTicker('accept');
     detachConfirmAcceptGigEscHandler();
     overlay.classList.remove('show');
+    clearConfirmDisclaimerShake(overlay);
     updateStatusFacePreview({
         previewBlockId: 'acceptFacePreviewBlock',
         previewImageId: 'acceptFacePreviewImage',
@@ -8978,6 +9019,10 @@ function initializeHireConfirmationHandlers() {
     // Confirm hire button
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
+            if (confirmBtn.classList.contains('confirm-btn-locked')) {
+                shakeConfirmDisclaimer('confirmHire');
+                return;
+            }
             console.log('✅ Final hire confirmation clicked!');
             const workerData = {
                 applicationId: overlay.dataset.applicationId,
@@ -9054,6 +9099,7 @@ function hideHireConfirmationOverlay() {
     detachHireConfirmationEscHandler();
     delete overlay.dataset.hireRenderToken;
     overlay.classList.remove('show');
+    clearConfirmDisclaimerShake(overlay);
     void updateStatusFacePreview({
         previewBlockId: 'hireFacePreviewBlock',
         previewImageId: 'hireFacePreviewImage',
