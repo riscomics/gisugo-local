@@ -318,8 +318,8 @@
     <div class="ios15-warn-overlay" id="ios15WarnOverlay">
       <div class="ios15-warn-modal" role="dialog" aria-modal="true" aria-labelledby="ios15WarnTitle">
         <div class="ios15-warn-emoji">📱</div>
-        <h2 class="ios15-warn-title" id="ios15WarnTitle">This iPhone may have trouble with GISUGO</h2>
-        <p class="ios15-warn-copy">This device is running an older iOS. Some pages can load slowly or get stuck. For the best experience, use a newer iPhone (iOS 16 or later).</p>
+        <h2 class="ios15-warn-title" id="ios15WarnTitle">Your Mobile Device is running on outdated iOS and may not work well with GISUGO.</h2>
+        <p class="ios15-warn-copy">For best experience, use a newer iPhone with iOS 16 or newer.</p>
         <button type="button" class="ios15-warn-btn" id="ios15WarnContinue">CONTINUE ANYWAY</button>
       </div>
     </div>
@@ -1153,7 +1153,7 @@
     </script>
     <script>
       (function showIos15HomeWarning() {
-        var STORAGE_KEY = 'gisugo_ios15_home_warn_v1';
+        var STORAGE_KEY = 'gisugo_ios15_home_warn_v2';
         function iosMajor() {
           try {
             var m = (navigator.userAgent || '').match(/(?:iPhone|iPad|iPod).+?OS (\d+)_/);
