@@ -218,7 +218,12 @@
     let phone = '';
     try {
       if (typeof window.getPrivatePhone === 'function') {
-        phone = await window.getPrivatePhone(userId);
+        phone = await Promise.race([
+          window.getPrivatePhone(userId),
+          new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error('timeout')); }, 8000);
+          })
+        ]);
       }
     } catch (err) {
       console.warn('\u26A0\uFE0F Phone gate: private phone read failed, allowing through:', err);

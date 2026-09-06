@@ -449,6 +449,12 @@ function getIOSMajorVersion() {
   return null;
 }
 
+/** iPhone 7 class (iOS 15 and older): Firestore SDK reads can hang forever. */
+function isLegacyIOSFirestoreHangPath() {
+  const v = getIOSMajorVersion();
+  return v !== null && v <= 15;
+}
+
 /**
  * Gate Facebook login on iOS.
  *
@@ -1892,8 +1898,46 @@ async function savePrivatePhone(userId, phoneNumber) {
  * Returns '' when absent or unreadable.
  */
 async function getPrivatePhone(userId) {
+  if (!userId) return '';
+  if (isLikelyIOS()) {
+    try {
+      const projectId = (window.firebaseConfig && window.firebaseConfig.projectId)
+        || (typeof firebase !== 'undefined' && firebase.app && firebase.app().options && firebase.app().options.projectId)
+        || '';
+      if (!projectId) return '';
+      const headers = {};
+      const auth = getFirebaseAuth();
+      const currentUser = auth && auth.currentUser;
+      if (currentUser && typeof currentUser.getIdToken === 'function') {
+        const token = await Promise.race([
+          currentUser.getIdToken(),
+          new Promise(function(_, reject) {
+            setTimeout(function() { reject(new Error('token timeout')); }, 8000);
+          })
+        ]);
+        if (token) headers.Authorization = 'Bearer ' + token;
+      }
+      const endpoint = 'https://firestore.googleapis.com/v1/projects/'
+        + encodeURIComponent(projectId)
+        + '/databases/(default)/documents/user_private/'
+        + encodeURIComponent(userId);
+      const response = await Promise.race([
+        fetch(endpoint, { method: 'GET', headers: headers }),
+        new Promise(function(_, reject) {
+          setTimeout(function() { reject(new Error('timeout')); }, 8000);
+        })
+      ]);
+      if (!response || response.status === 404 || !response.ok) return '';
+      const raw = await response.json();
+      const phone = raw && raw.fields && raw.fields.phoneNumber && raw.fields.phoneNumber.stringValue;
+      return (typeof phone === 'string') ? phone : '';
+    } catch (error) {
+      console.warn('⚠️ Could not read private phone via REST:', (error && error.message) || error);
+      return '';
+    }
+  }
   const db = getFirestore();
-  if (!db || !userId) return '';
+  if (!db) return '';
   try {
     const snap = await db.collection('user_private').doc(userId).get();
     return (snap.exists && typeof snap.data().phoneNumber === 'string') ? snap.data().phoneNumber : '';
@@ -2147,9 +2191,9 @@ async function confirmProfileFromServerViaRest(userId) {
 }
 
 async function confirmProfileFromServer(userId, attempts = 3) {
-  // iPhone 7 / old WebKit: Firestore SDK get({source:'server'}) can hang forever.
-  // REST is one HTTP read with an 8s cap — no WebChannel left open.
-  if (isLikelyIOS()) {
+  // iPhone 7 / iOS 15: Firestore SDK get({source:'server'}) can hang forever.
+  // iOS 16+ and Android keep the existing SDK read.
+  if (isLegacyIOSFirestoreHangPath()) {
     return confirmProfileFromServerViaRest(userId);
   }
 
@@ -2219,8 +2263,8 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
   let hasProfile = serverCheck.hasProfile;
 
   if (serverCheck.errored) {
-    // iOS: do not start a second unbounded SDK profile read (same hang as Welcome Back).
-    if (isLikelyIOS()) {
+    // iOS 15 and older: do not start a second unbounded SDK profile read.
+    if (isLegacyIOSFirestoreHangPath()) {
       gisugoAuthLog('handleAuthRedirect: iOS profile read unreliable, defaulting home');
       window.location.href = defaultRedirect;
       return;
@@ -2561,6 +2605,8 @@ window.syncPhonePasswordOnPhoneChange = syncPhonePasswordOnPhoneChange;
 window.reauthenticateForSensitiveOp = reauthenticateForSensitiveOp;
 window.isSyntheticPhoneEmail = isSyntheticPhoneEmail;
 window.isLikelyIOS = isLikelyIOS;
+window.getIOSMajorVersion = getIOSMajorVersion;
+window.isLegacyIOSFirestoreHangPath = isLegacyIOSFirestoreHangPath;
 window.isMobileOAuthEnvironment = isMobileOAuthEnvironment;
 window.confirmFacebookOnIOS = confirmFacebookOnIOS;
 window.loginWithFacebookDevice = loginWithFacebookDevice;

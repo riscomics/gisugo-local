@@ -5397,7 +5397,9 @@ async function waitForAuthAndLoadProfile() {
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
           window.currentUserPrivateProfile = null;
-          if (isViewingOwnProfile && typeof firebase !== 'undefined' && firebase.firestore) {
+          const skipBlockingIosFollowups = typeof isLegacyIOSFirestoreHangPath === 'function'
+            && isLegacyIOSFirestoreHangPath();
+          if (isViewingOwnProfile && typeof firebase !== 'undefined' && firebase.firestore && !skipBlockingIosFollowups) {
             try {
               const privateDoc = await firebase.firestore().collection('user_private').doc(profileUserId).get();
               if (privateDoc.exists) {
@@ -5407,12 +5409,14 @@ async function waitForAuthAndLoadProfile() {
               console.warn('⚠️ Private profile metadata load skipped:', privateErr);
             }
           }
-          if (isViewingOwnProfile) {
+          if (isViewingOwnProfile && !skipBlockingIosFollowups) {
             await syncPublicFaceVerificationMediaIfNeeded(profileUserId, firebaseProfile, window.currentUserPrivateProfile);
             await enforceFaceVerificationIntegrity(profileUserId, firebaseProfile, window.currentUserPrivateProfile);
           }
           window.currentUserProfile = firebaseProfile;
-          await reconcileProfileStatisticsIfNeeded(profileUserId, firebaseProfile, isViewingOwnProfile);
+          if (!skipBlockingIosFollowups) {
+            await reconcileProfileStatisticsIfNeeded(profileUserId, firebaseProfile, isViewingOwnProfile);
+          }
           finishProfileLoading();
           loadUserProfile(firebaseProfile);
           profileTrace('render:success', {

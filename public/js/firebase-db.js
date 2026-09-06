@@ -419,6 +419,18 @@ function isIOSWebKitBrowserForDataPath() {
   }
 }
 
+function isLegacyIOSFirestoreHangPath() {
+  if (typeof window.getIOSMajorVersion === 'function') {
+    const v = window.getIOSMajorVersion();
+    return v !== null && v <= 15;
+  }
+  try {
+    const m = (navigator.userAgent || '').match(/(?:iPhone|iPad|iPod).+?OS (\d+)_/);
+    if (m) return parseInt(m[1], 10) <= 15;
+  } catch (_) {}
+  return false;
+}
+
 // Optional iOS trace bridge. On-screen HUDs were removed after stabilization.
 function emitIOSDataTrace(route, stage, details) {
   if (!isIOSWebKitBrowserForDataPath()) return;
@@ -505,7 +517,7 @@ async function fetchUserProfileViaFirestoreRest(userId, headers = null) {
   return mapFirestoreRestDoc(raw);
 }
 
-async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50) {
+async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for notifications REST fallback');
   const safeRecipientId = String(recipientId || '').trim();
@@ -525,9 +537,10 @@ async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50) {
       limit: Math.max(1, Math.min(Number(maxItems) || 50, 100))
     }
   };
+  const requestHeaders = headers || await buildFirestoreRestHeadersWithAuth();
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: requestHeaders,
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -4211,8 +4224,9 @@ function subscribeToUserNotifications(currentUser, callback) {
         if (disposed || inFlight) return;
         inFlight = true;
         try {
+          const restHeaders = await buildFirestoreRestHeadersWithAuth();
           const notifications = await withFirestoreReadTimeout(
-            fetchNotificationsViaFirestoreRest(currentUser.uid, 50),
+            fetchNotificationsViaFirestoreRest(currentUser.uid, 50, restHeaders),
             10000
           );
           emitIOSDataTrace('messages:alerts', 'fetch:done', {
@@ -5901,13 +5915,13 @@ async function getUserProfile(userId) {
           return { userId: restProfile.id, ...restProfile };
         }
         emitIOSDataTrace('profile:load', 'fetch:done', { found: false, mode: 'REST' });
-        return null;
+        if (isLegacyIOSFirestoreHangPath()) return null;
       } catch (restError) {
-        console.warn('⚠️ Profile REST failed on iOS; skipping SDK fallback to avoid hang:', restError);
+        console.warn('⚠️ Profile REST failed on iOS:', restError);
         const message = (restError && restError.message) ? restError.message : String(restError);
         const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
         emitIOSDataTrace('profile:load', stage, { mode: 'REST', message });
-        return null;
+        if (isLegacyIOSFirestoreHangPath()) return null;
       }
     }
     emitIOSDataTrace('profile:load', 'fetch:mode', 'SDK');
