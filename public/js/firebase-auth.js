@@ -1899,7 +1899,7 @@ async function savePrivatePhone(userId, phoneNumber) {
  */
 async function getPrivatePhone(userId) {
   if (!userId) return '';
-  if (isLikelyIOS()) {
+  if (isLegacyIOSFirestoreHangPath()) {
     try {
       const projectId = (window.firebaseConfig && window.firebaseConfig.projectId)
         || (typeof firebase !== 'undefined' && firebase.app && firebase.app().options && firebase.app().options.projectId)

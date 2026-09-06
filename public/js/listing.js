@@ -119,6 +119,14 @@ function isIOSWebKitBrowserForDataPath() {
   }
 }
 
+function isLegacyIOSListingHangPath() {
+  try {
+    const m = (navigator.userAgent || '').match(/(?:iPhone|iPad|iPod).+?OS (\d+)_/);
+    if (m) return parseInt(m[1], 10) <= 15;
+  } catch (_) {}
+  return false;
+}
+
 function getProjectIdForFirestoreRest() {
   try {
     if (window.firebaseConfig && window.firebaseConfig.projectId) {
@@ -1190,6 +1198,21 @@ async function fetchCategoryJobsWithRetry(category, filters, attempts = 2) {
     } catch (restPrimaryError) {
       listingTrace('firebase:rest:primary:error', (restPrimaryError && restPrimaryError.message) ? restPrimaryError.message : String(restPrimaryError));
       lastError = restPrimaryError;
+      // iOS 15 and older: do not fall through to the SDK query (it can hang forever).
+      if (isLegacyIOSListingHangPath()) {
+        try {
+          const restRetry = await withListingTimeout(
+            fetchCategoryJobsViaFirestoreRest(category),
+            `fetchCategoryJobsViaFirestoreRest(${category})#retry`,
+            12000
+          );
+          listingTrace('firebase:rest:primary:retry-ok', { count: Array.isArray(restRetry) ? restRetry.length : 0 });
+          return restRetry;
+        } catch (restRetryError) {
+          listingTrace('firebase:rest:primary:retry-error', (restRetryError && restRetryError.message) ? restRetryError.message : String(restRetryError));
+          throw restRetryError;
+        }
+      }
     }
   }
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
@@ -1502,7 +1525,12 @@ async function filterAndSortJobs() {
 
   if (typeof getPublicPlatformPolicy === 'function') {
     try {
-      const policy = await getPublicPlatformPolicy();
+      const policy = await Promise.race([
+        getPublicPlatformPolicy(),
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('policy timeout')); }, 8000);
+        })
+      ]);
       if (window.GisugoGigFeedPolicy) {
         window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
       }

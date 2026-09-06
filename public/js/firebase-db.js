@@ -5467,17 +5467,46 @@ async function syncPublicPlatformPolicy(settings) {
  * Public keeper flags for the live site. Fail-open to SAFE_PUBLIC_PLATFORM_POLICY
  * when the doc is missing or the read fails (never lock the site on a blip).
  */
+async function fetchPublicPlatformPolicyViaRest() {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for policy REST');
+  const endpoint = 'https://firestore.googleapis.com/v1/projects/'
+    + encodeURIComponent(projectId)
+    + '/databases/(default)/documents/'
+    + encodeURIComponent(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[0])
+    + '/'
+    + encodeURIComponent(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[1]);
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error('REST policy fetch failed (' + response.status + ')');
+  const raw = await response.json();
+  return mapFirestoreRestDoc(raw);
+}
+
 async function getPublicPlatformPolicy() {
   const cached = _publicPlatformPolicyCache;
   if (cached.value && (Date.now() - cached.at) < 15000) {
     return { ...cached.value };
+  }
+  if (isLegacyIOSFirestoreHangPath()) {
+    try {
+      const restDoc = await withFirestoreReadTimeout(fetchPublicPlatformPolicyViaRest(), 8000);
+      const policy = buildPublicPlatformPolicy(restDoc || {});
+      _publicPlatformPolicyCache = { at: Date.now(), value: policy };
+      return { ...policy };
+    } catch (error) {
+      console.warn('⚠️ Public platform policy REST failed (fail-open):', error && error.message ? error.message : error);
+      return { ...SAFE_PUBLIC_PLATFORM_POLICY };
+    }
   }
   const db = getFirestore();
   if (!db) return { ...SAFE_PUBLIC_PLATFORM_POLICY };
   try {
     const ref = db.collection(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[0])
       .doc(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[1]);
-    const snap = await ref.get({ source: 'server' });
+    const snap = isIOSWebKitBrowserForDataPath()
+      ? await withFirestoreReadTimeout(ref.get({ source: 'server' }), 8000)
+      : await ref.get({ source: 'server' });
     if (!snap.exists) {
       _publicPlatformPolicyCache = { at: Date.now(), value: { ...SAFE_PUBLIC_PLATFORM_POLICY } };
       return { ...SAFE_PUBLIC_PLATFORM_POLICY };
