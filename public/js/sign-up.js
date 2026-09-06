@@ -1131,18 +1131,16 @@ function validateField(field) {
       break;
       
     case 'dateOfBirth':
-      // Made required 2026-08-06 for the Admin Dashboard's Age Groups
-      // breakdown (docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md) — was
-      // previously optional and silently skipped when blank.
-      if (!value) {
-        showError(fieldId, 'Date of birth is required');
-        return false;
-      }
-      
+      // Optional. Section is "User Background (Optional)" and stays collapsed
+      // on purpose. A 2026-08-06 Age Groups pass made this required; that
+      // blocked signup even if the user never opened the section (submit
+      // expands it). Blank is allowed; Age Groups buckets it as unknown.
+      if (!value) break;
+
       const birthDate = new Date(value);
       const today = new Date();
       const age = today.getFullYear() - birthDate.getFullYear();
-      
+
       if (age < 18) {
         showError(fieldId, 'You must be at least 18 years old');
         return false;

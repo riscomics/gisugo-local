@@ -119,10 +119,11 @@ overlays. Verdict per card:
     deferred — would need a paid reverse-geocoding API call (the free client-side PH boundary
     dataset has no data for the rest of the world); one `Overseas` bucket is enough signal for
     now, can be layered in later if there's ever a real user base living abroad to justify it.
-- **Age Groups — `dateOfBirth` to be made required at signup.** Confirmed in code
-  (`sign-up.js` ~line 1111) it's currently optional — the validator silently skips it if blank,
-  no error shown. Small change to make it mandatory like other signup fields, needed so the Age
-  Groups breakdown has full coverage.
+- **Age Groups — `dateOfBirth` is optional at signup (reconfirmed 2026-09-06).** The
+  2026-08-06 required pass is reverted. The User Background section is labeled Optional
+  and starts collapsed; requiring DOB still blocked CREATE ACCOUNT (and opening the
+  section made that obvious). Blank DOB buckets as `unknown`. Education was already
+  optional. If a date is entered, signup still enforces 18+.
 
 ### Keep, but redesigned to a manual-refresh "snapshot" model (not live, not scheduled)
 These three were originally going to be cut as "too expensive," but that was conflating cost with

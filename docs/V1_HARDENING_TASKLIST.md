@@ -165,7 +165,7 @@ that the whole dashboard section is finished forever.
       + status badges, ban cascade incl. new customer-facing "worker revoked, gig reopened"
       notification), User Management (New = glance, Suspended = queue, Pending/Verified hidden
       until ID verification ships), Overview (Total Users/Gigs Reported/Gigs Analytics wired with
-      counters incl. Age Groups off `dateOfBirth` made required + Regional Distribution off a
+      counters incl. Age Groups off `dateOfBirth` (signup optional again 2026-09-06; blank = unknown) + Regional Distribution off a
       one-time signup-only GPS capture bucketed into the 17 official PH regions, no province
       carve-outs for now; Verification Submissions + Total Revenue hidden until their backing
       features exist; Storage/User Activity/Traffic-Costs kept as manual-refresh snapshot cards

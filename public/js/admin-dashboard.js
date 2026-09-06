@@ -8021,9 +8021,8 @@ function switchUserTab(tabType) {
  * here -- those come from getUserModerationExtras(), fetched on demand only
  * when an admin opens this specific user (see selectUser()).
  */
-// dateOfBirth became a required signup field 2026-08-06; pre-existing
-// accounts from before then may have it blank, so this returns null
-// instead of NaN/garbage in that case (displayed as "Not specified").
+// dateOfBirth is optional at signup. Blank values return null
+// instead of NaN/garbage (displayed as "Not specified").
 function calculateAgeFromDOB(dateOfBirth) {
     if (!dateOfBirth) return null;
     const birthDate = new Date(dateOfBirth);
