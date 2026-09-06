@@ -19,18 +19,6 @@ let currentSignupLang = 'english';
 let signupSuccessMode = 'default';
 const FULL_NAME_MAX_CHARS = 25;
 const SUMMARY_MIN_CHARS = 2;
-const SUCCESS_MODAL_I18N = {
-  english: [
-    'Record a quick friendly selfie intro.'
-  ],
-  bisaya: [
-    'Pag-record ug friendly selfie intro.'
-  ],
-  tagalog: [
-    'Mag-record ng friendly selfie intro.'
-  ]
-};
-
 const SIGNUP_I18N = {
   english: {
     profilePhoto: 'Profile Photo',
@@ -241,7 +229,6 @@ function applySignupLanguage(lang) {
     el.textContent = value;
   });
   updateAuthStatusCopy();
-  applySuccessModalLanguage(lang);
 }
 
 function initializeSignupLanguageTabs() {
@@ -728,7 +715,6 @@ function initializeForm() {
   submitBtn = document.getElementById('submitBtn');
   loadingOverlay = document.getElementById('loadingOverlay');
   successOverlay = document.getElementById('successOverlay');
-  const successLangTabs = document.getElementById('successLangTabs');
   
   if (form) {
     form.addEventListener('submit', handleFormSubmission);
@@ -743,14 +729,6 @@ function initializeForm() {
         // handler as the two real buttons instead of navigating directly.
         handleFaceVerificationChoice('index.html');
       }
-    });
-  }
-
-  if (successLangTabs) {
-    successLangTabs.addEventListener('click', (event) => {
-      const tab = event.target.closest('.success-lang-tab');
-      if (!tab) return;
-      applySuccessModalLanguage(tab.dataset.successLang || 'english');
     });
   }
   
@@ -1906,7 +1884,6 @@ function showSuccessOverlay() {
     signupSuccessMode = 'default';
     applySuccessOverlayMode();
     successOverlay.classList.add('show');
-    applySuccessModalLanguage(currentSignupLang);
     const providerId = String(authenticatedUser?.provider || '').toLowerCase();
     const successSource = providerId === 'google.com'
       ? 'social_google'
@@ -1928,7 +1905,6 @@ function showEmailVerificationSuccessOverlay(message) {
   signupSuccessMode = 'email_verification';
   applySuccessOverlayMode(message);
   successOverlay.classList.add('show');
-  applySuccessModalLanguage(currentSignupLang);
   console.log('✅ Signup success modal opened (mode: email_verification)');
   launchConfetti();
 }
@@ -2012,17 +1988,6 @@ function initializeLocationExplainer() {
     // syncUserAnalyticsCountersOnWrite), no error shown to the user.
     await requestAndSubmitDeviceLocation();
     proceedToPostLocationDestination();
-  });
-}
-
-function applySuccessModalLanguage(lang) {
-  const resolvedLang = SUCCESS_MODAL_I18N[lang] ? lang : 'english';
-  const lines = SUCCESS_MODAL_I18N[resolvedLang];
-  const benefit1 = document.getElementById('successBenefit1');
-  if (benefit1) benefit1.textContent = lines[0];
-
-  document.querySelectorAll('#successLangTabs .success-lang-tab').forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.successLang === resolvedLang);
   });
 }
 
