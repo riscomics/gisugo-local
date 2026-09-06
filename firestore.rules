@@ -1,6 +1,6 @@
 // ⚠️  DEPLOYMENT REQUIRED after ANY edit to this file.
 // Run: firebase deploy --only firestore:rules
-// Last deployed: 2026-02-20
+// Last deployed: 2026-09-06 (Phase 12 Step 7 applications + notifications lock)
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -90,10 +90,24 @@ service cloud.firestore {
     
     // Validate application data
     function isValidApplication() {
-      return request.resource.data.keys().hasAll(['jobId', 'applicantId'])
+      return request.resource.data.keys().hasAll(['jobId', 'applicantId', 'gigOwnerId'])
         && request.resource.data.jobId is string
         && request.resource.data.applicantId is string
+        && request.resource.data.gigOwnerId is string
         && request.resource.data.applicantId == request.auth.uid;
+    }
+
+    // Phase 12 Step 7: applicant, or the gig poster via the parent job.
+    // Poster checks use get(job) so Complete/Void queries (jobId + hired
+    // worker) still work. Do not switch reads to gigOwnerId-only.
+    function isApplicationApplicant() {
+      return resource.data.applicantId == request.auth.uid;
+    }
+
+    function isApplicationGigPoster() {
+      return resource.data.jobId is string
+        && exists(/databases/$(database)/documents/jobs/$(resource.data.jobId))
+        && get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.posterId == request.auth.uid;
     }
     
     // Check if only application-related fields are being updated (for workers applying)
@@ -348,27 +362,31 @@ service cloud.firestore {
     // APPLICATIONS COLLECTION
     // ═══════════════════════════════════════════════════════════════
     match /applications/{applicationId} {
-      // Users can read their own applications
-      // Note: Job posters will query by jobId, so we allow reads for authenticated users
-      // and rely on client-side filtering by jobId
-      allow read: if isAuthenticated();
-      
-      // Authenticated users can create applications (but not to their own jobs)
+      // Applicant, gig poster, or admin. Poster is proven via the job
+      // document so jobId-scoped owner queries (review, complete, void,
+      // delete-gig fallback) keep working. A signed-in stranger cannot
+      // list everyone else's applications.
+      allow read: if isAuthenticated()
+        && (isApplicationApplicant() || isApplicationGigPoster() || isAdmin());
+
+      // Worker creates their own row (SDK or iOS REST). Still client-side
+      // because this is a same-user write; the owner's alert is the clerk.
+      // gigOwnerId must match the job poster so owner queries stay honest.
       allow create: if isAuthenticated()
         && isValidApplication()
         && request.resource.data.applicantId == request.auth.uid
-        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.posterId != request.auth.uid;
-      
-      // Job poster can update application status (hired/rejected)
-      // Applicant can update their own application (withdraw, etc.)
+        && exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId))
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.posterId != request.auth.uid
+        && request.resource.data.gigOwnerId == get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.posterId;
+
+      // Applicant: withdraw / decline own row. Poster: Hire status, void,
+      // complete. Reject-others stays on workerAcceptRejectOthers (Admin SDK).
       allow update: if isAuthenticated()
-        && (resource.data.applicantId == request.auth.uid
-            || get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.posterId == request.auth.uid);
-      
-      // Applicant or job poster can delete
+        && (isApplicationApplicant() || isApplicationGigPoster());
+
+      // Applicant or gig poster. Delete-gig prefers cleanupDeletedJobApplications.
       allow delete: if isAuthenticated()
-        && (resource.data.applicantId == request.auth.uid 
-            || get(/databases/$(database)/documents/jobs/$(resource.data.jobId)).data.posterId == request.auth.uid);
+        && (isApplicationApplicant() || isApplicationGigPoster());
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -471,30 +489,25 @@ service cloud.firestore {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // NOTIFICATIONS COLLECTION (ALERTS Tab in Messages)
-    // Cross-user writes are intentional: applicants create notifications
-    // for job posters, customers create notifications for workers, etc.
+    // NOTIFICATIONS COLLECTION (Alerts)
+    // Cross-user create is server-only (createUserAlert / Accept sweep /
+    // ownerRejectApplication) via the Admin SDK, which bypasses these rules.
     // ═══════════════════════════════════════════════════════════════
     match /notifications/{notificationId} {
-      // Authenticated users can read any notification.
-      // This is required so the system can query existing notifications
-      // for another user (e.g., checking if a job already has an
-      // application_received notification before creating a new one).
-      allow read: if isAuthenticated();
-      
-      // Any authenticated user can create a notification for any recipient.
-      // Necessary because notifications are created cross-user client-side.
-      allow create: if isAuthenticated()
-        && request.resource.data.keys().hasAll(['recipientId', 'type', 'message'])
-        && request.resource.data.recipientId is string
-        && request.resource.data.type is string;
-      
-      // Authenticated users can update notifications (mark as read, milestone updates).
-      allow update: if isAuthenticated();
-      
-      // Any authenticated user can delete (needed for duplicate cleanup and
-      // removing stale offer notifications on accept/reject).
-      allow delete: if isAuthenticated();
+      allow read: if isAuthenticated()
+        && (resource.data.recipientId == request.auth.uid || isAdmin());
+
+      allow create: if false;
+
+      // Recipient may mark their own row read. Cannot retarget the inbox.
+      allow update: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid
+        && request.resource.data.recipientId == resource.data.recipientId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      // Recipient may delete their own row (e.g. offer_sent cleanup on Accept).
+      allow delete: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid;
     }
 
     // ═══════════════════════════════════════════════════════════════
