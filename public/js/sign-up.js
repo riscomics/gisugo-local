@@ -18,6 +18,7 @@ let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
 let signupSuccessMode = 'default';
 const FULL_NAME_MAX_CHARS = 25;
+const SUMMARY_MIN_CHARS = 2;
 const SUCCESS_MODAL_I18N = {
   english: [
     'Record a quick friendly selfie intro.',
@@ -59,7 +60,7 @@ const SIGNUP_I18N = {
     summaryLabel: 'Introduction & Summary *',
     aboutHint: 'Say a quick introduction about yourself to the Gisugo community. This is what other users will read on your profile.',
     backgroundOptional: 'User Background (Optional)',
-    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public) *',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
     socialOptional: 'Social Media (Optional)',
     socialHint: 'Link your social media to build trust with customers',
@@ -107,7 +108,7 @@ const SIGNUP_I18N = {
     summaryLabel: 'Introduction & Summary *',
     aboutHint: 'Magsulti og mubo nga introduction bahin nimo para sa Gisugo community. Mao ni ang basahon sa ubang users sa imong profile.',
     backgroundOptional: 'User Background (Optional)',
-    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public) *',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
     socialOptional: 'Social Media (Optional)',
     socialHint: 'I-link imong social media para mas mudako ang trust sa customers',
@@ -155,7 +156,7 @@ const SIGNUP_I18N = {
     summaryLabel: 'Introduction & Summary *',
     aboutHint: 'Maglagay ng maikling introduction tungkol sa iyo para sa Gisugo community. Ito ang babasahin ng ibang users sa profile mo.',
     backgroundOptional: 'User Background (Optional)',
-    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public) *',
     educationLabel: 'Education Level (Private Only - Not Visible To Public)',
     socialOptional: 'Social Media (Optional)',
     socialHint: 'I-link ang social media mo para mas tumaas ang trust ng customers',
@@ -950,7 +951,7 @@ function initializeCharacterCounter() {
         summaryCounter.style.color = '#fc8181';
         this.value = this.value.substring(0, 500);
         summaryCounter.textContent = '500';
-      } else if (currentLength < 50) {
+      } else if (currentLength < SUMMARY_MIN_CHARS) {
         summaryCounter.style.color = '#fc8181';
       } else {
         summaryCounter.style.color = '#a0aec0';
@@ -1131,11 +1132,11 @@ function validateField(field) {
       break;
       
     case 'dateOfBirth':
-      // Optional. Section is "User Background (Optional)" and stays collapsed
-      // on purpose. A 2026-08-06 Age Groups pass made this required; that
-      // blocked signup even if the user never opened the section (submit
-      // expands it). Blank is allowed; Age Groups buckets it as unknown.
-      if (!value) break;
+      // Required on About Me (not in User Background Optional). Gates 18+.
+      if (!value) {
+        showError(fieldId, 'Date of birth is required');
+        return false;
+      }
 
       const birthDate = new Date(value);
       const today = new Date();
@@ -1164,8 +1165,8 @@ function validateField(field) {
         showError(fieldId, 'Use letters, numbers, emojis, spaces, and basic punctuation only');
         return false;
       }
-      if (value.length < 50) {
-        showError(fieldId, 'Summary must be at least 50 characters');
+      if (value.length < SUMMARY_MIN_CHARS) {
+        showError(fieldId, `Summary must be at least ${SUMMARY_MIN_CHARS} characters`);
         return false;
       }
       if (value.length > 500) {

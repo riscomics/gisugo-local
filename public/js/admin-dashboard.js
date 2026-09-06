@@ -8021,7 +8021,7 @@ function switchUserTab(tabType) {
  * here -- those come from getUserModerationExtras(), fetched on demand only
  * when an admin opens this specific user (see selectUser()).
  */
-// dateOfBirth is optional at signup. Blank values return null
+// dateOfBirth is required at signup (18+). Legacy/blank values return null
 // instead of NaN/garbage (displayed as "Not specified").
 function calculateAgeFromDOB(dateOfBirth) {
     if (!dateOfBirth) return null;

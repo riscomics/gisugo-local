@@ -119,11 +119,10 @@ overlays. Verdict per card:
     deferred — would need a paid reverse-geocoding API call (the free client-side PH boundary
     dataset has no data for the rest of the world); one `Overseas` bucket is enough signal for
     now, can be layered in later if there's ever a real user base living abroad to justify it.
-- **Age Groups — `dateOfBirth` is optional at signup (reconfirmed 2026-09-06).** The
-  2026-08-06 required pass is reverted. The User Background section is labeled Optional
-  and starts collapsed; requiring DOB still blocked CREATE ACCOUNT (and opening the
-  section made that obvious). Blank DOB buckets as `unknown`. Education was already
-  optional. If a date is entered, signup still enforces 18+.
+- **Age Groups — `dateOfBirth` is required at signup (2026-09-06).** It lives
+  under About Me, not in User Background (Optional). That keeps the 18+ gate on
+  the required path without hiding it in a collapsed optional block. Education
+  stays optional. Blank/legacy accounts still bucket as `unknown`.
 
 ### Keep, but redesigned to a manual-refresh "snapshot" model (not live, not scheduled)
 These three were originally going to be cut as "too expensive," but that was conflating cost with
