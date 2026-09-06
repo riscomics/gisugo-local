@@ -16,12 +16,15 @@
 
 const STORAGE_CONFIG = {
   // Maximum file sizes (in bytes)
-  maxProfilePhotoSize: 5 * 1024 * 1024,  // 5MB
+  maxProfilePhotoSize: 5 * 1024 * 1024,  // leftover; originals use maxProfileOriginalSize
   maxJobPhotoSize: 10 * 1024 * 1024,      // 10MB
   maxIdDocumentSize: 10 * 1024 * 1024,    // 10MB
   // Original Support/Contact file before compressImage. Phone JPEGs often
   // exceed 5MB; the uploaded thumb/full variants are much smaller.
   maxSupportOriginalSize: 25 * 1024 * 1024,
+  // Original signup/Edit Profile file before compress. Same camera-JPEG
+  // problem as Support; uploaded profile.jpg is the resized variant.
+  maxProfileOriginalSize: 25 * 1024 * 1024,
   
   // Allowed file types
   allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -91,7 +94,7 @@ function validateFile(file, type = 'job') {
   
   switch (type) {
     case 'profile':
-      maxSize = STORAGE_CONFIG.maxProfilePhotoSize;
+      maxSize = STORAGE_CONFIG.maxProfileOriginalSize;
       allowedTypes = STORAGE_CONFIG.allowedImageTypes;
       break;
     case 'id':
@@ -888,6 +891,10 @@ function getSupportPhotoOriginalMaxBytes() {
   return STORAGE_CONFIG.maxSupportOriginalSize;
 }
 
+function getProfilePhotoOriginalMaxBytes() {
+  return STORAGE_CONFIG.maxProfileOriginalSize;
+}
+
 function isSupportPhotoOriginalTooLarge(file) {
   return !!(file && file.size > getSupportPhotoOriginalMaxBytes());
 }
@@ -895,6 +902,7 @@ function isSupportPhotoOriginalTooLarge(file) {
 window.STORAGE_CONFIG = STORAGE_CONFIG;
 window.validateFile = validateFile;
 window.getSupportPhotoOriginalMaxBytes = getSupportPhotoOriginalMaxBytes;
+window.getProfilePhotoOriginalMaxBytes = getProfilePhotoOriginalMaxBytes;
 window.isSupportPhotoOriginalTooLarge = isSupportPhotoOriginalTooLarge;
 window.compressImage = compressImage;
 window.uploadProfilePhoto = uploadProfilePhoto;

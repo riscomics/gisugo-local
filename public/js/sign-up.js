@@ -884,9 +884,13 @@ function processImageTo500Width(file, callback) {
 function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (file) {
-    // Validate file size (max 5MB before processing)
-    if (file.size > 5 * 1024 * 1024) {
-      showError('profilePhoto', 'Photo size must be less than 5MB');
+    // Sanity ceiling only. processImageTo500Width already resizes; a 5MB
+    // pick-time gate blocked camera JPEGs before that compressor ran.
+    const maxOriginalBytes = (typeof getProfilePhotoOriginalMaxBytes === 'function')
+      ? getProfilePhotoOriginalMaxBytes()
+      : 25 * 1024 * 1024;
+    if (file.size > maxOriginalBytes) {
+      showError('profilePhoto', 'Photo is too large. Please pick a photo under 25MB.');
       return;
     }
     // Validate file type
