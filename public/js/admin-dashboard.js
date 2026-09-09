@@ -185,6 +185,16 @@ function initializeNavigation() {
             
             // Update page title
             updatePageTitle(targetSection);
+
+            // Glance lists stay unloaded until that section is opened.
+            // Overview is the default landing page; fetching gigs/users
+            // on every dashboard boot was extra reads nobody asked for.
+            if (targetSection === 'moderation' && typeof ensureGigModerationListLoaded === 'function') {
+                ensureGigModerationListLoaded();
+            }
+            if (targetSection === 'users' && typeof ensureUserManagementListLoaded === 'function') {
+                ensureUserManagementListLoaded();
+            }
             
             console.log(`📱 Navigated to: ${targetSection}`);
         });
@@ -228,7 +238,6 @@ function updatePageTitle(section) {
         'overview': 'Dashboard Overview',
         'users': 'User Management', 
         'finance': 'Financial Management',
-        'analytics': 'Platform Analytics',
         'moderation': 'Gig Moderation',
         'ads': 'Ad Placement',
         'settings': 'System Settings'
@@ -4526,11 +4535,33 @@ function initializeGigModeration() {
     
     // Initialize mobile overlay
     initializeGigDetailOverlay();
-    
-    // Load initial gigs (posted tab)
-    loadGigCards('posted');
+
+    // One listener on the list. Per-card listeners stacked if the same
+    // nodes were reused; innerHTML rebuilds currently replace nodes, but
+    // delegation keeps a later rebuild from doubling clicks.
+    initializeGigCardClicks();
     
     console.log('✅ Gig Moderation initialized');
+}
+
+let gigModerationListLoaded = false;
+
+function ensureGigModerationListLoaded() {
+    if (gigModerationListLoaded) return;
+    gigModerationListLoaded = true;
+    loadGigCards(currentGigTab || 'posted');
+}
+
+function initializeGigCardClicks() {
+    const list = document.getElementById('gigCardsList');
+    if (!list || list.dataset.clicksBound === '1') return;
+    list.dataset.clicksBound = '1';
+    list.addEventListener('click', function (event) {
+        const card = event.target.closest('.gig-card');
+        if (!card || !list.contains(card)) return;
+        const gigId = card.getAttribute('data-gig-id');
+        if (gigId) loadGigDetails(gigId);
+    });
 }
 
 function initializeGigTabs() {
@@ -4641,8 +4672,6 @@ async function loadGigCards(tabType, options = {}) {
         if (loadMoreBtn) {
             loadMoreBtn.style.display = (tabType === 'posted' && gigsPostedHasMore) ? 'inline-block' : 'none';
         }
-
-        attachGigCardHandlers();
     } catch (error) {
         console.error('❌ Error loading gig moderation cards:', error);
         gigCardsList.innerHTML = '<div class="gig-cards-empty" style="padding:2rem;text-align:center;color:#e53e3e;">Could not load gigs. Try refreshing.</div>';
@@ -4692,17 +4721,6 @@ function generateGigCardHTML(gig) {
             </div>
         </div>
     `;
-}
-
-function attachGigCardHandlers() {
-    const gigCards = document.querySelectorAll('.gig-card');
-    
-    gigCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const gigId = this.dataset.gigId;
-            loadGigDetails(gigId);
-        });
-    });
 }
 
 function loadGigDetails(gigId) {
@@ -5802,14 +5820,14 @@ async function performGigSearch() {
             : [];
         const searchedGigs = results.map(r => normalizeGigForDisplay(r.id, r.data));
 
-        // Swap allGigs so clicking a result still works via attachGigCardHandlers/loadGigDetails.
+        // Swap allGigs so clicking a result still works via the list's
+        // one-time click listener / loadGigDetails.
         allGigs = searchedGigs;
 
         if (searchedGigs.length === 0) {
             gigCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">No gigs found matching your search.</div>';
         } else {
             gigCardsList.innerHTML = searchedGigs.map(gig => generateGigCardHTML(gig)).join('');
-            attachGigCardHandlers();
         }
 
         const gigsStats = document.getElementById('gigsStats');
@@ -7950,11 +7968,31 @@ function initializeUserManagement() {
     
     // Initialize Load More (New tab only)
     initializeUserLoadMore();
-    
-    // Load initial users (new tab)
-    loadUserCards('new');
+
+    initializeUserCardClicks();
     
     console.log('✅ User Management initialized');
+}
+
+let userManagementListLoaded = false;
+
+function ensureUserManagementListLoaded() {
+    if (userManagementListLoaded) return;
+    userManagementListLoaded = true;
+    loadUserCards(currentUserTab || 'new');
+}
+
+function initializeUserCardClicks() {
+    const list = document.getElementById('userCardsList');
+    if (!list || list.dataset.clicksBound === '1') return;
+    list.dataset.clicksBound = '1';
+    list.addEventListener('click', function (event) {
+        const card = event.target.closest('.user-card');
+        if (!card || !list.contains(card)) return;
+        const userId = card.getAttribute('data-user-id');
+        const user = allUsers.find((u) => u.id === userId);
+        if (user) selectUser(user);
+    });
 }
 
 function initializeUserLoadMore() {
@@ -8146,8 +8184,6 @@ async function loadUserCards(tabType, options = {}) {
         if (loadMoreBtn) {
             loadMoreBtn.style.display = (tabType === 'new' && usersNewHasMore) ? 'inline-block' : 'none';
         }
-
-        attachUserCardHandlers();
     } catch (error) {
         console.error('❌ Error loading user management cards:', error);
         userCardsList.innerHTML = '<div class="user-cards-empty" style="padding:2rem;text-align:center;color:#e53e3e;">Could not load users. Try refreshing.</div>';
@@ -8256,19 +8292,6 @@ function updateUserTabCounts() {
     } else if (currentUserTab === 'suspended' && suspendedCountEl) {
         suspendedCountEl.textContent = allUsers.length;
     }
-}
-
-function attachUserCardHandlers() {
-    const cards = document.querySelectorAll('.user-card');
-    cards.forEach(card => {
-        card.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            const user = allUsers.find(u => u.id === userId);
-            if (user) {
-                selectUser(user);
-            }
-        });
-    });
 }
 
 function selectUser(user) {
@@ -8827,14 +8850,14 @@ async function performUserSearch() {
             : [];
         const searchedUsers = results.map(r => normalizeUserForDisplay(r.id, r.data));
 
-        // Swap allUsers so clicking a result still works via attachUserCardHandlers/selectUser.
+        // Swap allUsers so clicking a result still works via the list's
+        // one-time click listener / selectUser.
         allUsers = searchedUsers;
 
         if (searchedUsers.length === 0) {
             userCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">No users found matching your search.</div>';
         } else {
             userCardsList.innerHTML = searchedUsers.map(user => generateUserCardHTML(user)).join('');
-            attachUserCardHandlers();
         }
 
         const usersStats = document.getElementById('usersStats');
