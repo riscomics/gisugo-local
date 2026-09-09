@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=35">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=36">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -301,18 +301,6 @@
                     <span class="menu-notification-badge">3</span>
                 </div>
 
-                <!-- Chats Management Section -->
-                <div class="menu-item" data-section="chats">
-                    <span class="menu-icon">💬</span>
-                    <span class="menu-text">Chats</span>
-                </div>
-
-                <!-- Financial Management Section -->
-                <div class="menu-item" data-section="finance">
-                    <span class="menu-icon">💰</span>
-                    <span class="menu-text">Financial</span>
-                </div>
-
                 <!-- Ad Placement Section -->
                 <div class="menu-item" data-section="ads">
                     <span class="menu-icon">📣</span>
@@ -323,6 +311,18 @@
                 <div class="menu-item" data-section="settings">
                     <span class="menu-icon">⚙️</span>
                     <span class="menu-text">Settings</span>
+                </div>
+
+                <!-- Parked until these sections have a real product behind them -->
+                <div class="sidebar-parked">
+                    <div class="menu-item menu-item-parked" data-section="chats" aria-disabled="true">
+                        <span class="menu-icon">💬</span>
+                        <span class="menu-text">User Chats</span>
+                    </div>
+                    <div class="menu-item menu-item-parked" data-section="finance" aria-disabled="true">
+                        <span class="menu-icon">💰</span>
+                        <span class="menu-text">Financial Management</span>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -3436,7 +3436,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=39"></script>
+    <script src="public/js/admin-dashboard.js?v=40"></script>
     
     
 </body>

@@ -156,6 +156,7 @@ function initializeNavigation() {
     const contentSections = document.querySelectorAll('.content-section');
     
     menuItems.forEach(item => {
+        if (item.classList.contains('menu-item-parked')) return;
         item.addEventListener('click', function() {
             const targetSection = this.getAttribute('data-section');
             

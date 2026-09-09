@@ -367,6 +367,28 @@ body.admin-dashboard::-webkit-scrollbar {
     font-weight: 600;
 }
 
+/* Parked sidebar items sit below Settings, visually separated, not clickable. */
+.sidebar-parked {
+    margin-top: 1.75rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.menu-item-parked {
+    opacity: 0.42;
+    color: #64748b;
+    cursor: default;
+    pointer-events: none;
+}
+
+.menu-item-parked:hover,
+.menu-item-parked.active {
+    background: none;
+    border-left-color: transparent;
+    color: #64748b;
+    box-shadow: none;
+}
+
 .menu-notification-badge {
     background: #ff4757;
     color: white;
