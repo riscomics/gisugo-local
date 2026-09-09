@@ -429,6 +429,121 @@ body.admin-dashboard::-webkit-scrollbar {
     line-height: 1.5;
 }
 
+.finance-concept {
+    margin: 0.5rem 0 2.5rem;
+    max-width: 56rem;
+}
+
+.finance-concept-note {
+    margin: 0.75rem 0 1.5rem;
+    color: #94a3b8;
+    line-height: 1.5;
+    max-width: 40rem;
+}
+
+.finance-concept-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.finance-concept-card {
+    padding: 1.25rem 1.15rem 1.1rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.4);
+    color: #cbd5e1;
+}
+
+.finance-concept-card-muted {
+    opacity: 0.85;
+    border-style: dashed;
+}
+
+.finance-concept-kicker {
+    margin-bottom: 0.45rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.finance-concept-card h2 {
+    margin: 0 0 0.55rem;
+    color: #e2e8f0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.finance-concept-card p {
+    margin: 0 0 0.75rem;
+    color: #94a3b8;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.finance-concept-card ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.finance-concept-heading {
+    margin: 1.75rem 0 0.35rem;
+    color: #e2e8f0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.finance-concept-sample-label {
+    margin: 0 0 0.75rem;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.finance-concept-table-wrap {
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+}
+
+.finance-concept-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.finance-concept-table th,
+.finance-concept-table td {
+    padding: 0.75rem 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.finance-concept-table th {
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.finance-concept-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+@media (max-width: 900px) {
+    .finance-concept-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .menu-notification-badge {
     background: #ff4757;
     color: white;

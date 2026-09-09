@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=37">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=38">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2378,16 +2378,87 @@
                 </div>
             </section>
 
-            <!-- Financial Management Section -->
+            <!-- Financial Management Section — concept mock only, no payment wiring -->
             <section id="finance" class="content-section">
                 <div class="section-header">
                     <h1 class="section-title">Financial Management</h1>
-                    <p class="section-subtitle">Monitor G-Coins, transactions, and revenue</p>
+                    <p class="section-subtitle">Concept only. GCash is the cash-in door for G-Coins. Nothing here is live or wired.</p>
                 </div>
-                <div class="parked-page">
-                    <div class="parked-page-badge">Parked</div>
-                    <h2>Pending</h2>
-                    <p>This page is parked until payments and G-Coins are a real product. Nothing here is live yet.</p>
+
+                <div class="finance-concept">
+                    <div class="parked-page-badge">Parked · concept mock</div>
+                    <p class="finance-concept-note">Sample layout for later. GISUGO does not take a cut of gig pay. Workers and customers still settle the job off-platform.</p>
+
+                    <div class="finance-concept-grid">
+                        <article class="finance-concept-card">
+                            <div class="finance-concept-kicker">GCash use 1</div>
+                            <h2>Buy G-Coins to post gigs</h2>
+                            <p>A customer pays with GCash. GISUGO adds posting credits. One G-Coin posts one gig.</p>
+                            <ul>
+                                <li>₱100 → 5 G-Coins</li>
+                                <li>₱250 → 25 G-Coins</li>
+                                <li>₱500 → 100 G-Coins</li>
+                            </ul>
+                        </article>
+                        <article class="finance-concept-card">
+                            <div class="finance-concept-kicker">GCash use 2</div>
+                            <h2>Pro and Business verification</h2>
+                            <p>The larger packages include a verification upgrade. GCash pays for that badge, not for the gig itself.</p>
+                            <ul>
+                                <li>₱250 package → Pro Verified</li>
+                                <li>₱500 package → Business Verified</li>
+                            </ul>
+                        </article>
+                        <article class="finance-concept-card finance-concept-card-muted">
+                            <div class="finance-concept-kicker">Not GCash</div>
+                            <h2>Gig pay stays off GISUGO</h2>
+                            <p>GCash is not escrow, not worker payroll, and not a commission on the agreed price.</p>
+                            <ul>
+                                <li>No cut of the job amount</li>
+                                <li>No “pay the worker” button</li>
+                                <li>Disputes stay off-platform</li>
+                            </ul>
+                        </article>
+                    </div>
+
+                    <h3 class="finance-concept-heading">Sample GCash activity</h3>
+                    <p class="finance-concept-sample-label">Sample rows only. Not real accounts or payments.</p>
+                    <div class="finance-concept-table-wrap">
+                        <table class="finance-concept-table">
+                            <thead>
+                                <tr>
+                                    <th>When</th>
+                                    <th>Who</th>
+                                    <th>GCash for</th>
+                                    <th>Paid</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Sample</td>
+                                    <td>Maria S.</td>
+                                    <td>G-Coin top-up</td>
+                                    <td>₱100</td>
+                                    <td>+5 G-Coins</td>
+                                </tr>
+                                <tr>
+                                    <td>Sample</td>
+                                    <td>Jun R.</td>
+                                    <td>Pro package</td>
+                                    <td>₱250</td>
+                                    <td>+25 G-Coins · Pro Verified</td>
+                                </tr>
+                                <tr>
+                                    <td>Sample</td>
+                                    <td>Cebu Air Care</td>
+                                    <td>Business package</td>
+                                    <td>₱500</td>
+                                    <td>+100 G-Coins · Business Verified</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
 
