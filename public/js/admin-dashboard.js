@@ -156,7 +156,6 @@ function initializeNavigation() {
     const contentSections = document.querySelectorAll('.content-section');
     
     menuItems.forEach(item => {
-        if (item.classList.contains('menu-item-parked')) return;
         item.addEventListener('click', function() {
             const targetSection = this.getAttribute('data-section');
             
@@ -1854,13 +1853,18 @@ function switchChatCategory(category) {
 
 // Update Chat Category Counts
 function updateChatCategoryCounts() {
+    const newCountEl = document.getElementById('newChatsCount');
+    const flaggedCountEl = document.getElementById('flaggedChatsCount');
+    const lockedCountEl = document.getElementById('lockedChatsCount');
+    if (!newCountEl || !flaggedCountEl || !lockedCountEl) return;
+
     const newCount = userChatsData.filter(c => chatStates[c.id].status === 'new').length;
     const flaggedCount = userChatsData.filter(c => chatStates[c.id].isFlagged).length;
     const lockedCount = userChatsData.filter(c => chatStates[c.id].isLocked).length;
-    
-    document.getElementById('newChatsCount').textContent = newCount;
-    document.getElementById('flaggedChatsCount').textContent = flaggedCount;
-    document.getElementById('lockedChatsCount').textContent = lockedCount;
+
+    newCountEl.textContent = newCount;
+    flaggedCountEl.textContent = flaggedCount;
+    lockedCountEl.textContent = lockedCount;
 }
 
 // Initialize Chat Search

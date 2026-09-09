@@ -367,7 +367,7 @@ body.admin-dashboard::-webkit-scrollbar {
     font-weight: 600;
 }
 
-/* Parked sidebar items sit below Settings, visually separated, not clickable. */
+/* Parked sidebar items sit below Settings, grayed, still clickable. */
 .sidebar-parked {
     margin-top: 1.75rem;
     padding-top: 1.15rem;
@@ -375,18 +375,58 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .menu-item-parked {
-    opacity: 0.42;
+    opacity: 0.55;
     color: #64748b;
-    cursor: default;
-    pointer-events: none;
+    cursor: pointer;
 }
 
-.menu-item-parked:hover,
+.menu-item-parked:hover {
+    background: rgba(148, 163, 184, 0.08);
+    border-left-color: #64748b;
+    color: #94a3b8;
+}
+
 .menu-item-parked.active {
-    background: none;
-    border-left-color: transparent;
-    color: #64748b;
+    opacity: 0.75;
+    background: rgba(148, 163, 184, 0.1);
+    border-left-color: #64748b;
+    color: #94a3b8;
     box-shadow: none;
+}
+
+.parked-page {
+    margin: 1.5rem 0 2rem;
+    padding: 2.5rem 2rem;
+    border: 1px dashed rgba(148, 163, 184, 0.35);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.35);
+    color: #94a3b8;
+    max-width: 36rem;
+}
+
+.parked-page-badge {
+    display: inline-block;
+    margin-bottom: 0.85rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.25);
+    color: #cbd5e1;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.parked-page h2 {
+    margin: 0 0 0.6rem;
+    color: #e2e8f0;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.parked-page p {
+    margin: 0;
+    line-height: 1.5;
 }
 
 .menu-notification-badge {
