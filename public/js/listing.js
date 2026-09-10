@@ -611,6 +611,31 @@ function saveFilterPrefs(region, city) {
   }
 }
 
+let listingFilterUiSync = null;
+
+function applyListingLocationFilter(region, city) {
+  const nextRegion = String(region || '').trim();
+  const cities = citiesByRegion[nextRegion] || [];
+  const requestedCity = String(city || '').trim();
+  const nextCity = cities.includes(requestedCity) ? requestedCity : (cities[0] || '');
+  if (!nextRegion || !nextCity) return;
+
+  activeRegion = nextRegion;
+  activeCity = nextCity;
+  saveFilterPrefs(activeRegion, activeCity);
+
+  const regionButton = document.getElementById('regionButton');
+  const cityButton = document.getElementById('cityButton');
+  if (regionButton) regionButton.textContent = activeRegion;
+  if (cityButton) cityButton.textContent = activeCity;
+
+  if (typeof listingFilterUiSync === 'function') {
+    listingFilterUiSync(activeRegion, activeCity);
+  }
+
+  filterAndSortJobs();
+}
+
 let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
 let activePay = "GIG TYPE";
@@ -1127,10 +1152,18 @@ function ensureListingEmptyState(headerSpacer) {
     <img class="listing-empty-graphic" src="public/images/Gisugo-emblem.png" alt="GISUGO logo">
     <div class="listing-empty-title">NO GIGS YET</div>
     <div class="listing-empty-subtitle">Be the first to Post<br>Or check again Later</div>
-    <div class="listing-empty-note">📍 GISUGO is launching in <strong>Cebu City</strong> first, so most gigs are available there right now.</div>
+    <div class="listing-empty-note">📍 GISUGO is launching in <button type="button" class="listing-empty-cebu-link">Cebu City</button> first, so most gigs are available there right now.</div>
   `;
 
   headerSpacer.parentNode.insertBefore(emptyState, headerSpacer.nextSibling);
+  const cebuLink = emptyState.querySelector('.listing-empty-cebu-link');
+  if (cebuLink) {
+    cebuLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      applyListingLocationFilter('CEBU', 'CEBU CITY');
+    });
+  }
   return emptyState;
 }
 
@@ -3433,6 +3466,13 @@ function initJobcatButtonAutoResize() {
     else if (selectedPayType === 'business') payTypeText = 'BUSINESS';
     if (filterDisplayPay) filterDisplayPay.textContent = payTypeText; // always short (SELECT/PERSONAL/BUSINESS), never needs truncation
   }
+
+  listingFilterUiSync = function (region, city) {
+    selectedRegion = region;
+    selectedCity = city;
+    populateCities(selectedRegion);
+    updateFilterDisplay();
+  };
   
   // Region button click - open modal (prevent panel from closing)
   if (regionButton) {

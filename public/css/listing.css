@@ -2878,8 +2878,28 @@ body::-webkit-scrollbar {
   max-width: 38ch;
 }
 
-.listing-empty-note strong {
+.listing-empty-note strong,
+.listing-empty-cebu-link {
   color: #fbbf24;
+}
+
+.listing-empty-cebu-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: #fbbf24;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  cursor: pointer;
+}
+
+.listing-empty-cebu-link:hover,
+.listing-empty-cebu-link:focus {
+  color: #fde68a;
 }
 
 @keyframes emptyStateFadeIn {
