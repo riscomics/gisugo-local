@@ -15,25 +15,17 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Immediate next build (2026-09-10):** gig-card **small photo + gig-page large photo**.
-Today `uploadJobPhoto()` only saves **one** JPEG (max 1200×1200, quality 0.8). Category
-cards and the gig page both download that same file. Support photos already save a small
-preview plus a large file — gig photos never got that. Do this before native assumes a
-single photo URL.
-**Before dummy deletes:** Launch Feed smoke — one live gig with **20+** applications.
-Settings Launch Feed is ON. Category list should **hide** that gig (feed stays soonest-date
-first; there is no “popular” rank). Gig stays `active`; Apply via direct URL still works;
-poster gets the 20-app review alert. Do **not** Ban those dummies for this test.
-**Then Pre-launch QA:** dummy-account deletes (Auth + `users` / `user_private` /
-`security_metadata`, **not** on `banned_phones`) → Ban test on a real Google/Facebook
-account (not a phone+password dummy) → leftover audit → keeper on/off smokes → phone
-audit → leak walk. Phone+password retirement is a small later *build* after dummies.
+**Immediate next (two builds, locked 2026-09-10).** Owner confirmed Launch Feed is
+**two buckets on one scroll**, not hide. Gig-card small photo is the other priority.
+Microtasklists are in Track E below this roster. Do **not** dummy-delete until Launch
+Feed ON is smoked with 20+ apps sitting in the **bottom** bucket.
+**Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
+Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
+**Native:** may start on live Firebase now. Job photos should use small+large URLs
+once that build ships. Remaining Ban/dummy tests do not block that.
 **Why not Ban a dummy then Unban then delete:** Unban restores login but **does not
 remove** the number from `banned_phones`. That fake number stays blocked for new
 signups. Phone+password Ban also does not prove “same Google/Facebook cannot come back.”
-**Native app:** V1 clerks + locked rules **are** the backend. Remaining QA does not
-block starting React Native on Auth / Firestore / Storage / Functions. Job photos should
-use small+large URLs once that build ships. Do not wait on Ban/dummy deletes to start.
 **Later product (not QA):** region-aware listings feed; Privacy/Terms; in-app account
 deletion; Semaphore OTP (needs business registration); block-user as a real product;
 ID verification; G-Coins purchase.
@@ -553,14 +545,13 @@ that the whole dashboard section is finished forever.
       6. **[x] Max active gigs** (`0` = no cap).
       7. **[x] Min gig price ₱** (Settings owns the number).
       8. **[x] Max gig price ₱**
-      9. **[x] Launch Feed (Settings ON/OFF).** Live ON. This is **not** a
-         “popular gigs first” sort. Category pages still sort by **soonest
-         gig date/time**. While ON: gigs with **20+** applications are
-         **hidden from the category list** so busy posts do not crowd the
-         feed; the gig stays `active` and Apply via direct link still works;
-         at 20 apps the poster gets a review alert (no auto-pause). While
-         OFF (“mature”): auto-pause + block apply at **10** apps. Smoke this
-         with dummy workers **before** dummy deletes (see Pre-launch QA).
+      9. **[ ] Launch Feed two buckets (product lock 2026-09-10 — code still HIDES).**
+         Owner confirmed: ON = one category scroll, two buckets. Top = under 20
+         apps, soonest ending. Bottom = 20+ apps (“popular”), soonest ending
+         among themselves. 20+ stay on the feed (seed gigs must not vanish).
+         No Due date / High interest picker. Switch OFF = no second bucket
+         (mature: existing pause + block Apply at 10). Live code + dashboard
+         copy still say hide 20+. Fix = Track E microtasklist B.
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. If the public Settings doc cannot
@@ -963,15 +954,11 @@ that the whole dashboard section is finished forever.
         go away. Function runs are cheap; those scans are what hit the bank.
 
 - [ ] **Pre-launch QA (NOW — Phase 12 shipped. Not more lockdown.).**
-      Immediate **build** (separate, do first if you are in code): gig-card small photo
-      + gig-page large photo (Track E). Immediate **live test** (dummies still exist):
-      Launch Feed 20-app hide. Then dummy deletes. Then Ban on a Google/Facebook
-      account, not a phone+password dummy.
-      0. **[ ] Launch Feed smoke (before dummy deletes).** Settings Launch Feed ON.
-         One gig, 20+ applications from dummy workers. Category list hides it.
-         Sort is still soonest date — not “most applications first.” Gig stays
-         active; Apply via URL still works; poster gets the 20-app review alert.
-         Do not Ban those dummies.
+      Immediate **builds** first (Track E A then B). Then dummy deletes.
+      0. **[ ] Launch Feed smoke (after B ships).** Settings ON. One gig, 20+
+         dummy applies. Hatod (and any category) still **shows** it, in the
+         **bottom** bucket, soonest-ending among other 20+ gigs. Under-20
+         gigs stay on top. Do not Ban those dummies.
       1. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
          `security_metadata`. Do **not** stamp those numbers on `banned_phones`.
          Do **not** Ban-then-Unban-then-delete: Unban does not remove the phone
@@ -984,7 +971,7 @@ that the whole dashboard section is finished forever.
          suspended; phone stamp stays on the list.
       3. **[ ] Leftover audit** after the Ban test.
       4. **[ ] Remaining Phase 11 keeper on/off smokes** (#3 already accepted;
-         Launch Feed 20-app hide is item 0 above).
+         Launch Feed two-bucket smoke is item 0 above).
       5. **[ ] Phone+password retirement** — small later *build*, after dummies
          so test accounts can still be minted.
       6. **[ ] Pre-launch phone audit.**
@@ -1966,18 +1953,67 @@ that the whole dashboard section is finished forever.
       - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
-- [ ] **IMMEDIATE NEXT BUILD (2026-09-10): gig-card small photo + gig-page large photo.**
-      Re-checked live code: `uploadJobPhoto()` still saves **one** JPEG (compress to
-      max 1200×1200, quality 0.8). The job’s `thumbnail` field is that same file.
-      Category cards and the gig page both download it. It is resized once; it is
-      **not** a small card preview plus a separate large photo.
-      Support tickets already upload two files (small preview ~100px + large ~1200px).
-      Gig photos never got that split. Every scroll of a category page therefore
-      downloads the large photo for every card — that will get expensive as listings
-      grow. Build: save a small card image and a large gig-page image, point the
-      card at the small one. Existing gigs can keep using the current single file
-      until re-saved. Do this before the native app assumes one photo URL.
-      Owner: this is a real priority, not parked behind Ban/QA.
+- [ ] **A. Gig-card small photo + gig-page large photo (IMMEDIATE).**
+      Live today: one 1200×1200 JPEG. Cards (~115–230px) and the gig page both
+      download it. Support already uploads small + large; gig photos do not.
+      **Live callers (do not expand to dead pages):** `uploadJobPhoto` /
+      `copyJobPhotoToNewJob` from `new-post2.js` (post, edit, relist). Menu and
+      Gigs Manager go to `new-post2.html`. `listing.js` paints every category
+      card (`thumbnail`). `dynamic-job.js` paints the gig page (same field).
+      `new-post.js` still calls the helpers if that leftover page is opened;
+      same functions cover it — do not rebuild `new-post.html`.
+      **Locked sizes:** card file ~400px max, JPEG ~0.7 (cards go up to 230px,
+      so 100px chat thumbs would look soft). Gig-page file stays ~1200px / 0.8.
+      Old gigs with only `thumbnail` keep working (card and page use that file).
+      **Microtasklist (stop after each; smoke before the next group):**
+      1. **[ ] Contract only (no code).** Job doc: keep `thumbnail` as the
+         **card** URL. Add `photoFull` (or equivalent) as the **gig-page** URL.
+         Native later reads both; missing `photoFull` falls back to `thumbnail`.
+      2. **[ ] `uploadJobPhoto` writes both files** in `firebase-storage.js`
+         (same pattern as `uploadSupportPhoto`). Return both URLs.
+      3. **[ ] `copyJobPhotoToNewJob` copies both** on relist (or copies the
+         one file that exists on old gigs).
+      4. **[ ] `new-post2.js` saves both fields** on post / edit / new photo.
+      5. **[ ] `listing.js` cards use the small URL.** Gig page
+         (`dynamic-job.js`) uses the large URL. Fallback: one-file gigs.
+      6. **[ ] Leftover audit.** No live path still uploads a single 1200px
+         as the card image. Do not rewrite 56 category HTML files (`listing.js`
+         is the one painter).
+      7. **[ ] Smoke.** Post a new gig with a photo. Category card is the
+         small file. Gig page is the large file. Relist without a new photo
+         still shows an image. An old gig with only `thumbnail` still shows.
+- [ ] **B. Launch Feed two buckets (IMMEDIATE — product lock 2026-09-10).**
+      Owner confirmed. Switch ON = launch. Every category (Hatod, etc.) is
+      **one scroll, two buckets:** (1) under 20 apps, soonest ending on top;
+      (2) 20+ apps at the **bottom**, soonest ending among themselves.
+      20+ stay on the feed so seed gigs do not vanish. **No** Due date /
+      High interest picker. Quiet “Popular” divider between buckets (not a
+      tap control). Switch OFF = no bucket 2 (mature). Apply path already
+      pauses + blocks at 10 when OFF — leave that. ON: stay live, review
+      alert at 20, do **not** pause.
+      **Live bug:** `listing.js` **hides** 20+ when ON. Dashboard copy says
+      hide. That is the opposite of launch. Apply notify-at-20 is already
+      correct for ON.
+      **Live files:** `listing.js` (all category pages), `admin-dashboard.html`
+      Settings line, `firebase-db.js` comments + `GisugoGigFeedPolicy`.
+      **Microtasklist:**
+      1. **[ ] Stop hiding.** Delete the ON filter that drops
+         `applicationCount >= 20` from the list.
+      2. **[ ] Split + sort.** Same soonest-ending sort as today, then
+         concatenate under-20 then 20+. Pagination / Load More must keep
+         that order (do not let popular jump to the top on the next batch).
+      3. **[ ] One quiet “Popular” heading** between buckets when bucket 2
+         is non-empty. No extra tabs or pickers. Empty popular = no heading.
+      4. **[ ] Dashboard copy.** ON: stay live; 20+ move to the Popular
+         bucket at the bottom. OFF: no Popular bucket; pause and block
+         Apply at 10.
+      5. **[ ] Comments / policy text** in `firebase-db.js` match the copy.
+         Do not change 20 / 10 numbers.
+      6. **[ ] Smoke (dummies, before dummy deletes).** Settings ON. One
+         gig to 20+ apps. It stays on Hatod **under** Popular, soonest
+         among other 20+ if any. Under-20 gigs still on top. Poster still
+         gets the 20-app review alert. Gig stays `active`. Do not Ban.
+
 - [x] **Phone tray tap → Alerts (LOCKED 2026-07-20 — shipped + user-confirmed in phone retests).**
       **Implementation:** push payload switched to **data-only** (no top-level `notification`)
       in `buildPushPayloadFromNotification`, so the SW displays the tray entry itself and its
@@ -2673,15 +2709,15 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = gig-card small photo, then Launch Feed 20-app smoke, then dummy deletes.**
+> **Next linchpin = A gig-card small photo, then B Launch Feed two buckets, then dummy deletes.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
-1. **Gig-card small photo + gig-page large photo** (Track E). Immediate build.
-2. **Launch Feed smoke** (20+ apps hide from category list; still soonest-date sort).
-   Dummy workers. Do not Ban them.
+1. **A. Gig-card small photo + gig-page large photo** (Track E). Immediate build.
+2. **B. Launch Feed two buckets** (stop hiding 20+; Popular at the bottom). Then smoke
+   with dummy 20+ apps. Do not Ban them.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
    Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper
    smokes → phone audit → admin extra-read walk. Phone+password sunset after dummies.
