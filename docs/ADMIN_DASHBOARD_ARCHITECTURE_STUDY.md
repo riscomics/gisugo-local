@@ -108,6 +108,12 @@ overlays. Verdict per card:
     reconciles a one-time signup snapshot with the fact that people move — that's implementation
     detail for whoever builds the feed integration, not a reason to hold back or downplay this
     copy today.
+    **Recommendation (2026-09-10, not built):** Edit Profile already has **Share My Location**
+    (GPS recapture via the same `submitSignupLocation` path). That is the primary “I moved”
+    control — tap on, phone reports where they are now, region counter updates. Add an
+    **optional 17-region picker** only as a fallback/override when GPS is denied or they want
+    a home region that is not where they are standing. Do not replace GPS with dropdown-only.
+    Do not rewrite the signup/Edit Profile location copy unless asked.
   - **`Overseas` bucket added 2026-08-07 (owner call):** a shared location outside the Philippines
     is a real, useful answer — not the same thing as "declined/never shared" — so it gets its own
     counter instead of being lumped into `unknown`. `unknown` now means strictly "no data" (never

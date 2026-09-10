@@ -1,8 +1,10 @@
 # GISUGO V2 — Native App Development Plan
 
-> Status: **Direction decided, build parked behind V1 hardening**
+> Status: **Direction decided.** V1 Track B lockdown shipped 2026-09-10. Native may
+> start wiring the live Firebase backend. Check `docs/V1_HARDENING_TASKLIST.md` for
+> current V1 leftovers (gig-card photos, Launch Feed smoke, Ban/QA).
 > Created: 2026-06-18
-> **Agent rule:** V2 is parked — do not cite this plan as current V1 status without checking
+> **Agent rule:** do not cite this plan as current V1 leftover status without checking
 > `docs/V1_HARDENING_TASKLIST.md` and production data. See `AGENTS.md` § "verify production data."
 > Owner: solo build (designer/PM + AI-paired development)
 
@@ -21,7 +23,7 @@ don't re-litigate them. Update this doc as decisions firm up.
 | Capacitor / hybrid wrapper | **Rejected** | Decided |
 | Keep the web app after app launch | **Yes** (Facebook model) | Committed |
 | Backend | **Reuse existing Firebase backend wholesale** | Committed |
-| Build timing | **After V1 production hardening is done** | Sequenced |
+| Build timing | **V1 lockdown shipped 2026-09-10.** Native may start on the live Firebase backend now. Gig-card small+large photos should land before native hardcodes one job-photo URL. Ban/dummy QA is ops, not a backend blocker. | Sequenced |
 
 ---
 

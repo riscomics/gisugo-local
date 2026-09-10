@@ -15,15 +15,28 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Next = Pre-launch QA** (Track C list below). Dummy-account deletes first — wipe Auth +
-`users` / `user_private` / `security_metadata`, do **not** stamp those numbers on
-`banned_phones` — then owner Ban test, leftover audit, remaining keeper on/off smokes,
-pre-launch phone audit, leak + extra-cost catch-up. Phone+password retirement is a small
-later *build* after dummies. Permaban IP is after launch.
-**Planned product (not the QA list):** region-aware listings feed (signup GPS snapshot
-already live; Cebu empty-state is the stopgap — do not rewrite that copy); Privacy/Terms
-rewrite; in-app account deletion; Semaphore phone OTP (gated on business registration);
-block-user; ID verification; G-Coins purchase; listing-photo thumbnails.
+**Immediate next build (2026-09-10):** gig-card **small photo + gig-page large photo**.
+Today `uploadJobPhoto()` only saves **one** JPEG (max 1200×1200, quality 0.8). Category
+cards and the gig page both download that same file. Support photos already save a small
+preview plus a large file — gig photos never got that. Do this before native assumes a
+single photo URL.
+**Before dummy deletes:** Launch Feed smoke — one live gig with **20+** applications.
+Settings Launch Feed is ON. Category list should **hide** that gig (feed stays soonest-date
+first; there is no “popular” rank). Gig stays `active`; Apply via direct URL still works;
+poster gets the 20-app review alert. Do **not** Ban those dummies for this test.
+**Then Pre-launch QA:** dummy-account deletes (Auth + `users` / `user_private` /
+`security_metadata`, **not** on `banned_phones`) → Ban test on a real Google/Facebook
+account (not a phone+password dummy) → leftover audit → keeper on/off smokes → phone
+audit → leak walk. Phone+password retirement is a small later *build* after dummies.
+**Why not Ban a dummy then Unban then delete:** Unban restores login but **does not
+remove** the number from `banned_phones`. That fake number stays blocked for new
+signups. Phone+password Ban also does not prove “same Google/Facebook cannot come back.”
+**Native app:** V1 clerks + locked rules **are** the backend. Remaining QA does not
+block starting React Native on Auth / Firestore / Storage / Functions. Job photos should
+use small+large URLs once that build ships. Do not wait on Ban/dummy deletes to start.
+**Later product (not QA):** region-aware listings feed; Privacy/Terms; in-app account
+deletion; Semaphore OTP (needs business registration); block-user as a real product;
+ID verification; G-Coins purchase.
 
 ### Where we were (2026-07-20) — history
 **Track G (login / auth) is CLOSED.** **Item 3 SHIPPED** (code + hosting/functions deploy):
@@ -445,11 +458,12 @@ that the whole dashboard section is finished forever.
       6. **[ ] Pre-launch phone audit.** Every live account has a unique
          normalized phone, or is cleaned / gated.
       7. **[ ] Dummy test-account delete (no banlist).** Auth + Firestore
-         docs. US fakes do not go on the list.
-      8. **[ ] Owner Ban test (deferred).** After 4–5, or after 7 right
-         before launch. Suspend → Ban → cannot log in / same social
-         blocked / old phone refused on a new account. Evidence stays.
-         Unban → login works; gigs stay suspended.
+         docs. US fakes do not go on the list. Do not Ban them first: Unban
+         does not clear `banned_phones`. Use them for Launch Feed 20-app
+         smoke, then delete-without-ban.
+      8. **[ ] Owner Ban test (deferred).** After dummy deletes. Prefer a
+         throwaway Google/Facebook account (same-social refuse). Phone+password
+         Ban is a weaker proof.
       9. **[ ] Leftover audit** after you run the deferred Ban test.
       10. **[ ] Phone+password sunset (later).** Kill signup + login UI
           and reject new synthetic-email creates. After dummies are done.
@@ -518,8 +532,12 @@ that the whole dashboard section is finished forever.
 - [x] **Phase 11: Settings product — hide dead controls, then wire keepers.
       Hide pass live 2026-08-26. Keepers Deployed 2026-08-27.** Phase 5 storage
       stays. Dead rows removed. Public site reads `platform_settings/public`
-      (fail-open if the doc cannot be read). Login and admin-dashboard never
-      get the maintenance cover. Do not reopen Phase 5.
+      (if that Firestore doc cannot be read, the public site uses safe
+      defaults: keepers off, signup allowed, Launch Feed ON — so a network
+      blip cannot freeze the whole app as if maintenance were on). Login and
+      admin-dashboard never get the maintenance cover. Phase 5 already moved
+      Settings out of the browser’s localStorage into Firestore — do not
+      rebuild that storage. Only smoke the keepers.
       **Live numbers (2026-08-27):** max active gigs `0` (no cap), min ₱50,
       max ₱10,000, launch-feed ON, all pause switches off.
       **Owner tests:** #3 tech warning centered and accepted 2026-08-28.
@@ -535,11 +553,18 @@ that the whole dashboard section is finished forever.
       6. **[x] Max active gigs** (`0` = no cap).
       7. **[x] Min gig price ₱** (Settings owns the number).
       8. **[x] Max gig price ₱**
-      9. **[x] Launch feed bucket Settings ON/OFF** (feature was already live
-         hardcoded ON; switch now reads `platform_settings/public`).
+      9. **[x] Launch Feed (Settings ON/OFF).** Live ON. This is **not** a
+         “popular gigs first” sort. Category pages still sort by **soonest
+         gig date/time**. While ON: gigs with **20+** applications are
+         **hidden from the category list** so busy posts do not crowd the
+         feed; the gig stays `active` and Apply via direct link still works;
+         at 20 apps the poster gets a review alert (no auto-pause). While
+         OFF (“mature”): auto-pause + block apply at **10** apps. Smoke this
+         with dummy workers **before** dummy deletes (see Pre-launch QA).
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
-         never get the maintenance cover. Policy read fails open.
+         never get the maintenance cover. If the public Settings doc cannot
+         be read, keepers stay off (safe defaults).
 - [x] **Phase 12: Applications + notifications lockdown (Track B). SHIPPED 2026-09-06/10.**
       This was a **security lock**, not a new screen and not the “test everything” pass.
       Full map: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
@@ -938,26 +963,38 @@ that the whole dashboard section is finished forever.
         go away. Function runs are cheap; those scans are what hit the bank.
 
 - [ ] **Pre-launch QA (NOW — Phase 12 shipped. Not more lockdown.).**
-      Owner forgot to have leak / extra-cost checks done as each admin Phase
-      shipped. This list is that catch-up plus the other launch leftovers.
-      Dummy deletes first so Ban test does not stamp fake US numbers.
-      1. **[ ] Ban test** (owner). After dummy deletes, or after leftover
-         cleanup — same order already locked under Phase 9.
-      2. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
-         `security_metadata`. Do **not** stamp those numbers on the banlist.
+      Immediate **build** (separate, do first if you are in code): gig-card small photo
+      + gig-page large photo (Track E). Immediate **live test** (dummies still exist):
+      Launch Feed 20-app hide. Then dummy deletes. Then Ban on a Google/Facebook
+      account, not a phone+password dummy.
+      0. **[ ] Launch Feed smoke (before dummy deletes).** Settings Launch Feed ON.
+         One gig, 20+ applications from dummy workers. Category list hides it.
+         Sort is still soonest date — not “most applications first.” Gig stays
+         active; Apply via URL still works; poster gets the 20-app review alert.
+         Do not Ban those dummies.
+      1. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
+         `security_metadata`. Do **not** stamp those numbers on `banned_phones`.
+         Do **not** Ban-then-Unban-then-delete: Unban does not remove the phone
+         stamp, so the fake number stays blocked for new signups.
+      2. **[ ] Ban test** (owner). After dummy deletes. Use a throwaway
+         **Google or Facebook** account so you prove the same social login is
+         refused. Phone+password Ban is a weaker proof (that is the tester door).
+         Suspend → Ban → cannot log in / same social blocked / old phone refused
+         on a new account. Evidence stays. Unban → login works; gigs stay
+         suspended; phone stamp stays on the list.
       3. **[ ] Leftover audit** after the Ban test.
-      4. **[ ] Remaining Phase 11 keeper on/off smokes** (#3 already accepted).
+      4. **[ ] Remaining Phase 11 keeper on/off smokes** (#3 already accepted;
+         Launch Feed 20-app hide is item 0 above).
       5. **[ ] Phone+password retirement** — small later *build*, after dummies
          so test accounts can still be minted.
       6. **[ ] Pre-launch phone audit.**
-      7. **[ ] Leak + extra-cost catch-up** (skipped during Phases 1–11).
-         Walk the live admin dashboard for stacked click listeners, leftover
-         live listeners, and repeat / unbounded reads. **Known skip
-         (2026-08-28):** `attachGigCardHandlers` — every gig-card rebuild may
-         add another click listener if the same card nodes are reused. Confirm
-         live vs orphaned, then fix only what is actually stacking or wasting
-         reads. Not a dashboard rewrite. Reported By already had its own pass
-         (skip repeat fetch + patch-only UI, 2026-08-28).
+      7. **[ ] Admin dashboard extra-read walk** (skipped during Phases 1–11).
+         Look for click handlers stacking on rebuild, leftover live listeners,
+         and repeat / unbounded reads. **Known skip (2026-08-28):**
+         `attachGigCardHandlers` — every gig-card rebuild may add another click
+         listener if the same card nodes are reused. Confirm live vs unused
+         code, then fix only what is actually stacking. Not a dashboard rewrite.
+         Reported By already had its own pass (2026-08-28).
 - [x] **SUPERSEDED 2026-08-15 (was: Gig Moderation Contact via `chat_threads`).**
       That 2026-08-09 write-up is history. Live decision is the Phase 8 entry above
       (Contact → `support_requests` Support thread). Overlays are live as of
@@ -1407,9 +1444,13 @@ that the whole dashboard section is finished forever.
       user’s own name in chat.
       **Locked:** do not let users self-rename. Admin rename must rewrite
       stamped names, or those cards must read `users.fullName`.
-- [ ] **#9 Block-user feature (approved).** Likely user-to-user only (NOT dependent on
-      Admin Dashboard) — needs its own small backend (store blocks + chat enforcement).
-      Confirm plumbing when started.
+- [ ] **#9 Block-user feature (approved) — not a live product yet (2026-09-10).**
+      User 1 cannot actually block User 2 on Apply / Hire / listings / Alerts.
+      A leftover **Block User** button exists only on old chat avatar overlays
+      (`alerts.js` / `support.js` / `messages.js`). Messages is out of the public
+      menu. There is **no** `blockedUsers` rule in `firestore.rules`, and block
+      does not hide gigs or stop applications. Real build still needs its own
+      store + enforcement. Confirm plumbing when started.
 
 ## Track D-misc — Notification copy / "slots reopened" reframe
 - [x] **Closure alerts reframed to a reason-neutral "Application Slots Open" abundance signal**
@@ -1925,20 +1966,18 @@ that the whole dashboard section is finished forever.
       - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
-- [ ] **QUEUED (after owner shelves Phase 10 + Email/WhatsApp door — not next):
-      gig/job listing photo bandwidth optimization.** Support photo-conversion (thumb + full)
-      already shipped 2026-08-12. Phase 10 engine is live; this gig-card work is still parked.
-      Confirmed 2026-08-12 via code audit: `uploadJobPhoto()` produces exactly ONE
-      image — 1200×1200 max, JPEG quality 0.8 — and that same file is what's stored in the job's
-      `thumbnail` field and shown on every listing card. The field name is misleading; there is no
-      actual small thumbnail. Every browse of every gig card downloads the full-size photo meant
-      for the detail view. By contrast, the (currently dormant) chat photo system already does this
-      correctly: a 100px/60%-quality thumbnail for list views + a separate 720px/75%-quality
-      full-size for detail — proof the pattern already exists in this codebase, just never applied
-      to job photos. This is the dominant Firestore/Storage cost driver at real scale (every
-      session, every user, every card — not a rare action like filing a support ticket), and pairs
-      with the still-open "CDN/cache layer in front of Storage-served images" question from the
-      2026-08-12 cost-modeling discussion. Not started — queued as the next build after Support.
+- [ ] **IMMEDIATE NEXT BUILD (2026-09-10): gig-card small photo + gig-page large photo.**
+      Re-checked live code: `uploadJobPhoto()` still saves **one** JPEG (compress to
+      max 1200×1200, quality 0.8). The job’s `thumbnail` field is that same file.
+      Category cards and the gig page both download it. It is resized once; it is
+      **not** a small card preview plus a separate large photo.
+      Support tickets already upload two files (small preview ~100px + large ~1200px).
+      Gig photos never got that split. Every scroll of a category page therefore
+      downloads the large photo for every card — that will get expensive as listings
+      grow. Build: save a small card image and a large gig-page image, point the
+      card at the small one. Existing gigs can keep using the current single file
+      until re-saved. Do this before the native app assumes one photo URL.
+      Owner: this is a real priority, not parked behind Ban/QA.
 - [x] **Phone tray tap → Alerts (LOCKED 2026-07-20 — shipped + user-confirmed in phone retests).**
       **Implementation:** push payload switched to **data-only** (no top-level `notification`)
       in `buildPushPayloadFromNotification`, so the SW displays the tray entry itself and its
@@ -2634,27 +2673,27 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = Pre-launch QA** (dummy deletes first).
+> **Next linchpin = gig-card small photo, then Launch Feed 20-app smoke, then dummy deletes.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
-1. **Pre-launch QA** (Track C list): dummy-account deletes (**not** on `banned_phones`) →
-   owner Ban test → leftover audit → remaining Phase 11 keeper on/off smokes → pre-launch
-   phone audit → leak + extra-cost catch-up. Phone+password sunset is a small later build
-   after dummies. Permaban IP is after launch.
-2. **Final cross-device / full-platform QA** (not iPhone 7 Apply — that door is skipped).
-   Remaining Track E as you choose: category-page viewport inconsistency, gig-photo
-   thumbnails, iPad-mini header if it still bites.
-3. **Phone VERIFICATION fast-follow (Semaphore OTP, ~$0.02/send vs Firebase's ~$0.15)** —
-   plan in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 1 APPENDIX. Gated on business
-   registration (PH telco sender-ID approval), NOT on code.
-4. **Block-user feature** (Track C #9).
-5. **Privacy + Terms rewrite** + **in-app account deletion** (BUILD_PLAN deferred backlog).
-6. **Region-aware listings feed** (planned product). Signup GPS → `platform_analytics/users.byRegion`
-   is already live; Cebu empty-state is the stopgap until the feed is wired. Do not rewrite
-   the signup/Edit Profile location copy unless asked.
+1. **Gig-card small photo + gig-page large photo** (Track E). Immediate build.
+2. **Launch Feed smoke** (20+ apps hide from category list; still soonest-date sort).
+   Dummy workers. Do not Ban them.
+3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
+   Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper
+   smokes → phone audit → admin extra-read walk. Phone+password sunset after dummies.
+4. **Native app** may start wiring the **existing** Firebase backend in parallel (Auth,
+   Firestore, Storage, Functions/callables, FCM). Locked rules + clerks are the contract.
+   Remaining Ban/dummy tests do not block that. Prefer job photos as small+large URLs
+   once item 1 ships.
+5. **Later product:** region-aware listings feed (Edit Profile already has GPS recapture;
+   optional 17-region picker is the extra if GPS is not the home they want — do not
+   rewrite location copy unless asked); Privacy/Terms + in-app account deletion;
+   Semaphore OTP (business registration); block-user as a real product; ID verification;
+   G-Coins purchase.
 
 Also live: the **DEFERRED BACKLOG** list at the bottom of `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`
 (reveal counter on dashboard, remaining Firestore cleanup (b)/(c), Privacy/Terms rewrite, in-app
