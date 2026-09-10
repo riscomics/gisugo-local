@@ -15,10 +15,9 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Immediate next (two builds, locked 2026-09-10).** Owner confirmed Launch Feed is
-**two buckets on one scroll**, not hide. Gig-card small photo is the other priority.
-Microtasklists are in Track E below this roster. Do **not** dummy-delete until Launch
-Feed ON is smoked with 20+ apps sitting in the **bottom** bucket.
+**Immediate next.** Track E A (gig-card small + gig-page large photo) **shipped 2026-09-10**,
+owner smoke still open. Then **B Launch Feed two buckets** (not hide). Do **not**
+dummy-delete until Launch Feed ON is smoked with 20+ apps sitting in the **bottom** bucket.
 **Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
 Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
 **Native:** may start on live Firebase now. Job photos should use small+large URLs
@@ -1954,31 +1953,28 @@ that the whole dashboard section is finished forever.
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
 - [ ] **A. Gig-card small photo + gig-page large photo (IMMEDIATE).**
-      Live today: one 1200×1200 JPEG. Cards (~115–230px) and the gig page both
-      download it. Support already uploads small + large; gig photos do not.
-      **Live callers (do not expand to dead pages):** `uploadJobPhoto` /
-      `copyJobPhotoToNewJob` from `new-post2.js` (post, edit, relist). Menu and
-      Gigs Manager go to `new-post2.html`. `listing.js` paints every category
-      card (`thumbnail`). `dynamic-job.js` paints the gig page (same field).
-      `new-post.js` still calls the helpers if that leftover page is opened;
-      same functions cover it — do not rebuild `new-post.html`.
-      **Locked sizes:** card file ~400px max, JPEG ~0.7 (cards go up to 230px,
-      so 100px chat thumbs would look soft). Gig-page file stays ~1200px / 0.8.
-      Old gigs with only `thumbnail` keep working (card and page use that file).
-      **Microtasklist (stop after each; smoke before the next group):**
-      1. **[ ] Contract only (no code).** Job doc: keep `thumbnail` as the
-         **card** URL. Add `photoFull` (or equivalent) as the **gig-page** URL.
-         Native later reads both; missing `photoFull` falls back to `thumbnail`.
-      2. **[ ] `uploadJobPhoto` writes both files** in `firebase-storage.js`
+      **Shipped 2026-09-10** (pending owner smoke, item 7). Do not start B until 7 passes.
+      Contract: `thumbnail` = card URL (~400px / 0.7 `_thumb.jpg`). `photoFull` =
+      gig-page URL (~1200px / 0.8 `.jpg`). Old gigs with only `thumbnail` still
+      work. Live post door: `new-post2.js`. Cards: `listing.js` still reads
+      `thumbnail` (now the small file; no 56-page rewrite). Gig page:
+      `dynamic-job.js` prefers `photoFull`. Delete callable also removes `_thumb.jpg`.
+      **Live callers:** `uploadJobPhoto` / `copyJobPhotoToNewJob` from `new-post2.js`
+      (post, edit, relist). `new-post.js` leftover covered by the same helpers.
+      **Microtasklist:**
+      1. **[x] Contract only.** Job doc: `thumbnail` = card URL. `photoFull` =
+         gig-page URL. Native later reads both; missing `photoFull` falls back
+         to `thumbnail`.
+      2. **[x] `uploadJobPhoto` writes both files** in `firebase-storage.js`
          (same pattern as `uploadSupportPhoto`). Return both URLs.
-      3. **[ ] `copyJobPhotoToNewJob` copies both** on relist (or copies the
+      3. **[x] `copyJobPhotoToNewJob` copies both** on relist (or copies the
          one file that exists on old gigs).
-      4. **[ ] `new-post2.js` saves both fields** on post / edit / new photo.
-      5. **[ ] `listing.js` cards use the small URL.** Gig page
-         (`dynamic-job.js`) uses the large URL. Fallback: one-file gigs.
-      6. **[ ] Leftover audit.** No live path still uploads a single 1200px
-         as the card image. Do not rewrite 56 category HTML files (`listing.js`
-         is the one painter).
+      4. **[x] `new-post2.js` saves both fields** on post / edit / new photo.
+      5. **[x] `listing.js` cards use the small URL** (`thumbnail` field).
+         Gig page (`dynamic-job.js`) uses `photoFull`. Fallback: one-file gigs.
+      6. **[x] Leftover audit.** Live upload path is `new-post2.js` only.
+         `new-post.js` writes both fields if that leftover page is opened.
+         Did not rewrite 56 category HTML files (`listing.js` is the painter).
       7. **[ ] Smoke.** Post a new gig with a photo. Category card is the
          small file. Gig page is the large file. Relist without a new photo
          still shows an image. An old gig with only `thumbnail` still shows.
@@ -2709,13 +2705,14 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = A gig-card small photo, then B Launch Feed two buckets, then dummy deletes.**
+> **Next linchpin = A owner photo smoke, then B Launch Feed two buckets, then dummy deletes.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
-1. **A. Gig-card small photo + gig-page large photo** (Track E). Immediate build.
+1. **A. Gig-card small photo + gig-page large photo** (Track E). Shipped 2026-09-10;
+   owner smoke still open (card small / gig page large / relist / old one-file gig).
 2. **B. Launch Feed two buckets** (stop hiding 20+; Popular at the bottom). Then smoke
    with dummy 20+ apps. Do not Ban them.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on

@@ -43,6 +43,12 @@ const STORAGE_CONFIG = {
     maxWidth: 1200,
     maxHeight: 1200,
     quality: 0.8
+  },
+  // Category cards are ~115–230px square; 400px keeps them sharp on retina.
+  jobCardCompression: {
+    maxWidth: 400,
+    maxHeight: 400,
+    quality: 0.7
   }
 };
 
@@ -286,8 +292,59 @@ async function uploadProfilePhotoOffline(userId, file) {
  * @param {File} file - Image file to upload
  * @returns {Promise<Object>} - Result with download URL
  */
+function jobPhotoFullPath(userId, jobId) {
+  return `${STORAGE_CONFIG.paths.jobPhotos}/${userId}/${jobId}.jpg`;
+}
+
+function jobPhotoThumbPath(userId, jobId) {
+  return `${STORAGE_CONFIG.paths.jobPhotos}/${userId}/${jobId}_thumb.jpg`;
+}
+
+function jobPhotoWriteFields(photoResult) {
+  const thumb = String((photoResult && (photoResult.thumbnailUrl || photoResult.url)) || '').trim();
+  const full = String((photoResult && (photoResult.photoFullUrl || photoResult.url)) || '').trim();
+  return {
+    thumbnail: thumb,
+    photoFull: full || thumb
+  };
+}
+
+function siblingJobPhotoFullPath(thumbPath) {
+  const path = String(thumbPath || '');
+  if (path.endsWith('_thumb.jpg')) return path.replace(/_thumb\.jpg$/, '.jpg');
+  return '';
+}
+
+function isThisJobsCanonicalPhotoUrl(url, userId, jobId) {
+  const path = extractStoragePathFromUrl(url);
+  if (!path || !userId || !jobId) return false;
+  return path === jobPhotoFullPath(userId, jobId) || path === jobPhotoThumbPath(userId, jobId);
+}
+
+async function putJobPhotoBlob(storage, filePath, blob, metadata) {
+  const snapshot = await storage.ref().child(filePath).put(blob, {
+    contentType: 'image/jpeg',
+    customMetadata: metadata
+  });
+  const url = await snapshot.ref.getDownloadURL();
+  return { url, path: filePath };
+}
+
+async function readStoragePathBlob(storage, sourcePath) {
+  const sourceRef = storage.ref().child(sourcePath);
+  if (typeof sourceRef.getBytes === 'function') {
+    const bytes = await sourceRef.getBytes();
+    return new Blob([bytes], { type: 'image/jpeg' });
+  }
+  const downloadUrl = await sourceRef.getDownloadURL();
+  const response = await fetch(downloadUrl);
+  if (!response.ok) {
+    throw new Error('Could not read original photo');
+  }
+  return response.blob();
+}
+
 async function uploadJobPhoto(jobId, file, userId = null) {
-  // Validate file
   const validation = validateFile(file, 'job');
   if (!validation.valid) {
     return { success: false, errors: validation.errors };
@@ -296,45 +353,44 @@ async function uploadJobPhoto(jobId, file, userId = null) {
   const storage = getFirebaseStorage();
   
   if (!storage) {
-    // Offline mode - use data URL
     return uploadJobPhotoOffline(jobId, file);
   }
   
   try {
-    console.log('📤 Uploading job photo...');
+    console.log('📤 Uploading job photo (card + gig page)...');
     
-    // Get userId if not provided
     if (!userId) {
       const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
       userId = (currentUser && currentUser.uid) ? currentUser.uid : 'unknown';
     }
     
-    // Compress image
-    const compressedBlob = await compressImage(file);
+    const [thumbBlob, fullBlob] = await Promise.all([
+      compressImage(file, STORAGE_CONFIG.jobCardCompression),
+      compressImage(file, STORAGE_CONFIG.compression)
+    ]);
+
+    const fullPath = jobPhotoFullPath(userId, jobId);
+    const thumbPath = jobPhotoThumbPath(userId, jobId);
+    const customMetadata = {
+      jobId: String(jobId || ''),
+      userId: String(userId || ''),
+      uploadedAt: new Date().toISOString()
+    };
+
+    const [thumbPut, fullPut] = await Promise.all([
+      putJobPhotoBlob(storage, thumbPath, thumbBlob, { ...customMetadata, variant: 'card' }),
+      putJobPhotoBlob(storage, fullPath, fullBlob, { ...customMetadata, variant: 'full' })
+    ]);
     
-    // Create file reference (nested: job_photos/{userId}/{jobId}.jpg)
-    const filePath = `${STORAGE_CONFIG.paths.jobPhotos}/${userId}/${jobId}.jpg`;
-    const fileRef = storage.ref().child(filePath);
-    
-    // Upload file
-    const snapshot = await fileRef.put(compressedBlob, {
-      contentType: 'image/jpeg',
-      customMetadata: {
-        jobId: jobId,
-        userId: userId,
-        uploadedAt: new Date().toISOString()
-      }
-    });
-    
-    // Get download URL
-    const downloadUrl = await snapshot.ref.getDownloadURL();
-    
-    console.log('✅ Job photo uploaded:', downloadUrl);
+    console.log('✅ Job photos uploaded:', { card: thumbPut.path, full: fullPut.path });
     
     return {
       success: true,
-      url: downloadUrl,
-      path: filePath
+      url: thumbPut.url,
+      thumbnailUrl: thumbPut.url,
+      photoFullUrl: fullPut.url,
+      path: thumbPut.path,
+      fullPath: fullPut.path
     };
     
   } catch (error) {
@@ -364,56 +420,77 @@ function extractStoragePathFromUrl(url) {
 }
 
 /**
- * Copy an existing gig photo to job_photos/{userId}/{newJobId}.jpg.
- * Used on completed relist so the new gig does not keep pointing at
- * the old gig's filename.
+ * Copy existing gig photos to the new job id. Dual-file gigs copy
+ * card (_thumb.jpg) + gig-page (.jpg). Old one-file gigs copy that
+ * file to .jpg and use it for both Firestore URLs.
  */
-async function copyJobPhotoToNewJob(sourceUrl, newJobId, userId) {
+async function copyJobPhotoToNewJob(sourceUrl, newJobId, userId, sourceFullUrl) {
   const destUid = String(userId || '').trim();
   const destJobId = String(newJobId || '').trim();
-  const sourcePath = extractStoragePathFromUrl(sourceUrl);
+  const sourceThumbPath = extractStoragePathFromUrl(sourceUrl);
+  let sourceFullPath = extractStoragePathFromUrl(sourceFullUrl) || siblingJobPhotoFullPath(sourceThumbPath) || sourceThumbPath;
   if (!destUid || !destJobId) {
     return { success: false, errors: ['Missing user or job id'] };
   }
-  if (!sourcePath || !sourcePath.startsWith(`${STORAGE_CONFIG.paths.jobPhotos}/`)) {
+  if (!sourceThumbPath || !sourceThumbPath.startsWith(`${STORAGE_CONFIG.paths.jobPhotos}/`)) {
     return { success: false, errors: ['No Storage job photo to copy'] };
   }
-  const destPath = `${STORAGE_CONFIG.paths.jobPhotos}/${destUid}/${destJobId}.jpg`;
-  if (sourcePath === destPath) {
-    return { success: true, url: sourceUrl, path: destPath };
-  }
 
+  const destFullPath = jobPhotoFullPath(destUid, destJobId);
+  const destThumbPath = jobPhotoThumbPath(destUid, destJobId);
   const storage = getFirebaseStorage();
   if (!storage) {
     return { success: false, errors: ['Storage unavailable'] };
   }
 
   try {
-    const sourceRef = storage.ref().child(sourcePath);
-    let blob = null;
-    if (typeof sourceRef.getBytes === 'function') {
-      const bytes = await sourceRef.getBytes();
-      blob = new Blob([bytes], { type: 'image/jpeg' });
-    } else {
-      const downloadUrl = await sourceRef.getDownloadURL();
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        return { success: false, errors: ['Could not read original photo'] };
-      }
-      blob = await response.blob();
+    const copiedAt = new Date().toISOString();
+    let split = !!(sourceFullPath && sourceFullPath !== sourceThumbPath);
+    let fullSourcePath = split ? sourceFullPath : sourceThumbPath;
+    let fullBlob;
+    try {
+      fullBlob = await readStoragePathBlob(storage, fullSourcePath);
+    } catch (readError) {
+      if (!split) throw readError;
+      fullSourcePath = sourceThumbPath;
+      fullBlob = await readStoragePathBlob(storage, fullSourcePath);
+      split = false;
     }
-    const destRef = storage.ref().child(destPath);
-    const snapshot = await destRef.put(blob, {
-      contentType: 'image/jpeg',
-      customMetadata: {
-        jobId: destJobId,
-        userId: destUid,
-        copiedFrom: sourcePath,
-        uploadedAt: new Date().toISOString()
-      }
+    const fullPut = await putJobPhotoBlob(storage, destFullPath, fullBlob, {
+      jobId: destJobId,
+      userId: destUid,
+      copiedFrom: fullSourcePath,
+      uploadedAt: copiedAt,
+      variant: 'full'
     });
-    const url = await snapshot.ref.getDownloadURL();
-    return { success: true, url, path: destPath };
+
+    if (!split) {
+      return {
+        success: true,
+        url: fullPut.url,
+        thumbnailUrl: fullPut.url,
+        photoFullUrl: fullPut.url,
+        path: destFullPath,
+        fullPath: destFullPath
+      };
+    }
+
+    const thumbBlob = await readStoragePathBlob(storage, sourceThumbPath);
+    const thumbPut = await putJobPhotoBlob(storage, destThumbPath, thumbBlob, {
+      jobId: destJobId,
+      userId: destUid,
+      copiedFrom: sourceThumbPath,
+      uploadedAt: copiedAt,
+      variant: 'card'
+    });
+    return {
+      success: true,
+      url: thumbPut.url,
+      thumbnailUrl: thumbPut.url,
+      photoFullUrl: fullPut.url,
+      path: destThumbPath,
+      fullPath: destFullPath
+    };
   } catch (error) {
     console.error('❌ Job photo copy error:', error);
     return { success: false, errors: [error.message] };
@@ -422,15 +499,22 @@ async function copyJobPhotoToNewJob(sourceUrl, newJobId, userId) {
 
 async function uploadJobPhotoOffline(jobId, file) {
   try {
-    const compressedBlob = await compressImage(file);
-    const dataUrl = await blobToDataUrl(compressedBlob);
-    
-    console.log('✅ Job photo stored locally');
-    
+    const [thumbBlob, fullBlob] = await Promise.all([
+      compressImage(file, STORAGE_CONFIG.jobCardCompression),
+      compressImage(file, STORAGE_CONFIG.compression)
+    ]);
+    const thumbUrl = await blobToDataUrl(thumbBlob);
+    const fullUrl = await blobToDataUrl(fullBlob);
+
+    console.log('✅ Job photos stored locally (card + gig page)');
+
     return {
       success: true,
-      url: dataUrl,
+      url: thumbUrl,
+      thumbnailUrl: thumbUrl,
+      photoFullUrl: fullUrl,
       path: `local_job_${jobId}`,
+      fullPath: `local_job_${jobId}_full`,
       isLocal: true
     };
   } catch (error) {
@@ -908,6 +992,8 @@ window.compressImage = compressImage;
 window.uploadProfilePhoto = uploadProfilePhoto;
 window.uploadJobPhoto = uploadJobPhoto;
 window.copyJobPhotoToNewJob = copyJobPhotoToNewJob;
+window.jobPhotoWriteFields = jobPhotoWriteFields;
+window.isThisJobsCanonicalPhotoUrl = isThisJobsCanonicalPhotoUrl;
 window.uploadSupportPhoto = uploadSupportPhoto;
 window.uploadVerificationDocuments = uploadVerificationDocuments;
 window.deleteStaleVerificationIdFiles = deleteStaleVerificationIdFiles;

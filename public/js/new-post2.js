@@ -127,6 +127,7 @@ const np2State = {
   photoFile: null,
   photoDataUrl: null,
   originalThumbnail: null,
+  originalPhotoFull: null,
   jobDescription: '',
   gigUseType: 'Personal',
   paymentAmount: '',
@@ -2027,13 +2028,20 @@ async function postJob() {
             photoResult = await copyJobPhotoToNewJob(
               np2State.originalThumbnail,
               result.jobId,
-              currentUser.uid
+              currentUser.uid,
+              np2State.originalPhotoFull
             );
           }
           if (photoResult && photoResult.success && photoResult.url && typeof getFirestore === 'function') {
             const db = getFirestore();
+            const photoFields = typeof jobPhotoWriteFields === 'function'
+              ? jobPhotoWriteFields(photoResult)
+              : {
+                  thumbnail: photoResult.url,
+                  photoFull: photoResult.photoFullUrl || photoResult.url
+                };
             await db.collection('jobs').doc(result.jobId).update({
-              thumbnail: photoResult.url,
+              ...photoFields,
               lastModified: firebase.firestore.FieldValue.serverTimestamp()
             });
           } else if (np2State.photoFile || np2State.mode === 'relist') {
@@ -2234,6 +2242,7 @@ function resetForm() {
   np2State.photoFile = null;
   np2State.photoDataUrl = null;
   np2State.originalThumbnail = null;
+  np2State.originalPhotoFull = null;
   np2State.jobDescription = '';
   np2State.gigUseType = 'Personal';
   np2State.paymentAmount = '';
@@ -2371,7 +2380,8 @@ async function handleEditMode(jobId, category) {
             gigUseType: firebaseJob.gigUseType,
             extras: firebaseJob.extras || [],
             description: firebaseJob.description,
-            thumbnail: firebaseJob.thumbnail
+            thumbnail: firebaseJob.thumbnail,
+            photoFull: firebaseJob.photoFull || firebaseJob.thumbnail || ''
           };
           
           console.log('📝 Normalized job data (category from Firebase):', { category: actualCategory });
@@ -2459,10 +2469,12 @@ async function handleRelistMode(jobId, category) {
             city: firebaseJob.city,
             extras: firebaseJob.extras || [],
             description: firebaseJob.description,
-            thumbnail: firebaseJob.thumbnail
+            thumbnail: firebaseJob.thumbnail,
+            photoFull: firebaseJob.photoFull || firebaseJob.thumbnail || ''
           };
           
           np2State.originalThumbnail = firebaseJob.thumbnail || null;
+          np2State.originalPhotoFull = firebaseJob.photoFull || firebaseJob.thumbnail || null;
           populateFormWithJobData(jobData, category, 'relist');
           if (loadingOverlay) setTimeout(() => loadingOverlay.classList.remove('show'), 300);
           return;
@@ -2666,6 +2678,8 @@ function showEditForm(jobData, category) {
       if (photoPlaceholder) photoPlaceholder.style.display = 'none';
       // Save original thumbnail to state
       np2State.photoDataUrl = jobData.thumbnail;
+      np2State.originalThumbnail = jobData.thumbnail || np2State.originalThumbnail;
+      np2State.originalPhotoFull = jobData.photoFull || np2State.originalPhotoFull || jobData.thumbnail || null;
     } else {
       photoImage.style.display = 'none';
       if (photoPlaceholder) photoPlaceholder.style.display = 'none';
@@ -3031,38 +3045,45 @@ async function handleEditFormSubmit(jobId, category) {
       console.log('📤 Uploading updated photo to Firebase Storage...');
       
       try {
-        // ═══════════════════════════════════════════════════════════════
-        // GET OLD PHOTO URL (for deletion after update succeeds)
-        // ═══════════════════════════════════════════════════════════════
         if (typeof getJobById === 'function') {
           const existingJob = await getJobById(jobId);
-          if (existingJob && existingJob.thumbnail) {
-            np2State.oldGigPhotoUrl = existingJob.thumbnail; // Store for later deletion
+          if (existingJob) {
+            np2State.oldGigPhotoUrls = [existingJob.thumbnail, existingJob.photoFull].filter(Boolean);
+            np2State.oldGigPhotoUrl = existingJob.thumbnail || null;
           }
         }
         
-        // ═══════════════════════════════════════════════════════════════
-        // UPLOAD NEW PHOTO FIRST (don't delete old yet)
-        // ═══════════════════════════════════════════════════════════════
-        const uploadResult = await uploadJobPhoto(jobId, np2State.photoFile);
+        const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        const uploadResult = await uploadJobPhoto(jobId, np2State.photoFile, currentUser && currentUser.uid);
         
         if (!uploadResult.success) {
           console.error('❌ Storage upload failed:', uploadResult.errors);
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
           showToast('Failed to upload photo', 'error');
-          return; // Abort - old photo still intact
+          return;
         }
         
-        updatedJob.thumbnail = uploadResult.url; // Firebase Storage URL
-        console.log('✅ Updated photo uploaded to Storage:', uploadResult.url);
+        const photoFields = typeof jobPhotoWriteFields === 'function'
+          ? jobPhotoWriteFields(uploadResult)
+          : {
+              thumbnail: uploadResult.url,
+              photoFull: uploadResult.photoFullUrl || uploadResult.url
+            };
+        updatedJob.thumbnail = photoFields.thumbnail;
+        updatedJob.photoFull = photoFields.photoFull;
+        console.log('✅ Updated photo uploaded to Storage:', photoFields);
         
       } catch (error) {
         console.error('❌ Error uploading photo:', error);
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
         showToast('Failed to upload photo. Please try again.', 'error');
         return;
       }
     } else {
-      // Use the already-selected in-memory/base64 preview when storage upload is not required.
-      updatedJob.thumbnail = np2State.photoDataUrl;
+      updatedJob.thumbnail = np2State.originalThumbnail || np2State.photoDataUrl;
+      if (np2State.originalPhotoFull) {
+        updatedJob.photoFull = np2State.originalPhotoFull;
+      }
     }
   }
   
@@ -3168,20 +3189,25 @@ function showEditPreview(updatedJob, category, jobId) {
         // ═══════════════════════════════════════════════════════════════
         // DELETE OLD PHOTO (LAST - after Firestore update succeeds)
         // ═══════════════════════════════════════════════════════════════
-        if (np2State.oldGigPhotoUrl && np2State.oldGigPhotoUrl.includes('firebasestorage')) {
-          if (typeof deletePhotoFromStorageUrl === 'function') {
-            console.log('🗑️ Deleting old gig photo...');
-            const deleteResult = await deletePhotoFromStorageUrl(np2State.oldGigPhotoUrl);
-            
-            if (deleteResult.success) {
-              console.log('✅ Old gig photo cleaned up');
-            } else {
-              console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
-              // TODO: Track orphan in Firestore
+        if (np2State.oldGigPhotoUrls || np2State.oldGigPhotoUrl) {
+          const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+          const uid = currentUser && currentUser.uid;
+          const oldUrls = np2State.oldGigPhotoUrls || [np2State.oldGigPhotoUrl];
+          for (const url of oldUrls) {
+            if (!url || !String(url).includes('firebasestorage')) continue;
+            if (typeof isThisJobsCanonicalPhotoUrl === 'function' && isThisJobsCanonicalPhotoUrl(url, uid, jobId)) {
+              continue;
+            }
+            if (typeof deletePhotoFromStorageUrl === 'function') {
+              console.log('🗑️ Deleting leftover gig photo:', url);
+              const deleteResult = await deletePhotoFromStorageUrl(url);
+              if (!deleteResult.success) {
+                console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
+              }
             }
           }
-          // Clear the stored URL
           np2State.oldGigPhotoUrl = null;
+          np2State.oldGigPhotoUrls = null;
         }
         
         showSuccessOverlay();

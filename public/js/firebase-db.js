@@ -1118,6 +1118,7 @@ async function createJob(jobData) {
       description: jobData.description || '',
       category: jobData.category,
       thumbnail: jobData.thumbnail || jobData.photo || '',
+      photoFull: jobData.photoFull || '',
       
       // Location
       region: jobData.region || 'CEBU',
@@ -1553,6 +1554,7 @@ async function updateJob(jobId, jobData) {
       description: jobData.description || '',
       category: finalCategory,
       thumbnail: jobData.thumbnail || jobData.photo || ((existingData && existingData.thumbnail) || ''),
+      photoFull: jobData.photoFull || ((existingData && existingData.photoFull) || ''),
       region: jobData.region || 'CEBU',
       city: jobData.city || 'CEBU CITY',
       scheduledDate: jobData.jobDate ? (() => {
@@ -1635,6 +1637,13 @@ function canonicalJobPhotoPath(posterId, jobId) {
   return `job_photos/${uid}/${id}.jpg`;
 }
 
+function canonicalJobPhotoThumbPath(posterId, jobId) {
+  const uid = String(posterId || '').trim();
+  const id = String(jobId || '').trim();
+  if (!uid || !id) return '';
+  return `job_photos/${uid}/${id}_thumb.jpg`;
+}
+
 async function deleteStoragePathQuiet(storagePath) {
   const path = String(storagePath || '').replace(/^\/+/, '');
   if (!path) return false;
@@ -1654,17 +1663,21 @@ async function deleteStoragePathQuiet(storagePath) {
   }
 }
 
-async function otherLiveJobReferencesPath(db, posterId, jobId, storagePath, thumbnailUrl) {
+async function otherLiveJobReferencesPath(db, posterId, jobId, storagePath, thumbnailUrl, photoFullUrl) {
   const uid = String(posterId || '').trim();
   const path = String(storagePath || '').replace(/^\/+/, '');
   if (!uid || !path) return false;
   const snap = await db.collection('jobs').where('posterId', '==', uid).get();
   return snap.docs.some((doc) => {
     if (doc.id === jobId) return false;
-    const thumb = String((doc.data() || {}).thumbnail || '');
-    if (!thumb) return false;
-    if (thumbnailUrl && thumb === thumbnailUrl) return true;
-    return extractStoragePathFromUrl(thumb) === path;
+    const data = doc.data() || {};
+    const thumb = String(data.thumbnail || '');
+    const full = String(data.photoFull || '');
+    if (thumbnailUrl && (thumb === thumbnailUrl || full === thumbnailUrl)) return true;
+    if (photoFullUrl && (thumb === photoFullUrl || full === photoFullUrl)) return true;
+    const thumbPath = extractStoragePathFromUrl(thumb);
+    const fullPath = extractStoragePathFromUrl(full);
+    return thumbPath === path || fullPath === path;
   });
 }
 
@@ -1750,15 +1763,19 @@ async function cleanupJobApplicationsOnClient(db, jobId, applicationIds) {
 async function cleanupJobPhotosOnDelete(db, jobId, jobData) {
   const posterId = (jobData && (jobData.posterId || jobData.userId)) || '';
   const thumbnail = (jobData && jobData.thumbnail) || '';
+  const photoFull = (jobData && jobData.photoFull) || '';
   const canonical = canonicalJobPhotoPath(posterId, jobId);
-  const fromUrl = extractStoragePathFromUrl(thumbnail);
-  let extraPath = fromUrl && fromUrl !== canonical && fromUrl.startsWith('job_photos/')
-    ? fromUrl
-    : '';
+  const thumbCanonical = canonicalJobPhotoThumbPath(posterId, jobId);
+  const fromThumb = extractStoragePathFromUrl(thumbnail);
+  const fromFull = extractStoragePathFromUrl(photoFull);
+  const leftover = [fromThumb, fromFull].find((p) => (
+    p && p !== canonical && p !== thumbCanonical && p.startsWith('job_photos/')
+  ));
+  let extraPath = leftover || '';
 
   if (extraPath) {
     try {
-      const referenced = await otherLiveJobReferencesPath(db, posterId, jobId, extraPath, thumbnail);
+      const referenced = await otherLiveJobReferencesPath(db, posterId, jobId, extraPath, thumbnail, photoFull);
       if (referenced) {
         console.log('ℹ️ Extra thumbnail path still used by another live job, leaving it:', extraPath);
         extraPath = '';
@@ -1777,6 +1794,9 @@ async function cleanupJobPhotosOnDelete(db, jobId, jobData) {
   let deletedAny = false;
   if (canonical) {
     deletedAny = (await deleteStoragePathQuiet(canonical)) || deletedAny;
+  }
+  if (thumbCanonical) {
+    deletedAny = (await deleteStoragePathQuiet(thumbCanonical)) || deletedAny;
   }
   if (extraPath) {
     deletedAny = (await deleteStoragePathQuiet(extraPath)) || deletedAny;
@@ -5993,6 +6013,7 @@ async function getUserProfile(userId) {
 
 // Jobs
 window.createJob = createJob;
+window.updateJob = updateJob;
 window.getJobById = getJobById;
 window.getJobsByCategory = getJobsByCategory;
 window.getUserJobListings = getUserJobListings;

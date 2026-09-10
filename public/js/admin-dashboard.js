@@ -4489,6 +4489,7 @@ function normalizeGigForDisplay(jobId, job) {
         category: data.category || 'uncategorized',
         title: data.title || '(untitled gig)',
         thumbnail: data.thumbnail || '',
+        photoFull: data.photoFull || '',
         // jobDate is the current (new-post2.js) field name -- a plain
         // "YYYY-MM-DD" string. scheduledDate is a legacy/alternate name
         // some older or relisted docs may still carry; kept as a fallback.
@@ -4828,8 +4829,8 @@ function populateGigDetailPanel(gig) {
     // Photo
     const gigPhoto = document.getElementById('gigPhoto');
     const gigPhotoContainer = document.getElementById('gigPhotoContainer');
-    if (gig.thumbnail) {
-        gigPhoto.src = gig.thumbnail;
+    if (gig.photoFull || gig.thumbnail) {
+        gigPhoto.src = gig.photoFull || gig.thumbnail;
         gigPhotoContainer.style.display = 'block';
     } else {
         gigPhotoContainer.style.display = 'none';

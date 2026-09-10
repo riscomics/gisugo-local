@@ -1580,8 +1580,9 @@ exports.deleteJobStoragePhotos = onCall(
     }
 
     const canonical = `job_photos/${posterId}/${jobId}.jpg`;
-    const paths = [canonical];
-    if (extraPath && extraPath !== canonical) {
+    const thumbCanonical = `job_photos/${posterId}/${jobId}_thumb.jpg`;
+    const paths = [canonical, thumbCanonical];
+    if (extraPath && extraPath !== canonical && extraPath !== thumbCanonical) {
       if (!extraPath.startsWith(`job_photos/${posterId}/`) || extraPath.includes("..")) {
         throw new HttpsError("invalid-argument", "extraPath is not allowed.");
       }

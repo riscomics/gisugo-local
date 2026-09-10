@@ -327,9 +327,8 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 1. ✅ **Item 1** (prerequisite).
 2. ✅ **Item 2** (Direct contact).
 3. ✅ **Item 3** (Alerts/Support pages) — alert/count smoke complete; non-alert leftovers in V1 §E.
-4. **Next:** Track E A (gig-card small photo) then B (Launch Feed two buckets), then
-   dummy deletes. See `docs/V1_HARDENING_TASKLIST.md`. Native may start on the live
-   Firebase backend. Admin Dashboard Phases 1–11 and Phase 12 lockdown are shipped.
+4. **Next:** Track E A shipped 2026-09-10 (pending owner photo smoke) then B
+   (Launch Feed two buckets), then dummy deletes. See `docs/V1_HARDENING_TASKLIST.md`.
 
 ---
 

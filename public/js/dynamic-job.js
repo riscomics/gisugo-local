@@ -164,6 +164,7 @@ function makeDynamicJobSignature(job) {
     updatedAt: String(job.updatedAt || job.lastModified || job.createdAt || ''),
     title: String(job.title || job.jobTitle || ''),
     thumbnail: String(job.thumbnail || job.photo || ''),
+    photoFull: String(job.photoFull || ''),
     priceOffer: String(job.priceOffer || job.paymentAmount || ''),
     applicationCount: Number(job.applicationCount || 0)
   });
@@ -868,7 +869,7 @@ async function loadJobData() {
     }
 
     const job = normalizeFirebaseJob(jobDoc);
-    dynamicTrace('fetch:result', { id: job.id || job.jobId, hasPhoto: !!(job.thumbnail || job.photo) });
+    dynamicTrace('fetch:result', { id: job.id || job.jobId, hasPhoto: !!(job.photoFull || job.thumbnail || job.photo) });
 
     const freshSignature = makeDynamicJobSignature(job);
     const cachedSignature = cached && cached.signature ? cached.signature : '';
@@ -918,7 +919,9 @@ function normalizeFirebaseJob(job) {
     title: job.title || job.jobTitle,
     jobDate: scheduledDate,
     scheduledDate: scheduledDate,
-    photo: job.thumbnail || job.photo,
+    photo: job.photoFull || job.photo || job.thumbnail,
+    photoFull: job.photoFull || '',
+    thumbnail: job.thumbnail || '',
     paymentAmount: job.priceOffer || job.paymentAmount,
     priceOffer: job.priceOffer,
     extra1: Array.isArray(job.extras) ? (job.extras[0] || '') : '',
@@ -975,10 +978,12 @@ function populateJobPage(jobData) {
   safeSetText('jobTitle', jobTitle);
   
   // Set job photo if available (check both photo and thumbnail fields)
-  const photoSrc = jobData.photo || jobData.thumbnail;
+  const photoSrc = jobData.photoFull || jobData.photo || jobData.thumbnail;
   console.log(`🖼️ Photo debugging:`, {
+    hasPhotoFull: !!jobData.photoFull,
     hasPhoto: !!jobData.photo,
     hasThumbnail: !!jobData.thumbnail,
+    photoFullValue: jobData.photoFull,
     photoValue: jobData.photo,
     thumbnailValue: jobData.thumbnail,
     finalPhotoSrc: photoSrc,

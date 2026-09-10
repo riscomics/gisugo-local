@@ -2736,11 +2736,22 @@ async function createJobPostWithData(formData) {
         && originalJobData.thumbnail
         && typeof copyJobPhotoToNewJob === 'function'
       ) {
-        photoResult = await copyJobPhotoToNewJob(originalJobData.thumbnail, jobId, uid);
+        photoResult = await copyJobPhotoToNewJob(
+          originalJobData.thumbnail,
+          jobId,
+          uid,
+          originalJobData.photoFull
+        );
       }
       if (photoResult && photoResult.success && photoResult.url && typeof getFirestore === 'function') {
+        const photoFields = typeof jobPhotoWriteFields === 'function'
+          ? jobPhotoWriteFields(photoResult)
+          : {
+              thumbnail: photoResult.url,
+              photoFull: photoResult.photoFullUrl || photoResult.url
+            };
         await getFirestore().collection('jobs').doc(jobId).update({
-          thumbnail: photoResult.url,
+          ...photoFields,
           lastModified: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
