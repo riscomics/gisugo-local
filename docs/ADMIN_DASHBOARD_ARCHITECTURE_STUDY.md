@@ -28,8 +28,8 @@ Instead:
 | Messages (Support admin reply) | Paged glance queue. Phase 4 + Phase 10 engine + Phase 8 Contact/notify live | Live 2026-08-17 |
 | Settings | Wire as one small Firestore doc, replaces `localStorage` | **Shipped 2026-08-10 (Phase 5)** — see below |
 | Ad Placement | One `adSettings/global` doc (public read, admin write). Config `.get()` only — no listener, no impression writes. Inventory thumbs are Hosting GETs. | Phase 6 shipped; inventory tested 2026-08-19 |
-| Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Decided (first session, 2026-07-17) |
-| Financial | Cut for now — placeholder page, no real payment system live to wire against | Decided |
+| Chats (monitor user conversations) | Cut/defer — open-ended live connections per thread, no ceiling, privacy concern, not needed to run the business | Parked 2026-09 as a clickable pending page under Settings (not wired) |
+| Financial | Cut for now — no real payment system live to wire against | Parked 2026-09 as a clickable pending page + static GCash concept mock |
 | Analytics (User Activity + Traffic & Costs) | Manual-refresh snapshots: GA4 Data API + Cloud Monitoring estimate. Storage Usage is a separate running counter (not GA/Billing). | Phase 7 shipped 2026-08-24 (Ch 6 leftover audit) |
 
 ---

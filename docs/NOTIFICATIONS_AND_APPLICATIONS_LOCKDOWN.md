@@ -1,10 +1,12 @@
 # Notifications & Applications — Security Lockdown Scope
 
-> Status: **Groundwork done · Full lockdown is Phase 12 (launch gate)**
-> Last updated: 2026-08-28
-> **Step 1 live-door map is in `docs/V1_HARDENING_TASKLIST.md` (Phase 12).**
-> Apply / Hire / Gigs Manager Accept are the spine, not the whole list.
-> Chat Accept/Reject is **retired** (owner 2026-08-29). One step at a time.
+> Status: **SHIPPED (Phase 12).** Rules lock `9430a319` (2026-09-06). Gigs Manager
+> prove 2026-09-05; lock smoke 2026-09-06–09. iPhone 7 REST Apply lock-smoke skipped
+> 2026-09-10 (iOS 15 homepage warning).
+> Last updated: 2026-09-10
+> **Live-door map + prove log: `docs/V1_HARDENING_TASKLIST.md` (Phase 12).**
+> Chat Accept/Reject is **retired** (owner 2026-08-29). Do not reopen lockdown unless
+> a live `permission-denied` on a real Gigs Manager door requires it.
 > READ THIS FIRST whenever notifications or application-access rules come up. It exists so
 > the full scope is known up front and we never "discover walls" mid-change again.
 >
@@ -16,20 +18,15 @@
 ---
 
 ## TL;DR
-- The current Firestore rules let any *authenticated* user read all `applications` and all
-  `notifications` (and create/update/delete notifications). This is a **moderate, non-UI,
-  technical-only privacy gap** — exploitable only via direct API/dev-tools, never through the
-  app's UI. That "not urgent" call was for a tester-only site. Public launch in weeks
-  makes this the **Phase 12 launch gate**, not an afterthought.
-- Tightening it is **not** a quick rule flip. The notification *delivery system* and several
-  application flows are **cross-user by design** and would be denied by strict rules. Those
-  pieces must move to Cloud Functions first.
-- **Notifications are already half server-side** (push + counters run on the server today), so
-  finishing the move is *completing an existing architecture*, not a rewrite.
-- Decision **updated 2026-08-17:** this is **Phase 12**, the last build before full-platform
-  QA and public launch. Do remaining product phases first. Ship functions + client while
-  rules stay loose; prove Apply/Hire/Accept; then lock rules; then full QA. Do not mark
-  V1 complete until Phase 12 ships. Keep the additive `gigOwnerId` groundwork (already shipped).
+- **Locked.** A signed-in stranger cannot list everyone else's `applications` or
+  `notifications`, and cannot create an inbox row from the client (`create: if false`).
+  Cross-user creates go through `createUserAlert` / Accept sweep / `ownerRejectApplication`
+  (Admin SDK). Apply still writes the worker's own application doc (SDK or iOS REST).
+- Tightening was **not** a quick rule flip. Notification delivery and several application
+  flows are cross-user by design; those writes moved to Cloud Functions first.
+- Notifications were already half server-side (push + counters). Phase 12 finished that.
+- **Shipped 2026-09-06/10.** Remaining work is Pre-launch QA in `docs/V1_HARDENING_TASKLIST.md`,
+  not more lockdown. Keep the additive `gigOwnerId` groundwork.
 
 ---
 
@@ -41,11 +38,14 @@
 - Implication: every notification already costs ~2 function runs. Moving *creation* server-side
   adds ~1 more (~3 total). See "Cost" below.
 
-## What is still done in the browser (the gap)
-- `createNotification(recipientId, ...)` and helpers write notification docs **directly from the
-  client into another user's inbox** (cross-user write).
-- Dedup logic **reads and deletes other users' notifications** from the client.
-- Application reads/writes for review/hire/accept/reject happen client-side against the loose rule.
+## What was done in the browser (the gap — now closed)
+- `createNotification(recipientId, ...)` used to write notification docs **directly from the
+  client into another user's inbox**. Live Gigs Manager doors now call `createUserAlert`.
+  Retired chat Accept/Decline may still reference the old helper — Messages is out of the
+  public menu; do not treat that as a lock-smoke door.
+- Dedup for Apply/Hire runs on the clerk.
+- Application review/hire/accept/reject: owner/applicant client updates where the rule
+  allows; Accept sweep of *other* pending apps is `workerAcceptRejectOthers`.
 
 ---
 
@@ -89,14 +89,16 @@
    releases it triggers).
 3. **Refactor broad application reads** to be scoped: `applicantId == uid` (worker) or
    `gigOwnerId == uid` (owner). Auto-pause count must rely ONLY on the job's stored counter.
-4. **New composite indexes** (gigOwnerId-based) + index deploy.
+4. **Composite indexes** (gigOwnerId-based) + index deploy.
    Index added 2026-08-31 (`gigOwnerId` + `jobId` + `appliedAt` desc).
-   `getJobApplications` still uses `jobId` only until that index is ENABLED.
-5. **Tighten rules**: applications read = applicant or gigOwner; enforce `gigOwnerId ==
-   job.posterId` on create. Notifications read/update/delete = recipient only; create = server only.
-6. **One `functions` deploy** (also clears the already-deleted `migrateLegacyProfilePhones`).
-7. **Full lifecycle test across multiple accounts/devices** (apply → review → hire → accept →
-   reject/withdraw → complete → delete, and that every alert still fires). Only the human can do this.
+   `getJobApplications` uses that query (Phase 12 Step 5).
+5. **Tighten rules** — **done (`9430a319`).** Applications read = applicant, gig poster
+   (`get(job).posterId`), or admin; create stamps `gigOwnerId == job.posterId`.
+   Notifications read = recipient (or admin); update = own `read` only; delete = own row;
+   create = server only.
+6. **Functions deploy** (also cleared the already-deleted `migrateLegacyProfilePhones`).
+7. **Lifecycle prove** — Step 6 (rules open, 2026-09-05) + Step 7 lock smoke
+   (2026-09-06–09) on Gigs Manager. iPhone 7 REST Apply skipped 2026-09-10.
 
 ## Already done (keep — do not revert)
 - `gigOwnerId` stamped on new applications (both SDK + REST write paths).

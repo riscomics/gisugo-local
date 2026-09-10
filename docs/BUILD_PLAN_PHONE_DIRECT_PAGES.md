@@ -327,7 +327,8 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 1. ✅ **Item 1** (prerequisite).
 2. ✅ **Item 2** (Direct contact).
 3. ✅ **Item 3** (Alerts/Support pages) — alert/count smoke complete; non-alert leftovers in V1 §E.
-4. **Next:** Admin Dashboard architecture + cost study (V1 Track C #8).
+4. **Next:** Pre-launch QA in `docs/V1_HARDENING_TASKLIST.md` (dummy deletes first).
+   Admin Dashboard Phases 1–11 and Phase 12 lockdown are shipped.
 
 ---
 

@@ -1,14 +1,31 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-08-17
+> Status: **Active** · Last updated: 2026-09-10
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
 This is the working tasklist for getting GISUGO web production-solid. Resume here after
-any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
-disputes, and admin notifications — and it needs an architecture/cost study first.
+any break.
 
-### Where we are (2026-07-20)
+### Where we are (2026-09-10)
+**Phase 12 (Track B lockdown) SHIPPED.** Rules lock `9430a319` (2026-09-06). Step 6 Gigs
+Manager prove (rules still open) 2026-09-05. Step 7 lock smoke 2026-09-06–09 passed on live
+gisugo.com: Post, Apply (desktop SDK), View Applications, Hire, Accept + two-worker sweep,
+Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gig. iPhone 7 /
+iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
+and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
+**Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
+**Next = Pre-launch QA** (Track C list below). Dummy-account deletes first — wipe Auth +
+`users` / `user_private` / `security_metadata`, do **not** stamp those numbers on
+`banned_phones` — then owner Ban test, leftover audit, remaining keeper on/off smokes,
+pre-launch phone audit, leak + extra-cost catch-up. Phone+password retirement is a small
+later *build* after dummies. Permaban IP is after launch.
+**Planned product (not the QA list):** region-aware listings feed (signup GPS snapshot
+already live; Cebu empty-state is the stopgap — do not rewrite that copy); Privacy/Terms
+rewrite; in-app account deletion; Semaphore phone OTP (gated on business registration);
+block-user; ID verification; G-Coins purchase; listing-photo thumbnails.
+
+### Where we were (2026-07-20) — history
 **Track G (login / auth) is CLOSED.** **Item 3 SHIPPED** (code + hosting/functions deploy):
 standalone Alerts + Support pages live; Contact merged into Support Write overlay; Messages hidden
 from menu (page kept for premium chat); push deep-links → `/alerts.html?role=…`; chat unread
@@ -18,10 +35,9 @@ new-post, Support, Updates, Forum, category listings/modals (PRs #44–#49).
 2026-07-24** (alert card + unread count + phone tray for all 8 critical types — see §E0d).
 **Tray tap → Alerts:** shipped 2026-07-20 PM + **user-confirmed in phone retests** (opens Alerts,
 role-aware; §E0c / §E0d).
-**Still open (real next work):** Admin Dashboard (Track C) — unblocks Support *admin reply*,
-Report Dispute beyond mock UI, moderation, etc. **Deferred (3+ accounts):** 5+/auto-pause.
-**Not blocking / not next:** user-side Support Write already ships tickets to `support_requests`
-(admin reply is the dashboard piece); optional legacy `messages.html?threadId=` deep-link check
+Admin Dashboard (Track C) was the then-next linchpin — that build is now done (Phases 1–11).
+**Deferred (3+ accounts):** 5+/auto-pause.
+**Not blocking / not next:** optional legacy `messages.html?threadId=` deep-link check
 (hidden Messages page kept for future premium chat — not a product priority).
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
@@ -68,14 +84,12 @@ See `AGENTS.md` § "verify production data."
       settings gating). ✅ Hosting deployed.
       ⚠️ Verify on live: a logged-OUT user should no longer see Account/own-profile controls.
 
-## Track B — Security hardening (now Phase 12 — launch gate)
-> **Full scope mapped in `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md` — read that first.**
-> Applications + notifications lockdown is one server-side job (notification delivery and the
-> worker-accept→reject-others flow are cross-user and must move to Cloud Functions). Notifications
-> are already half server-side (push + counters). Groundwork (`gigOwnerId` stamp + backfill) is
-> done and stays. **Locked 2026-08-17:** do this after remaining product phases, immediately
-> before full-platform QA. Do not mark V1 complete until Phase 12 ships. Do not start until
-> those earlier phases are done.
+## Track B — Security hardening (Phase 12 — SHIPPED 2026-09-06/10)
+> **Full scope mapped in `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.**
+> Applications + notifications lockdown is one server-side job. Clerks + indexes shipped
+> Steps 1–5; Gigs Manager prove Step 6 (2026-09-05); rules lock Step 7 (`9430a319`,
+> 2026-09-06) + lock smoke 2026-09-06–09. V1 is not “complete” until Pre-launch QA
+> (Ban / dummies / keepers / phone audit / leak catch-up) also finishes.
 
 - [~] **Applications read rule (Option B):**
       - [x] Step 1 — stamp `gigOwnerId` (= job.posterId) on new applications, both write
@@ -84,25 +98,15 @@ See `AGENTS.md` § "verify production data."
       - [x] Step 2 — one-time backfill via `scripts/backfill-gig-owner.js` (Admin SDK key).
             ✅ Ran 2026-06-18: 113 stamped, 2 orphaned-skipped (apps whose parent gig
             `Ji2aIuRJNYAegWgWRzfv` was deleted — junk to clean up later).
-      - [ ] Step 3 — tighten read rule. **BIGGER THAN PLANNED (discovered 2026-06-18).**
-            Firestore only allows a query if its constraints guarantee every returned doc is
-            readable. Several live queries read "all applications for a job" with no
-            applicant/owner constraint and would be REJECTED by a strict rule:
-              • worker reapplication check — `firebase-db.js` SDK path ~L1778 (broad scan +
-                client-side filter; REST path already filters by applicantId)
-              • worker auto-pause fallback — `firebase-db.js` ~L1883 (primary path already
-                uses `job.applicationCount`; only the fallback scans)
-              • owner views/manages applicants — `firebase-db.js` ~L2121/2383/2784,
-                `jobs.js` ~L4351/4488
-            Safe tighten requires: refactor those to filter by `applicantId == uid` (worker)
-            or `gigOwnerId == uid` (owner); make auto-pause rely ONLY on the job counter
-            (workers can't read others' apps); add gigOwnerId composite indexes + deploy;
-            then tighten rule + enforce `gigOwnerId == job.posterId` on create; test apply +
-            hire/manage on BOTH SDK and iOS-REST paths. Treat as its own tested task.
-- [ ] **Notifications hardening:** move deduped cross-user notification *creation* to the
-      backend (a callable function; negligible cost — same reads/writes + ~1 free function
-      call each), THEN lock reads/updates/deletes to the recipient only. **Test for blocked
-      notifications after.**
+      - [x] Step 3 — tighten read rule. Done as **Phase 12 Step 7** (`9430a319`).
+            Applicant, gig poster (`get(job).posterId`), or `isAdmin()`. Create still
+            stamps `gigOwnerId == job.posterId`. Owner list is `gigOwnerId` + `jobId` +
+            `appliedAt`. Lock smoke 2026-09-06–09 (desktop SDK). iOS-REST Apply lock-smoke
+            skipped 2026-09-10 (iOS 15 homepage warning already live).
+- [x] **Notifications hardening — COMPLETE (Phase 12).** `createUserAlert` + Accept sweep
+      + `ownerRejectApplication` write the other person’s inbox. Client `create: if false`.
+      Recipient may update only `read` and delete own row. Lock smoke: Alerts still arrived
+      on the Gigs Manager doors.
 - [x] **Re-enable admin identity — COMPLETE (2026-07-31).** Replaced the disabled email
       allowlist with a proper `admins/{uid}` Firestore collection (uid-keyed, not email —
       accounts sign in via multiple providers whose "primary" email can vary). `isAdmin()` /
@@ -113,14 +117,14 @@ See `AGENTS.md` § "verify production data."
 
 ## Track C — Admin Dashboard (linchpin)
 
-### Phase roster (macro — updated 2026-08-28)
+### Phase roster (macro — updated 2026-09-10)
 Honest status of each numbered phase. **Shipped** means that phase’s scoped job is done, not
 that the whole dashboard section is finished forever.
 
 **Still open (read this first):**
 
 - **Phase 9 — Ban product builds are done.** Ban + phone banlist are live. Not a new Ban
-  feature. Remaining, **after Phase 12 / right before launch** (unless you choose sooner):
+  feature. Remaining, **now (Pre-launch QA)** unless you choose later:
   (1) dummy-account deletes — wipe Auth + `users` / `user_private` / `security_metadata`,
   do **not** put those numbers on the banlist; (2) owner Ban test; (3) leftover audit
   after that test; (4) **phone+password retirement** — small later *build* (remove signup
@@ -131,14 +135,14 @@ that the whole dashboard section is finished forever.
   Email / WhatsApp shelf plan stays in this file as reference only. Do **not** hide
   Reply. Do **not** start Chapters 5–7 unless you reopen this on purpose.
 - **Phase 11 — keeper builds are done.** Live 2026-08-27. #3 owner-tested 2026-08-28.
-  Remaining keeper on/off smokes sit on the **pre-launch QA** list after Phase 12.
-- **Phase 12 — launch gate (in progress).** Steps 1–5 shipped (map, clerks,
-  live buttons, indexes). Step 6 Gigs Manager prove started 2026-09-05
-  (Track B microtasklist). Do **not** lock rules (Step 7) until owner
-  says Go. Messages/chat doors skipped this prove. **Pre-launch QA**
-  is after the lock.
+  Remaining keeper on/off smokes sit on the **pre-launch QA** list.
+- **Phase 12 — SHIPPED.** Steps 1–5 (map, clerks, live buttons, indexes). Step 6 Gigs
+  Manager prove 2026-09-05 (rules still open). Step 7 rules lock `9430a319` (2026-09-06)
+  + lock smoke 2026-09-06–09. Messages/chat doors were skipped on purpose. iPhone 7 /
+  REST Apply lock-smoke skipped 2026-09-10 (iOS 15 homepage warning). **Next work is
+  Pre-launch QA**, not more lockdown.
 
-**Phase 12 is the launch gate:** Track B lockdown after remaining build, then full-platform QA. Do not mark everything complete until 12 ships.
+**Phase 12 build is done.** Do not mark V1 complete until Pre-launch QA finishes.
 
 | Phase | What it actually was | Status |
 |---|---|---|
@@ -153,7 +157,7 @@ that the whole dashboard section is finished forever.
 | 9 | Permanently Ban = Auth disable + stamp phone on `banned_phones`. Unban restores login and does **not** clear the stamp. | Ban **builds done**. Still open: dummy deletes, Ban test, phone audit, phone+password retirement (small later build). |
 | 10 | In-app Support thread (Ch 1–4) live 2026-08-14. Email/WhatsApp shelf written as reference only — not an open build. | **Retired as open work.** Engine stays on. |
 | 11 | Settings keepers + launch-feed switch. | **Builds done.** #3 tested. Other smokes = pre-launch QA. |
-| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | Launch gate — **Steps 1–5 shipped.** Step 6 Gigs Manager prove in progress (2026-09-05). Step 7 rules **not** locked. |
+| 12 | Last **build** before launch: move cross-user notification create + worker-accept reject-others to Cloud Functions, then lock `applications` / `notifications` rules. Full QA is **after** that lock. | **SHIPPED.** Steps 1–5 + Step 6 prove (2026-09-05) + Step 7 lock (`9430a319`) + lock smoke (2026-09-06–09). |
 
 - [x] **#8 Architecture + cost study — COMPLETE (2026-07-27).** Full detail in
       `docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md`. Core rule: never live-listen or scan real
@@ -401,8 +405,9 @@ that the whole dashboard section is finished forever.
       3. Phone+password **sunset later** (signup **and** login UI gone, plus
          server reject of **new** `*@phone.gisugo.app` creates). Not this
          build. Existing social login stays.
-      4. Owner Ban test **deferred** — after dummy-account deletes right
-         before launch (after Phase 12), **or** when you choose. Not now.
+      4. Owner Ban test **deferred** — after dummy-account deletes
+         (Pre-launch QA, now that Phase 12 is shipped), **or** when you
+         choose.
       5. Dummy deletes = Auth user + `users` / `user_private` /
          `security_metadata`. **Do not** put those fake numbers on the
          banlist.
@@ -426,8 +431,8 @@ that the whole dashboard section is finished forever.
       **Parked (not next):** suspend-cascade leftovers (refund coins on
       auto-suspended listings; close + notify worker when a hired
       *customer* is banned). Phone+password sunset. Permaban IP.
-      **Not this phase:** data wipe, Phase 12, self-delete, Ban from New,
-      SMS OTP.
+      **Not this phase:** data wipe, self-delete, Ban from New,
+      SMS OTP. Phase 12 lockdown is shipped (do not wait on it).
       **Microtasklist**
       1. **[x] Callable `ban` + `unban`.** Live 2026-08-24.
       2. **[x] Confirm UI.** Live 2026-08-24.
@@ -518,8 +523,8 @@ that the whole dashboard section is finished forever.
       **Live numbers (2026-08-27):** max active gigs `0` (no cap), min ₱50,
       max ₱10,000, launch-feed ON, all pause switches off.
       **Owner tests:** #3 tech warning centered and accepted 2026-08-28.
-      Remaining keeper on/off smokes sit on the pre-launch QA list after
-      Phase 12 (not more wiring).
+      Remaining keeper on/off smokes sit on the pre-launch QA list
+      (not more wiring).
       **Keep + wire (done):**
       1. **[x] Suspend new gig posts** on `new-post2` + why notice (2026-08-27).
       2. **[x] Pause Support write** + why notice (2026-08-27).
@@ -535,31 +540,25 @@ that the whole dashboard section is finished forever.
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. Policy read fails open.
-- [ ] **Phase 12: Applications + notifications lockdown (Track B). DECIDED 2026-08-17 — launch gate. Steps 1–5 shipped. Step 6 Gigs Manager prove in progress (2026-09-05). Do not lock rules until owner says Go.**
-      This is a **security lock**, not a new screen and not the “test everything” pass.
+- [x] **Phase 12: Applications + notifications lockdown (Track B). SHIPPED 2026-09-06/10.**
+      This was a **security lock**, not a new screen and not the “test everything” pass.
       Full map: `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`.
-      **What is wrong today (API only, not the GISUGO UI):** any signed-in account can
+      **What was wrong (API only, not the GISUGO UI):** any signed-in account could
       read every application and every notification, and write a notification into
-      someone else’s inbox, by talking to Firestore directly (browser console / a
-      script). The website already only shows you your own stuff. That gap is fine
-      for a tester-only site. It is not fine for public launch.
-      **Why it cannot be a one-line rules change:** several real flows *must* write
-      across users — Apply (worker writes the owner an alert), Hire (owner writes
-      the worker), Accept (worker writes the owner), and the hard one: **worker
-      accepts → reject every other pending applicant** (one worker updating other
-      workers’ application docs). If we tighten rules first, those buttons break.
-      So the writes move to Cloud Functions first; rules lock last.
-      **What already exists (do not redo):** every new application already stamps
-      `gigOwnerId`; old applications were backfilled. Push and unread counters
-      already run on the server when a notification doc is created. Phase 12
-      *finishes* that design: the *create* of the notification (and the reject-others
-      sweep) must also be server-side, then rules can match.
-      **What users should feel after 12:** nothing new. Apply, Hire, Accept, Alerts
-      still work the same. The change is who is *allowed* to write the underlying
-      docs.
-      **Do not skip the order.** Functions first (rules still open) → prove Apply /
-      Hire / Accept still work → then lock rules → then the full pre-launch test.
-      Step 6 is in progress; Step 7 is still waiting on owner Go.
+      someone else’s inbox, by talking to Firestore directly. The website already
+      only showed you your own stuff. That gap is closed: a signed-in stranger
+      cannot list everyone else’s applications or alerts, and cannot create an
+      inbox row from the client (`notifications` `create: if false`).
+      **Why it was not a one-line rules change:** several real flows *must* write
+      across users — Apply, Hire, Accept, and **worker accepts → reject every other
+      pending applicant**. Writes moved to Cloud Functions first; rules locked last.
+      **What already existed (do not redo):** `gigOwnerId` stamp + backfill; push and
+      unread counters on notification create. Phase 12 finished that design.
+      **What users should feel:** nothing new. Apply, Hire, Accept, Alerts still
+      work the same. The change is who is *allowed* to write the underlying docs.
+      **Order that actually ran:** Functions first (rules still open) → Step 6 Gigs
+      Manager prove 2026-09-05 → Step 7 lock `9430a319` 2026-09-06 → lock smoke
+      2026-09-06–09 → Pre-launch QA is next.
       **Microtasklist**
       1. **[x] List the live call sites.** Mapped 2026-08-28 (this session).
          Not only Apply / Hire / Accept — every live door that writes another
@@ -776,14 +775,12 @@ that the whole dashboard section is finished forever.
          `gigOwnerId` + `jobId` + `appliedAt` desc (2026-08-31).
          `jobs.html` on `firebase-db.js?v=77`. Rules still open.
          **Stopped here (2026-08-31)** — Step 6 prove not started then.
-      6. **[~] Prove it.** Started 2026-09-05. Live Chrome/Edge on
-         gisugo.com (not Cursor browser). Spine: Apply → review →
-         Hire → Accept (Gigs Manager). Owner this pass: **Gigs
-         Manager only** — Messages/chat copies of A7–A9 are out.
-         If this fails, do not lock rules.
-         Accounts: GISUGO Operations (`Y3UpEKlCeLT4VsvMX6RQoeRyj6h1`)
-         as customer; Peter J. Ang (`wHSQXBLgqsN9a7DPqDqat8958zw2`)
-         as worker (roles flip when needed). Do not ban super_admin.
+      6. **[x] Prove it (rules still OPEN).** 2026-09-05. Live Chrome/Edge on
+         gisugo.com. Spine: Apply → review → Hire → Accept (Gigs Manager).
+         Owner this pass: **Gigs Manager only** — Messages/chat copies of
+         A7–A9 stayed out. Accounts: GISUGO Operations
+         (`Y3UpEKlCeLT4VsvMX6RQoeRyj6h1`) / Peter J. Ang
+         (`wHSQXBLgqsN9a7DPqDqat8958zw2`). Do not ban super_admin.
          **Passed this pass (Gigs Manager):**
          - A1 Apply → owner New Application card.
          - Review applicants.
@@ -822,22 +819,45 @@ that the whole dashboard section is finished forever.
          one). Edge Tracking Prevention / BloomFilter. Alerts has
          no working delete control — do not treat that as a Step 6
          door.
-         **Still Step 6 (before Step 7):**
-         - Two-worker Accept sweep (B1 / A3 others): other pending
-           applicants rejected + their coins. Deferred until one
-           listing has two live pending applies.
-         - iPhone 7 / REST apply smoke (map: iOS uses the REST
-           apply path).
-         - Hide leftover chat Accept/Decline if it is still
-           tappable (Step 4 leftover audit).
-         **Not this Step 6:** Messages Gig Status doors; Ban /
-         dummy deletes / keeper smokes (Pre-launch QA); pulling
-         delete-gig alert cards; locking rules.
-      7. **[ ] Lock the rules.** That is the launch-gate ship. After this, a
-         signed-in stranger cannot read everyone’s applications or alerts via
-         the API.
-      8. **[ ] After 12 (not this build).** Full **Pre-launch QA** (see the
-         list immediately below). Not part of the Phase 12 build.
+         **Closed later on the lock-smoke pass (not still open):**
+         two-worker Accept sweep (see Step 7).
+         **Skipped (owner 2026-09-10):** iPhone 7 / REST Apply
+         lock-smoke. iOS 15 homepage warning already live.
+         **Not this Step 6 / not a reopen:** Messages Gig Status
+         doors; Ban / dummy deletes / keeper smokes (Pre-launch QA);
+         pulling delete-gig alert cards; leftover chat Accept/Decline
+         JS (Messages is out of the public menu; cleanup later if
+         the extra weight matters).
+      7. **[x] Lock the rules + lock smoke.** Launch-gate ship
+         `9430a319` (2026-09-06). Applications: applicant / gig
+         poster / admin. Notifications: recipient read; `create: if
+         false`; recipient may update only `read` and delete own row.
+         **Lock smoke 2026-09-06–09 (roles flipped vs Step 6: Peter
+         posted several gigs; Operations was worker).** All required
+         Gigs Manager doors passed; no `permission-denied` brick:
+         - Post (Solicitor `PgxDND3B5zuvQVksHpmm`).
+         - Apply → New Application (`KAkdHwQfgWdEfwcT69bG`).
+         - View Applications (Peter is not super_admin on that query).
+         - Hire (`replace_offer`).
+         - Accept, one worker.
+         - Complete + both feedbacks (review `HEJfjoWFGKPMpSevNjim`).
+         - Owner Reject (clothes `1ZKnt7QFfEcbEk1FbDiT`).
+         - Relist / Void (`z7j35EDpKPtvAtrfelHT`).
+         - Resign (`aiZiRvZV9NqjiyhA6YlT`).
+         - Decline (`oIeQvNAUWKp8A2zJOAYU`).
+         - Accept sweep: Galleria `F2ZqOX5vyujW4KXgcNtV` — 4 pending
+           (Peter + Test 3/4/5); Hire Peter; Accept; sweep
+           `rejected: 3, coinsReleased: 3, alertsWritten: 3`.
+           Production 2026-09-10: Test 3/4/5 are 10/10 coins,
+           last reason `not_selected_after_hire`.
+         - Delete leftover listing `928HFSjoVxaErvy8OiWR` (biscuit
+           pallet). Callable cleaned 2 apps. No slots-open card on
+           delete (expected — listing is gone, not reopened).
+           Operations last reason `job_deleted`.
+         Delete does **not** write worker alerts. Confetti particle
+         console lines are client debug only (zero Firebase cost).
+      8. **[ ] After 12.** Full **Pre-launch QA** (list immediately
+         below). Not part of the Phase 12 build. This is **now**.
 
       **Step 1 map (2026-08-28) — live doors the clerk must keep working**
 
@@ -917,9 +937,10 @@ that the whole dashboard section is finished forever.
         applicant on this gig” and every `syncJobApplicationCount` recount
         go away. Function runs are cheap; those scans are what hit the bank.
 
-- [ ] **Pre-launch QA (after Phase 12 — not during the 12 build).**
+- [ ] **Pre-launch QA (NOW — Phase 12 shipped. Not more lockdown.).**
       Owner forgot to have leak / extra-cost checks done as each admin Phase
       shipped. This list is that catch-up plus the other launch leftovers.
+      Dummy deletes first so Ban test does not stamp fake US numbers.
       1. **[ ] Ban test** (owner). After dummy deletes, or after leftover
          cleanup — same order already locked under Phase 9.
       2. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
@@ -1364,7 +1385,8 @@ that the whole dashboard section is finished forever.
       lifetime counter and did not drop.
       **Live callers of `deleteJob()`:** Gig Moderation permanent delete
       (2026-08-24) and owner My Gigs delete (same function; **retested
-      2026-09-05** on Step 6 — see Phase 12 prove log).
+      2026-09-05** on Step 6 and **2026-09-09** on Step 7 lock smoke —
+      biscuit `928HFSjoVxaErvy8OiWR`, 2 apps cleaned via callable).
       **Locked product (shipped `8f52ddf`):** callable queries by
       `jobId`, skips missing IDs, refunds only pending/accepted/hired
       still holding a coin. Client fallback is one-by-one. Do not
@@ -1935,7 +1957,11 @@ that the whole dashboard section is finished forever.
       tab + `navigate()` which is flaky on mobile Chrome (2026-07-17 FAIL still stands).
       **Also still open (separate):** shorten tray title/body; chat/`threadId` deep-links when
       premium Messages returns; optional delivery polish (push icon, VAPID) — see §E0b.
-- [ ] **iOS legacy-device issues** — deferred until wiring is done (avoid double test work).
+- [x] **iOS 15 / iPhone 7 class — gated, not an open lock-smoke door (2026-09-10).**
+      Homepage warning (`ios15-warn`, `429fa19e` / `8b5ef009`) tells the user the
+      device may not work well; Continue Anyway remains. REST Apply / Alerts
+      fallbacks stay in code for those who continue. Owner: do **not** spend
+      more time proving iPhone 7 Apply after the Phase 12 lock.
 - [ ] **G-Coins / wallet** — DO NOT remove. UI retained for business-model referencing
       (free-publishing pivot; old "pay to post" concept retired but UI useful as reference).
       **2026-07-17:** Account Settings wallet block `#gCoinsWalletSection` is **hidden** (not
@@ -2603,40 +2629,32 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 
 ---
 
-## Recommended order (re-synced 2026-08-04)
+## Recommended order (re-synced 2026-09-10)
 > Items 1–3 SHIPPED. **Alert/count + tray smoke COMPLETE** (incl. phone §E0d 2026-07-24).
 > **Track G auth CLOSED.** Meta FB app Live.
-> **Gig Use Type rename + nationwide region/city expansion + free-text location + photo-required
-> fix: BUILT, SHIPPED, user-tested live on `hatod.html`/`aircon.html`/`solicitor.html` 2026-08-03/04
-> (region/city filter persistence, city filtering bug, empty-state launch note, Filter Gigs overlay
-> polish all confirmed working). This front-facing detour is done.**
-> **Next linchpin = Admin Dashboard study/build (Track C #8).**
+> **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
+> **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
+> **Next linchpin = Pre-launch QA** (dummy deletes first).
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
-1. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes
-   (incl. wiring worker Report Dispute beyond mock UI), admin notifications, gig-report
-   moderation, the deferred lockdown, the Support *admin reply* side, and the Direct reveal
-   counter. **This is the real next linchpin.**
-2. ~~Item 3 D2 tray tap~~ done (user-confirmed). User Support Write submit already works; not
-   gated on dashboard. Optional later: VAPID if Chrome spam labels persist; legacy
-   `messages.html?threadId=` check; 5+/auto-pause (needs 3+ accounts).
-3. **Phone VERIFICATION fast-follow (Semaphore OTP, ~$0.02/send vs Firebase's ~$0.15)** — plan +
-   research in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 1 APPENDIX. Gated on business
-   registration (PH telco sender-ID approval), NOT on code. Also the durable fix for the
-   cross-provider duplicate-phone gap (verify + link phone on all accounts).
-4. **Block-user feature** (Track C #9). After the dashboard study (confirms admin vs user-only plumbing).
-5. **Phase 12 — Track B lockdown** (launch gate). Steps 1–5 shipped. Step 6
-   Gigs Manager prove in progress (2026-09-05). Keep old rules up until
-   owner says Go on Step 7. See Track B microtasklist. Do not mark
-   V1 complete until the rules lock ships.
-6. **Final cross-device / full-platform QA pass** + remaining Track E items (incl. iPad-mini
-   header layout + legacy-iPhone data-loading stalls) **after Phase 12**, before release.
-   Includes the **Pre-launch QA** list in Track C (Ban / dummies / keeper smokes /
-   leak + extra-cost catch-up).
-7. **Privacy + Terms rewrite** + **in-app account deletion** (BUILD_PLAN deferred backlog — Meta/user
-   facing).
+   ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
+1. **Pre-launch QA** (Track C list): dummy-account deletes (**not** on `banned_phones`) →
+   owner Ban test → leftover audit → remaining Phase 11 keeper on/off smokes → pre-launch
+   phone audit → leak + extra-cost catch-up. Phone+password sunset is a small later build
+   after dummies. Permaban IP is after launch.
+2. **Final cross-device / full-platform QA** (not iPhone 7 Apply — that door is skipped).
+   Remaining Track E as you choose: category-page viewport inconsistency, gig-photo
+   thumbnails, iPad-mini header if it still bites.
+3. **Phone VERIFICATION fast-follow (Semaphore OTP, ~$0.02/send vs Firebase's ~$0.15)** —
+   plan in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 1 APPENDIX. Gated on business
+   registration (PH telco sender-ID approval), NOT on code.
+4. **Block-user feature** (Track C #9).
+5. **Privacy + Terms rewrite** + **in-app account deletion** (BUILD_PLAN deferred backlog).
+6. **Region-aware listings feed** (planned product). Signup GPS → `platform_analytics/users.byRegion`
+   is already live; Cebu empty-state is the stopgap until the feed is wired. Do not rewrite
+   the signup/Edit Profile location copy unless asked.
 
 Also live: the **DEFERRED BACKLOG** list at the bottom of `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`
 (reveal counter on dashboard, remaining Firestore cleanup (b)/(c), Privacy/Terms rewrite, in-app
