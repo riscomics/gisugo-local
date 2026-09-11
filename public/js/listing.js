@@ -1309,7 +1309,7 @@ function normalizeListingCardNavigation(card, category) {
 }
 
 const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
-const LISTING_CACHE_PREFIX = 'listing-cache-v2:';
+const LISTING_CACHE_PREFIX = 'listing-cache-v3:';
 const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 
 // Ticket counter so an older, slower filterAndSortJobs() call can tell it's been
@@ -1330,6 +1330,39 @@ function launchFeedBucketMinApps() {
 function jobApplicationCount(job) {
   const n = Number(job && job.applicationCount);
   return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function isPopularListingJob(job) {
+  return isLaunchFeedBucketOn() && jobApplicationCount(job) >= launchFeedBucketMinApps();
+}
+
+function applyLaunchFeedBucketOrder(jobs) {
+  if (!Array.isArray(jobs) || jobs.length === 0) return jobs;
+  if (!isLaunchFeedBucketOn()) return jobs;
+  const minBusy = launchFeedBucketMinApps();
+  const regular = [];
+  const popular = [];
+  jobs.forEach((job) => {
+    if (jobApplicationCount(job) >= minBusy) popular.push(job);
+    else regular.push(job);
+  });
+  return regular.concat(popular);
+}
+
+function removeListingPopularHeadings(root) {
+  const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+  scope.querySelectorAll('.listing-popular-heading').forEach((el) => el.remove());
+}
+
+function createListingPopularHeading() {
+  const heading = document.createElement('h2');
+  heading.className = 'listing-popular-heading';
+  heading.textContent = 'Popular';
+  return heading;
+}
+
+function listingParentHasPopularHeading(parent) {
+  return !!(parent && parent.querySelector && parent.querySelector('.listing-popular-heading'));
 }
 
 function buildListingCacheKey(category, region, city, payType) {
@@ -1440,6 +1473,7 @@ function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
   setListingEmptyStateVisible(false, headerSpacer);
   const existingCards = Array.from(document.querySelectorAll('.job-preview-card'));
   existingCards.forEach(card => card.remove());
+  removeListingPopularHeadings(headerSpacer.parentNode);
   resetAdRenderState();
 
   const requestedTarget = Number(options.targetCount);
@@ -1660,14 +1694,6 @@ async function filterAndSortJobs() {
     });
   }
 
-  // Launch feed (dashboard toggle): hide 20+ app gigs from the listing so
-  // seeded/busy posts stay live for apply but do not crowd the due-date feed.
-  // No user-facing Due Date / High Interest picker — this is automatic.
-  if (isLaunchFeedBucketOn()) {
-    const minBusy = launchFeedBucketMinApps();
-    filteredJobs = filteredJobs.filter((job) => jobApplicationCount(job) < minBusy);
-  }
-
   // ============================================================================
   // ✅ FIREBASE-READY - SORTING LOGIC (Keep this section as-is)
   // ============================================================================
@@ -1703,6 +1729,10 @@ async function filterAndSortJobs() {
     const createdB = new Date(b.createdAt || 0).getTime();
     return createdB - createdA; // Newest created first
   });
+
+  // Launch feed ON: keep 20+ on this same scroll, under-20 first, then Popular.
+  // OFF: no second bucket; list stays soonest-ending only.
+  filteredJobs = applyLaunchFeedBucketOrder(filteredJobs);
   
   
   // ============================================================================
@@ -1717,6 +1747,7 @@ async function filterAndSortJobs() {
     // setListingEmptyStateVisible's own "don't show empty state over real cards"
     // guard sees the leftover cards and refuses to show the empty state at all.
     Array.from(document.querySelectorAll('.job-preview-card')).forEach(card => card.remove());
+    removeListingPopularHeadings(headerSpacer && headerSpacer.parentNode);
     PAGINATION.allJobs = [];
     PAGINATION.currentIndex = 0;
     PAGINATION.displayedJobs = [];
@@ -1838,32 +1869,41 @@ function renderJobBatch(batchSize, headerSpacer) {
   const isInitialLoad = PAGINATION.displayedJobs.length === 0;
   
   // Render in the same order as the sorted source array.
-  // filteredJobs is already sorted soonest-first in filterAndSortJobs().
+  // filterAndSortJobs() sorts soonest-ending, then (when Launch Feed is ON)
+  // concatenates under-20 then 20+ so Load More cannot pull Popular to the top.
   const jobsToProcess = jobBatch;
   let insertionCursor = headerSpacer;
+  const parent = headerSpacer.parentNode;
   
   jobsToProcess.forEach((cardData) => {
     const currentPayType = cardData.rate || 'Personal';
     // Alternate shade by feed position so Personal→Business still stripes.
     const shadeIndex = PAGINATION.displayedJobs.length;
     const jobCard = createJobPreviewCard(cardData, currentPayType, shadeIndex);
-    
-    const parent = headerSpacer.parentNode;
     const emptyState = document.getElementById('listingEmptyState');
     const anchor = (emptyState && emptyState.parentNode === parent) ? emptyState : null;
+    const needPopularHeading = isPopularListingJob(cardData) && !listingParentHasPopularHeading(parent);
+
     if (isInitialLoad) {
-      // Deterministic insertion: always place next card after the previous inserted card.
-      // This preserves sorted order (soonest-first) regardless of placeholder nodes.
+      if (needPopularHeading) {
+        const heading = createListingPopularHeading();
+        parent.insertBefore(heading, insertionCursor.nextSibling);
+        insertionCursor = heading;
+      }
       parent.insertBefore(jobCard, insertionCursor.nextSibling);
       insertionCursor = jobCard;
     } else if (anchor) {
-      // Never append cards after an empty placeholder, or it appears mid-list.
+      if (needPopularHeading) {
+        parent.insertBefore(createListingPopularHeading(), anchor);
+      }
       parent.insertBefore(jobCard, anchor);
     } else {
+      if (needPopularHeading) {
+        parent.appendChild(createListingPopularHeading());
+      }
       parent.appendChild(jobCard);
     }
     
-    // Add to displayed jobs
     PAGINATION.displayedJobs.push(cardData);
 
   });

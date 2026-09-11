@@ -15,9 +15,9 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Immediate next.** Track E A (gig-card small + gig-page large photo) **shipped 2026-09-10**,
-owner smoke still open. Then **B Launch Feed two buckets** (not hide). Do **not**
-dummy-delete until Launch Feed ON is smoked with 20+ apps sitting in the **bottom** bucket.
+**Immediate next.** Track E A **closed**. Track E B (Launch Feed two buckets) **shipped
+2026-09-11**, owner dummy smoke still open. Do **not** dummy-delete until Launch Feed ON
+is smoked with 20+ apps sitting in the **bottom** bucket.
 **Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
 Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
 **Native:** may start on live Firebase now. Job photos should use small+large URLs
@@ -544,13 +544,12 @@ that the whole dashboard section is finished forever.
       6. **[x] Max active gigs** (`0` = no cap).
       7. **[x] Min gig price ₱** (Settings owns the number).
       8. **[x] Max gig price ₱**
-      9. **[ ] Launch Feed two buckets (product lock 2026-09-10 — code still HIDES).**
-         Owner confirmed: ON = one category scroll, two buckets. Top = under 20
-         apps, soonest ending. Bottom = 20+ apps (“popular”), soonest ending
-         among themselves. 20+ stay on the feed (seed gigs must not vanish).
-         No Due date / High interest picker. Switch OFF = no second bucket
-         (mature: existing pause + block Apply at 10). Live code + dashboard
-         copy still say hide 20+. Fix = Track E microtasklist B.
+      9. **[x] Launch Feed two buckets (product lock 2026-09-10 — shipped 2026-09-11).**
+         ON = one category scroll, two buckets. Top = under 20 apps, soonest
+         ending. Bottom = 20+ apps (“Popular”), soonest ending among themselves.
+         20+ stay on the feed. No Due date / High interest picker. Switch OFF =
+         no second bucket (mature: existing pause + block Apply at 10).
+         Owner dummy smoke still open (Track E B item 6).
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. If the public Settings doc cannot
@@ -1979,32 +1978,23 @@ that the whole dashboard section is finished forever.
          small file. Gig page is the large file. Relist without a new photo
          still shows an image. An old gig with only `thumbnail` still shows.
 - [ ] **B. Launch Feed two buckets (IMMEDIATE — product lock 2026-09-10).**
-      Owner confirmed. Switch ON = launch. Every category (Hatod, etc.) is
-      **one scroll, two buckets:** (1) under 20 apps, soonest ending on top;
-      (2) 20+ apps at the **bottom**, soonest ending among themselves.
-      20+ stay on the feed so seed gigs do not vanish. **No** Due date /
-      High interest picker. Quiet “Popular” divider between buckets (not a
-      tap control). Switch OFF = no bucket 2 (mature). Apply path already
-      pauses + blocks at 10 when OFF — leave that. ON: stay live, review
-      alert at 20, do **not** pause.
-      **Live bug:** `listing.js` **hides** 20+ when ON. Dashboard copy says
-      hide. That is the opposite of launch. Apply notify-at-20 is already
-      correct for ON.
-      **Live files:** `listing.js` (all category pages), `admin-dashboard.html`
-      Settings line, `firebase-db.js` comments + `GisugoGigFeedPolicy`.
+      **Shipped 2026-09-11** (pending owner dummy smoke, item 6).
+      Switch ON = launch. Every category is **one scroll, two buckets:**
+      (1) under 20 apps, soonest ending on top; (2) 20+ apps at the bottom
+      under a quiet “Popular” heading, soonest ending among themselves.
+      20+ stay on the feed. **No** Due date / High interest picker.
+      Switch OFF = no bucket 2; pause + block Apply at 10. ON: stay live,
+      review alert at 20, do **not** pause. Do not change 20 / 10 numbers.
       **Microtasklist:**
-      1. **[ ] Stop hiding.** Delete the ON filter that drops
+      1. **[x] Stop hiding.** Deleted the ON filter that dropped
          `applicationCount >= 20` from the list.
-      2. **[ ] Split + sort.** Same soonest-ending sort as today, then
-         concatenate under-20 then 20+. Pagination / Load More must keep
-         that order (do not let popular jump to the top on the next batch).
-      3. **[ ] One quiet “Popular” heading** between buckets when bucket 2
-         is non-empty. No extra tabs or pickers. Empty popular = no heading.
-      4. **[ ] Dashboard copy.** ON: stay live; 20+ move to the Popular
-         bucket at the bottom. OFF: no Popular bucket; pause and block
-         Apply at 10.
-      5. **[ ] Comments / policy text** in `firebase-db.js` match the copy.
-         Do not change 20 / 10 numbers.
+      2. **[x] Split + sort.** Same soonest-ending sort, then concatenate
+         under-20 then 20+. Pagination / Load More keeps that order.
+      3. **[x] One quiet “Popular” heading** between buckets when bucket 2
+         is non-empty. Empty popular = no heading.
+      4. **[x] Dashboard copy.** ON: stay live; 20+ move to Popular at
+         the bottom. OFF: no Popular bucket; pause and block Apply at 10.
+      5. **[x] Comments / policy text** in `firebase-db.js` match the copy.
       6. **[ ] Smoke (dummies, before dummy deletes).** Settings ON. One
          gig to 20+ apps. It stays on Hatod **under** Popular, soonest
          among other 20+ if any. Under-20 gigs still on top. Poster still
@@ -2705,7 +2695,7 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = A owner photo smoke, then B Launch Feed two buckets, then dummy deletes.**
+> **Next linchpin = B owner dummy smoke (20+ under Popular), then dummy deletes.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
@@ -2713,8 +2703,8 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
 1. **A. Gig-card small photo + gig-page large photo** (Track E). Shipped 2026-09-10;
    owner smoke still open (card small / gig page large / relist / old one-file gig).
-2. **B. Launch Feed two buckets** (stop hiding 20+; Popular at the bottom). Then smoke
-   with dummy 20+ apps. Do not Ban them.
+2. **B. Launch Feed two buckets** shipped 2026-09-11. Owner smoke: dummy to 20+
+   apps, stays on Hatod under Popular. Do not Ban them.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
    Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper
    smokes → phone audit → admin extra-read walk. Phone+password sunset after dummies.
