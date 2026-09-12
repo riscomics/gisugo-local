@@ -17,7 +17,7 @@ and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
 **Immediate next.** Track E A **closed**. Track E B (Launch Feed two buckets) rebuilt
 and shipping now. Owner dummy smoke still open: Settings ON, one gig at 20+ apps
-must stay on Hatod **under Popular**. Do **not** dummy-delete until that smoke.
+must stay on Hatod **at the bottom**. Do **not** dummy-delete until that smoke.
 **Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
 Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
 **Native:** may start on live Firebase now. Job photos should use small+large URLs
@@ -545,10 +545,11 @@ that the whole dashboard section is finished forever.
       7. **[x] Min gig price ₱** (Settings owns the number).
       8. **[x] Max gig price ₱**
       9. **[x] Launch Feed two buckets (product lock 2026-09-10 — rebuilt 2026-09-11).**
-         ON = one category scroll, two buckets. Top = under 20 apps, soonest
-         ending. Bottom = 20+ apps (“Popular”), soonest ending among themselves.
-         20+ stay on the feed. No Due date / High interest picker. Switch OFF =
-         no second bucket (mature: existing pause + block Apply at 10).
+         ON = one category scroll, two groups, **no on-screen divider**. Top =
+         under 20 apps, soonest ending. Bottom = 20+ apps, soonest ending
+         among themselves. 20+ stay on the feed. No Due date / High interest
+         picker. Owner 2026-09-11: no visible “Popular” line. Switch OFF =
+         no second group (mature: existing pause + block Apply at 10).
          Owner dummy smoke still open (Track E B item 6).
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
@@ -1957,24 +1958,25 @@ that the whole dashboard section is finished forever.
       `listing.js` reads `thumbnail`. Gig page prefers `photoFull`.
       **Microtasklist:** 1–6 shipped. Owner: no more A testing.
 - [ ] **B. Launch Feed two buckets (rebuilt 2026-09-11).**
-      Switch ON = launch. Every category is **one scroll, two buckets:**
-      (1) under 20 apps, soonest ending on top; (2) 20+ apps at the bottom
-      under a quiet “Popular” heading, soonest ending among themselves.
-      20+ stay on the feed. **No** Due date / High interest picker.
-      Switch OFF = no bucket 2; pause + block Apply at 10. ON: stay live,
-      review alert at 20, do **not** pause. Do not change 20 / 10 numbers.
+      Switch ON = launch. Every category is **one scroll, two groups, no
+      visible divider:** (1) under 20 apps, soonest ending on top; (2) 20+
+      apps at the bottom, soonest ending among themselves. 20+ stay on the
+      feed. **No** Due date / High interest picker. Owner 2026-09-11: do not
+      show a “Popular” heading. Switch OFF = no second group; pause + block
+      Apply at 10. ON: stay live, review alert at 20, do **not** pause.
+      Do not change 20 / 10 numbers.
       **Microtasklist:**
       1. **[x] Stop hiding.** Deleted the ON filter that dropped
          `applicationCount >= 20` from the list.
       2. **[x] Split + sort.** Same soonest-ending sort, then concatenate
          under-20 then 20+. Pagination / Load More keeps that order.
-      3. **[x] One quiet “Popular” heading** between buckets when bucket 2
-         is non-empty. Empty popular = no heading.
-      4. **[x] Dashboard copy.** ON: stay live; 20+ move to Popular at
-         the bottom. OFF: no Popular bucket; pause and block Apply at 10.
+      3. **[x] No on-screen divider.** Owner: no visible line/label between
+         under-20 and 20+. Heading removed 2026-09-11.
+      4. **[x] Dashboard copy.** ON: stay live; 20+ stay on the list at
+         the bottom. OFF: no second group; pause and block Apply at 10.
       5. **[x] Comments / policy text** in `firebase-db.js` match the copy.
       6. **[ ] Smoke (dummies, before dummy deletes).** Settings ON. One
-         gig to 20+ apps. It stays on Hatod **under** Popular, soonest
+         gig to 20+ apps. It stays on Hatod **at the bottom**, soonest
          among other 20+ if any. Under-20 gigs still on top. Poster still
          gets the 20-app review alert. Gig stays `active`. Do not Ban.
 
@@ -2673,7 +2675,7 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = B owner dummy smoke (20+ under Popular), then dummy deletes.**
+> **Next linchpin = B owner dummy smoke (20+ at bottom of Hatod), then dummy deletes.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
@@ -2681,7 +2683,7 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
 1. **A. Gig-card small photo + gig-page large photo** (Track E). Closed 2026-09-11.
 2. **B. Launch Feed two buckets** rebuilt 2026-09-11. Owner smoke: dummy to 20+
-   apps, stays on Hatod under Popular. Do not Ban them.
+   apps, stays on Hatod at the bottom. Do not Ban them.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
    Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper
    smokes → phone audit → admin extra-read walk. Phone+password sunset after dummies.

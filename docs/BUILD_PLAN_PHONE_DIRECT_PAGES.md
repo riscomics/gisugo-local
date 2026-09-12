@@ -328,8 +328,8 @@ smoke checklist: `docs/V1_HARDENING_TASKLIST.md` → Item 3.
 2. ✅ **Item 2** (Direct contact).
 3. ✅ **Item 3** (Alerts/Support pages) — alert/count smoke complete; non-alert leftovers in V1 §E.
 4. **Next:** Track E A closed. Track E B rebuilt 2026-09-11 (pending owner
-   dummy smoke: 20+ under Popular). Then dummy deletes. See
-   `docs/V1_HARDENING_TASKLIST.md`. Native may start on the live Firebase backend.
+   dummy smoke: 20+ at the bottom of Hatod; no on-screen divider). Then dummy
+   deletes. See `docs/V1_HARDENING_TASKLIST.md`. Native may start on the live Firebase backend.
 
 ---
 

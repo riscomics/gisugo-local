@@ -1332,46 +1332,25 @@ function jobApplicationCount(job) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-function isPopularListingJob(job) {
-  return isLaunchFeedBucketOn() && jobApplicationCount(job) >= launchFeedBucketMinApps();
-}
-
-// Launch Feed ON: do NOT drop 20+ gigs. Keep one scroll: under-20 first
-// (already soonest-ending), then 20+ (soonest among themselves).
-// OFF: return the soonest-ending list unchanged — no Popular bucket.
+// Launch Feed ON: do NOT drop 20+ gigs. One scroll, no label: under-20
+// first (already soonest-ending), then 20+ (soonest among themselves).
+// OFF: soonest-ending list unchanged — no second group.
 function applyLaunchFeedBucketOrder(jobs) {
   if (!Array.isArray(jobs) || jobs.length === 0) return jobs;
   if (!isLaunchFeedBucketOn()) return jobs;
   const minBusy = launchFeedBucketMinApps();
   const regular = [];
-  const popular = [];
+  const busy = [];
   jobs.forEach((job) => {
-    if (jobApplicationCount(job) >= minBusy) popular.push(job);
+    if (jobApplicationCount(job) >= minBusy) busy.push(job);
     else regular.push(job);
   });
-  return regular.concat(popular);
+  return regular.concat(busy);
 }
 
 function removeListingPopularHeadings(root) {
   const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
   scope.querySelectorAll('.listing-popular-heading').forEach((el) => el.remove());
-}
-
-function createListingPopularHeading() {
-  const heading = document.createElement('h2');
-  heading.className = 'listing-popular-heading';
-  heading.textContent = 'Popular';
-  heading.setAttribute('aria-hidden', 'true');
-  return heading;
-}
-
-function listingParentHasPopularHeading(parent) {
-  return !!(parent && parent.querySelector && parent.querySelector('.listing-popular-heading'));
-}
-
-function ensureListingPopularHeadingBefore(parent, node) {
-  if (!parent || !node || listingParentHasPopularHeading(parent)) return;
-  parent.insertBefore(createListingPopularHeading(), node);
 }
 
 function buildListingCacheKey(category, region, city, payType) {
@@ -1740,8 +1719,8 @@ async function filterAndSortJobs() {
     return createdB - createdA; // Newest created first
   });
 
-  // Launch feed ON: keep 20+ on this same scroll, under-20 first, then Popular.
-  // OFF: no second bucket; list stays soonest-ending only.
+  // Launch feed ON: keep 20+ on this same scroll, under-20 first, then 20+.
+  // OFF: no second group; list stays soonest-ending only. No on-screen divider.
   filteredJobs = applyLaunchFeedBucketOrder(filteredJobs);
   
   
@@ -1880,7 +1859,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   
   // Render in the same order as the sorted source array.
   // filterAndSortJobs() sorts soonest-ending, then (when Launch Feed is ON)
-  // concatenates under-20 then 20+ so Load More cannot pull Popular to the top.
+  // concatenates under-20 then 20+ so Load More cannot pull 20+ to the top.
   const jobsToProcess = jobBatch;
   let insertionCursor = headerSpacer;
   const parent = headerSpacer.parentNode;
@@ -1892,24 +1871,14 @@ function renderJobBatch(batchSize, headerSpacer) {
     const jobCard = createJobPreviewCard(cardData, currentPayType, shadeIndex);
     const emptyState = document.getElementById('listingEmptyState');
     const anchor = (emptyState && emptyState.parentNode === parent) ? emptyState : null;
-    const needPopularHeading = isPopularListingJob(cardData) && !listingParentHasPopularHeading(parent);
 
     if (isInitialLoad) {
       parent.insertBefore(jobCard, insertionCursor.nextSibling);
-      if (needPopularHeading) {
-        ensureListingPopularHeadingBefore(parent, jobCard);
-      }
       insertionCursor = jobCard;
     } else if (anchor) {
       parent.insertBefore(jobCard, anchor);
-      if (needPopularHeading) {
-        ensureListingPopularHeadingBefore(parent, jobCard);
-      }
     } else {
       parent.appendChild(jobCard);
-      if (needPopularHeading) {
-        ensureListingPopularHeadingBefore(parent, jobCard);
-      }
     }
     
     PAGINATION.displayedJobs.push(cardData);
