@@ -1,13 +1,13 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-09-10
+> Status: **Active** · Last updated: 2026-09-11
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
 This is the working tasklist for getting GISUGO web production-solid. Resume here after
 any break.
 
-### Where we are (2026-09-10)
+### Where we are (2026-09-11)
 **Phase 12 (Track B lockdown) SHIPPED.** Rules lock `9430a319` (2026-09-06). Step 6 Gigs
 Manager prove (rules still open) 2026-09-05. Step 7 lock smoke 2026-09-06–09 passed on live
 gisugo.com: Post, Apply (desktop SDK), View Applications, Hire, Accept + two-worker sweep,
@@ -15,9 +15,9 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Immediate next.** Track E A **closed**. Track E B (Launch Feed two buckets) **shipped
-2026-09-11**, owner dummy smoke still open. Do **not** dummy-delete until Launch Feed ON
-is smoked with 20+ apps sitting in the **bottom** bucket.
+**Immediate next.** Track E A **closed**. Track E B (Launch Feed two buckets) rebuilt
+and shipping now. Owner dummy smoke still open: Settings ON, one gig at 20+ apps
+must stay on Hatod **under Popular**. Do **not** dummy-delete until that smoke.
 **Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
 Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
 **Native:** may start on live Firebase now. Job photos should use small+large URLs
@@ -544,7 +544,7 @@ that the whole dashboard section is finished forever.
       6. **[x] Max active gigs** (`0` = no cap).
       7. **[x] Min gig price ₱** (Settings owns the number).
       8. **[x] Max gig price ₱**
-      9. **[x] Launch Feed two buckets (product lock 2026-09-10 — shipped 2026-09-11).**
+      9. **[x] Launch Feed two buckets (product lock 2026-09-10 — rebuilt 2026-09-11).**
          ON = one category scroll, two buckets. Top = under 20 apps, soonest
          ending. Bottom = 20+ apps (“Popular”), soonest ending among themselves.
          20+ stay on the feed. No Due date / High interest picker. Switch OFF =
@@ -1951,34 +1951,12 @@ that the whole dashboard section is finished forever.
       - **If revisited later, need before building:** (1) a real, actively-monitored email inbox,
         (2) an official WhatsApp Business number, (3) a decision on Email+WhatsApp only vs. also
         adding Viber (Contact Worker currently offers both WhatsApp and Viber tiles).
-- [ ] **A. Gig-card small photo + gig-page large photo (IMMEDIATE).**
-      **Shipped 2026-09-10** (pending owner smoke, item 7). Do not start B until 7 passes.
-      Contract: `thumbnail` = card URL (~400px / 0.7 `_thumb.jpg`). `photoFull` =
-      gig-page URL (~1200px / 0.8 `.jpg`). Old gigs with only `thumbnail` still
-      work. Live post door: `new-post2.js`. Cards: `listing.js` still reads
-      `thumbnail` (now the small file; no 56-page rewrite). Gig page:
-      `dynamic-job.js` prefers `photoFull`. Delete callable also removes `_thumb.jpg`.
-      **Live callers:** `uploadJobPhoto` / `copyJobPhotoToNewJob` from `new-post2.js`
-      (post, edit, relist). `new-post.js` leftover covered by the same helpers.
-      **Microtasklist:**
-      1. **[x] Contract only.** Job doc: `thumbnail` = card URL. `photoFull` =
-         gig-page URL. Native later reads both; missing `photoFull` falls back
-         to `thumbnail`.
-      2. **[x] `uploadJobPhoto` writes both files** in `firebase-storage.js`
-         (same pattern as `uploadSupportPhoto`). Return both URLs.
-      3. **[x] `copyJobPhotoToNewJob` copies both** on relist (or copies the
-         one file that exists on old gigs).
-      4. **[x] `new-post2.js` saves both fields** on post / edit / new photo.
-      5. **[x] `listing.js` cards use the small URL** (`thumbnail` field).
-         Gig page (`dynamic-job.js`) uses `photoFull`. Fallback: one-file gigs.
-      6. **[x] Leftover audit.** Live upload path is `new-post2.js` only.
-         `new-post.js` writes both fields if that leftover page is opened.
-         Did not rewrite 56 category HTML files (`listing.js` is the painter).
-      7. **[ ] Smoke.** Post a new gig with a photo. Category card is the
-         small file. Gig page is the large file. Relist without a new photo
-         still shows an image. An old gig with only `thumbnail` still shows.
-- [ ] **B. Launch Feed two buckets (IMMEDIATE — product lock 2026-09-10).**
-      **Shipped 2026-09-11** (pending owner dummy smoke, item 6).
+- [x] **A. Gig-card small photo + gig-page large photo.**
+      **Closed 2026-09-11.** `thumbnail` = card URL (~400px `_thumb.jpg`). `photoFull`
+      = gig-page URL (~1200px `.jpg`). Live post door: `new-post2.js`. Cards:
+      `listing.js` reads `thumbnail`. Gig page prefers `photoFull`.
+      **Microtasklist:** 1–6 shipped. Owner: no more A testing.
+- [ ] **B. Launch Feed two buckets (rebuilt 2026-09-11).**
       Switch ON = launch. Every category is **one scroll, two buckets:**
       (1) under 20 apps, soonest ending on top; (2) 20+ apps at the bottom
       under a quiet “Popular” heading, soonest ending among themselves.
@@ -2701,9 +2679,8 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
-1. **A. Gig-card small photo + gig-page large photo** (Track E). Shipped 2026-09-10;
-   owner smoke still open (card small / gig page large / relist / old one-file gig).
-2. **B. Launch Feed two buckets** shipped 2026-09-11. Owner smoke: dummy to 20+
+1. **A. Gig-card small photo + gig-page large photo** (Track E). Closed 2026-09-11.
+2. **B. Launch Feed two buckets** rebuilt 2026-09-11. Owner smoke: dummy to 20+
    apps, stays on Hatod under Popular. Do not Ban them.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
    Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper

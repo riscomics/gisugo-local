@@ -1309,7 +1309,7 @@ function normalizeListingCardNavigation(card, category) {
 }
 
 const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
-const LISTING_CACHE_PREFIX = 'listing-cache-v3:';
+const LISTING_CACHE_PREFIX = 'listing-cache-v4:';
 const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 
 // Ticket counter so an older, slower filterAndSortJobs() call can tell it's been
@@ -1336,6 +1336,9 @@ function isPopularListingJob(job) {
   return isLaunchFeedBucketOn() && jobApplicationCount(job) >= launchFeedBucketMinApps();
 }
 
+// Launch Feed ON: do NOT drop 20+ gigs. Keep one scroll: under-20 first
+// (already soonest-ending), then 20+ (soonest among themselves).
+// OFF: return the soonest-ending list unchanged — no Popular bucket.
 function applyLaunchFeedBucketOrder(jobs) {
   if (!Array.isArray(jobs) || jobs.length === 0) return jobs;
   if (!isLaunchFeedBucketOn()) return jobs;
@@ -1358,11 +1361,17 @@ function createListingPopularHeading() {
   const heading = document.createElement('h2');
   heading.className = 'listing-popular-heading';
   heading.textContent = 'Popular';
+  heading.setAttribute('aria-hidden', 'true');
   return heading;
 }
 
 function listingParentHasPopularHeading(parent) {
   return !!(parent && parent.querySelector && parent.querySelector('.listing-popular-heading'));
+}
+
+function ensureListingPopularHeadingBefore(parent, node) {
+  if (!parent || !node || listingParentHasPopularHeading(parent)) return;
+  parent.insertBefore(createListingPopularHeading(), node);
 }
 
 function buildListingCacheKey(category, region, city, payType) {
@@ -1451,7 +1460,7 @@ function getListingJobsSignature(jobs) {
     job && job.photo,
     job && job.applicationCount
   ].join(':'));
-  return `${jobs.length}:${parts.join('|')}`;
+  return `${jobs.length}:lf${isLaunchFeedBucketOn() ? 1 : 0}:${parts.join('|')}`;
 }
 
 function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
@@ -1508,8 +1517,9 @@ async function filterAndSortJobs() {
     const initialTarget = viewState && viewState.displayedCount > 0
       ? viewState.displayedCount
       : PAGINATION.initialBatchSize;
-    renderListingJobs(cachedJobs, headerSpacer, { targetCount: initialTarget });
-    cachedJobsSignature = getListingJobsSignature(cachedJobs);
+    const orderedCached = applyLaunchFeedBucketOrder(cachedJobs);
+    renderListingJobs(orderedCached, headerSpacer, { targetCount: initialTarget });
+    cachedJobsSignature = getListingJobsSignature(orderedCached);
     if (viewState && viewState.scrollY > 0) {
       requestAnimationFrame(() => {
         window.scrollTo(0, viewState.scrollY);
@@ -1885,23 +1895,21 @@ function renderJobBatch(batchSize, headerSpacer) {
     const needPopularHeading = isPopularListingJob(cardData) && !listingParentHasPopularHeading(parent);
 
     if (isInitialLoad) {
-      if (needPopularHeading) {
-        const heading = createListingPopularHeading();
-        parent.insertBefore(heading, insertionCursor.nextSibling);
-        insertionCursor = heading;
-      }
       parent.insertBefore(jobCard, insertionCursor.nextSibling);
+      if (needPopularHeading) {
+        ensureListingPopularHeadingBefore(parent, jobCard);
+      }
       insertionCursor = jobCard;
     } else if (anchor) {
-      if (needPopularHeading) {
-        parent.insertBefore(createListingPopularHeading(), anchor);
-      }
       parent.insertBefore(jobCard, anchor);
-    } else {
       if (needPopularHeading) {
-        parent.appendChild(createListingPopularHeading());
+        ensureListingPopularHeadingBefore(parent, jobCard);
       }
+    } else {
       parent.appendChild(jobCard);
+      if (needPopularHeading) {
+        ensureListingPopularHeadingBefore(parent, jobCard);
+      }
     }
     
     PAGINATION.displayedJobs.push(cardData);
