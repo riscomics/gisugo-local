@@ -2409,7 +2409,23 @@ section {
 }
 
 /* ===== HERO GRID (2-COLUMN FOCUS) ===== */
-/* Native-app Launching title: rounded steel pill with side diamonds */
+/* Title + two hero cards share one width so the bar matches the card row */
+.hero-essentials {
+  width: min(760px, calc(100% - clamp(1.8rem, 8vw, 3.8rem)));
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.hero-essentials .service-grid.service-grid--hero {
+  max-width: none;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Native-app Launching title: rounded rectangle, same width as the two cards */
 .category-header.tier-basic.hero-title-multiline {
   background: linear-gradient(180deg,
     #5a7382 0%,
@@ -2418,7 +2434,7 @@ section {
     #2a404c 78%,
     #243844 100%);
   border: none;
-  border-radius: 999px;
+  border-radius: 22px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 0 rgba(0, 0, 0, 0.28),
@@ -2427,8 +2443,10 @@ section {
   text-shadow: 0 2px 3px rgba(0, 0, 0, 0.38);
   letter-spacing: 0.12em;
   line-height: 1.42;
-  margin: clamp(0.35rem, 1.8vw, 0.7rem) clamp(0.7rem, 4vw, 1.2rem) 0;
-  padding: clamp(1.05rem, 3.1vw, 1.4rem) clamp(2.6rem, 9vw, 3.8rem);
+  width: 100%;
+  box-sizing: border-box;
+  margin: clamp(0.35rem, 1.8vw, 0.7rem) 0 0;
+  padding: clamp(0.95rem, 2.8vw, 1.2rem) clamp(2.2rem, 7vw, 3.2rem);
 }
 
 .category-header.tier-basic.hero-title-multiline::before,
@@ -2440,17 +2458,47 @@ section {
 }
 
 @media (max-width: 600px) {
+  .hero-essentials {
+    width: 100%;
+    padding-left: clamp(0.9rem, 5.2vw, 1.35rem);
+    padding-right: clamp(0.9rem, 5.2vw, 1.35rem);
+  }
+
+  .hero-essentials .service-grid.service-grid--hero {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .category-header.tier-basic.hero-title-multiline {
     line-height: 1.48;
     letter-spacing: 0.08em;
-    padding-left: clamp(2.1rem, 8vw, 2.8rem);
-    padding-right: clamp(2.1rem, 8vw, 2.8rem);
+    padding-left: clamp(1.8rem, 7vw, 2.4rem);
+    padding-right: clamp(1.8rem, 7vw, 2.4rem);
   }
 }
 
 @media (max-width: 400px) {
+  .hero-essentials {
+    padding-left: clamp(0.82rem, 5vw, 1.2rem);
+    padding-right: clamp(0.82rem, 5vw, 1.2rem);
+  }
+
   .category-header.tier-basic.hero-title-multiline {
     line-height: 1.5;
+  }
+}
+
+@media (max-width: 375px) {
+  .hero-essentials {
+    padding-left: clamp(0.72rem, 4.8vw, 1.06rem);
+    padding-right: clamp(0.72rem, 4.8vw, 1.06rem);
+  }
+}
+
+@media (max-width: 320px) {
+  .hero-essentials {
+    padding-left: clamp(0.58rem, 4.5vw, 0.84rem);
+    padding-right: clamp(0.58rem, 4.5vw, 0.84rem);
   }
 }
 
@@ -2609,6 +2657,17 @@ section {
 
   .service-grid--hero .service-card__title {
     font-size: clamp(0.95rem, 2vw, 1.05rem) !important;
+  }
+
+  .hero-essentials {
+    width: calc(2 * clamp(160px, 18vw, 180px) + clamp(1.5rem, 3vw, 2rem));
+  }
+
+  .hero-essentials .service-grid.service-grid--hero {
+    max-width: none !important;
+    width: 100%;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }
 
