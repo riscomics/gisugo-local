@@ -2409,32 +2409,48 @@ section {
 }
 
 /* ===== HERO GRID (2-COLUMN FOCUS) ===== */
-/* Native-app Launching title: plain white heading, no teal bar or diamonds */
+/* Native-app Launching title: rounded steel pill with side diamonds */
 .category-header.tier-basic.hero-title-multiline {
-  background: none;
+  background: linear-gradient(180deg,
+    #5a7382 0%,
+    #3e5866 22%,
+    #314956 52%,
+    #2a404c 78%,
+    #243844 100%);
   border: none;
-  box-shadow: none;
-  text-shadow: none;
-  letter-spacing: 0.14em;
-  line-height: 1.45;
-  padding: clamp(1.35rem, 4.2vw, 2rem) clamp(0.9rem, 4vw, 1.5rem) clamp(0.75rem, 2.2vw, 1.05rem);
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.38);
+  color: #ffffff;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.38);
+  letter-spacing: 0.12em;
+  line-height: 1.42;
+  margin: clamp(0.35rem, 1.8vw, 0.7rem) clamp(0.7rem, 4vw, 1.2rem) 0;
+  padding: clamp(1.05rem, 3.1vw, 1.4rem) clamp(2.6rem, 9vw, 3.8rem);
 }
 
 .category-header.tier-basic.hero-title-multiline::before,
 .category-header.tier-basic.hero-title-multiline::after {
-  content: none;
+  content: '✦';
+  color: rgba(226, 236, 242, 0.72);
+  text-shadow: none;
+  font-size: clamp(0.55rem, 1.6vw, 0.72rem);
 }
 
 @media (max-width: 600px) {
   .category-header.tier-basic.hero-title-multiline {
-    line-height: 1.5;
-    letter-spacing: 0.1em;
+    line-height: 1.48;
+    letter-spacing: 0.08em;
+    padding-left: clamp(2.1rem, 8vw, 2.8rem);
+    padding-right: clamp(2.1rem, 8vw, 2.8rem);
   }
 }
 
 @media (max-width: 400px) {
   .category-header.tier-basic.hero-title-multiline {
-    line-height: 1.52;
+    line-height: 1.5;
   }
 }
 
