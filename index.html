@@ -6,7 +6,7 @@
     <meta name="description" content="GISUGO - A marketplace for searching and posting jobs in your local neighborhood">
     <meta name="keywords" content="local service, gig economy, marketplace, jobs, services">
     <title>GISUGO - Local Service Marketplace</title>
-    <link rel="stylesheet" href="public/css/home.css?v=9.5">
+    <link rel="stylesheet" href="public/css/home.css?v=9.6">
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <style>
       /* Loading Animation for Menu */
@@ -545,8 +545,12 @@
         // Hide the custom thumbnail overlay
         overlay.style.display = 'none';
 
-        // Load YouTube video with autoplay and show iframe
-        iframe.src = `https://www.youtube.com/embed/${config.youtubeId}?autoplay=1&loop=1&playlist=${config.youtubeId}&rel=0&modestbranding=1`;
+        // Load YouTube video with autoplay and show iframe.
+        // cc_load_policy=3 suppresses captions. YouTube only documents 1 (force on) and
+        // treats 0 as "follow the viewer's own caption preference", so 0 would not stop
+        // captions for a viewer who has them enabled globally; 3 is undocumented but is
+        // the only value that actually turns them off.
+        iframe.src = `https://www.youtube.com/embed/${config.youtubeId}?autoplay=1&loop=1&playlist=${config.youtubeId}&rel=0&modestbranding=1&cc_load_policy=3`;
         iframe.style.display = 'block';
       }
 
