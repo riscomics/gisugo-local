@@ -8070,7 +8070,7 @@ function formatSignupProviderLabel(authProvider) {
     const raw = String(authProvider || '').trim().toLowerCase();
     if (raw === 'google.com') return 'Google';
     if (raw === 'facebook.com') return 'Facebook';
-    if (raw === 'password' || raw === 'phone') return 'Phone';
+    if (raw === 'password' || raw === 'phone') return 'Password';
     return 'Unknown';
 }
 
