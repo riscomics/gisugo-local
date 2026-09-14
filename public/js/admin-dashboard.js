@@ -8066,6 +8066,14 @@ function switchUserTab(tabType) {
  * when an admin opens this specific user (see selectUser()). Phone is
  * user_private.phoneNumber — also on-demand, not on the list cards.
  */
+function formatSignupProviderLabel(authProvider) {
+    const raw = String(authProvider || '').trim().toLowerCase();
+    if (raw === 'google.com') return 'Google';
+    if (raw === 'facebook.com') return 'Facebook';
+    if (raw === 'password' || raw === 'phone') return 'Phone';
+    return 'Unknown';
+}
+
 // dateOfBirth is required at signup (18+). Legacy/blank values return null
 // instead of NaN/garbage (displayed as "Not specified").
 function calculateAgeFromDOB(dateOfBirth) {
@@ -8103,6 +8111,7 @@ function normalizeUserForDisplay(id, data) {
         birthdate: d.dateOfBirth || null,
         age: calculateAgeFromDOB(d.dateOfBirth),
         education: d.educationLevel || 'Not specified',
+        signupProviderLabel: formatSignupProviderLabel(d.authProvider),
         introduction: (d.userSummary || '').trim() || 'No introduction provided.',
         socialMediaLinks: {
             facebook: d.socialMedia?.facebook || null,
@@ -8400,6 +8409,8 @@ function displayUserDetails(user) {
     document.getElementById('userCity').textContent = user.city;
     const desktopPhoneEl = document.getElementById('userPhoneNumber');
     if (desktopPhoneEl) desktopPhoneEl.textContent = user.phoneNumber || 'Loading...';
+    const signupEl = document.getElementById('userSignupProvider');
+    if (signupEl) signupEl.textContent = user.signupProviderLabel || 'Unknown';
     document.getElementById('userGigsListed').textContent = user.gigsListed;
     document.getElementById('userApplications').textContent = user.applications;
     document.getElementById('userIntro').textContent = user.introduction;
@@ -9774,6 +9785,10 @@ function showUserDetailOverlay(user) {
                 <div class="user-info-item">
                     <div class="user-info-label">PHONE:</div>
                     <div class="user-info-value">${escapeHtml(String(user.phoneNumber || 'Loading...'))}</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">SIGNED UP WITH:</div>
+                    <div class="user-info-value">${escapeHtml(String(user.signupProviderLabel || 'Unknown'))}</div>
                 </div>
             </div>
             <div class="user-info-row">
