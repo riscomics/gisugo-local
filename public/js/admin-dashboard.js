@@ -8063,7 +8063,8 @@ function switchUserTab(tabType) {
  * User Management UI expects. Mirrors normalizeGigForDisplay's role in Gig
  * Moderation. region/city/ipAddress/gigsListed/applications are NOT filled
  * here -- those come from getUserModerationExtras(), fetched on demand only
- * when an admin opens this specific user (see selectUser()).
+ * when an admin opens this specific user (see selectUser()). Phone is
+ * user_private.phoneNumber — also on-demand, not on the list cards.
  */
 // dateOfBirth is required at signup (18+). Legacy/blank values return null
 // instead of NaN/garbage (displayed as "Not specified").
@@ -8112,6 +8113,7 @@ function normalizeUserForDisplay(id, data) {
         region: 'Loading...',
         city: 'Loading...',
         ipAddress: 'Loading...',
+        phoneNumber: 'Loading...',
         gigsListed: 0,
         listedGigs: null,
         moderationExtrasLoaded: false,
@@ -8396,6 +8398,8 @@ function displayUserDetails(user) {
     document.getElementById('userEducation').textContent = user.education;
     document.getElementById('userRegion').textContent = user.region;
     document.getElementById('userCity').textContent = user.city;
+    const desktopPhoneEl = document.getElementById('userPhoneNumber');
+    if (desktopPhoneEl) desktopPhoneEl.textContent = user.phoneNumber || 'Loading...';
     document.getElementById('userGigsListed').textContent = user.gigsListed;
     document.getElementById('userApplications').textContent = user.applications;
     document.getElementById('userIntro').textContent = user.introduction;
@@ -8413,6 +8417,7 @@ function applyUserModerationExtras(user, extras) {
     user.region = extras.region || 'Not shared';
     user.city = 'Not tracked'; // no city-level capture pipeline exists, only region -- see submitSignupLocation
     user.ipAddress = extras.ipAddress || 'Not available';
+    user.phoneNumber = extras.phoneNumber || 'Not on file';
     user.gigsListed = extras.gigsListed;
     user.listedGigs = Array.isArray(extras.listedGigs) ? extras.listedGigs : [];
     user.applications = extras.applications;
@@ -8424,8 +8429,10 @@ function applyUserModerationExtras(user, extras) {
     const gigsListedEl = document.getElementById('userGigsListed');
     const applicationsEl = document.getElementById('userApplications');
     const ipEl = document.getElementById('userIpAddress');
+    const phoneEl = document.getElementById('userPhoneNumber');
     if (regionEl) regionEl.textContent = user.region;
     if (cityEl) cityEl.textContent = user.city;
+    if (phoneEl) phoneEl.textContent = user.phoneNumber;
     if (gigsListedEl) gigsListedEl.textContent = user.gigsListed;
     if (applicationsEl) applicationsEl.textContent = user.applications;
     if (ipEl) ipEl.textContent = user.ipAddress;
@@ -9761,6 +9768,12 @@ function showUserDetailOverlay(user) {
                 <div class="user-info-item">
                     <div class="user-info-label">CITY:</div>
                     <div class="user-info-value">${escapeHtml(String(user.city || ''))}</div>
+                </div>
+            </div>
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">PHONE:</div>
+                    <div class="user-info-value">${escapeHtml(String(user.phoneNumber || 'Loading...'))}</div>
                 </div>
             </div>
             <div class="user-info-row">

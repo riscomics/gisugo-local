@@ -4762,6 +4762,8 @@ async function searchUsersByNamePrefix(prefix) {
  * On-demand extras for the user detail panel, fetched only when an admin
  * opens a specific user (never batched across a whole list) — mirrors
  * getGigReportsForJob's "fetch on demand" pattern:
+ *  - phoneNumber comes from user_private (admin-readable; not on the
+ *    public users doc). Display only — client still cannot write phone.
  *  - region/IP come from security_metadata (admin-only collection; the
  *    owner-safe mirror on user_private only has region, not IP)
  *  - gigsListed/applications use a plain `.get()` + `.size` (see fix note
@@ -4804,11 +4806,12 @@ function slimListedGigFromDoc(doc) {
 async function getUserModerationExtras(uid) {
   const db = getFirestore();
   const safeUid = String(uid || '').trim();
-  const empty = { region: null, ipAddress: null, gigsListed: 0, applications: 0, listedGigs: [] };
+  const empty = { region: null, ipAddress: null, phoneNumber: null, gigsListed: 0, applications: 0, listedGigs: [] };
   if (!db || !safeUid) return empty;
 
-  const [securityResult, gigsCountResult, appsCountResult] = await Promise.allSettled([
+  const [securityResult, privateResult, gigsCountResult, appsCountResult] = await Promise.allSettled([
     db.collection('security_metadata').doc(safeUid).get(),
+    db.collection('user_private').doc(safeUid).get(),
     db.collection('jobs').where('posterId', '==', safeUid).get(),
     db.collection('applications').where('applicantId', '==', safeUid).get()
   ]);
@@ -4823,6 +4826,15 @@ async function getUserModerationExtras(uid) {
     console.error('❌ Error loading security_metadata (admin):', securityResult.reason);
   }
 
+  let phoneNumber = null;
+  if (privateResult.status === 'fulfilled' && privateResult.value.exists) {
+    const privateData = privateResult.value.data() || {};
+    const stored = String(privateData.phoneNumber || '').trim();
+    phoneNumber = stored || null;
+  } else if (privateResult.status === 'rejected') {
+    console.error('❌ Error loading user_private phone (admin):', privateResult.reason);
+  }
+
   const listedGigs = gigsCountResult.status === 'fulfilled'
     ? gigsCountResult.value.docs.map(slimListedGigFromDoc)
         .sort((a, b) => (b.datePostedMs || 0) - (a.datePostedMs || 0))
@@ -4831,6 +4843,7 @@ async function getUserModerationExtras(uid) {
   return {
     region,
     ipAddress,
+    phoneNumber,
     gigsListed: listedGigs.length,
     listedGigs,
     applications: appsCountResult.status === 'fulfilled' ? appsCountResult.value.size : 0
