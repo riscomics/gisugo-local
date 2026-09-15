@@ -4529,6 +4529,8 @@ function initializeGigModeration() {
 
     // Initialize Load More (Posted tab glance pagination)
     initializeGigLoadMore();
+
+    initializeGigListRefresh();
     
     // Initialize action buttons (desktop)
     initializeGigActions();
@@ -4692,6 +4694,35 @@ function initializeGigLoadMore() {
             loadGigCards('posted', { append: true });
         }
     });
+}
+
+function initializeGigListRefresh() {
+    const button = document.getElementById('refreshGigsBtn');
+    if (!button || button.dataset.bound) return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', (event) => {
+        event.preventDefault();
+        refreshGigModerationList();
+    });
+}
+
+async function refreshGigModerationList() {
+    const button = document.getElementById('refreshGigsBtn');
+    if (button) {
+        button.disabled = true;
+        button.classList.add('is-refreshing');
+    }
+    gigModerationListLoaded = true;
+    gigsPostedLastDoc = null;
+    gigsPostedHasMore = false;
+    try {
+        await loadGigCards(currentGigTab || 'posted');
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.classList.remove('is-refreshing');
+        }
+    }
 }
 
 function gigModerationStatusBadge(status) {
@@ -7975,6 +8006,8 @@ function initializeUserManagement() {
     // Initialize Load More (New tab only)
     initializeUserLoadMore();
 
+    initializeUserListRefresh();
+
     initializeUserCardClicks();
     
     console.log('✅ User Management initialized');
@@ -8007,6 +8040,35 @@ function initializeUserLoadMore() {
             loadUserCards('new', { append: true });
         }
     });
+}
+
+function initializeUserListRefresh() {
+    const button = document.getElementById('refreshUsersBtn');
+    if (!button || button.dataset.bound) return;
+    button.dataset.bound = '1';
+    button.addEventListener('click', (event) => {
+        event.preventDefault();
+        refreshUserManagementList();
+    });
+}
+
+async function refreshUserManagementList() {
+    const button = document.getElementById('refreshUsersBtn');
+    if (button) {
+        button.disabled = true;
+        button.classList.add('is-refreshing');
+    }
+    userManagementListLoaded = true;
+    usersNewLastDoc = null;
+    usersNewHasMore = false;
+    try {
+        await loadUserCards(currentUserTab || 'new');
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.classList.remove('is-refreshing');
+        }
+    }
 }
 
 
