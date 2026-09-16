@@ -6358,13 +6358,22 @@ function renderCategoryBreakdownList(containerId, byCategoryMap, emptyMessage, m
     container.innerHTML = rowsHtml + remainderHtml;
 }
 
-function renderCompletedByCategoryList(containerId, countMap, valueMap, emptyMessage, maxRows = 10) {
+function renderCompletedByCategoryList(containerId, countMap, valueMap, emptyMessage) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
     const countBy = countMap || {};
     const valueBy = valueMap || {};
-    const keys = Object.keys(countBy).concat(Object.keys(valueBy).filter((key) => !Object.prototype.hasOwnProperty.call(countBy, key)));
+    const seen = Object.create(null);
+    const keys = [];
+    const addKey = (key) => {
+        if (seen[key]) return;
+        seen[key] = true;
+        keys.push(key);
+    };
+    Object.keys(countBy).forEach(addKey);
+    Object.keys(valueBy).forEach(addKey);
+
     const entries = [];
     for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
@@ -6381,44 +6390,25 @@ function renderCompletedByCategoryList(containerId, countMap, valueMap, emptyMes
     }
 
     const totalValue = entries.reduce((sum, entry) => sum + entry.valuePHP, 0);
-    const totalCount = entries.reduce((sum, entry) => sum + entry.count, 0);
-    const barTotal = totalValue > 0 ? totalValue : totalCount;
-    const topEntries = entries.slice(0, maxRows);
-    const remainder = entries.slice(maxRows);
-    const remainderValue = remainder.reduce((sum, entry) => sum + entry.valuePHP, 0);
-    const remainderCount = remainder.reduce((sum, entry) => sum + entry.count, 0);
-
-    const rowHtml = (label, valuePHP, count, barShare) => {
-        const avg = count > 0 ? Math.round(valuePHP / count) : 0;
-        const gigLabel = count === 1 ? '1 gig' : `${count.toLocaleString()} gigs`;
+    const tilesHtml = entries.map((entry) => {
+        const display = getGigCategoryDisplay(entry.key);
+        const avg = entry.count > 0 ? Math.round(entry.valuePHP / entry.count) : 0;
+        const gigLabel = entry.count === 1 ? '1 gig' : `${entry.count.toLocaleString()} gigs`;
+        const percent = totalValue > 0 ? Math.round((entry.valuePHP / totalValue) * 100) : 0;
         return `
-            <div class="breakdown-item">
-                <div class="breakdown-bar-container">
-                    <span class="breakdown-label">${label}</span>
-                    <div class="breakdown-bar">
-                        <div class="breakdown-bar-fill" style="width: ${barShare}%;"></div>
-                    </div>
-                    <span class="breakdown-value">${formatGigsCompletedVolumePHP(valuePHP)}<span class="completed-category-meta">${escapeHtml(gigLabel)} · avg ${formatGigsCompletedVolumePHP(avg)}</span></span>
+            <div class="revenue-card completed-category-tile">
+                <div class="revenue-icon" aria-hidden="true">${escapeHtml(display.icon)}</div>
+                <div class="revenue-details">
+                    <div class="revenue-label">${escapeHtml(display.label)}</div>
+                    <div class="revenue-amount">${formatGigsCompletedVolumePHP(entry.valuePHP)}</div>
+                    <div class="revenue-sublabel">${escapeHtml(gigLabel)} · avg ${formatGigsCompletedVolumePHP(avg)}</div>
+                    <div class="revenue-percent">${percent}%</div>
                 </div>
             </div>
         `;
-    };
-
-    const rowsHtml = topEntries.map((entry) => {
-        const display = getGigCategoryDisplay(entry.key);
-        const label = `${escapeHtml(display.icon)} ${escapeHtml(display.label)}`;
-        const barShare = barTotal > 0 ? Math.round(((totalValue > 0 ? entry.valuePHP : entry.count) / barTotal) * 100) : 0;
-        return rowHtml(label, entry.valuePHP, entry.count, barShare);
     }).join('');
 
-    const remainderHtml = (remainderCount > 0 || remainderValue > 0) ? rowHtml(
-        `📦 Other (${remainder.length})`,
-        remainderValue,
-        remainderCount,
-        barTotal > 0 ? Math.round(((totalValue > 0 ? remainderValue : remainderCount) / barTotal) * 100) : 0
-    ) : '';
-
-    container.innerHTML = rowsHtml + remainderHtml;
+    container.innerHTML = tilesHtml;
 }
 
 // Maps each of the 17 official region names (must match PH_REGION_NAMES in

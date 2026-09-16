@@ -7893,6 +7893,78 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     padding: 1rem 1.5rem;
 }
 
+#completedByCategoryBreakdown.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+#completedByCategoryBreakdown .completed-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0;
+}
+
+#completedByCategoryBreakdown .completed-category-grid .breakdown-empty-note {
+    grid-column: 1 / -1;
+}
+
+#completedByCategoryBreakdown .completed-category-tile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 0.85rem 0.55rem 0.75rem;
+    gap: 0.3rem;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-icon {
+    font-size: 1.65rem;
+    animation: none;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 0.2rem;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-label {
+    font-size: 0.72rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-amount {
+    font-size: 1.05rem;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-sublabel {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    font-weight: 600;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.25;
+}
+
+#completedByCategoryBreakdown .completed-category-tile .revenue-percent {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+@media (max-width: 768px) {
+    #completedByCategoryBreakdown .completed-category-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+}
+
 /* Breakdown Items with Progress Bars */
 .breakdown-item {
     margin-bottom: 1rem;
@@ -7913,19 +7985,6 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     grid-template-columns: 120px 1fr 80px;
     gap: 1rem;
     align-items: center;
-}
-
-.completed-category-list .breakdown-bar-container {
-    grid-template-columns: minmax(96px, 120px) 1fr minmax(118px, 148px);
-    align-items: center;
-}
-
-.completed-category-meta {
-    display: block;
-    margin-top: 0.2rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #94a3b8;
 }
 
 .breakdown-label {
@@ -8721,10 +8780,6 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     .breakdown-bar-container {
         grid-template-columns: 100px 1fr 60px;
         gap: 0.75rem;
-    }
-
-    .completed-category-list .breakdown-bar-container {
-        grid-template-columns: 100px 1fr minmax(108px, 132px);
     }
 
     .breakdown-label {
