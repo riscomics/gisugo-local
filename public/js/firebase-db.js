@@ -5672,25 +5672,35 @@ window.saveAdSettings = saveAdSettings;
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,
  * Cloud Function-maintained aggregate doc (see functions/index.js
- * syncGigAnalyticsCountersOnCreate). Never scans the live jobs collection.
- * @returns {Promise<{totalPosted:number, byCategory:Object, byGigUseType:Object}>}
+ * syncGigAnalyticsCountersOnCreate, syncGigCompletedVolumeOnUpdate).
+ * Never scans the live jobs collection.
+ * @returns {Promise<{totalPosted:number, byCategory:Object, byGigUseType:Object, completedCount:number, completedValuePHP:number}>}
  */
 async function getPlatformAnalyticsGigs() {
+  const empty = {
+    totalPosted: 0,
+    byCategory: {},
+    byGigUseType: {},
+    completedCount: 0,
+    completedValuePHP: 0
+  };
   const db = getFirestore();
-  if (!db) return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+  if (!db) return empty;
 
   try {
     const doc = await db.collection('platform_analytics').doc('gigs').get();
-    if (!doc.exists) return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+    if (!doc.exists) return empty;
     const data = doc.data() || {};
     return {
       totalPosted: data.totalPosted || 0,
       byCategory: data.byCategory || {},
-      byGigUseType: data.byGigUseType || {}
+      byGigUseType: data.byGigUseType || {},
+      completedCount: data.completedCount || 0,
+      completedValuePHP: data.completedValuePHP || 0
     };
   } catch (error) {
     console.error('❌ Error getting platform_analytics/gigs:', error);
-    return { totalPosted: 0, byCategory: {}, byGigUseType: {} };
+    return empty;
   }
 }
 

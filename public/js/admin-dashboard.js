@@ -6222,6 +6222,7 @@ function openStatOverlay(type) {
 // Data source: two tiny Cloud Function-maintained counter docs
 // (platform_analytics/gigs, platform_analytics/applications) -- see
 // functions/index.js syncGigAnalyticsCountersOnCreate /
+// syncGigCompletedVolumeOnUpdate /
 // syncApplicationAnalyticsCountersOnCreate. This overlay never scans the
 // live jobs/applications collections. Loaded on-demand when the overlay
 // opens (cheap: 2 doc reads), not on dashboard init.
@@ -6287,6 +6288,11 @@ const GIG_CATEGORY_DISPLAY = {
     therapist: { icon: '🧘🏻', label: 'Therapist' },
     programmer: { icon: '💻', label: 'Programmer' }
 };
+
+function formatGigsCompletedVolumePHP(value) {
+    const n = Number(value) || 0;
+    return '₱' + n.toLocaleString();
+}
 
 function getGigCategoryDisplay(categoryKey) {
     const known = GIG_CATEGORY_DISPLAY[categoryKey];
@@ -6551,8 +6557,13 @@ async function loadGigsAnalyticsGlanceCard() {
         setElementValue('gigsCardBusinessCount', businessCount.toLocaleString());
         setElementValue('gigsCardPersonalPercent', `${personalPct}%`);
         setElementValue('gigsCardBusinessPercent', `${businessPct}%`);
+        setElementValue('gigsCardCompletedVolume', formatGigsCompletedVolumePHP(gigsAnalytics.completedValuePHP));
 
-        console.log('✅ Gigs Analytics glance card populated', { totalGigs, totalApplications, personalCount, businessCount });
+        console.log('✅ Gigs Analytics glance card populated', {
+            totalGigs, totalApplications, personalCount, businessCount,
+            completedCount: gigsAnalytics.completedCount || 0,
+            completedValuePHP: gigsAnalytics.completedValuePHP || 0
+        });
     } catch (error) {
         console.error('❌ Error loading Gigs Analytics glance card:', error);
     }
@@ -6581,6 +6592,9 @@ async function renderGigsAnalyticsOverlay() {
         setElementValue('gigsOverlayTotalGigs', totalGigs.toLocaleString());
         setElementValue('gigsOverlayTotalApplicants', totalApplications.toLocaleString());
         setElementValue('gigsOverlayAvgPerGig', avgPerGig.toFixed(1));
+        setElementValue('gigsOverlayCompletedVolume', formatGigsCompletedVolumePHP(gigsAnalytics.completedValuePHP));
+        const completedCount = Number(gigsAnalytics.completedCount) || 0;
+        setElementValue('gigsOverlayCompletedCount', completedCount.toLocaleString() + (completedCount === 1 ? ' gig' : ' gigs'));
 
         renderCategoryBreakdownList('gigsPostedBreakdownList', gigsAnalytics.byCategory, 'No gigs posted yet.');
         renderCategoryBreakdownList('applicationsBreakdownList', applicationsAnalytics.byCategory, 'No applications yet.');
@@ -6600,7 +6614,9 @@ async function renderGigsAnalyticsOverlay() {
         if (businessBar) businessBar.style.width = `${businessPct}%`;
 
         console.log('✅ Gigs Analytics overlay populated from platform_analytics', {
-            totalGigs, totalApplications, personalCount, businessCount
+            totalGigs, totalApplications, personalCount, businessCount,
+            completedCount: gigsAnalytics.completedCount || 0,
+            completedValuePHP: gigsAnalytics.completedValuePHP || 0
         });
     } catch (error) {
         console.error('❌ Error rendering Gigs Analytics overlay:', error);

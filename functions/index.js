@@ -1,6 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten, onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
 const {
   classifyStoragePath,
@@ -1394,17 +1394,34 @@ exports.sendPushOnNotificationCreate = onDocumentCreated(
 // metrics/contact_reveals above: the dashboard must never scan or live-listen
 // the real jobs/applications collections just to show a number. Instead these
 // two tiny platform_analytics docs are kept in sync here, one Firestore write
-// per gig post / per application, and the dashboard reads only those two small
-// docs. All-time cumulative counters (increment on CREATE only, never
-// decremented on edit/delete) per docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md
-// ("increment both maps on the same post/apply write") — "Total Gigs Posted"
-// and "Total Applications" are meant to read as historical totals, not a
-// live snapshot of what's currently active, so editing or deleting a gig
-// later intentionally does not move these buckets.
+// per gig post / per application / per first complete, and the dashboard reads
+// only those two small docs. All-time cumulative counters (never decremented
+// on edit/delete) per docs/ADMIN_DASHBOARD_ARCHITECTURE_STUDY.md — "Total Gigs
+// Posted" and "Total Applications" increment on CREATE; completed peso volume
+// increments when jobs.status first becomes "completed". Historical totals,
+// not a live snapshot of what's currently active.
 
 function sanitizePlatformAnalyticsKey(value, fallback) {
   const raw = String(value || "").trim();
   return raw || fallback;
+}
+
+function isCompletedGigStatus(status) {
+  return String(status || "").trim().toLowerCase() === "completed";
+}
+
+// Same price the customer/worker stats use on complete: agreedPrice, else
+// posted priceOffer. Mirrors scripts/backfill-platform-analytics.js.
+function parseGigPricePHP(job) {
+  if (!job || typeof job !== "object") return 0;
+  const raw = (job.agreedPrice != null && String(job.agreedPrice).trim() !== "")
+    ? job.agreedPrice
+    : job.priceOffer;
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    return Math.max(0, Math.round(raw));
+  }
+  const n = Number(String(raw || "").replace(/[₱,\s]/g, ""));
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
 }
 
 exports.syncGigAnalyticsCountersOnCreate = onDocumentCreated(
@@ -1432,6 +1449,31 @@ exports.syncGigAnalyticsCountersOnCreate = onDocumentCreated(
       }, { merge: true });
     } catch (error) {
       logger.error("Gig analytics counter sync failed", {
+        jobId: event.params?.jobId || "",
+        error: String(error)
+      });
+    }
+  }
+);
+
+exports.syncGigCompletedVolumeOnUpdate = onDocumentUpdated(
+  { document: "jobs/{jobId}", region: "asia-southeast1" },
+  async (event) => {
+    const before = event.data?.before?.data() || {};
+    const after = event.data?.after?.data() || {};
+    if (isCompletedGigStatus(before.status) || !isCompletedGigStatus(after.status)) {
+      return;
+    }
+
+    const valuePHP = parseGigPricePHP(after);
+    try {
+      await db.collection("platform_analytics").doc("gigs").set({
+        completedCount: admin.firestore.FieldValue.increment(1),
+        completedValuePHP: admin.firestore.FieldValue.increment(valuePHP),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      logger.error("Gig completed-volume counter sync failed", {
         jobId: event.params?.jobId || "",
         error: String(error)
       });

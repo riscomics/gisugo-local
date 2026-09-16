@@ -4,12 +4,13 @@
  *
  * Why this is needed: the Cloud Functions that maintain these docs going
  * forward (syncGigAnalyticsCountersOnCreate / syncApplicationAnalyticsCountersOnCreate
- * in functions/index.js) only fire on NEW jobs/applications created AFTER
- * they're deployed. Every gig/application that already exists in Firestore
- * needs to be counted once, here, to seed the starting totals. This is a
- * one-time full collection scan run from a trusted script (Admin SDK), NOT
- * a pattern the live app or dashboard ever repeats — the whole point of the
- * counter-doc design is that nothing scans these collections after this.
+ * / syncGigCompletedVolumeOnUpdate in functions/index.js) only fire on NEW
+ * jobs/applications/completes AFTER they're deployed. Every gig/application
+ * that already exists in Firestore needs to be counted once, here, to seed
+ * the starting totals. This is a one-time full collection scan run from a
+ * trusted script (Admin SDK), NOT a pattern the live app or dashboard ever
+ * repeats — the whole point of the counter-doc design is that nothing scans
+ * these collections after this.
  *
  * Safety: runs in DRY-RUN mode by default (reports computed totals, writes
  * nothing). Pass --apply to actually commit the seed write.
@@ -17,10 +18,16 @@
  * Usage (PowerShell, from repo root):
  *   node scripts/backfill-platform-analytics.js            (dry run)
  *   node scripts/backfill-platform-analytics.js --apply    (writes)
+ *   node scripts/backfill-platform-analytics.js --completed-only
+ *   node scripts/backfill-platform-analytics.js --completed-only --apply
  *   node scripts/backfill-platform-analytics.js --apply [keyPath]
  *
+ * --completed-only: scan jobs only and merge completedCount / completedValuePHP
+ * onto platform_analytics/gigs. Does not rewrite posted/application/user totals
+ * (those are historical increment-never-decrement counters).
+ *
  * Credentials (first match wins):
- *   1. Pass key path as a positional arg (after --apply, if present)
+ *   1. Pass key path as a positional arg (after flags, if present)
  *   2. GOOGLE_APPLICATION_CREDENTIALS env var
  *   3. scripts/github-action-gisugo1-key.json (local, gitignored)
  */
@@ -29,7 +36,8 @@ const admin = require(path.join(__dirname, '../functions/node_modules/firebase-a
 
 const args = process.argv.slice(2);
 const apply = args.includes('--apply');
-const keyPathArg = args.find((a) => a !== '--apply');
+const completedOnly = args.includes('--completed-only');
+const keyPathArg = args.find((a) => a !== '--apply' && a !== '--completed-only');
 
 function resolveKeyPath() {
   if (keyPathArg) return path.resolve(keyPathArg);
@@ -55,6 +63,23 @@ const db = admin.firestore();
 function sanitizeKey(value, fallback) {
   const raw = String(value || '').trim();
   return raw || fallback;
+}
+
+function isCompletedGigStatus(status) {
+  return String(status || '').trim().toLowerCase() === 'completed';
+}
+
+// Mirrors parseGigPricePHP() in functions/index.js — keep in sync.
+function parseGigPricePHP(job) {
+  if (!job || typeof job !== 'object') return 0;
+  const raw = (job.agreedPrice != null && String(job.agreedPrice).trim() !== '')
+    ? job.agreedPrice
+    : job.priceOffer;
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return Math.max(0, Math.round(raw));
+  }
+  const n = Number(String(raw || '').replace(/[₱,\s]/g, ''));
+  return Number.isFinite(n) ? Math.max(0, Math.round(n)) : 0;
 }
 
 // Mirrors bucketAgeGroup() in functions/index.js exactly -- keep in sync.
@@ -86,12 +111,17 @@ function bucketAccountType(userData) {
 
 async function run() {
   console.log(apply ? '🚀 APPLY MODE — writes will be committed.' : '🔎 DRY RUN — no writes will be made (pass --apply to commit).');
+  if (completedOnly) {
+    console.log('📌 --completed-only: jobs scan + completedCount/completedValuePHP merge only.');
+  }
 
   console.log('\nScanning jobs collection...');
   const jobsSnapshot = await db.collection('jobs').get();
   const gigsByCategory = {};
   const gigsByUseType = {};
   let totalPosted = 0;
+  let completedCount = 0;
+  let completedValuePHP = 0;
 
   jobsSnapshot.docs.forEach((doc) => {
     const data = doc.data();
@@ -100,11 +130,32 @@ async function run() {
     totalPosted++;
     gigsByCategory[category] = (gigsByCategory[category] || 0) + 1;
     gigsByUseType[gigUseType] = (gigsByUseType[gigUseType] || 0) + 1;
+    if (isCompletedGigStatus(data.status)) {
+      completedCount++;
+      completedValuePHP += parseGigPricePHP(data);
+    }
   });
 
   console.log(`  Total jobs found: ${jobsSnapshot.size}`);
   console.log('  By category:', gigsByCategory);
   console.log('  By gig use type:', gigsByUseType);
+  console.log(`  Completed gigs: ${completedCount}`);
+  console.log(`  Completed volume PHP: ${completedValuePHP}`);
+
+  if (completedOnly) {
+    if (apply) {
+      await db.collection('platform_analytics').doc('gigs').set({
+        completedCount,
+        completedValuePHP,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        completedSeededBy: 'backfill-platform-analytics.js'
+      }, { merge: true });
+      console.log('\n✅ platform_analytics/gigs completedCount/completedValuePHP merged.');
+    } else {
+      console.log('\n✅ Dry run complete — re-run with --completed-only --apply to merge these totals.');
+    }
+    return;
+  }
 
   console.log('\nScanning applications collection...');
   const applicationsSnapshot = await db.collection('applications').get();
@@ -170,6 +221,8 @@ async function run() {
       totalPosted,
       byCategory: gigsByCategory,
       byGigUseType: gigsByUseType,
+      completedCount,
+      completedValuePHP,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       seededBy: 'backfill-platform-analytics.js'
     });
