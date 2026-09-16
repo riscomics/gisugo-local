@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=38">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=39">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -1257,6 +1257,20 @@
                                         <div class="revenue-label">Completed Volume</div>
                                         <div class="revenue-amount" id="gigsOverlayCompletedVolume">₱0</div>
                                         <div class="revenue-sublabel" id="gigsOverlayCompletedCount">0 gigs</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Completed by Category -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="completedByCategoryBreakdown">
+                                    <span class="breakdown-title">💵 Completed by Category</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="completedByCategoryBreakdown">
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs completed maps -->
+                                    <div class="breakdown-list completed-category-list" id="completedByCategoryBreakdownList">
+                                        <div class="breakdown-empty-note">No completed gigs yet.</div>
                                     </div>
                                 </div>
                             </div>
@@ -3477,7 +3491,7 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js?v=20260821ga"></script>
     <script src="public/js/firebase-auth.js"></script>
-    <script src="public/js/firebase-db.js?v=95"></script>
+    <script src="public/js/firebase-db.js?v=96"></script>
     <script src="public/js/firebase-storage.js?v=6"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     
@@ -3489,7 +3503,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=47"></script>
+    <script src="public/js/admin-dashboard.js?v=48"></script>
     
     
 </body>

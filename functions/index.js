@@ -1466,10 +1466,13 @@ exports.syncGigCompletedVolumeOnUpdate = onDocumentUpdated(
     }
 
     const valuePHP = parseGigPricePHP(after);
+    const category = sanitizePlatformAnalyticsKey(after.category, "uncategorized");
     try {
       await db.collection("platform_analytics").doc("gigs").set({
         completedCount: admin.firestore.FieldValue.increment(1),
         completedValuePHP: admin.firestore.FieldValue.increment(valuePHP),
+        completedByCategory: { [category]: admin.firestore.FieldValue.increment(1) },
+        completedValueByCategory: { [category]: admin.firestore.FieldValue.increment(valuePHP) },
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } catch (error) {

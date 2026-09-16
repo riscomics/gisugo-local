@@ -5674,7 +5674,7 @@ window.saveAdSettings = saveAdSettings;
  * Cloud Function-maintained aggregate doc (see functions/index.js
  * syncGigAnalyticsCountersOnCreate, syncGigCompletedVolumeOnUpdate).
  * Never scans the live jobs collection.
- * @returns {Promise<{totalPosted:number, byCategory:Object, byGigUseType:Object, completedCount:number, completedValuePHP:number}>}
+ * @returns {Promise<{totalPosted:number, byCategory:Object, byGigUseType:Object, completedCount:number, completedValuePHP:number, completedByCategory:Object, completedValueByCategory:Object}>}
  */
 async function getPlatformAnalyticsGigs() {
   const empty = {
@@ -5682,7 +5682,9 @@ async function getPlatformAnalyticsGigs() {
     byCategory: {},
     byGigUseType: {},
     completedCount: 0,
-    completedValuePHP: 0
+    completedValuePHP: 0,
+    completedByCategory: {},
+    completedValueByCategory: {}
   };
   const db = getFirestore();
   if (!db) return empty;
@@ -5696,7 +5698,9 @@ async function getPlatformAnalyticsGigs() {
       byCategory: data.byCategory || {},
       byGigUseType: data.byGigUseType || {},
       completedCount: data.completedCount || 0,
-      completedValuePHP: data.completedValuePHP || 0
+      completedValuePHP: data.completedValuePHP || 0,
+      completedByCategory: data.completedByCategory || {},
+      completedValueByCategory: data.completedValueByCategory || {}
     };
   } catch (error) {
     console.error('❌ Error getting platform_analytics/gigs:', error);

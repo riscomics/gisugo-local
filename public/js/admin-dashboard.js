@@ -6358,6 +6358,69 @@ function renderCategoryBreakdownList(containerId, byCategoryMap, emptyMessage, m
     container.innerHTML = rowsHtml + remainderHtml;
 }
 
+function renderCompletedByCategoryList(containerId, countMap, valueMap, emptyMessage, maxRows = 10) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const countBy = countMap || {};
+    const valueBy = valueMap || {};
+    const keys = Object.keys(countBy).concat(Object.keys(valueBy).filter((key) => !Object.prototype.hasOwnProperty.call(countBy, key)));
+    const entries = [];
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const count = Number(countBy[key]) || 0;
+        const valuePHP = Number(valueBy[key]) || 0;
+        if (count <= 0 && valuePHP <= 0) continue;
+        entries.push({ key, count, valuePHP });
+    }
+    entries.sort((a, b) => (b.valuePHP - a.valuePHP) || (b.count - a.count));
+
+    if (entries.length === 0) {
+        container.innerHTML = `<div class="breakdown-empty-note">${escapeHtml(emptyMessage)}</div>`;
+        return;
+    }
+
+    const totalValue = entries.reduce((sum, entry) => sum + entry.valuePHP, 0);
+    const totalCount = entries.reduce((sum, entry) => sum + entry.count, 0);
+    const barTotal = totalValue > 0 ? totalValue : totalCount;
+    const topEntries = entries.slice(0, maxRows);
+    const remainder = entries.slice(maxRows);
+    const remainderValue = remainder.reduce((sum, entry) => sum + entry.valuePHP, 0);
+    const remainderCount = remainder.reduce((sum, entry) => sum + entry.count, 0);
+
+    const rowHtml = (label, valuePHP, count, barShare) => {
+        const avg = count > 0 ? Math.round(valuePHP / count) : 0;
+        const gigLabel = count === 1 ? '1 gig' : `${count.toLocaleString()} gigs`;
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-bar-container">
+                    <span class="breakdown-label">${label}</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-bar-fill" style="width: ${barShare}%;"></div>
+                    </div>
+                    <span class="breakdown-value">${formatGigsCompletedVolumePHP(valuePHP)}<span class="completed-category-meta">${escapeHtml(gigLabel)} · avg ${formatGigsCompletedVolumePHP(avg)}</span></span>
+                </div>
+            </div>
+        `;
+    };
+
+    const rowsHtml = topEntries.map((entry) => {
+        const display = getGigCategoryDisplay(entry.key);
+        const label = `${escapeHtml(display.icon)} ${escapeHtml(display.label)}`;
+        const barShare = barTotal > 0 ? Math.round(((totalValue > 0 ? entry.valuePHP : entry.count) / barTotal) * 100) : 0;
+        return rowHtml(label, entry.valuePHP, entry.count, barShare);
+    }).join('');
+
+    const remainderHtml = (remainderCount > 0 || remainderValue > 0) ? rowHtml(
+        `📦 Other (${remainder.length})`,
+        remainderValue,
+        remainderCount,
+        barTotal > 0 ? Math.round(((totalValue > 0 ? remainderValue : remainderCount) / barTotal) * 100) : 0
+    ) : '';
+
+    container.innerHTML = rowsHtml + remainderHtml;
+}
+
 // Maps each of the 17 official region names (must match PH_REGION_NAMES in
 // functions/index.js and public/js/ph-regions-geo.js) to its island group,
 // for the quick-glance Luzon/Visayas/Mindanao pie chart. "unknown" (never
@@ -6598,6 +6661,12 @@ async function renderGigsAnalyticsOverlay() {
 
         renderCategoryBreakdownList('gigsPostedBreakdownList', gigsAnalytics.byCategory, 'No gigs posted yet.');
         renderCategoryBreakdownList('applicationsBreakdownList', applicationsAnalytics.byCategory, 'No applications yet.');
+        renderCompletedByCategoryList(
+            'completedByCategoryBreakdownList',
+            gigsAnalytics.completedByCategory,
+            gigsAnalytics.completedValueByCategory,
+            'No completed gigs yet.'
+        );
 
         const byGigUseType = gigsAnalytics.byGigUseType || {};
         const personalCount = Number(byGigUseType.Personal) || 0;
@@ -7132,22 +7201,21 @@ function updatePieChart(chartId, segments) {
 // Initialize expandable sections
 function initializeExpandableSections() {
     const expandableHeaders = document.querySelectorAll('.breakdown-header.expandable');
-    
+
     expandableHeaders.forEach(header => {
+        if (header.dataset.expandBound === '1') return;
+        header.dataset.expandBound = '1';
         header.addEventListener('click', function() {
             const targetId = this.getAttribute('data-target');
             const targetContent = document.getElementById(targetId);
-            
+
             if (targetContent) {
-                // Toggle expanded state
                 this.classList.toggle('expanded');
                 targetContent.classList.toggle('expanded');
-                
-                console.log(`${targetContent.classList.contains('expanded') ? '▼' : '▶'} Toggled ${targetId}`);
             }
         });
     });
-    
+
     console.log(`✅ Initialized ${expandableHeaders.length} expandable sections`);
 }
 

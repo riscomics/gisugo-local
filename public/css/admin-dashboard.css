@@ -7915,6 +7915,19 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     align-items: center;
 }
 
+.completed-category-list .breakdown-bar-container {
+    grid-template-columns: minmax(96px, 120px) 1fr minmax(118px, 148px);
+    align-items: center;
+}
+
+.completed-category-meta {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
 .breakdown-label {
     color: rgba(230, 214, 174, 0.9);
     font-size: 0.9rem;
@@ -8708,6 +8721,10 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     .breakdown-bar-container {
         grid-template-columns: 100px 1fr 60px;
         gap: 0.75rem;
+    }
+
+    .completed-category-list .breakdown-bar-container {
+        grid-template-columns: 100px 1fr minmax(108px, 132px);
     }
 
     .breakdown-label {

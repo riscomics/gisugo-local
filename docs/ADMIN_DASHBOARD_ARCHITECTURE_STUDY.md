@@ -59,8 +59,10 @@ overlays. Verdict per card:
   since Gig Use Type didn't exist yet when this study was written.
   **Note added 2026-09-16:** also **completed gig peso volume** (marketplace GMV — money on
   gigs marked `completed`, not GISUGO take). Same cheap counter on `platform_analytics/gigs`
-  (`completedCount`, `completedValuePHP`), incremented when `jobs.status` first becomes
-  `completed`. Dashboard still one extra field on the existing gigs doc read — no jobs scan,
+  (`completedCount`, `completedValuePHP`, plus `completedByCategory` /
+  `completedValueByCategory` maps). Incremented when `jobs.status` first becomes
+  `completed`. Overlay derives per-category average in the browser (pesos ÷ count).
+  Dashboard still one extra field-set on the existing gigs doc read — no jobs scan,
   no listener. Total Revenue / Transaction Statistics stay parked for G-Coins / fees / ads.
 - **Age Groups** (sub-breakdown under Total Users) — **confirmed buildable.** `dateOfBirth` is
   already collected at signup (`sign-up.js`, plus an existing `calculateAge()` helper) — bucket

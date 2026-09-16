@@ -122,6 +122,8 @@ async function run() {
   let totalPosted = 0;
   let completedCount = 0;
   let completedValuePHP = 0;
+  const completedByCategory = {};
+  const completedValueByCategory = {};
 
   jobsSnapshot.docs.forEach((doc) => {
     const data = doc.data();
@@ -131,8 +133,11 @@ async function run() {
     gigsByCategory[category] = (gigsByCategory[category] || 0) + 1;
     gigsByUseType[gigUseType] = (gigsByUseType[gigUseType] || 0) + 1;
     if (isCompletedGigStatus(data.status)) {
+      const pesos = parseGigPricePHP(data);
       completedCount++;
-      completedValuePHP += parseGigPricePHP(data);
+      completedValuePHP += pesos;
+      completedByCategory[category] = (completedByCategory[category] || 0) + 1;
+      completedValueByCategory[category] = (completedValueByCategory[category] || 0) + pesos;
     }
   });
 
@@ -141,16 +146,20 @@ async function run() {
   console.log('  By gig use type:', gigsByUseType);
   console.log(`  Completed gigs: ${completedCount}`);
   console.log(`  Completed volume PHP: ${completedValuePHP}`);
+  console.log('  Completed by category (count):', completedByCategory);
+  console.log('  Completed by category (PHP):', completedValueByCategory);
 
   if (completedOnly) {
     if (apply) {
       await db.collection('platform_analytics').doc('gigs').set({
         completedCount,
         completedValuePHP,
+        completedByCategory,
+        completedValueByCategory,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         completedSeededBy: 'backfill-platform-analytics.js'
       }, { merge: true });
-      console.log('\n✅ platform_analytics/gigs completedCount/completedValuePHP merged.');
+      console.log('\n✅ platform_analytics/gigs completed volume maps merged.');
     } else {
       console.log('\n✅ Dry run complete — re-run with --completed-only --apply to merge these totals.');
     }
@@ -223,6 +232,8 @@ async function run() {
       byGigUseType: gigsByUseType,
       completedCount,
       completedValuePHP,
+      completedByCategory,
+      completedValueByCategory,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       seededBy: 'backfill-platform-analytics.js'
     });
