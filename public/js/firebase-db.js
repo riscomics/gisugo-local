@@ -5656,7 +5656,7 @@ async function getPublicPlatformPolicy() {
   if (cached.value && (Date.now() - cached.at) < 15000) {
     return { ...cached.value };
   }
-  if (isLegacyIOSFirestoreHangPath()) {
+  if (isIOSWebKitBrowserForDataPath()) {
     try {
       const restDoc = await withFirestoreReadTimeout(fetchPublicPlatformPolicyViaRest(), 8000);
       const policy = buildPublicPlatformPolicy(restDoc || {});
@@ -5672,9 +5672,7 @@ async function getPublicPlatformPolicy() {
   try {
     const ref = db.collection(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[0])
       .doc(PLATFORM_SETTINGS_PUBLIC_DOC_PATH[1]);
-    const snap = isIOSWebKitBrowserForDataPath()
-      ? await withFirestoreReadTimeout(ref.get({ source: 'server' }), 8000)
-      : await ref.get({ source: 'server' });
+    const snap = await ref.get({ source: 'server' });
     if (!snap.exists) {
       _publicPlatformPolicyCache = { at: Date.now(), value: { ...SAFE_PUBLIC_PLATFORM_POLICY } };
       return { ...SAFE_PUBLIC_PLATFORM_POLICY };

@@ -11462,15 +11462,6 @@ async function sendReply() {
         showToast('This message cannot be replied to here.');
         return;
     }
-    if (typeof getPublicPlatformPolicy === 'function') {
-        try {
-            const policy = await getPublicPlatformPolicy();
-            if (policy && policy.suspendMessages) {
-                showToast('Support messages are paused right now. Please try again later.');
-                return;
-            }
-        } catch (_) {}
-    }
     if (sendBtn && sendBtn.disabled) return;
     const originalSendHtml = sendBtn ? sendBtn.innerHTML : '';
     if (sendBtn) {
@@ -11492,6 +11483,17 @@ async function sendReply() {
             replyHourglass.classList.remove('is-visible');
             replyHourglass.setAttribute('aria-hidden', 'true');
         }
+    }
+
+    if (typeof getPublicPlatformPolicy === 'function') {
+        try {
+            const policy = await getPublicPlatformPolicy();
+            if (policy && policy.suspendMessages) {
+                restoreSendBtn();
+                showToast('Support messages are paused right now. Please try again later.');
+                return;
+            }
+        } catch (_) {}
     }
 
     const existingThread = Array.isArray(currentReplyMessage.thread) ? currentReplyMessage.thread : [];
