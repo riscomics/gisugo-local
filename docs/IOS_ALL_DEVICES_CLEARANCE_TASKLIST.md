@@ -46,7 +46,7 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 
 ## Wave 1 — Unblock what the mini just hit
 
-- [ ] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager / post-login routing.
+- [ ] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager.
 - [ ] **2. Profile:** show the public profile as soon as the timed request returns. Do not wait on the private record, face-check repair, or stats repair before painting the page. Those can follow, or skip, with a time limit.
 - [ ] **3. Gigs Manager — live tabs:** load the user’s gigs the same way category listings already load on iPhone (simple timed request, sort in the browser). Do not ask the server for a sort that desktop does not use and that we never indexed.
 - [ ] **4. Gigs Manager — history:** same timed request as live. Do not use the live pipe for completed gigs on iPhone.
@@ -55,26 +55,31 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 ## Wave 2 — Same treatment for the other logged-in pages
 
 - [ ] **6. My Applications:** worker application list still uses the live pipe with no time limit. Move it to the timed request already used for Apply-on-iPhone coin checks.
-- [ ] **7. Home menu badges (alerts + messages counts):** homepage still listens on the live pipe. If that hang is silent, badges stay wrong even when Alerts itself is fine. Poll or one-shot fetch like Alerts.
-- [ ] **8. Post a gig / edit a gig:** confirm save and return-to-manager on the mini. Writes that hang leave a “it posted but I can’t see it” loop next to Wave 1.
-- [ ] **9. Category listing fallback:** if the timed listing request fails, **do not** fall through to the live pipe on any iPhone (today only iOS 15 blocks that fall-through). Retry the timed request or show empty/error.
-- [ ] **10. Open a gig + Apply:** already on the timed path for all iPhones. Regression-smoke on the mini (open, apply, coin count). Do not change 20/10.
+- [ ] **7. Home Alerts badge:** homepage still listens on the live pipe for unread counts. If that hang is silent, the badge stays wrong even when Alerts itself is fine. One-shot or poll like Alerts. (Chat unread is not on the home menu.)
+- [ ] **8. Support inbox:** this page is live in the menu. Ticket list/thread still uses the live pipe (not the Alerts-style load). Timed request, same rule as Gigs Manager. Broadcasts / notice cards that already share the Alerts path can stay.
+- [ ] **9. Post a gig / edit a gig:** confirm save and return-to-manager on the mini. Writes that hang leave a “it posted but I can’t see it” loop next to Wave 1.
+- [ ] **10. Category listing fallback:** if the timed listing request fails, **do not** fall through to the live pipe on any iPhone (today only iOS 15 blocks that fall-through). Retry the timed request or show empty/error.
+- [ ] **11. Open a gig + Apply:** already on the timed path for all iPhones. Regression-smoke on the mini (open, apply, coin count). Do not change 20/10.
 
-## Wave 3 — Real new-account Facebook (separate from Rider)
+## Wave 3 — Owner smoke only (no GISUGO build until it fails)
 
-- [ ] **11. After Facebook returns:** if Safari forgets the “does this account already have a profile?” note (common when the Facebook **app** handles login), do a timed profile check. New user → finish setup. Existing user → home. Never send a new user home, and never send an existing user into setup because a hang looked like “no profile.”
-- [ ] **12. Smoke with a Facebook that is **not** linked to Peter or Operations.** Create account → setup screens complete → Profile loads → logout → login → Profile still loads.
-- [ ] **13. iOS 15 Facebook:** keep the “log in with the Facebook app / device code” door. Do not spend more time proving iPhone 7 Apply. The homepage iOS 15 warning stays for Problem A only.
+Rider skipping setup is **closed**: that Facebook is already Peter. Peter will try a Facebook that is **not** linked to Peter or Operations.
 
-## Wave 4 — Messages / chat (later; skipped on purpose in Phase 12)
+- [ ] **12. New Facebook on the mini:** create account → finish setup → Profile loads → log out → log in → Profile still loads.
+- If that works: Wave 3 is done. Do not invent extra login routing.
+- If that still skips setup or Profile still blanks for a brand-new Facebook: then it is a real routing bug, and we add a timed “does this account already exist?” check. Not before.
 
-- [ ] **14. Messages list and a thread:** still live-pipe only. Same Alerts-style load when this door is opened. Not a launch blocker for Profile / Gigs Manager, but it is still an iPhone blank screen if someone opens it.
+iOS 15 Facebook-app / device-code door stays as-is. Do not reopen iPhone 7 Apply as a launch gate.
+
+## Wave 4 — Gig chat / Messages — parked
+
+Not a clearance item. That page is hidden until a later PRO subscription. Do not ask Peter to test it. Do not spend a wave wiring it now.
 
 ## Wave 5 — Close the loop
 
-- [ ] **15. Retire the two-gate model** once Waves 1–3 pass on the mini: one iPhone check, not “all iPhones” plus “only 15 and older.”
-- [ ] **16. Homepage copy:** iOS 15 warning is about old OS / Facebook passkey. Do **not** tell people a newer iPhone will make GISUGO fully work until Wave 1 has passed on the mini.
-- [ ] **17. Launch smoke matrix on the 13 mini (Safari), then one more iPhone if available:** cold login Google; cold login Facebook (unlinked); Profile; Gigs Manager live + history; Alerts; one category feed; open gig; Apply; Post; My Applications. Android unchanged.
+- [ ] **13. Retire the two-gate model** once Waves 1–2 pass on the mini: one iPhone check, not “all iPhones” plus “only 15 and older.”
+- [ ] **14. Homepage copy:** iOS 15 warning is about old OS / Facebook passkey. Do **not** tell people a newer iPhone will make GISUGO fully work until Wave 1 has passed on the mini.
+- [ ] **15. Launch smoke matrix on the 13 mini (Safari), then one more iPhone if available:** Profile; Gigs Manager live + history; Alerts; Support inbox; My Applications; one category feed; open gig; Apply; Post. New Facebook if Peter has one (item 12). Android unchanged.
 
 ## Out of scope (do not fold into this list)
 
@@ -83,3 +88,5 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 - Launch Feed 20/10 numbers
 - Unlinking Rider from Peter unless asked
 - Inventing a Rider GISUGO profile that does not exist
+- Gig-to-gig chat (`messages.html`) until PRO
+- Wiring chat “for later” as part of this clearance unless Support work happens to share a helper — even then, no owner chat smoke
