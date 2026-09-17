@@ -46,10 +46,10 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 
 ## Wave 1 — Unblock what the mini just hit
 
-- [ ] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager.
-- [ ] **2. Profile:** show the public profile as soon as the timed request returns. Do not wait on the private record, face-check repair, or stats repair before painting the page. Those can follow, or skip, with a time limit.
-- [ ] **3. Gigs Manager — live tabs:** load the user’s gigs the same way category listings already load on iPhone (simple timed request, sort in the browser). Do not ask the server for a sort that desktop does not use and that we never indexed.
-- [ ] **4. Gigs Manager — history:** same timed request as live. Do not use the live pipe for completed gigs on iPhone.
+- [x] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager. (2026-09-17)
+- [x] **2. Profile:** show the public profile as soon as the timed request returns. Do not wait on the private record, face-check repair, or stats repair before painting the page. Those can follow, or skip, with a time limit. (2026-09-17 — skip on every iPhone, same as iOS 15 already did)
+- [x] **3. Gigs Manager — live tabs:** load the user’s gigs the same way category listings already load on iPhone (simple timed request, sort in the browser). Do not ask the server for a sort that desktop does not use and that we never indexed. (2026-09-17)
+- [x] **4. Gigs Manager — history:** same timed request as live. Do not use the live pipe for completed gigs on iPhone. (2026-09-17)
 - [ ] **5. Smoke on the 13 mini, logged in as Peter (Rider Facebook is fine for this):** Profile shows Peter. Gigs Manager live shows real gigs. History shows completed gigs. Alerts still match.
 
 ## Wave 2 — Same treatment for the other logged-in pages

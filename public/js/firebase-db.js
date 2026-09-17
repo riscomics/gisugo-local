@@ -420,6 +420,9 @@ function isIOSWebKitBrowserForDataPath() {
   }
 }
 
+// iOS 15 and older only — Facebook passkey / homepage warning. Do NOT use this
+// to decide Profile or Gigs Manager loads. Those use isIOSWebKitBrowserForDataPath
+// (every iPhone) and timed HTTP. iOS 16+ still hangs on the live Firestore pipe.
 function isLegacyIOSFirestoreHangPath() {
   if (typeof window.getIOSMajorVersion === 'function') {
     const v = window.getIOSMajorVersion();
@@ -557,6 +560,8 @@ async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50, he
 async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for jobs REST fallback');
+  // Equality only — same as desktop Gigs Manager. Do not orderBy datePosted here:
+  // that composite index was never created, so the iPhone query returned empty.
   const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
   const payload = {
     structuredQuery: {
@@ -568,7 +573,6 @@ async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
           value: { stringValue: String(value || '').trim() }
         }
       },
-      orderBy: [{ field: { fieldPath: 'datePosted' }, direction: 'DESCENDING' }],
       limit: 200
     }
   };
@@ -5992,13 +5996,13 @@ async function getUserProfile(userId) {
           return { userId: restProfile.id, ...restProfile };
         }
         emitIOSDataTrace('profile:load', 'fetch:done', { found: false, mode: 'REST' });
-        if (isLegacyIOSFirestoreHangPath()) return null;
+        return null;
       } catch (restError) {
         console.warn('⚠️ Profile REST failed on iOS:', restError);
         const message = (restError && restError.message) ? restError.message : String(restError);
         const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
         emitIOSDataTrace('profile:load', stage, { mode: 'REST', message });
-        if (isLegacyIOSFirestoreHangPath()) return null;
+        return null;
       }
     }
     emitIOSDataTrace('profile:load', 'fetch:mode', 'SDK');
@@ -6050,6 +6054,7 @@ window.deleteJob = deleteJob;
 
 // Users
 window.getUserProfile = getUserProfile;
+window.isIOSWebKitBrowserForDataPath = isIOSWebKitBrowserForDataPath;
 
 // Applications
 window.applyForJob = applyForJob;

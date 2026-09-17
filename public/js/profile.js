@@ -5397,8 +5397,10 @@ async function waitForAuthAndLoadProfile() {
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
           window.currentUserPrivateProfile = null;
-          const skipBlockingIosFollowups = typeof isLegacyIOSFirestoreHangPath === 'function'
-            && isLegacyIOSFirestoreHangPath();
+          const skipBlockingIosFollowups = (typeof isIOSWebKitBrowserForDataPath === 'function'
+            && isIOSWebKitBrowserForDataPath())
+            || (typeof isLegacyIOSFirestoreHangPath === 'function'
+              && isLegacyIOSFirestoreHangPath());
           if (isViewingOwnProfile && typeof firebase !== 'undefined' && firebase.firestore && !skipBlockingIosFollowups) {
             try {
               const privateDoc = await firebase.firestore().collection('user_private').doc(profileUserId).get();

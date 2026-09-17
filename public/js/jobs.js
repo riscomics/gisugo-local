@@ -567,6 +567,31 @@ window.JobsDataService = {
         return typeof DataService !== 'undefined' && DataService.useFirebase();
     },
 
+    _isIphoneTimedDataPath() {
+        if (typeof isIOSWebKitBrowserForDataPath === 'function') {
+            return isIOSWebKitBrowserForDataPath();
+        }
+        try {
+            const ua = navigator.userAgent || '';
+            return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        } catch (_) {
+            return false;
+        }
+    },
+
+    _completedAtMs(value) {
+        if (!value) return 0;
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return value < 1e12 ? value * 1000 : value;
+        }
+        if (typeof value.seconds === 'number') return value.seconds * 1000;
+        if (typeof value.toDate === 'function') {
+            try { return value.toDate().getTime(); } catch (_) { return 0; }
+        }
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    },
+
     _withTimeout(promise, label, timeoutMs = 15000) {
         let timeoutId = null;
         const timeoutPromise = new Promise((_, reject) => {
@@ -820,6 +845,32 @@ window.JobsDataService = {
                 
                 const currentUserId = user.uid;
                 console.log(`🔍 Fetching completed jobs for user: ${currentUserId}`);
+
+                if (this._isIphoneTimedDataPath() && typeof getUserJobListings === 'function') {
+                    const rawJobs = await this._withTimeout(
+                        getUserJobListings(currentUserId, ['completed']),
+                        'getCompletedJobs:getUserJobListings'
+                    );
+                    const completedJobs = rawJobs.map((job) => {
+                        const normalized = this._normalizeFirebaseJob(job);
+                        const isCustomer = String(job.posterId || '') === currentUserId;
+                        return {
+                            ...normalized,
+                            id: job.id || job.jobId,
+                            jobId: job.jobId || job.id,
+                            role: isCustomer ? 'customer' : 'worker',
+                            completedAt: job.completedAt,
+                            completedBy: job.completedBy,
+                            rating: job.customerRating || 0,
+                            feedback: job.customerFeedback || null,
+                            workerFeedback: job.workerFeedback || null,
+                            workerRating: job.workerRating || 0
+                        };
+                    }).sort((a, b) => this._completedAtMs(b.completedAt) - this._completedAtMs(a.completedAt));
+                    console.log(`✅ Returning ${completedJobs.length} completed jobs (timed iPhone path)`);
+                    jobsTrace('jobs:data:completed:done', { count: completedJobs.length, mode: 'REST' });
+                    return completedJobs;
+                }
                 
                 const db = firebase.firestore();
                 
