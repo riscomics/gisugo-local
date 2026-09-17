@@ -557,6 +557,119 @@ async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50, he
     .filter(Boolean);
 }
 
+async function fetchReviewsViaFirestoreRest(revieweeUserId, role, maxItems = 50) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for reviews REST fallback');
+  const safeUserId = String(revieweeUserId || '').trim();
+  const safeRole = String(role || '').trim();
+  if (!safeUserId || !safeRole) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'reviews' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: 'revieweeUserId' },
+                op: 'EQUAL',
+                value: { stringValue: safeUserId }
+              }
+            },
+            {
+              fieldFilter: {
+                field: { fieldPath: 'revieweeRole' },
+                op: 'EQUAL',
+                value: { stringValue: safeRole }
+              }
+            }
+          ]
+        }
+      },
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+      limit: Math.max(1, Math.min(Number(maxItems) || 50, 100))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST reviews fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchSupportRequestsViaFirestoreRest(userId, maxItems = 50, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for support REST fallback');
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'support_requests' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'requester.userId' },
+          op: 'EQUAL',
+          value: { stringValue: safeUserId }
+        }
+      },
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+      limit: Math.max(1, Math.min(Number(maxItems) || 50, 100))
+    }
+  };
+  const requestHeaders = headers || await buildFirestoreRestHeadersWithAuth();
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: requestHeaders,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST support fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchPlatformBroadcastsViaFirestoreRest(maxItems = 30, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for broadcasts REST fallback');
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'platform_broadcasts' }],
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+      limit: Math.max(1, Math.min(Number(maxItems) || 30, 50))
+    }
+  };
+  const requestHeaders = headers || await buildFirestoreRestHeadersWithAuth();
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: requestHeaders,
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST broadcasts fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
 async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for jobs REST fallback');
@@ -5359,12 +5472,29 @@ async function deleteBroadcast(broadcastId) {
  * @param {number} [limit=30]
  */
 async function getPlatformBroadcastsForUser(limit = 30) {
+  const safeLimit = Math.max(1, Math.min(Number(limit) || 30, 50));
+  if (isIOSWebKitBrowserForDataPath()) {
+    try {
+      const restHeaders = await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), 8000);
+      const rows = await withFirestoreReadTimeout(
+        fetchPlatformBroadcastsViaFirestoreRest(safeLimit, restHeaders),
+        10000
+      );
+      return (Array.isArray(rows) ? rows : []).map((row) => ({
+        id: row.id,
+        data: row
+      }));
+    } catch (error) {
+      console.warn('⚠️ Broadcasts REST failed on iPhone:', error && error.message ? error.message : error);
+      return [];
+    }
+  }
   const db = getFirestore();
   if (!db) return [];
   try {
     const snap = await db.collection('platform_broadcasts')
       .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .limit(safeLimit)
       .get();
     return snap.docs.map((doc) => ({ id: doc.id, data: doc.data() }));
   } catch (error) {
@@ -6053,8 +6183,8 @@ window.updateJobStatus = updateJobStatus;
 window.deleteJob = deleteJob;
 
 // Users
-window.getUserProfile = getUserProfile;
-window.isIOSWebKitBrowserForDataPath = isIOSWebKitBrowserForDataPath;
+window.fetchReviewsViaFirestoreRest = fetchReviewsViaFirestoreRest;
+window.fetchSupportRequestsViaFirestoreRest = fetchSupportRequestsViaFirestoreRest;
 
 // Applications
 window.applyForJob = applyForJob;

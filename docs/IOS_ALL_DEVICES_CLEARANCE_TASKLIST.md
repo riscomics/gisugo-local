@@ -48,6 +48,7 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 
 - [x] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager. (2026-09-17)
 - [x] **2. Profile:** show the public profile as soon as the timed request returns. Do not wait on the private record, face-check repair, or stats repair before painting the page. Those can follow, or skip, with a time limit. (2026-09-17 — skip on every iPhone, same as iOS 15 already did)
+      **Follow-up same day:** review tabs still waited on the live pipe (“Loading reviews…”). Timed load now. Peter has 15 customer + 10 worker reviews.
 - [x] **3. Gigs Manager — live tabs:** load the user’s gigs the same way category listings already load on iPhone (simple timed request, sort in the browser). Do not ask the server for a sort that desktop does not use and that we never indexed. (2026-09-17)
 - [x] **4. Gigs Manager — history:** same timed request as live. Do not use the live pipe for completed gigs on iPhone. (2026-09-17)
 - [ ] **5. Smoke on the 13 mini, logged in as Peter (Rider Facebook is fine for this):** Profile shows Peter. Gigs Manager live shows real gigs. History shows completed gigs. Alerts still match.
@@ -56,7 +57,7 @@ Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true
 
 - [ ] **6. My Applications:** worker application list still uses the live pipe with no time limit. Move it to the timed request already used for Apply-on-iPhone coin checks.
 - [ ] **7. Home Alerts badge:** homepage still listens on the live pipe for unread counts. If that hang is silent, the badge stays wrong even when Alerts itself is fine. One-shot or poll like Alerts. (Chat unread is not on the home menu.)
-- [ ] **8. Support inbox:** this page is live in the menu. Ticket list/thread still uses the live pipe (not the Alerts-style load). Timed request, same rule as Gigs Manager. Broadcasts / notice cards that already share the Alerts path can stay.
+- [x] **8. Support inbox:** this page is live in the menu. Ticket list/thread still uses the live pipe (not the Alerts-style load). Timed request, same rule as Gigs Manager. Broadcasts / notice cards that already share the Alerts path can stay. **(2026-09-17: iPhone timed load. Peter has 5 resolved tickets, all already read → Old Messages.)**
 - [ ] **9. Post a gig / edit a gig:** confirm save and return-to-manager on the mini. Writes that hang leave a “it posted but I can’t see it” loop next to Wave 1.
 - [ ] **10. Category listing fallback:** if the timed listing request fails, **do not** fall through to the live pipe on any iPhone (today only iOS 15 blocks that fall-through). Retry the timed request or show empty/error.
 - [ ] **11. Open a gig + Apply:** already on the timed path for all iPhones. Regression-smoke on the mini (open, apply, coin count). Do not change 20/10.

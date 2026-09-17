@@ -6368,100 +6368,122 @@ function prefetchProfileReviews(userId) {
  * @param {string} role - 'customer' or 'worker' - the role being reviewed
  * @returns {Promise<Array>} Array of formatted review objects
  */
+function reviewCreatedAtDate(createdAt) {
+  if (!createdAt) return null;
+  if (typeof createdAt.seconds === 'number') return new Date(createdAt.seconds * 1000);
+  if (typeof createdAt.toDate === 'function') {
+    try { return createdAt.toDate(); } catch (_) { return null; }
+  }
+  const parsed = new Date(createdAt);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 async function fetchUserReviews(userId, role) {
   try {
     console.log(`🔍 Fetching ${role} reviews for user:`, userId);
-    
-    const db = firebase.firestore();
-    const reviewsRef = db.collection('reviews');
-    
-    // Query reviews where this user is the reviewee with the specified role
-    const snapshot = await reviewsRef
-      .where('revieweeUserId', '==', userId)
-      .where('revieweeRole', '==', role)
-      .orderBy('createdAt', 'desc')
-      .get();
-    
-    console.log(`📊 Found ${snapshot.size} ${role} reviews`);
-    
-    if (snapshot.empty) {
-      return [];
+    const useTimedHttp = typeof isIOSWebKitBrowserForDataPath === 'function'
+      && isIOSWebKitBrowserForDataPath();
+
+    let records = [];
+    if (useTimedHttp) {
+      if (typeof fetchReviewsViaFirestoreRest !== 'function') return [];
+      const restRows = typeof withFirestoreReadTimeout === 'function'
+        ? await withFirestoreReadTimeout(fetchReviewsViaFirestoreRest(userId, role, 50), 10000)
+        : await fetchReviewsViaFirestoreRest(userId, role, 50);
+      records = Array.isArray(restRows) ? restRows : [];
+    } else {
+      const db = firebase.firestore();
+      const snapshot = await db.collection('reviews')
+        .where('revieweeUserId', '==', userId)
+        .where('revieweeRole', '==', role)
+        .orderBy('createdAt', 'desc')
+        .get();
+      records = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     }
-    
-    // Deduplicate and parallelize related lookups to avoid N+1 sequential latency.
+
+    console.log(`📊 Found ${records.length} ${role} reviews`);
+    if (!records.length) return [];
+
     const userDocCache = new Map();
     const jobDocCache = new Map();
 
-    const getUserDoc = (reviewerUserId) => {
-      if (!reviewerUserId) return Promise.resolve(null);
+    const getReviewerPhoto = async (reviewerUserId) => {
+      if (!reviewerUserId) return 'public/users/default-user.jpg';
       if (!userDocCache.has(reviewerUserId)) {
-        userDocCache.set(
-          reviewerUserId,
-          db.collection('users').doc(reviewerUserId).get().catch((err) => {
+        userDocCache.set(reviewerUserId, (async () => {
+          try {
+            if (useTimedHttp && typeof fetchUserProfileViaFirestoreRest === 'function') {
+              const restProfile = typeof withFirestoreReadTimeout === 'function'
+                ? await withFirestoreReadTimeout(fetchUserProfileViaFirestoreRest(reviewerUserId), 8000)
+                : await fetchUserProfileViaFirestoreRest(reviewerUserId);
+              return restProfile?.profilePhoto || restProfile?.profileImage || 'public/users/default-user.jpg';
+            }
+            const reviewerDoc = await firebase.firestore().collection('users').doc(reviewerUserId).get();
+            if (reviewerDoc && reviewerDoc.exists) {
+              const reviewerData = reviewerDoc.data() || {};
+              return reviewerData.profilePhoto || reviewerData.profileImage || 'public/users/default-user.jpg';
+            }
+          } catch (err) {
             console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
-            return null;
-          })
-        );
+          }
+          return 'public/users/default-user.jpg';
+        })());
       }
       return userDocCache.get(reviewerUserId);
     };
 
-    const getJobDoc = (jobId) => {
-      if (!jobId) return Promise.resolve(null);
+    const getJobDetails = async (jobId) => {
+      if (!jobId) return { jobTitle: 'Completed Gig', jobPostUrl: null };
       if (!jobDocCache.has(jobId)) {
-        jobDocCache.set(
-          jobId,
-          db.collection('jobs').doc(jobId).get().catch((err) => {
+        jobDocCache.set(jobId, (async () => {
+          try {
+            if (useTimedHttp && typeof fetchJobByIdViaFirestoreRest === 'function') {
+              const restJob = typeof withFirestoreReadTimeout === 'function'
+                ? await withFirestoreReadTimeout(fetchJobByIdViaFirestoreRest(jobId), 8000)
+                : await fetchJobByIdViaFirestoreRest(jobId);
+              return {
+                jobTitle: restJob?.title || 'Completed Gig',
+                jobPostUrl: restJob?.jobPageUrl || null
+              };
+            }
+            const jobDoc = await firebase.firestore().collection('jobs').doc(jobId).get();
+            if (jobDoc && jobDoc.exists) {
+              const jobData = jobDoc.data() || {};
+              return {
+                jobTitle: jobData.title || 'Completed Gig',
+                jobPostUrl: jobData.jobPageUrl || null
+              };
+            }
+          } catch (err) {
             console.warn('⚠️ Could not fetch job details:', err);
-            return null;
-          })
-        );
+          }
+          return { jobTitle: 'Completed Gig', jobPostUrl: null };
+        })());
       }
       return jobDocCache.get(jobId);
     };
 
-    // Format reviews for display
-    const reviews = await Promise.all(snapshot.docs.map(async (doc) => {
-      const data = doc.data();
-
-      let reviewerThumbnail = 'public/users/default-user.jpg';
-      const reviewerDoc = await getUserDoc(data.reviewerUserId);
-      if (reviewerDoc && reviewerDoc.exists) {
-        const reviewerData = reviewerDoc.data();
-        reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
-      }
-
-      let jobTitle = 'Completed Gig';
-      let jobPostUrl = null;
-      const jobDoc = await getJobDoc(data.jobId);
-      if (jobDoc && jobDoc.exists) {
-        const jobData = jobDoc.data();
-        jobTitle = jobData.title || jobTitle;
-        jobPostUrl = jobData.jobPageUrl || null;
-      }
-
-      const feedbackDate = data.createdAt
-        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          })
+    const reviews = await Promise.all(records.map(async (data) => {
+      const reviewerThumbnail = await getReviewerPhoto(data.reviewerUserId);
+      const jobDetails = await getJobDetails(data.jobId);
+      const created = reviewCreatedAtDate(data.createdAt);
+      const feedbackDate = created
+        ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : 'Recent';
 
       return {
-        jobTitle: jobTitle,
+        jobTitle: jobDetails.jobTitle,
         feedbackDate: feedbackDate,
         rating: data.rating || 0,
         userThumbnail: reviewerThumbnail,
         feedbackText: data.feedbackText || 'No feedback provided.',
-        jobPostUrl: jobPostUrl,
-        reviewId: doc.id
+        jobPostUrl: jobDetails.jobPostUrl,
+        reviewId: data.id
       };
     }));
-    
+
     console.log(`✅ Formatted ${reviews.length} ${role} reviews`);
     return reviews;
-    
   } catch (error) {
     console.error(`❌ Error fetching ${role} reviews:`, error);
     return [];

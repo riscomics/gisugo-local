@@ -754,6 +754,13 @@ async function initializeUnifiedMessagesTab() {
     loadUnifiedMessages();
     setupMessageFiltering('unified');
     setupMessageDetailHandlers('unified');
+    const unifiedInbox = getMessagesByRole('unified');
+    const hasNewSupport = unifiedInbox.some((msg) => !isMessageClosed(msg));
+    const hasOldSupport = unifiedInbox.some((msg) => isMessageClosed(msg));
+    if (!hasNewSupport && hasOldSupport) {
+        const oldTabBtn = document.querySelector('#unified-messages-content .inbox-tab-btn[data-tab="old"]');
+        if (oldTabBtn) oldTabBtn.click();
+    }
     
     // Force update the Messages tab counter when initializing
     setTimeout(() => {
@@ -10040,6 +10047,10 @@ function toDateFromSupportRecord(record) {
     if (record?.updatedAt && typeof record.updatedAt.toDate === 'function') {
         return record.updatedAt.toDate();
     }
+    if (typeof record?.createdAt === 'string' && record.createdAt) {
+        const parsed = new Date(record.createdAt);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+    }
     if (Number.isFinite(record?.createdAtMs)) {
         return new Date(record.createdAtMs);
     }
@@ -10189,6 +10200,9 @@ function mapBroadcastRecordToUnifiedMessage(item) {
     let timestamp = new Date();
     if (data.createdAt && typeof data.createdAt.toDate === 'function') {
         timestamp = data.createdAt.toDate();
+    } else if (typeof data.createdAt === 'string' && data.createdAt) {
+        const parsed = new Date(data.createdAt);
+        if (!Number.isNaN(parsed.getTime())) timestamp = parsed;
     } else if (Number.isFinite(data.createdAtMs)) {
         timestamp = new Date(data.createdAtMs);
     } else if (data.createdAtISO) {
@@ -10227,6 +10241,29 @@ async function ensureBroadcastMessagesLoaded() {
     }
 }
 
+function applySupportInboxMessages(supportMessages) {
+    SUPPORT_RESPONSES_STREAM_STATE.messages = Array.isArray(supportMessages) ? supportMessages : [];
+    SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
+    SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = true;
+
+    const filteringSystem = window.unifiedFilteringSystem;
+    if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
+        filteringSystem.reloadFilteredMessages();
+    } else {
+        loadUnifiedMessages();
+    }
+    updateMainMessagesTabCount();
+    updateInboxTabCounts('unified');
+
+    if (currentlyOpenMessage && currentlyOpenRole === 'unified') {
+        const updated = SUPPORT_RESPONSES_STREAM_STATE.messages.find((msg) => msg.id === currentlyOpenMessage.id);
+        if (updated) {
+            currentlyOpenMessage = updated;
+            refreshCurrentMessageDisplay(updated, 'unified');
+        }
+    }
+}
+
 async function ensureSupportResponsesRealtimeStream() {
     const currentUser = await waitForAuthStateWithTimeout();
     if (!currentUser || !currentUser.uid) {
@@ -10241,15 +10278,61 @@ async function ensureSupportResponsesRealtimeStream() {
 
     stopSupportResponsesRealtimeStream('switch_user_or_restart');
 
+    SUPPORT_RESPONSES_STREAM_STATE.uid = currentUser.uid;
+    SUPPORT_RESPONSES_STREAM_STATE.started = true;
+    messagesTrace('fetch:support:stream_start', currentUser.uid);
+
+    const useTimedHttp = typeof isIOSWebKitBrowserForDataPath === 'function'
+        && isIOSWebKitBrowserForDataPath();
+    if (useTimedHttp && typeof fetchSupportRequestsViaFirestoreRest === 'function') {
+        let disposed = false;
+        let inFlight = false;
+        const pollOnce = async () => {
+            if (disposed || inFlight) return;
+            inFlight = true;
+            try {
+                const restHeaders = typeof buildFirestoreRestHeadersWithAuth === 'function'
+                    ? await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), 8000)
+                    : { 'Content-Type': 'application/json' };
+                const rows = await withFirestoreReadTimeout(
+                    fetchSupportRequestsViaFirestoreRest(
+                        currentUser.uid,
+                        SUPPORT_RESPONSES_STREAM_STATE.limit || 50,
+                        restHeaders
+                    ),
+                    10000
+                );
+                const supportMessages = (Array.isArray(rows) ? rows : []).map((row) => mapSupportRecordToUnifiedMessage({
+                    id: row.id,
+                    data: () => row
+                }));
+                if (!disposed) applySupportInboxMessages(supportMessages);
+            } catch (error) {
+                console.error('❌ Support REST poll error:', error);
+                if (!disposed) {
+                    SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
+                    SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = true;
+                    applySupportInboxMessages(SUPPORT_RESPONSES_STREAM_STATE.messages || []);
+                }
+            } finally {
+                inFlight = false;
+            }
+        };
+
+        await pollOnce();
+        const pollTimer = setInterval(pollOnce, 12000);
+        ACTIVE_LISTENERS.supportResponses = () => {
+            disposed = true;
+            clearInterval(pollTimer);
+        };
+        return;
+    }
+
     const db = typeof getFirestore === 'function' ? getFirestore() : null;
     if (!db) {
         console.warn('⚠️ Firestore unavailable: support stream disabled');
         return;
     }
-
-    SUPPORT_RESPONSES_STREAM_STATE.uid = currentUser.uid;
-    SUPPORT_RESPONSES_STREAM_STATE.started = true;
-    messagesTrace('fetch:support:stream_start', currentUser.uid);
 
     ACTIVE_LISTENERS.supportResponses = db
         .collection('support_requests')
@@ -10259,28 +10342,9 @@ async function ensureSupportResponsesRealtimeStream() {
         .onSnapshot((snapshot) => {
             const supportMessages = snapshot.docs
                 .map((doc) => mapSupportRecordToUnifiedMessage(doc));
-
-            SUPPORT_RESPONSES_STREAM_STATE.messages = supportMessages;
-            SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
-            if (!snapshot.metadata.fromCache) {
-                SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = true;
-            }
-
-            const filteringSystem = window.unifiedFilteringSystem;
-            if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
-                filteringSystem.reloadFilteredMessages();
-            } else {
-                loadUnifiedMessages();
-            }
-            updateMainMessagesTabCount();
-            updateInboxTabCounts('unified');
-
-            if (currentlyOpenMessage && currentlyOpenRole === 'unified') {
-                const updated = supportMessages.find((msg) => msg.id === currentlyOpenMessage.id);
-                if (updated) {
-                    currentlyOpenMessage = updated;
-                    refreshCurrentMessageDisplay(updated, 'unified');
-                }
+            applySupportInboxMessages(supportMessages);
+            if (snapshot.metadata && snapshot.metadata.fromCache) {
+                SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = false;
             }
         }, (error) => {
             console.error('❌ Support responses stream error:', error);
@@ -10326,10 +10390,16 @@ function loadUnifiedMessages() {
         console.log('Unified new messages count:', newMessages.length);
         
         if (newMessages.length === 0) {
-            container.innerHTML = getSupportEmptyStateHTML(
-                'No support responses yet',
-                'Support replies from GISUGO will appear here after your first support request.'
-            );
+            const hasOld = unifiedMessages.some((msg) => isMessageClosed(msg));
+            container.innerHTML = hasOld
+                ? getSupportEmptyStateHTML(
+                    'No new messages',
+                    'Your earlier support threads are in Old Messages.'
+                )
+                : getSupportEmptyStateHTML(
+                    'No support responses yet',
+                    'Support replies from GISUGO will appear here after your first support request.'
+                );
         } else {
             container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'unified')).join('');
             // Setup click handlers for message items
