@@ -7291,6 +7291,8 @@ async function initializeSystemSettings() {
     if (resetBtn) {
         resetBtn.addEventListener('click', resetSettings);
     }
+
+    initializeLaunchBucketOffWarning();
     
     // Initialize technical warning composer
     initializeTechWarningComposer();
@@ -7462,6 +7464,23 @@ function resetSettings() {
     );
 }
 
+function initializeLaunchBucketOffWarning() {
+    const launchEl = document.getElementById('launchBucketOn');
+    if (!launchEl || launchEl.dataset.offWarnBound === '1') return;
+    launchEl.dataset.offWarnBound = '1';
+    launchEl.addEventListener('change', function () {
+        if (launchEl.checked) return;
+        showSettingsConfirmation(
+            '⚠️ Turn off Launch feed bucket?',
+            'OFF does not pause or remove gigs already at 10+ applications. They stay on the listing, but Apply is blocked — a populated prison until they expire or someone is hired. Pause-at-10 only hits gigs that reach exactly 10 after this is off. Leave this ON unless you intend that. Continue?',
+            null,
+            function () {
+                launchEl.checked = true;
+            }
+        );
+    });
+}
+
 function showSettingsSaveConfirmation() {
     const saveBtn = document.getElementById('saveSettingsBtn');
     if (!saveBtn) return;
@@ -7476,8 +7495,7 @@ function showSettingsSaveConfirmation() {
     }, 2000);
 }
 
-function showSettingsConfirmation(title, message, onConfirm) {
-    // Create overlay if it doesn't exist
+function showSettingsConfirmation(title, message, onConfirm, onCancel) {
     let overlay = document.getElementById('settingsConfirmOverlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -7485,51 +7503,56 @@ function showSettingsConfirmation(title, message, onConfirm) {
         overlay.className = 'settings-confirm-overlay';
         overlay.innerHTML = `
             <div class="settings-confirm-dialog">
-                <div class="settings-confirm-title" id="confirmTitle"></div>
-                <div class="settings-confirm-message" id="confirmMessage"></div>
+                <div class="settings-confirm-title" id="settingsConfirmTitle"></div>
+                <div class="settings-confirm-message" id="settingsConfirmMessage"></div>
                 <div class="settings-confirm-actions">
-                    <button class="settings-confirm-btn cancel" id="confirmCancel">Cancel</button>
-                    <button class="settings-confirm-btn confirm" id="confirmOk">Confirm</button>
+                    <button type="button" class="settings-confirm-btn cancel" id="settingsConfirmCancel">Cancel</button>
+                    <button type="button" class="settings-confirm-btn confirm" id="settingsConfirmOk">Confirm</button>
                 </div>
             </div>
         `;
         document.body.appendChild(overlay);
     }
-    
-    // Update content
-    document.getElementById('confirmTitle').textContent = title;
-    document.getElementById('confirmMessage').textContent = message;
-    
-    // Show overlay
+
+    if (typeof overlay._settingsConfirmCleanup === 'function') {
+        overlay._settingsConfirmCleanup();
+    }
+
+    const titleEl = overlay.querySelector('#settingsConfirmTitle');
+    const messageEl = overlay.querySelector('#settingsConfirmMessage');
+    const confirmBtn = overlay.querySelector('#settingsConfirmOk');
+    const cancelBtn = overlay.querySelector('#settingsConfirmCancel');
+    if (titleEl) titleEl.textContent = title;
+    if (messageEl) messageEl.textContent = message;
+
     overlay.classList.add('active');
-    
-    // Handle confirm
-    const confirmBtn = document.getElementById('confirmOk');
-    const cancelBtn = document.getElementById('confirmCancel');
-    
+
     const handleConfirm = () => {
         overlay.classList.remove('active');
-        if (onConfirm) onConfirm();
         cleanup();
+        if (onConfirm) onConfirm();
     };
-    
+
     const handleCancel = () => {
         overlay.classList.remove('active');
         cleanup();
+        if (onCancel) onCancel();
     };
-    
-    const cleanup = () => {
-        confirmBtn.removeEventListener('click', handleConfirm);
-        cancelBtn.removeEventListener('click', handleCancel);
-        overlay.removeEventListener('click', handleOverlayClick);
-    };
-    
+
     const handleOverlayClick = (e) => {
         if (e.target === overlay) {
             handleCancel();
         }
     };
-    
+
+    const cleanup = () => {
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        overlay.removeEventListener('click', handleOverlayClick);
+        overlay._settingsConfirmCleanup = null;
+    };
+
+    overlay._settingsConfirmCleanup = cleanup;
     confirmBtn.addEventListener('click', handleConfirm);
     cancelBtn.addEventListener('click', handleCancel);
     overlay.addEventListener('click', handleOverlayClick);
