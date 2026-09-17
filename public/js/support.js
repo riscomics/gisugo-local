@@ -746,6 +746,10 @@ async function initializeCustomerInterviewsTab() {
 
 async function initializeUnifiedMessagesTab() {
     console.log('📧 Initializing unified messages tab');
+    const listContainer = document.querySelector('#unified-messages-content .user-messages-list-container');
+    if (listContainer && !SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot) {
+        listContainer.innerHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
+    }
     await Promise.allSettled([
         ensureSupportResponsesRealtimeStream(),
         ensureBroadcastMessagesLoaded()
@@ -2153,7 +2157,7 @@ async function loadCustomerInterviews() {
 
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    requestMessagesPageLoadingOverlay(2200);
+    showMessagesPageLoadingOverlay();
     MESSAGES_PAGE_LOADING_STATE.hideTimerId = setTimeout(() => {
         hideMessagesPageLoadingOverlay();
     }, 6000);
@@ -2214,7 +2218,7 @@ window.addEventListener('pagehide', guardedExecuteAllCleanups);
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
     // bfcache restore: restart Support inbox (not worker-alerts leftovers from messages.js).
-    requestMessagesPageLoadingOverlay(2200);
+    showMessagesPageLoadingOverlay();
     Promise.resolve(switchToUnifiedMessages())
         .catch((error) => {
             console.warn('⚠️ pageshow support refresh failed:', error);
@@ -10245,6 +10249,7 @@ function applySupportInboxMessages(supportMessages) {
     SUPPORT_RESPONSES_STREAM_STATE.messages = Array.isArray(supportMessages) ? supportMessages : [];
     SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
     SUPPORT_RESPONSES_STREAM_STATE.serverSnapshotSeen = true;
+    markMessagesServerSnapshotReady({ source: 'support_inbox' });
 
     const filteringSystem = window.unifiedFilteringSystem;
     if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
@@ -10268,6 +10273,7 @@ async function ensureSupportResponsesRealtimeStream() {
     const currentUser = await waitForAuthStateWithTimeout();
     if (!currentUser || !currentUser.uid) {
         stopSupportResponsesRealtimeStream('support_not_authenticated');
+        hideMessagesPageLoadingOverlay();
         return;
     }
 
@@ -10331,6 +10337,7 @@ async function ensureSupportResponsesRealtimeStream() {
     const db = typeof getFirestore === 'function' ? getFirestore() : null;
     if (!db) {
         console.warn('⚠️ Firestore unavailable: support stream disabled');
+        hideMessagesPageLoadingOverlay();
         return;
     }
 
@@ -10350,6 +10357,7 @@ async function ensureSupportResponsesRealtimeStream() {
             console.error('❌ Support responses stream error:', error);
             stopSupportResponsesRealtimeStream('snapshot_error');
             loadUnifiedMessages();
+            hideMessagesPageLoadingOverlay();
         });
 }
 

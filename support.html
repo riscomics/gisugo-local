@@ -10,10 +10,10 @@
     <link rel="stylesheet" href="public/css/shared-menu.css">
 </head>
 <body class="page-messages page-support">
-    <div class="messages-page-loading-overlay hidden" id="messagesPageLoadingOverlay" aria-live="polite" style="display: none;">
+    <div class="messages-page-loading-overlay" id="messagesPageLoadingOverlay" aria-live="polite">
         <div class="messages-page-loading-modal">
             <div class="messages-page-loading-spinner" aria-hidden="true"></div>
-            <div class="messages-page-loading-text">Loading support...</div>
+            <div class="messages-page-loading-text">Loading messages...</div>
         </div>
     </div>
 
@@ -82,10 +82,9 @@
                         <div class="user-messages-list-container">
                             <div class="user-messages-list" id="unifiedMessagesList">
                                 <div class="messages-placeholder">
-                                    <div class="placeholder-icon">📧</div>
-                                    <h3>No support messages yet</h3>
-                                    <p>Tap the Write (✏️) button to send a request. Replies from GISUGO will appear here.</p>
-                                    <small>We usually respond within 24–48 hours.</small>
+                                    <div class="placeholder-icon">⌛</div>
+                                    <h3>Loading messages...</h3>
+                                    <p>Please wait.</p>
                                 </div>
                             </div>
                         </div>
@@ -250,6 +249,6 @@
     <script src="public/js/shared-menu.js?v=4.5"></script>
     <script src="public/js/support-taxonomy.js?v=3"></script>
     <script src="public/js/support-compose.js?v=12"></script>
-    <script src="public/js/support.js?v=27"></script>
+    <script src="public/js/support.js?v=28"></script>
 </body>
 </html>
