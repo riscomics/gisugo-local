@@ -2007,12 +2007,15 @@ that the whole dashboard section is finished forever.
       **Correction 2026-09-17:** that gate was Facebook passkey / old OS (Problem A).
       It did **not** clear GISUGO data-loading on newer iPhones (Problem B). iPhone 13
       mini / iOS 26: Facebook login + Alerts worked; Profile and Gigs Manager did not.
-      Open work: `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
+      **Later 2026-09-17:** Wave 1 smoked on the mini (Profile, reviews, Gigs Manager).
+      Support inbox smoked. Resume Wave 2 iOS usability:
+      `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
 - [ ] **All-iPhone data path (opened 2026-09-17).** One timed-request rule for every
-      iPhone, not “iOS 16+ is safe.” Wave 1 is Profile + Gigs Manager on the 13 mini.
-      Wave 3 is owner smoke with a Facebook that is not already Peter (no build until
-      that fails). Gig chat parked until PRO. **Support inbox stays in Wave 2** (live
-      menu). Full list in `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
+      iPhone, not “iOS 16+ is safe.” Wave 1 (Profile + Gigs Manager + mini smoke) is
+      done. Support inbox (Wave 2 item 8) is smoked. Remaining Wave 2: My Applications,
+      home Alerts badge, Post/edit, listing fallback, Apply regression. Wave 3 is owner
+      smoke with a Facebook that is not already Peter (no build until that fails).
+      Gig chat parked until PRO. Full list in `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
 - [ ] **G-Coins / wallet** — DO NOT remove. UI retained for business-model referencing
       (free-publishing pivot; old "pay to post" concept retired but UI useful as reference).
       **2026-07-17:** Account Settings wallet block `#gCoinsWalletSection` is **hidden** (not

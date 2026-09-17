@@ -1,8 +1,22 @@
 # iOS — clear every iPhone (not just iOS 15)
 
-> Status: **Open** · Opened 2026-09-17 after iPhone 13 mini / iOS 26 smoke  
+> Status: **Open** · Paused 2026-09-17 evening · Resume: **Wave 2 iOS usability**  
 > Device for this work: the **iPhone 13 mini** (Safari). That is now the launch iPhone, not the iPhone 7.  
 > Policy: one data rule for **all** iPhones. Do not split “old iPhone vs new iPhone” for loading screens.
+
+## Resume here (next session)
+
+Wave 1 is **smoked on the mini**. Support inbox is **smoked** (load, reply, loading cover).
+
+Next, in this order — still iPhone usability, not new features:
+
+1. **My Applications** (item 6) — likely the same blank/hang as Profile used to be
+2. **Home Alerts badge** (item 7) — count can sit wrong even when Alerts itself is fine
+3. **Post / edit a gig** (item 9) — save must return and show in Gigs Manager
+4. **Category listing fallback** (item 10) — failed timed load must not fall back to the live pipe
+5. **Open a gig + Apply** (item 11) — regression only; do not change 20/10
+
+Owner later: new Facebook that is **not** Peter or Operations (item 12). Gig chat stays parked.
 
 ## What we mixed up
 
@@ -42,22 +56,35 @@ On **any** iPhone:
 | Profile | Did not appear | After login, Profile still waits on the live pipe for extra private data |
 | Gigs Manager live + history | Nothing, despite Peter being active | Live list uses an iPhone query that does not match how desktop loads it (and can come back empty). History still uses the live pipe, then times out empty |
 
+### Cleared later the same day (Peter, 13 mini)
+
+| Screen | Result |
+| --- | --- |
+| Profile — user info | Loads |
+| Profile — As Customer / As Worker reviews | Lists load; tap opens the gig page (15 customer + 10 worker reviews on file) |
+| Gigs Manager — all tabs including completed history | Loads |
+| Support — Old Messages | Loads Peter’s 5 resolved threads with admin (all already read, so New is empty on purpose) |
+| Support — reply | Send hourglass starts on tap (was a multi-second dead wait on iPhone) |
+| Support — first paint | Loading cover is on screen immediately so New / Old / Write are not tappable over an empty shell (Android had this too) |
+
+Alerts were already good in the morning session. Not re-opened after the later Support ships; no regression reported.
+
 Do **not** Ban. Do **not** unlink Rider from Peter unless Peter asks. For a true “new Facebook account” smoke, use a Facebook identity that is **not** already linked.
 
 ## Wave 1 — Unblock what the mini just hit
 
 - [x] **1. Lock the rule in code:** any iPhone uses the Alerts-style load. Stop treating “iOS 16+” as safe for Profile / Gigs Manager. (2026-09-17)
 - [x] **2. Profile:** show the public profile as soon as the timed request returns. Do not wait on the private record, face-check repair, or stats repair before painting the page. Those can follow, or skip, with a time limit. (2026-09-17 — skip on every iPhone, same as iOS 15 already did)
-      **Follow-up same day:** review tabs still waited on the live pipe (“Loading reviews…”). Timed load now. Peter has 15 customer + 10 worker reviews.
+      **Follow-up same day:** review tabs still waited on the live pipe (“Loading reviews…”). Timed load now. Peter smoked both review tabs; taps open the gig page. 15 customer + 10 worker reviews on file.
 - [x] **3. Gigs Manager — live tabs:** load the user’s gigs the same way category listings already load on iPhone (simple timed request, sort in the browser). Do not ask the server for a sort that desktop does not use and that we never indexed. (2026-09-17)
 - [x] **4. Gigs Manager — history:** same timed request as live. Do not use the live pipe for completed gigs on iPhone. (2026-09-17)
-- [ ] **5. Smoke on the 13 mini, logged in as Peter (Rider Facebook is fine for this):** Profile shows Peter. Gigs Manager live shows real gigs. History shows completed gigs. Alerts still match.
+- [x] **5. Smoke on the 13 mini, logged in as Peter (Rider Facebook is fine for this):** Profile shows Peter. Review tabs list and open gigs. Gigs Manager live shows real gigs. History shows completed gigs. Alerts matched in the morning session.
 
 ## Wave 2 — Same treatment for the other logged-in pages
 
 - [ ] **6. My Applications:** worker application list still uses the live pipe with no time limit. Move it to the timed request already used for Apply-on-iPhone coin checks.
 - [ ] **7. Home Alerts badge:** homepage still listens on the live pipe for unread counts. If that hang is silent, the badge stays wrong even when Alerts itself is fine. One-shot or poll like Alerts. (Chat unread is not on the home menu.)
-- [x] **8. Support inbox:** this page is live in the menu. Ticket list/thread still uses the live pipe (not the Alerts-style load). Timed request, same rule as Gigs Manager. Broadcasts / notice cards that already share the Alerts path can stay. **(2026-09-17: iPhone timed load. Peter has 5 resolved tickets, all already read → Old Messages. Reply send: hourglass now shows immediately; pause-check uses the same timed request instead of waiting on the live pipe.)**
+- [x] **8. Support inbox:** this page is live in the menu. Ticket list/thread uses a timed request, same rule as Gigs Manager. Broadcasts / notice cards that already share the Alerts path can stay. **Smoked 2026-09-17 on the mini:** list loads; 5 resolved threads sit in Old Messages; reply hourglass starts on tap; loading cover appears immediately so the empty shell is not tappable (that cover delay was Android too).
 - [ ] **9. Post a gig / edit a gig:** confirm save and return-to-manager on the mini. Writes that hang leave a “it posted but I can’t see it” loop next to Wave 1.
 - [ ] **10. Category listing fallback:** if the timed listing request fails, **do not** fall through to the live pipe on any iPhone (today only iOS 15 blocks that fall-through). Retry the timed request or show empty/error.
 - [ ] **11. Open a gig + Apply:** already on the timed path for all iPhones. Regression-smoke on the mini (open, apply, coin count). Do not change 20/10.
@@ -79,7 +106,7 @@ Not a clearance item. That page is hidden until a later PRO subscription. Do not
 ## Wave 5 — Close the loop
 
 - [ ] **13. Retire the two-gate model** once Waves 1–2 pass on the mini: one iPhone check, not “all iPhones” plus “only 15 and older.”
-- [ ] **14. Homepage copy:** iOS 15 warning is about old OS / Facebook passkey. Do **not** tell people a newer iPhone will make GISUGO fully work until Wave 1 has passed on the mini.
+- [ ] **14. Homepage copy:** iOS 15 warning is about old OS / Facebook passkey. Wave 1 mini smoke passed. Still do **not** tell people a newer iPhone makes GISUGO fully work until Wave 2 also passes.
 - [ ] **15. Launch smoke matrix on the 13 mini (Safari), then one more iPhone if available:** Profile; Gigs Manager live + history; Alerts; Support inbox; My Applications; one category feed; open gig; Apply; Post. New Facebook if Peter has one (item 12). Android unchanged.
 
 ## Out of scope (do not fold into this list)
