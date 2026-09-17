@@ -2,7 +2,8 @@
 
 > Status: **Active** · Last updated: 2026-09-11
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
-> Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
+> Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model),
+> `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md` (all-iPhone data path — opened 2026-09-17).
 
 This is the working tasklist for getting GISUGO web production-solid. Resume here after
 any break.
@@ -2003,6 +2004,13 @@ that the whole dashboard section is finished forever.
       device may not work well; Continue Anyway remains. REST Apply / Alerts
       fallbacks stay in code for those who continue. Owner: do **not** spend
       more time proving iPhone 7 Apply after the Phase 12 lock.
+      **Correction 2026-09-17:** that gate was Facebook passkey / old OS (Problem A).
+      It did **not** clear GISUGO data-loading on newer iPhones (Problem B). iPhone 13
+      mini / iOS 26: Facebook login + Alerts worked; Profile and Gigs Manager did not.
+      Open work: `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
+- [ ] **All-iPhone data path (opened 2026-09-17).** One timed-request rule for every
+      iPhone, not “iOS 16+ is safe.” Wave 1 is Profile + Gigs Manager on the 13 mini.
+      Full list in `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md`.
 - [ ] **G-Coins / wallet** — DO NOT remove. UI retained for business-model referencing
       (free-publishing pivot; old "pay to post" concept retired but UI useful as reference).
       **2026-07-17:** Account Settings wallet block `#gCoinsWalletSection` is **hidden** (not
