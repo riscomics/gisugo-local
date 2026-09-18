@@ -856,7 +856,7 @@
   <!-- OAuth debug panel removed 2026-07-14 (kept at public/js/oauth-debug-panel.js;
        restore steps in docs/V1_HARDENING_TASKLIST.md Track G) -->
   <script src="public/js/firebase-config.js?v=20260821ga"></script>
-    <script src="public/js/firebase-auth.js?v=48"></script>
+    <script src="public/js/firebase-auth.js?v=49"></script>
   <script src="public/js/firebase-db.js?v=99"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -930,8 +930,8 @@
         }
       }
 
-      // Facebook app confirm: user approves in the Facebook app, we poll
-      // for the token. Has its own overlay, so no loading overlay here.
+      // Facebook device login (iOS escape hatch): confirm in the FB app, we
+      // poll for the token. Has its own overlay, so no loading overlay here.
       async function runDeviceLogin() {
         try {
           const result = await loginWithFacebookDevice();
@@ -955,13 +955,12 @@
       // Android Chrome (avoiding the popup dead-end), and the access token comes
       // back in the URL fragment — Firebase's broken redirect handler is bypassed.
       facebookSignInBtn.addEventListener('click', async function() {
-        // Phones: confirm in the Facebook app (already logged in there) so
-        // Facebook's website does not ask for email/phone + password.
-        // Desktop: Facebook's website redirect, unchanged.
-        if (typeof isMobileOAuthEnvironment === 'function' && isMobileOAuthEnvironment()) {
-          runDeviceLogin();
-          return;
-        }
+        // On iOS, Facebook login frequently dead-ends (passkey sandbox). Warn
+        // first: user can pick Google / Phone + Password, the FB-app device
+        // login (works even on cold-session iOS), or the normal redirect.
+        const choice = await confirmFacebookOnIOS('login');
+        if (!choice) return;
+        if (choice === 'device') { runDeviceLogin(); return; }
         runOAuth(startFacebookRedirect, 'Facebook');
       });
 

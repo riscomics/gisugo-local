@@ -1769,12 +1769,17 @@ async function handleGoogleSignIn() {
   }
 }
 
-// Handle Facebook Sign-In. Phones confirm in the Facebook app (no website
-// password form). Desktop still uses Facebook's website redirect.
+// Handle Facebook Sign-In (full-page redirect). On return, completeRedirectSignIn()
+// exchanges the token and checkExistingAuthUser()'s onAuthStateChanged listener
+// routes: redirect home if a profile exists, otherwise prefill this form.
 async function handleFacebookSignIn() {
-  if (typeof isMobileOAuthEnvironment === 'function' && isMobileOAuthEnvironment()) {
-    await runFacebookDeviceSignIn();
-    return;
+  // On iOS, Facebook login frequently dead-ends (passkey sandbox). Warn first:
+  // the user can pick Google / Phone + Password, the FB-app device login
+  // (works even on cold-session iOS), or the normal redirect.
+  if (typeof confirmFacebookOnIOS === 'function') {
+    const choice = await confirmFacebookOnIOS('signup');
+    if (!choice) return;
+    if (choice === 'device') { runFacebookDeviceSignIn(); return; }
   }
 
   showLoadingOverlay();
@@ -1802,8 +1807,8 @@ async function handleFacebookSignIn() {
   }
 }
 
-// Facebook app confirm: approve in the FB app, we poll for the token.
-// Has its own overlay. On success, checkExistingAuthUser()'s
+// Facebook device login (iOS escape hatch): confirm in the FB app, we poll for
+// the token. Has its own overlay. On success, checkExistingAuthUser()'s
 // onAuthStateChanged listener routes (home if profile exists, else prefill).
 async function runFacebookDeviceSignIn() {
   try {

@@ -2352,19 +2352,19 @@ that the whole dashboard section is finished forever.
         **iOS platform added** (Settings → Basic → Bundle ID `com.gisugo.app`, placeholder — required
         or facebook.com/device errors "Given URL is not allowed by the Application configuration").
         Android platform NOT addable yet (Meta verifies the package against Google Play; needs V2).
-      **2026-09-18:** Phone Facebook login/signup now **leads** with this app-confirm flow
-      (Android and iPhone), so a cold browser does not ask for Facebook email/password.
-      Desktop still uses the website redirect. Not true app-to-app SSO (website cannot
-      read the Facebook app session); native GISUGO later gets that. Cancel still leaves
-      Google / Phone + Password. Browser redirect remains as rescue if a website hop
-      already started and came back tokenless.
+      **2026-09-18:** Tried leading phone Facebook with this app-confirm flow. **Failed
+      smoke** (code copy/paste, tab does not resume signup after approve — same reasons
+      it was demoted in July). **Reverted same day** to website redirect first; device
+      login stays rescue / iOS ≤15 only. A website cannot do seamless Facebook-app SSO.
+      Native GISUGO is the real app-to-app path.
       • Known cosmetic quirks (Facebook's, unfixable): the in-app approval screen gives no success
         feedback + ignores the `?user_code=` prefill (hence copy-code); the FB "How do you want to
         log in" chooser is FB's page (our modal copy tells users to pick "With the Facebook App").
       Live versions: `firebase-auth.js?v=35`, `sign-up.js?v=8.1`.
-      Device-class matrix after 2026-09-18: any phone (FB app logged in) → app-confirm first;
-      desktop → website redirect; website hop that returns tokenless still auto-rescues to
-      app-confirm. iPhone 12 “normal redirect first” is no longer the phone default.
+      Device-class matrix (restored 2026-09-18): iPhone 7/old-iOS → device rescue;
+      iOS 16+ / Android → website redirect first; tokenless hop still auto-rescues;
+      desktop → website redirect. Seamless Continue-as only if that browser already
+      has a facebook.com session.
       Historical detail of the original dead-end preserved in
       `docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md` (updated 2026-07-14).
       Follow-up done: **OAuth debug panel removed from live pages (2026-07-14).** How to restore if
