@@ -474,7 +474,68 @@
       color: #6b7280 !important;
     }
     
-    /* Loading overlay */
+    .native-app-prompt-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 6, 23, 0.78);
+    }
+    .native-app-prompt-overlay.show {
+      display: flex;
+    }
+    .native-app-prompt-card {
+      max-width: 380px;
+      width: 100%;
+      box-sizing: border-box;
+      background: #0f172a;
+      border: 1px solid rgba(130, 148, 177, 0.35);
+      border-radius: 16px;
+      padding: 22px 20px 18px;
+      color: #f8fafc;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .native-app-prompt-detected {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .native-app-prompt-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .native-app-prompt-body {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #cbd5e1;
+      text-align: left;
+      margin: 0 0 18px;
+    }
+    .native-app-prompt-btn {
+      width: 100%;
+      padding: 13px 14px;
+      border: none;
+      border-radius: 10px;
+      background: #10b981;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
     .loading-overlay {
       background: rgba(26, 32, 44, 0.95) !important;
     }
@@ -1108,6 +1169,15 @@
     </form>
   </div>
 
+  <div class="native-app-prompt-overlay" id="nativeAppSignupPrompt" aria-hidden="true">
+    <div class="native-app-prompt-card" role="dialog" aria-modal="true" aria-labelledby="nativeAppPromptTitle">
+      <div class="native-app-prompt-detected" id="nativeAppPromptDetected"></div>
+      <div class="native-app-prompt-title" id="nativeAppPromptTitle">GISUGO works better in the app</div>
+      <p class="native-app-prompt-body" id="nativeAppPromptBody"></p>
+      <button type="button" class="native-app-prompt-btn" id="nativeAppPromptContinue">Continue on this page</button>
+    </div>
+  </div>
+
   <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
@@ -1286,7 +1356,7 @@
   <script src="public/js/firebase-storage.js?v=5"></script>
   <script src="public/js/ph-regions-geo.js?v=3"></script>
   
-  <script src="public/js/sign-up.js?v=8.15"></script>
+  <script src="public/js/sign-up.js?v=8.16"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====

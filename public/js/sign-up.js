@@ -370,6 +370,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initializeGoogleSignIn();
   initializeFacebookSignIn();
   initializePhonePasswordSignup();
+  if (!oauthPending) maybeShowNativeAppSignupPrompt();
   checkPendingAuth(); // Check if redirected from login with pending auth
   checkExistingAuthUser(); // Check if user is already authenticated
   if (typeof getPublicPlatformPolicy === 'function') {
@@ -1837,6 +1838,40 @@ function initializeFacebookSignIn() {
 // Initialize the "Sign Up with Phone & Password" toggle. Reveals the password
 // fields and switches the signup into phone_password mode. The account itself is
 // created at submit time (see handleFormSubmission) from the phone + password.
+function maybeShowNativeAppSignupPrompt() {
+  const overlay = document.getElementById('nativeAppSignupPrompt');
+  const detectedEl = document.getElementById('nativeAppPromptDetected');
+  const bodyEl = document.getElementById('nativeAppPromptBody');
+  const continueBtn = document.getElementById('nativeAppPromptContinue');
+  if (!overlay || !detectedEl || !bodyEl || !continueBtn) return;
+
+  const isMobile = typeof isMobileOAuthEnvironment === 'function' && isMobileOAuthEnvironment();
+  if (!isMobile) return;
+
+  try {
+    if (sessionStorage.getItem('gisugo_signup_app_prompt') === '1') return;
+  } catch (e) {}
+
+  const isIOS = typeof isLikelyIOS === 'function' && isLikelyIOS();
+  detectedEl.textContent = isIOS ? 'Detected: iPhone / iPad' : 'Detected: Android';
+  bodyEl.textContent = isIOS
+    ? 'The GISUGO app is not in the App Store yet. When it is, look for GISUGO on this device. You can create your account here now.'
+    : 'The GISUGO app is not on Google Play yet. When it is, look for GISUGO on this device. You can create your account here now.';
+
+  function dismiss() {
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    try { sessionStorage.setItem('gisugo_signup_app_prompt', '1'); } catch (e) {}
+  }
+
+  continueBtn.addEventListener('click', dismiss);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) dismiss();
+  });
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-hidden', 'false');
+}
+
 function initializePhonePasswordSignup() {
   const toggleBtn = document.getElementById('phoneSignupToggleBtn');
   const passwordGroup = document.getElementById('passwordSignupGroup');
