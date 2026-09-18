@@ -272,8 +272,7 @@
     }
 
     #phoneSignupToggleBtn.is-active {
-      border-color: #2563eb !important;
-      background: rgba(37, 99, 235, 0.12) !important;
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.45) !important;
     }
     
     .oauth-square:hover {
@@ -900,12 +899,23 @@
         </div>
       </div>
       
-      <!-- Quick Sign Up Section (OAuth - FREE, no SMS cost) -->
+      <!-- Sign up methods: phone + password first, Facebook/Google secondary -->
       <div class="form-section oauth-section" id="signupMethodsSection">
         <div class="form-section-header" data-i18n="signupWith">Sign Up With</div>
-        
-        <!-- Facebook & Google - Square buttons in row -->
-        <div class="oauth-row">
+
+        <button type="button" class="oauth-btn phone-signup-btn is-active" id="phoneSignupToggleBtn" aria-expanded="true">
+          <span class="phone-icon" aria-hidden="true">📱</span>
+          <span data-i18n="phonePasswordSignup">Sign Up with Phone &amp; Password</span>
+        </button>
+        <div class="form-hint" data-i18n="phonePasswordHint" style="margin-top: 10px;">Use your phone number and a password. It works on every phone — no Facebook or Google needed.</div>
+
+        <div class="or-divider" style="margin: 16px 0 4px;">
+          <span class="or-line"></span>
+          <span class="or-text" data-i18n="or">OR</span>
+          <span class="or-line"></span>
+        </div>
+
+        <div class="oauth-row" style="margin-top: 12px;">
           <button type="button" class="oauth-square facebook-square" id="facebookSignInBtn">
             <svg width="24" height="24" viewBox="0 0 24 24">
               <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -923,21 +933,7 @@
             <span>Google</span>
           </button>
         </div>
-        <div class="form-hint oauth-hint" data-i18n="oauthHint" style="margin-top: 12px;">Choose Facebook or Google to create your account. It's fast and secure.</div>
-
-        <!-- OR divider -->
-        <div class="or-divider" style="margin: 16px 0 4px;">
-          <span class="or-line"></span>
-          <span class="or-text" data-i18n="or">OR</span>
-          <span class="or-line"></span>
-        </div>
-
-        <!-- Phone + Password: OAuth-independent option that works on every
-             device/browser. Reveals the "Create a Password" section below. -->
-        <button type="button" id="phoneSignupToggleBtn" aria-expanded="false"
-          style="width:100%; box-sizing:border-box; margin-top:12px; padding:12px 14px; border:1px solid rgba(130,148,177,0.35); border-radius:10px; background:transparent; color:#f8fafc; font-size:1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-          <span>📱</span><span data-i18n="phonePasswordSignup">Sign Up with Phone &amp; Password</span>
-        </button>
+        <div class="form-hint oauth-hint" data-i18n="oauthHint" style="margin-top: 12px;">Or continue with Facebook or Google.</div>
       </div>
       
       <!-- Profile details panel (visually separated from the sign-up-with area above) -->
@@ -995,7 +991,7 @@
       </div>
 
       <!-- Create a Password (only for Phone + Password signup; hidden for OAuth) -->
-      <div class="form-section" id="passwordSignupGroup" style="display:none;">
+      <div class="form-section" id="passwordSignupGroup">
         <div class="form-section-header" data-i18n="createPassword">Create a Password</div>
         <div class="form-hint" style="margin-bottom: 14px;" data-i18n="createPasswordHint">You'll sign in with your phone number and this password. No Facebook or Google needed.</div>
         <div class="form-group">
@@ -1290,7 +1286,7 @@
   <script src="public/js/firebase-storage.js?v=5"></script>
   <script src="public/js/ph-regions-geo.js?v=3"></script>
   
-  <script src="public/js/sign-up.js?v=8.13"></script>
+  <script src="public/js/sign-up.js?v=8.14"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====

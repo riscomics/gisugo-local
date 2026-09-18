@@ -13,7 +13,7 @@ let authenticatedUser = null;
 // Signup method chosen by the user: 'oauth' (Facebook/Google) or 'phone_password'.
 // Controls whether the password fields are shown/validated and which account-
 // creation path the submit handler takes.
-let signupMode = 'oauth';
+let signupMode = 'phone_password';
 let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
 let signupSuccessMode = 'default';
@@ -55,9 +55,10 @@ const SIGNUP_I18N = {
     authCompleteProfile: 'Complete your profile below to continue',
     useDifferentAccount: 'Not you? Use a different account',
     fixHighlighted: 'Please complete the highlighted fields above',
-    oauthHint: "Choose Facebook or Google to create your account. It's fast and secure.",
+    oauthHint: 'Or continue with Facebook or Google.',
     or: 'OR',
     phonePasswordSignup: 'Sign Up with Phone & Password',
+    phonePasswordHint: 'Use your phone number and a password. It works on every phone — no Facebook or Google needed.',
     createPassword: 'Create a Password',
     createPasswordHint: "You'll sign in with your phone number and this password. No Facebook or Google needed.",
     passwordLabel: 'Password *',
@@ -103,9 +104,10 @@ const SIGNUP_I18N = {
     authCompleteProfile: 'Kompletoha ang imong profile sa ubos aron makapadayon',
     useDifferentAccount: 'Dili ikaw? Gamita ang laing account',
     fixHighlighted: 'Palihug kompletoha ang mga gipasiugda nga field sa ibabaw',
-    oauthHint: 'Pili og Facebook o Google para maghimo og account. Paspas ug luwas.',
+    oauthHint: 'O padayon gamit ang Facebook o Google.',
     or: 'O',
     phonePasswordSignup: 'Mag-Sign Up gamit ang Phone & Password',
+    phonePasswordHint: 'Gamita ang imong phone number ug usa ka password. Molihok ni sa tanang phone — dili kinahanglan ang Facebook o Google.',
     createPassword: 'Paghimo og Password',
     createPasswordHint: 'Mo-sign in ka gamit ang imong phone number ug kini nga password. Dili kinahanglan ang Facebook o Google.',
     passwordLabel: 'Password *',
@@ -151,9 +153,10 @@ const SIGNUP_I18N = {
     authCompleteProfile: 'Kumpletuhin ang profile mo sa ibaba para magpatuloy',
     useDifferentAccount: 'Hindi ikaw? Gumamit ng ibang account',
     fixHighlighted: 'Pakikumpleto ang mga naka-highlight na field sa itaas',
-    oauthHint: 'Pumili ng Facebook o Google para gumawa ng account. Mabilis at secure.',
+    oauthHint: 'O magpatuloy gamit ang Facebook o Google.',
     or: 'O',
     phonePasswordSignup: 'Mag-Sign Up gamit ang Phone & Password',
+    phonePasswordHint: 'Gamitin ang iyong phone number at isang password. Gumagana sa bawat phone — hindi kailangan ng Facebook o Google.',
     createPassword: 'Gumawa ng Password',
     createPasswordHint: 'Mag-si-sign in ka gamit ang iyong phone number at password na ito. Hindi na kailangan ng Facebook o Google.',
     passwordLabel: 'Password *',
@@ -1839,28 +1842,18 @@ function initializePhonePasswordSignup() {
   const passwordGroup = document.getElementById('passwordSignupGroup');
   if (!toggleBtn || !passwordGroup) return;
 
-  toggleBtn.addEventListener('click', function() {
-    const enabling = passwordGroup.style.display === 'none';
-    passwordGroup.style.display = enabling ? 'block' : 'none';
-    toggleBtn.setAttribute('aria-expanded', String(enabling));
-    toggleBtn.classList.toggle('is-active', enabling);
-    signupMode = enabling ? 'phone_password' : 'oauth';
+  function showPasswordFields() {
+    passwordGroup.style.display = 'block';
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    toggleBtn.classList.add('is-active');
+    signupMode = 'phone_password';
+    const basic = document.getElementById('signupSectionBasic');
+    if (basic) basic.classList.remove('is-collapsed');
+    passwordGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
-    if (enabling) {
-      // Make sure the phone number (its credential) is visible too, then bring
-      // the new "Create a Password" section into view.
-      const basic = document.getElementById('signupSectionBasic');
-      if (basic) basic.classList.remove('is-collapsed');
-      passwordGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-      // Leaving phone mode: clear password fields + any errors.
-      const pw = document.getElementById('password');
-      const cpw = document.getElementById('confirmPassword');
-      if (pw) pw.value = '';
-      if (cpw) cpw.value = '';
-      clearError('password');
-      clearError('confirmPassword');
-    }
+  toggleBtn.addEventListener('click', function() {
+    showPasswordFields();
   });
 }
 
