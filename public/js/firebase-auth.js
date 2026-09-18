@@ -666,17 +666,15 @@ async function completeFacebookRedirectSignIn() {
 }
 
 // ============================================================================
-// FACEBOOK DEVICE LOGIN (facebook.com/device) — iOS escape hatch
+// FACEBOOK DEVICE LOGIN (facebook.com/device) — phone primary path
 // ----------------------------------------------------------------------------
-// On a cold Safari session, iOS can't finish ANY browser-based Facebook OAuth:
-// Facebook's passkey/"approve on another device" step is sandboxed away from
-// Safari, so the handshake never returns. Device login sidesteps the handshake
-// entirely — we fetch a short code from the Graph API, the user confirms it
-// inside the Facebook APP (where they're already logged in), and we POLL
-// Facebook for the access token. Nothing has to come back through Safari.
-// Verified end-to-end on iPhone 7 / iOS 15 (2026-07-14). Note: the in-app
-// "login requests" screen ignores the ?user_code= prefill, so the user must
-// paste/type the code — hence the copy-code button.
+// GISUGO is a website, so it cannot read the Facebook app’s session. Sending
+// the browser to Facebook’s website login asks for email/phone + password on
+// any cold Chrome/Safari session (Android and iPhone). Device login skips that
+// form: we fetch a short code, the user confirms inside the Facebook APP where
+// they are already logged in, and we poll for the token. Desktop still uses
+// the website redirect. Native GISUGO later gets true app-to-app login.
+// Note: Facebook’s in-app screen ignores ?user_code= prefill — copy-code button.
 // ============================================================================
 
 const FACEBOOK_DEVICE_STATE_KEY = 'gisugo_fb_device_login';
@@ -750,7 +748,7 @@ function runFacebookDeviceLogin(existingState) {
     const card = document.createElement('div');
     card.style.cssText = 'max-width:380px;width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(130,148,177,0.35);border-radius:16px;padding:22px 20px;color:#f8fafc;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;font-family:inherit;';
     card.innerHTML =
-      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Log in with the Facebook app</div>' +
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Continue with the Facebook app</div>' +
       '<div style="font-size:0.92rem;line-height:1.55;color:#cbd5e1;text-align:left;margin-bottom:14px;">' +
       '1. Tap the button below — it copies your code and opens Facebook.<br>' +
       '2. If asked, choose <strong>With the Facebook App</strong> (not "With this Browser").<br>' +
@@ -923,8 +921,8 @@ function runFacebookDeviceLogin(existingState) {
 }
 
 /**
- * Start Facebook device login (fresh code). Entry point for the iOS escape
- * hatch. Resolves like loginWithFacebook.
+ * Start Facebook device login (fresh or resumed code). Primary Facebook path
+ * on phones. Resolves like loginWithFacebook.
  * @returns {Promise<Object>}
  */
 function loginWithFacebookDevice() {
