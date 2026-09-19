@@ -69,20 +69,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "gigOwnerId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "applications",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "jobId",
           "order": "ASCENDING"
         },
