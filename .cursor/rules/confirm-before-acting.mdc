@@ -39,6 +39,13 @@ actually offered. If the action is worth doing regardless of the answer,
 don't phrase it as a question; just do it and say so. If it's genuinely
 optional, stop and wait.
 
+## 3. Peter's OR is not yours to pick
+
+"Either I restore or you explain" is not permission to restore. He keeps
+the restore; you explain. Do not "finish" unauthorized work (leftover
+indexes, cache, orphaned writes) unless he assigns that cleanup.
+See `discussion-is-not-a-task.mdc`.
+
 ## Why
 
 Both are the same trust failure: presenting a guess or an unilateral

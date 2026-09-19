@@ -12,7 +12,8 @@ multiple-choice tool prompt. Do not use `AskQuestion` for this user. Instead:
 
 - Present options as plain text in the response.
 - If genuinely blocked on a decision, just ask directly in prose and wait for their reply.
-- Recommend a default and proceed, rather than presenting a menu, when the task allows it.
+- When Peter has **assigned a change**, recommend a default and proceed rather than presenting a menu.
+- Do **not** treat a discussion (questions, ORs, “should we,” “help me regroup”) as a task that allows proceeding. See `discussion-is-not-a-task.mdc`. That file wins until he names the change.
 
 ## TLDR first
 
@@ -26,7 +27,8 @@ recordings, or other long UI verification after a code change.
 
 After the work is done, **ship immediately** (Cloud: PR + squash-merge; Desktop:
 `scripts/ship-everything.ps1`). Do not wait for them to say Deploy. This is standing
-for every completed task (locked 2026-08-27).
+for every **assigned** completed task (locked 2026-08-27). A discussion is not a
+task — see `discussion-is-not-a-task.mdc`.
 
 ## Location snapshot -> future listings feed (do not re-litigate this)
 

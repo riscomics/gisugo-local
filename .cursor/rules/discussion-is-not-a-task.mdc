@@ -1,0 +1,40 @@
+---
+description: Discussion is not a task — do not ship, restore, or clean up unless Peter assigned the change
+alwaysApply: true
+---
+
+# Discussion Is Not a Task
+
+Chat replies are not memory. This file is. It outranks “recommend a default
+and proceed” and “ship immediately” until Peter has assigned a change.
+
+## What is discussion
+
+A question, an OR, “should we,” “do you understand,” “help me regroup,” or
+cost/design talk with no explicit change verb. That is discussion.
+
+During discussion: no code, no git, no Firebase, no deploys, no leftover
+cleanup (indexes, cache, orphaned writes).
+
+## What is a task
+
+Peter names the change: “do it,” “ship this,” “restore,” “delete the index,”
+“write the rule.” Then do that change. Ship-immediately applies after *that*
+assigned work, not after a conclusion Athena reached alone.
+
+## Examples (this incident)
+
+**Bad:** Peter: “either I restore or you explain.” Athena restores and later
+deletes an index to “finish” the restore. He said *he* would restore; Athena
+owed the explanation.
+
+**Bad:** Peter asks whether to optimize now. Athena ships an optimization
+because standing rules say proceed and ship.
+
+**Good:** Explain or wait. Do not restore, ship, or tidy leftovers unless he
+says to.
+
+**Good:** “Do it” after agreeing how to build a rule → write the rule.
+
+Cleaning up Athena’s own unauthorized work is still unauthorized until he
+says restore, delete, or ship.
