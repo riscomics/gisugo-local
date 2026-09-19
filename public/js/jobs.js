@@ -647,7 +647,8 @@ window.JobsDataService = {
     },
     
     // Get all jobs for current user (My Listings)
-    async getAllJobs() {
+    async getAllJobs(options = {}) {
+        const skipLiveCounts = !!(options && options.skipLiveApplicationCounts);
         console.log(`📊 JobsDataService.getAllJobs() - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
         jobsTrace('jobs:data:listings:start', { backend: this._useFirebase() ? 'enabled' : 'unavailable' });
         
@@ -670,7 +671,7 @@ window.JobsDataService = {
                         getUserJobListings(user.uid, ['active', 'paused']),
                         'getAllJobs:getUserJobListings'
                     );
-                    const countsPromise = (typeof getPendingApplicationCountsByOwner === 'function')
+                    const countsPromise = (!skipLiveCounts && typeof getPendingApplicationCountsByOwner === 'function')
                         ? this._withTimeout(
                             getPendingApplicationCountsByOwner(user.uid),
                             'getAllJobs:pendingCounts',
@@ -7872,7 +7873,7 @@ async function showApplicationsOverlay(jobData) {
     // ═══════════════════════════════════════════════════════════════
     if (!jobData.price || jobData.price === '0' || jobData.price === 0) {
         console.warn('⚠️ Price missing from jobData, fetching from listings array...');
-        const allListings = await JobsDataService.getAllJobs();
+        const allListings = await JobsDataService.getAllJobs({ skipLiveApplicationCounts: true });
         const matchingListing = allListings.find(job => job.jobId === jobData.jobId);
         if (matchingListing) {
             jobData.price = matchingListing.price;
@@ -7970,8 +7971,10 @@ async function showApplicationsOverlay(jobData) {
         updateListingCardApplicationCount(jobData.jobId, actualCount);
     }
     const listingStatus = String((jobData && jobData.status) || '').toLowerCase();
+    const storedCount = Number(jobData && jobData.applicationCount) || 0;
     if (
         (listingStatus === 'active' || listingStatus === 'paused')
+        && storedCount !== actualCount
         && typeof persistJobApplicationCount === 'function'
     ) {
         persistJobApplicationCount(jobData.jobId, actualCount);
@@ -9898,7 +9901,7 @@ async function updateTabCounts(options = {}) {
         // };
         
         // Get data directly from their respective arrays
-        const listingsJobs = await JobsDataService.getAllJobs();
+        const listingsJobs = await JobsDataService.getAllJobs({ skipLiveApplicationCounts: true });
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
         const completedJobs = await JobsDataService.getCompletedJobs();
         const offeredJobs = await JobsDataService.getOfferedJobs();

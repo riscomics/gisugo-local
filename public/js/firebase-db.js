@@ -1115,22 +1115,40 @@ async function fetchApplicationsByApplicantViaFirestoreRest(applicantId, maxItem
     .filter(Boolean);
 }
 
-async function fetchApplicationsByGigOwnerViaFirestoreRest(gigOwnerId, maxItems = 500, headers = null) {
+async function fetchApplicationsByGigOwnerViaFirestoreRest(gigOwnerId, maxItems = 500, headers = null, options = {}) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for owner applications REST fallback');
   const safeOwnerId = String(gigOwnerId || '').trim();
   if (!safeOwnerId) return [];
+  const pendingOnly = options && options.pendingOnly === true;
+  const ownerFilter = {
+    fieldFilter: {
+      field: { fieldPath: 'gigOwnerId' },
+      op: 'EQUAL',
+      value: { stringValue: safeOwnerId }
+    }
+  };
   const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
   const payload = {
     structuredQuery: {
       from: [{ collectionId: 'applications' }],
-      where: {
-        fieldFilter: {
-          field: { fieldPath: 'gigOwnerId' },
-          op: 'EQUAL',
-          value: { stringValue: safeOwnerId }
-        }
-      },
+      where: pendingOnly
+        ? {
+            compositeFilter: {
+              op: 'AND',
+              filters: [
+                ownerFilter,
+                {
+                  fieldFilter: {
+                    field: { fieldPath: 'status' },
+                    op: 'EQUAL',
+                    value: { stringValue: 'pending' }
+                  }
+                }
+              ]
+            }
+          }
+        : ownerFilter,
       limit: Math.max(1, Math.min(Number(maxItems) || 500, 500))
     }
   };
@@ -2689,25 +2707,54 @@ async function getPendingApplicationCountsByOwner(ownerId) {
       if (!headers || !headers.Authorization) {
         throw new Error('Missing auth token for owner application counts');
       }
-      const rows = await withFirestoreReadTimeout(
-        fetchApplicationsByGigOwnerViaFirestoreRest(safeOwnerId, OWNER_APPLICATION_COUNT_SCAN_LIMIT, headers),
-        10000
-      );
-      const list = Array.isArray(rows) ? rows : [];
+      let pendingOnly = true;
+      let list = [];
+      try {
+        const rows = await withFirestoreReadTimeout(
+          fetchApplicationsByGigOwnerViaFirestoreRest(
+            safeOwnerId,
+            OWNER_APPLICATION_COUNT_SCAN_LIMIT,
+            headers,
+            { pendingOnly: true }
+          ),
+          10000
+        );
+        list = Array.isArray(rows) ? rows : [];
+      } catch (pendingQueryError) {
+        console.warn('⚠️ Pending-only owner count query failed; scanning owner apps:', pendingQueryError);
+        pendingOnly = false;
+        const rows = await withFirestoreReadTimeout(
+          fetchApplicationsByGigOwnerViaFirestoreRest(safeOwnerId, OWNER_APPLICATION_COUNT_SCAN_LIMIT, headers),
+          10000
+        );
+        list = Array.isArray(rows) ? rows : [];
+      }
       list.forEach((app) => {
-        if (String((app && app.status) || '').toLowerCase() === 'pending') bump(app.jobId);
+        if (pendingOnly || String((app && app.status) || '').toLowerCase() === 'pending') bump(app.jobId);
       });
       return { counts, complete: list.length < OWNER_APPLICATION_COUNT_SCAN_LIMIT };
     }
 
     if (!db) return null;
-    const snapshot = await db.collection('applications')
-      .where('gigOwnerId', '==', safeOwnerId)
-      .limit(OWNER_APPLICATION_COUNT_SCAN_LIMIT)
-      .get();
+    let snapshot = null;
+    let pendingOnly = true;
+    try {
+      snapshot = await db.collection('applications')
+        .where('gigOwnerId', '==', safeOwnerId)
+        .where('status', '==', 'pending')
+        .limit(OWNER_APPLICATION_COUNT_SCAN_LIMIT)
+        .get();
+    } catch (pendingQueryError) {
+      console.warn('⚠️ Pending-only owner count query failed; scanning owner apps:', pendingQueryError);
+      pendingOnly = false;
+      snapshot = await db.collection('applications')
+        .where('gigOwnerId', '==', safeOwnerId)
+        .limit(OWNER_APPLICATION_COUNT_SCAN_LIMIT)
+        .get();
+    }
     snapshot.docs.forEach((doc) => {
       const data = doc.data() || {};
-      if (String(data.status || '').toLowerCase() === 'pending') bump(data.jobId);
+      if (pendingOnly || String(data.status || '').toLowerCase() === 'pending') bump(data.jobId);
     });
     return { counts, complete: snapshot.size < OWNER_APPLICATION_COUNT_SCAN_LIMIT };
   } catch (error) {
