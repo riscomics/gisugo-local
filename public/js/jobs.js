@@ -666,15 +666,29 @@ window.JobsDataService = {
                 
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
-                    const rawJobs = await this._withTimeout(
+                    const listingsPromise = this._withTimeout(
                         getUserJobListings(user.uid, ['active', 'paused']),
                         'getAllJobs:getUserJobListings'
                     );
+                    const countsPromise = (typeof getPendingApplicationCountsByOwner === 'function')
+                        ? this._withTimeout(
+                            getPendingApplicationCountsByOwner(user.uid),
+                            'getAllJobs:pendingCounts',
+                            10000
+                        ).catch((countError) => {
+                            console.warn('⚠️ Live listing application counts unavailable; using stored counts', countError);
+                            return null;
+                        })
+                        : Promise.resolve(null);
+                    const [rawJobs, pendingCounts] = await Promise.all([listingsPromise, countsPromise]);
                     // Normalize Firebase data to match expected field names
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
-                    console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
-                    jobsTrace('jobs:data:listings:done', { count: jobs.length });
-                    return jobs;
+                    const countedJobs = (typeof applyPendingApplicationCountsToListings === 'function')
+                        ? applyPendingApplicationCountsToListings(jobs, pendingCounts)
+                        : jobs;
+                    console.log(`🔥 Loaded ${countedJobs.length} jobs from Firebase`);
+                    jobsTrace('jobs:data:listings:done', { count: countedJobs.length });
+                    return countedJobs;
                 } else {
                     console.error('❌ getUserJobListings function not available');
                     jobsTrace('jobs:data:listings:error', 'getUserJobListings_unavailable');
@@ -7954,6 +7968,13 @@ async function showApplicationsOverlay(jobData) {
     
     if (typeof updateListingCardApplicationCount === 'function') {
         updateListingCardApplicationCount(jobData.jobId, actualCount);
+    }
+    const listingStatus = String((jobData && jobData.status) || '').toLowerCase();
+    if (
+        (listingStatus === 'active' || listingStatus === 'paused')
+        && typeof persistJobApplicationCount === 'function'
+    ) {
+        persistJobApplicationCount(jobData.jobId, actualCount);
     }
     
     // Initialize close button handler

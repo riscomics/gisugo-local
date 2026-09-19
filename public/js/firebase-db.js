@@ -952,6 +952,38 @@ async function syncJobApplicationCount(jobId, options = {}) {
   }
 }
 
+/**
+ * Persist jobs.applicationCount after a live pending count is known.
+ * Listings and View Applications use this so the denormalized field
+ * catches up without waiting for the next apply/reject.
+ * iPhone writes REST; SDK .update() can hang there.
+ * @param {string} jobId
+ * @param {number} setCount
+ * @returns {Promise<number>}
+ */
+async function persistJobApplicationCount(jobId, setCount) {
+  const safeJobId = String(jobId || '').trim();
+  const correctCount = Math.max(0, Number(setCount));
+  if (!safeJobId || !Number.isFinite(correctCount)) return -1;
+  try {
+    if (isIOSWebKitBrowserForDataPath()) {
+      const headers = await buildFirestoreRestHeadersWithAuth();
+      if (!headers || !headers.Authorization) {
+        console.warn('⚠️ persistJobApplicationCount skipped (no auth token):', safeJobId);
+        return -1;
+      }
+      return await withFirestoreReadTimeout(
+        syncJobApplicationCountViaFirestoreRest(safeJobId, '', headers, correctCount),
+        8000
+      );
+    }
+    return await syncJobApplicationCount(safeJobId, { setCount: correctCount });
+  } catch (error) {
+    console.warn('⚠️ persistJobApplicationCount failed:', safeJobId, error);
+    return -1;
+  }
+}
+
 async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for applications REST fallback');
@@ -1075,6 +1107,40 @@ async function fetchApplicationsByApplicantViaFirestoreRest(applicantId, maxItem
   });
   if (!response.ok) {
     throw new Error(`REST applications(by applicant all) fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchApplicationsByGigOwnerViaFirestoreRest(gigOwnerId, maxItems = 500, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for owner applications REST fallback');
+  const safeOwnerId = String(gigOwnerId || '').trim();
+  if (!safeOwnerId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'applications' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'gigOwnerId' },
+          op: 'EQUAL',
+          value: { stringValue: safeOwnerId }
+        }
+      },
+      limit: Math.max(1, Math.min(Number(maxItems) || 500, 500))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST applications(by gig owner) fetch failed (${response.status})`);
   }
   const rows = await response.json();
   if (!Array.isArray(rows)) return [];
@@ -2594,6 +2660,101 @@ async function getJobApplications(jobId) {
     console.error('❌ Error getting applications:', error);
     return [];
   }
+}
+
+const OWNER_APPLICATION_COUNT_SCAN_LIMIT = 500;
+
+/**
+ * Live pending-application counts for the signed-in gig owner, grouped by jobId.
+ * Listings cards cannot trust jobs.applicationCount alone — that field only
+ * moves on apply/reject, and View Applications was the only live recount.
+ * Returns null on failure so callers keep the stored count.
+ * @param {string} ownerId
+ * @returns {Promise<{ counts: Object<string, number>, complete: boolean }|null>}
+ */
+async function getPendingApplicationCountsByOwner(ownerId) {
+  const safeOwnerId = String(ownerId || '').trim();
+  if (!safeOwnerId) return null;
+  const db = getFirestore();
+  const counts = {};
+  const bump = (jobId) => {
+    const id = String(jobId || '').trim();
+    if (!id) return;
+    counts[id] = (counts[id] || 0) + 1;
+  };
+
+  try {
+    if (isIOSWebKitBrowserForDataPath()) {
+      const headers = await buildFirestoreRestHeadersWithAuth();
+      if (!headers || !headers.Authorization) {
+        throw new Error('Missing auth token for owner application counts');
+      }
+      const rows = await withFirestoreReadTimeout(
+        fetchApplicationsByGigOwnerViaFirestoreRest(safeOwnerId, OWNER_APPLICATION_COUNT_SCAN_LIMIT, headers),
+        10000
+      );
+      const list = Array.isArray(rows) ? rows : [];
+      list.forEach((app) => {
+        if (String((app && app.status) || '').toLowerCase() === 'pending') bump(app.jobId);
+      });
+      return { counts, complete: list.length < OWNER_APPLICATION_COUNT_SCAN_LIMIT };
+    }
+
+    if (!db) return null;
+    const snapshot = await db.collection('applications')
+      .where('gigOwnerId', '==', safeOwnerId)
+      .limit(OWNER_APPLICATION_COUNT_SCAN_LIMIT)
+      .get();
+    snapshot.docs.forEach((doc) => {
+      const data = doc.data() || {};
+      if (String(data.status || '').toLowerCase() === 'pending') bump(data.jobId);
+    });
+    return { counts, complete: snapshot.size < OWNER_APPLICATION_COUNT_SCAN_LIMIT };
+  } catch (error) {
+    console.warn('⚠️ Live owner application counts failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Overlay live pending counts onto active/paused customer listings.
+ * Does not change hired/accepted badges (those are forced to 0 while an offer is out).
+ * Mismatched jobs are written back in the background so the next Listings load
+ * and the next apply increment are not still sitting on a stale field.
+ * @param {Array<Object>} jobs
+ * @param {{ counts: Object<string, number>, complete: boolean }|null} countResult
+ * @returns {Array<Object>}
+ */
+function applyPendingApplicationCountsToListings(jobs, countResult) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  if (!list.length || !countResult || !countResult.counts || typeof countResult.counts !== 'object') {
+    return list;
+  }
+  const counts = countResult.counts;
+  const complete = countResult.complete !== false;
+  const mismatches = [];
+  const next = list.map((job) => {
+    const status = String((job && job.status) || '').toLowerCase();
+    if (status !== 'active' && status !== 'paused') return job;
+    if (job && job.role && job.role !== 'customer') return job;
+    const jobId = String((job && (job.jobId || job.id)) || '').trim();
+    if (!jobId) return job;
+    const known = Object.prototype.hasOwnProperty.call(counts, jobId);
+    if (!known && !complete) return job;
+    const live = known ? Math.max(0, Number(counts[jobId]) || 0) : 0;
+    const stored = Number(job && job.applicationCount) || 0;
+    if (live === stored) return job;
+    mismatches.push({ jobId, live, stored });
+    return Object.assign({}, job, { applicationCount: live });
+  });
+
+  if (mismatches.length) {
+    console.log('📊 Listings application counts refreshed from pending apps:', mismatches);
+    mismatches.forEach(({ jobId, live }) => {
+      Promise.resolve(persistJobApplicationCount(jobId, live)).catch(() => {});
+    });
+  }
+  return next;
 }
 
 /**
@@ -6187,6 +6348,9 @@ window.fetchSupportRequestsViaFirestoreRest = fetchSupportRequestsViaFirestoreRe
 // Applications
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
+window.getPendingApplicationCountsByOwner = getPendingApplicationCountsByOwner;
+window.applyPendingApplicationCountsToListings = applyPendingApplicationCountsToListings;
+window.persistJobApplicationCount = persistJobApplicationCount;
 window.syncJobApplicationCount = syncJobApplicationCount;
 window.resolveApplicationCountAfterOfferEnd = resolveApplicationCountAfterOfferEnd;
 window.hireWorker = hireWorker;
