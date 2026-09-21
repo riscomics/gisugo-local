@@ -987,23 +987,76 @@ function openFaceVerificationEntryPoint() {
   openFaceCaptureOverlay();
 }
 
+let faceIntroGateActive = false;
+let faceIntroLeaving = false;
+
+function faceIntroReturnUrl(kind) {
+  const draft = (typeof window.gisugoPeekFaceIntroDraft === 'function')
+    ? window.gisugoPeekFaceIntroDraft()
+    : null;
+  if (!draft || !draft.returnUrl) return '';
+  try {
+    const url = new URL(draft.returnUrl, window.location.origin);
+    url.searchParams.delete('fvResume');
+    url.searchParams.delete('fvCancel');
+    url.searchParams.set(kind === 'resume' ? 'fvResume' : 'fvCancel', '1');
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch (_) {
+    return '';
+  }
+}
+
+function leaveFaceIntroGate(kind) {
+  const next = faceIntroReturnUrl(kind);
+  if (!next) return false;
+  faceIntroLeaving = true;
+  if (kind === 'resume' && typeof window.gisugoMarkFaceIntroVerified === 'function') {
+    window.gisugoMarkFaceIntroVerified();
+  }
+  window.location.href = next;
+  return true;
+}
+
+function openFaceIntroExplainer() {
+  const overlay = document.getElementById('faceIntroGateOverlay');
+  if (!overlay) {
+    openFaceCaptureOverlay();
+    return;
+  }
+  faceIntroGateActive = true;
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeFaceIntroExplainer() {
+  const overlay = document.getElementById('faceIntroGateOverlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
 function maybeStartFaceVerificationAfterSignup(userProfile, isViewingOwnProfile) {
   const params = new URLSearchParams(window.location.search);
+  const fromGate = params.get('fvGate') === '1';
   const shouldStartFaceVerify = params.get('startFaceVerify') === '1' || params.get('faceVerify') === '1';
-  if (!shouldStartFaceVerify) return;
+  if (!fromGate && !shouldStartFaceVerify) return;
 
-  // Clear one-time query flag so refreshes do not keep reopening capture.
+  // Clear one-time query flags so refreshes do not keep reopening capture.
   params.delete('startFaceVerify');
   params.delete('faceVerify');
+  params.delete('fvGate');
   const nextQuery = params.toString();
   const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
   window.history.replaceState({}, '', nextUrl);
 
   const isAlreadyFaceVerified = !!(userProfile?.verification?.faceVerified);
+  if (fromGate && isViewingOwnProfile && isAlreadyFaceVerified) {
+    leaveFaceIntroGate('resume');
+    return;
+  }
   if (!isViewingOwnProfile || isAlreadyFaceVerified) return;
 
   setTimeout(() => {
-    openFaceVerificationEntryPoint();
+    if (fromGate) openFaceIntroExplainer();
+    else openFaceVerificationEntryPoint();
   }, 260);
 }
 
@@ -1176,6 +1229,10 @@ function closeFaceCaptureOverlay() {
   stopFaceCaptureStream();
   resetFaceCaptureDraft();
   document.body.style.overflow = '';
+  if (faceIntroGateActive && !faceIntroLeaving) {
+    const alreadyVerified = !!(window.currentUserProfile && window.currentUserProfile.verification && window.currentUserProfile.verification.faceVerified);
+    if (!alreadyVerified) leaveFaceIntroGate('cancel');
+  }
 }
 
 function startFaceCaptureAudioMonitor(stream) {
@@ -1244,21 +1301,12 @@ function generateFacePoster(videoEl) {
 }
 
 function hasLikelyFaceInFrame(pixels, width, height) {
-  let totalOvalPixels = 0;
+  let totalFramePixels = 0;
   let skinLikePixels = 0;
-
-  const centerX = width * 0.5;
-  const centerY = height * 0.48;
-  const radiusX = width * 0.24;
-  const radiusY = height * 0.34;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const normX = (x - centerX) / radiusX;
-      const normY = (y - centerY) / radiusY;
-      if ((normX * normX) + (normY * normY) > 1) continue;
-
-      totalOvalPixels += 1;
+      totalFramePixels += 1;
       const idx = (y * width + x) * 4;
       const r = pixels[idx];
       const g = pixels[idx + 1];
@@ -1274,11 +1322,12 @@ function hasLikelyFaceInFrame(pixels, width, height) {
     }
   }
 
-  if (totalOvalPixels === 0) return false;
-  const skinRatio = skinLikePixels / totalOvalPixels;
+  if (totalFramePixels === 0) return false;
+  const skinRatio = skinLikePixels / totalFramePixels;
 
-  // Tolerant threshold: enough skin-like content in the face-guide oval.
-  return skinRatio >= 0.07;
+  // Full portrait frame, not a tight oval. A face that fits the camera
+  // is a smaller share of the pixels than it was inside the old guide.
+  return skinRatio >= 0.035;
 }
 
 function getFrameMetrics(pixels, width, height) {
@@ -1320,7 +1369,7 @@ function runFaceCaptureQualityChecks(videoEl) {
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     const hasLikelyFace = hasLikelyFaceInFrame(pixels, canvas.width, canvas.height);
     if (!hasLikelyFace) {
-      hardStops.push('Face not detected inside the oval guide. Center your face and try again.');
+      hardStops.push('Face not detected in the frame. Center your face and try again.');
     }
 
     const { brightness, contrast } = getFrameMetrics(pixels, canvas.width, canvas.height);
@@ -1479,7 +1528,7 @@ async function finalizeFaceCaptureRecording() {
   if (continuity.checked) {
     const enoughFaceFrames = continuity.faceFrames >= continuity.totalFrames;
     if (!enoughFaceFrames || !continuity.lastFrameHasFace) {
-      checks.hardStops.push('Keep your face inside the oval for the whole recording.');
+      checks.hardStops.push('Keep your face in the frame for the whole recording.');
     }
   }
 
@@ -1555,11 +1604,13 @@ function startFaceCaptureRecording() {
 }
 
 function beginFaceCaptureCountdown() {
-  if (!faceCaptureCountdown || !faceCaptureStartBtn) return;
+  if (!faceCaptureStartBtn) return;
   faceCaptureStartBtn.disabled = true;
-  faceCaptureCountdown.style.display = 'flex';
-  setFaceCaptureFeedback('Face check runs while recording (start, middle, and end).');
+  faceCaptureStartBtn.style.display = 'none';
+  startFaceCaptureRecording();
+  if (!faceCaptureCountdown) return;
 
+  faceCaptureCountdown.style.display = 'flex';
   let count = 3;
   faceCaptureCountdown.textContent = String(count);
   faceCaptureState.countdownTimer = setInterval(() => {
@@ -1568,7 +1619,6 @@ function beginFaceCaptureCountdown() {
       clearInterval(faceCaptureState.countdownTimer);
       faceCaptureState.countdownTimer = null;
       faceCaptureCountdown.style.display = 'none';
-      startFaceCaptureRecording();
       return;
     }
     faceCaptureCountdown.textContent = String(count);
@@ -1762,6 +1812,7 @@ async function useFaceCaptureResult() {
     faceCaptureUseBtn.textContent = 'Use This Video';
   }
   closeFaceCaptureOverlay();
+  if (faceIntroGateActive && leaveFaceIntroGate('resume')) return;
   openFacePrestigeOverlay();
 }
 
@@ -1771,6 +1822,22 @@ if (getFaceVerifiedBtn) {
 
 if (faceCaptureCloseBtn) {
   faceCaptureCloseBtn.addEventListener('click', closeFaceCaptureOverlay);
+}
+
+const faceIntroGateRecordBtn = document.getElementById('faceIntroGateRecordBtn');
+const faceIntroGateBackBtn = document.getElementById('faceIntroGateBackBtn');
+if (faceIntroGateRecordBtn) {
+  faceIntroGateRecordBtn.addEventListener('click', function() {
+    closeFaceIntroExplainer();
+    openFaceCaptureOverlay();
+  });
+}
+if (faceIntroGateBackBtn) {
+  faceIntroGateBackBtn.addEventListener('click', function() {
+    closeFaceIntroExplainer();
+    document.body.style.overflow = '';
+    if (!leaveFaceIntroGate('cancel')) faceIntroGateActive = false;
+  });
 }
 
 if (faceCaptureStartBtn) {

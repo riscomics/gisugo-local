@@ -2700,17 +2700,68 @@ body.page-profile.profile-preload .tab-content-wrapper {
   object-fit: cover;
 }
 
-.face-capture-oval-guide {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 64%;
-  height: 68%;
-  border: 2px solid rgba(125, 211, 252, 0.9);
-  border-radius: 999px;
-  box-shadow: 0 0 0 999px rgba(15, 23, 42, 0.35) inset;
-  pointer-events: none;
+.face-intro-gate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.face-intro-gate-overlay.active {
+  display: flex;
+}
+
+.face-intro-gate-box {
+  width: 100%;
+  max-width: 380px;
+  background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-radius: 16px;
+  padding: 22px 20px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.face-intro-gate-title {
+  color: #34d399;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.face-intro-gate-body {
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  margin: 0 0 18px;
+}
+
+.face-intro-gate-record,
+.face-intro-gate-back {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.face-intro-gate-record {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.face-intro-gate-back {
+  background: transparent;
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.4);
 }
 
 .face-capture-prompt {

@@ -1912,6 +1912,13 @@ async function postJob() {
     if (!hasPhone) return;
   }
 
+  if (typeof window.gisugoEnsureFaceIntro === 'function') {
+    const draft = Object.assign({}, np2State);
+    delete draft.photoFile;
+    const faceReady = await window.gisugoEnsureFaceIntro('post', draft);
+    if (!faceReady) return;
+  }
+
   // Show loading modal
   const loadingOverlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');
@@ -3493,6 +3500,49 @@ async function applyNewPostPolicyGates() {
   } catch (_) {}
 }
 
+function dataUrlToFile(dataUrl, filename) {
+  const parts = String(dataUrl || '').split(',');
+  if (parts.length < 2) return null;
+  const mimeMatch = parts[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], filename || 'gig-photo.jpg', { type: mime });
+}
+
+function maybeResumeFaceIntroPost() {
+  const params = new URLSearchParams(window.location.search);
+  const resume = params.get('fvResume') === '1';
+  const cancel = params.get('fvCancel') === '1';
+  if (!resume && !cancel) return;
+  params.delete('fvResume');
+  params.delete('fvCancel');
+  const nextQuery = params.toString();
+  window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`);
+  if (typeof window.gisugoTakeFaceIntroDraft !== 'function') return;
+  const draft = window.gisugoTakeFaceIntroDraft('post');
+  if (!draft || !draft.payload) return;
+  Object.assign(np2State, draft.payload);
+  np2State.photoFile = null;
+  if (np2State.photoDataUrl) {
+    try {
+      np2State.photoFile = dataUrlToFile(np2State.photoDataUrl, 'gig-photo.jpg');
+    } catch (_) {
+      np2State.photoFile = null;
+    }
+  }
+  if (resume) {
+    postJob();
+    return;
+  }
+  try {
+    showPreview();
+  } catch (error) {
+    console.warn('⚠️ Could not restore gig preview after face intro:', error);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 ========== NEW POST 2 LOADING ==========');
   applyNewPostPolicyGates();
@@ -3547,6 +3597,7 @@ document.addEventListener('DOMContentLoaded', function() {
   updateCityOptions();
   
   console.log('✅ ========== NEW POST 2 FULLY LOADED ==========');
+  maybeResumeFaceIntroPost();
   
   // Cleanup on page unload to prevent memory leaks
   window.addEventListener('beforeunload', () => {
