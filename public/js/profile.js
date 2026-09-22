@@ -1824,6 +1824,34 @@ if (faceCaptureCloseBtn) {
   faceCaptureCloseBtn.addEventListener('click', closeFaceCaptureOverlay);
 }
 
+function activateFaceIntroGateLanguage(lang) {
+  const root = document.getElementById('faceIntroGateOverlay');
+  if (!root) return;
+  root.querySelectorAll('.face-intro-gate-lang-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.lang === lang);
+  });
+  root.querySelectorAll('.face-intro-gate-lang-content').forEach((content) => {
+    content.classList.toggle('active', content.dataset.langContent === lang);
+  });
+  const activeTitle = root.querySelector('.face-intro-gate-lang-content.active .face-intro-gate-title');
+  const dialog = root.querySelector('[role="dialog"]');
+  if (!activeTitle || !dialog) return;
+  root.querySelectorAll('.face-intro-gate-title').forEach((title) => {
+    if (title !== activeTitle) title.removeAttribute('id');
+  });
+  activeTitle.id = 'faceIntroGateTitle';
+  dialog.setAttribute('aria-labelledby', 'faceIntroGateTitle');
+}
+
+const faceIntroGateLangTabs = document.getElementById('faceIntroGateLangTabs');
+if (faceIntroGateLangTabs) {
+  faceIntroGateLangTabs.addEventListener('click', function(e) {
+    const tab = e.target.closest('.face-intro-gate-lang-tab');
+    if (!tab) return;
+    activateFaceIntroGateLanguage(tab.dataset.lang || 'english');
+  });
+}
+
 const faceIntroGateRecordBtn = document.getElementById('faceIntroGateRecordBtn');
 if (faceIntroGateRecordBtn) {
   faceIntroGateRecordBtn.addEventListener('click', function() {

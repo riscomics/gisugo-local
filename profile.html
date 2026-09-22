@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.23">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.24">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -501,8 +501,27 @@
   <!-- Required before first post or apply. Signup "Maybe later" still lands here. -->
   <div class="face-intro-gate-overlay" id="faceIntroGateOverlay">
     <div class="face-intro-gate-box" role="dialog" aria-modal="true" aria-labelledby="faceIntroGateTitle">
-      <div class="face-intro-gate-title" id="faceIntroGateTitle">One quick intro</div>
-      <p class="face-intro-gate-body">Record a 3-second video saying your name. People you post for or apply to can watch it before you meet. You only do this once.</p>
+      <div class="face-intro-gate-lang-tabs" id="faceIntroGateLangTabs">
+        <button type="button" class="face-intro-gate-lang-tab active" data-lang="english">English</button>
+        <button type="button" class="face-intro-gate-lang-tab" data-lang="bisaya">Bisaya</button>
+        <button type="button" class="face-intro-gate-lang-tab" data-lang="tagalog">Tagalog</button>
+      </div>
+
+      <div class="face-intro-gate-lang-content active" data-lang-content="english">
+        <div class="face-intro-gate-title" id="faceIntroGateTitle">One-Time Face Verification Video Required 🤳</div>
+        <p class="face-intro-gate-body">Record a quick selfie-video of yourself saying your name. This will remain in your account so people on GISUGO can see it’s really you and builds trust and safety in the community. Future Posts/Apply will not require recording again.</p>
+      </div>
+
+      <div class="face-intro-gate-lang-content" data-lang-content="bisaya">
+        <div class="face-intro-gate-title">Gikinahanglan ang One-Time Face Verification Video 🤳</div>
+        <p class="face-intro-gate-body">Pag-record og paspas nga selfie-video samtang gisulti nimo ang imong ngalan. Magpabilin kini sa imong account aron makita sa mga tawo sa GISUGO nga ikaw gyud, ug motukod og trust ug safety sa community. Ang sunod nga Post/Apply dili na mangayo nga mag-record pag-usab.</p>
+      </div>
+
+      <div class="face-intro-gate-lang-content" data-lang-content="tagalog">
+        <div class="face-intro-gate-title">Kailangan ang One-Time Face Verification Video 🤳</div>
+        <p class="face-intro-gate-body">Mag-record ng mabilis na selfie-video habang sinasabi mo ang iyong pangalan. Mananatili ito sa iyong account para makita ng mga tao sa GISUGO na ikaw nga ito, at bumubuo ng trust at safety sa community. Hindi na hihingin ang panibagong recording sa susunod na Post/Apply.</p>
+      </div>
+
       <button type="button" class="face-intro-gate-record" id="faceIntroGateRecordBtn">Record now</button>
     </div>
   </div>
@@ -1547,7 +1566,7 @@
   <script src="public/js/shared-menu.js?v=4.5"></script>
   <script src="public/js/ad-config-service.js?v=20260818a"></script>
   <script src="public/js/face-intro-gate.js?v=2"></script>
-  <script src="public/js/profile.js?v=110"></script>
+  <script src="public/js/profile.js?v=111"></script>
 
 </body>
 </html> 
