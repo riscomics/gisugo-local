@@ -904,29 +904,15 @@ async function loadJobData() {
 
 function maybeResumeFaceIntroApply() {
   const params = new URLSearchParams(window.location.search);
-  const resume = params.get('fvResume') === '1';
-  const cancel = params.get('fvCancel') === '1';
-  if (!resume && !cancel) return;
+  if (params.get('fvResume') !== '1' && params.get('fvCancel') !== '1') return;
   params.delete('fvResume');
   params.delete('fvCancel');
   const nextQuery = params.toString();
   window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`);
-  if (typeof window.gisugoTakeFaceIntroDraft !== 'function') return;
-  const draft = window.gisugoTakeFaceIntroDraft('apply');
-  if (!draft || !draft.payload) return;
-  const messageEl = document.getElementById('applyMessage');
-  const counterEl = document.getElementById('counterOfferAmount');
-  if (messageEl) messageEl.value = draft.payload.message || '';
-  if (counterEl && draft.payload.counterOffer != null) {
-    counterEl.value = String(draft.payload.counterOffer);
+  if (typeof window.gisugoTakeFaceIntroDraft === 'function') {
+    window.gisugoTakeFaceIntroDraft('apply');
   }
-  const applyOverlay = document.getElementById('applyJobOverlay');
-  if (cancel) {
-    if (applyOverlay) applyOverlay.classList.add('show');
-    return;
-  }
-  if (applyOverlay) applyOverlay.classList.add('show');
-  handleJobApplication();
+  beginApplyFlow();
 }
 
 // Normalize Firebase job data to match expected format
@@ -1408,6 +1394,11 @@ async function beginApplyFlow() {
   if (applyBtn && applyBtn.dataset.flowBusy === '1') return;
   if (applyBtn) applyBtn.dataset.flowBusy = '1';
   try {
+    if (typeof window.gisugoEnsureFaceIntro === 'function') {
+      const { jobId } = getUrlParameters();
+      const faceReady = await window.gisugoEnsureFaceIntro('apply', { stage: 'entry', jobId: jobId });
+      if (!faceReady) return;
+    }
     // Require a phone number on file before applying (backfill for older accounts).
     if (typeof window.ensurePhoneOnFile === 'function') {
       const hasPhone = await window.ensurePhoneOnFile();
@@ -1882,15 +1873,6 @@ async function handleJobApplication() {
     message: message,
     counterOffer: counterOffer ? parseFloat(counterOffer) : null
   };
-
-  if (typeof window.gisugoEnsureFaceIntro === 'function') {
-    const faceReady = await window.gisugoEnsureFaceIntro('apply', {
-      message: message,
-      counterOffer: applicationData.counterOffer,
-      jobId: jobId
-    });
-    if (!faceReady) return;
-  }
   
   console.log('📤 Submitting job application for jobId:', jobId, applicationData);
   

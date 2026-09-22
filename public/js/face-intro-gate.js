@@ -7,6 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = 'gisugo_face_intro_resume_v1';
+  const VERIFIED_KEY = 'gisugo_face_intro_ok';
   const MAX_AGE_MS = 30 * 60 * 1000;
   let verifiedThisPage = false;
 
@@ -47,19 +48,44 @@
     }
   }
 
+  async function waitForSignedInUser() {
+    if (typeof DataService !== 'undefined' && typeof DataService.waitForAuth === 'function') {
+      try {
+        const waited = await DataService.waitForAuth();
+        if (waited && waited.uid) return waited;
+      } catch (_) {}
+    }
+    return (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  }
+
+  function rememberedVerified(uid) {
+    try {
+      return sessionStorage.getItem(VERIFIED_KEY) === String(uid || '');
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function userIsFaceVerified() {
     if (verifiedThisPage) return true;
-    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    const user = await waitForSignedInUser();
     if (!user || !user.uid) return true;
-    if (typeof getUserProfile !== 'function') return true;
+    if (rememberedVerified(user.uid)) {
+      verifiedThisPage = true;
+      return true;
+    }
+    if (typeof getUserProfile !== 'function') return false;
     try {
       const profile = await getUserProfile(user.uid);
       const verified = !!(profile && profile.verification && profile.verification.faceVerified);
-      if (verified) verifiedThisPage = true;
+      if (verified) {
+        verifiedThisPage = true;
+        try { sessionStorage.setItem(VERIFIED_KEY, user.uid); } catch (_) {}
+      }
       return verified;
     } catch (error) {
-      console.warn('⚠️ Face intro check skipped:', error);
-      return true;
+      console.warn('⚠️ Face intro check failed:', error);
+      return false;
     }
   }
 
@@ -91,6 +117,9 @@
 
   function markFaceIntroVerified() {
     verifiedThisPage = true;
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    if (!user || !user.uid) return;
+    try { sessionStorage.setItem(VERIFIED_KEY, user.uid); } catch (_) {}
   }
 
   window.gisugoEnsureFaceIntro = ensureFaceIntro;

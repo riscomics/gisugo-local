@@ -1231,7 +1231,7 @@ function closeFaceCaptureOverlay() {
   document.body.style.overflow = '';
   if (faceIntroGateActive && !faceIntroLeaving) {
     const alreadyVerified = !!(window.currentUserProfile && window.currentUserProfile.verification && window.currentUserProfile.verification.faceVerified);
-    if (!alreadyVerified) leaveFaceIntroGate('cancel');
+    if (!alreadyVerified) openFaceIntroExplainer();
   }
 }
 
@@ -1825,18 +1825,10 @@ if (faceCaptureCloseBtn) {
 }
 
 const faceIntroGateRecordBtn = document.getElementById('faceIntroGateRecordBtn');
-const faceIntroGateBackBtn = document.getElementById('faceIntroGateBackBtn');
 if (faceIntroGateRecordBtn) {
   faceIntroGateRecordBtn.addEventListener('click', function() {
     closeFaceIntroExplainer();
     openFaceCaptureOverlay();
-  });
-}
-if (faceIntroGateBackBtn) {
-  faceIntroGateBackBtn.addEventListener('click', function() {
-    closeFaceIntroExplainer();
-    document.body.style.overflow = '';
-    if (!leaveFaceIntroGate('cancel')) faceIntroGateActive = false;
   });
 }
 
