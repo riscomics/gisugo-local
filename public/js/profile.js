@@ -5178,53 +5178,6 @@ function adjustProfileNameSize() {
   nameEl.style.setProperty('--profile-name-size', `${sizeRem}rem`);
 }
 
-function isEmailPasswordUnverifiedProfileUser(user) {
-  if (!user || !user.email) return false;
-  const providerIds = Array.isArray(user.providerData)
-    ? user.providerData.map((provider) => provider?.providerId).filter(Boolean)
-    : [];
-  const hasEmailPasswordProvider = providerIds.includes('password') || providerIds.includes('emailLink');
-  return hasEmailPasswordProvider && user.emailVerified === false;
-}
-
-function showFaceVerifyEntryNotice() {
-  if (document.getElementById('faceVerifyEntryNotice')) return;
-
-  const notice = document.createElement('div');
-  notice.id = 'faceVerifyEntryNotice';
-  notice.style.cssText = `
-    position: fixed;
-    top: 72px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(92vw, 620px);
-    z-index: 12000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(245, 158, 11, 0.45);
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
-    color: #f8fafc;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-    font-size: 0.86rem;
-    line-height: 1.35;
-  `;
-  notice.innerHTML = `
-    <span>Face Verification is available now. Email verification is still required to unlock full access.</span>
-    <button type="button" aria-label="Dismiss notice" style="border:1px solid rgba(148,163,184,0.45);background:rgba(148,163,184,0.18);color:#f8fafc;border-radius:8px;padding:3px 8px;font-size:0.78rem;cursor:pointer;">Dismiss</button>
-  `;
-  const dismissBtn = notice.querySelector('button');
-  if (dismissBtn) {
-    dismissBtn.addEventListener('click', () => {
-      notice.remove();
-    });
-  }
-  document.body.appendChild(notice);
-}
-
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Profile page loaded with Firebase integration');
@@ -5242,13 +5195,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
 
-  if (allowUnverifiedForFaceVerify) {
-    const authUser = typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null;
-    if (isEmailPasswordUnverifiedProfileUser(authUser)) {
-      showFaceVerifyEntryNotice();
-    }
-  }
-  
   // Wait for Firebase auth to be ready before loading profile
   await waitForAuthAndLoadProfile();
   applyRequestedProfileTabFromQuery();
