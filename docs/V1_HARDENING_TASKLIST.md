@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-09-11
+> Status: **Active** · Last updated: 2026-09-23
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model),
 > `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md` (all-iPhone data path — opened 2026-09-17).
@@ -8,7 +8,7 @@
 This is the working tasklist for getting GISUGO web production-solid. Resume here after
 any break.
 
-### Where we are (2026-09-11)
+### Where we are (2026-09-23)
 **Phase 12 (Track B lockdown) SHIPPED.** Rules lock `9430a319` (2026-09-06). Step 6 Gigs
 Manager prove (rules still open) 2026-09-05. Step 7 lock smoke 2026-09-06–09 passed on live
 gisugo.com: Post, Apply (desktop SDK), View Applications, Hire, Accept + two-worker sweep,
@@ -16,13 +16,26 @@ Decline, owner Reject, Void/Relist, Resign, Complete + both feedbacks, Delete gi
 iOS 15 REST Apply lock-smoke **skipped** (owner 2026-09-10): homepage already warns iOS 15
 and older (`429fa19e` / `8b5ef009`); do not keep that as an open door.
 **Admin Phases 1–11 builds done.** Phase 10 retired as open work (in-app Support stays on).
-**Immediate next.** Track E A **closed**. Track E B (Launch Feed two buckets) rebuilt
-and shipping now. Owner dummy smoke still open: Settings ON, one gig at 20+ apps
-must stay on Hatod **at the bottom**. Do **not** dummy-delete until that smoke.
-**Then Pre-launch QA:** dummy-account deletes (not on `banned_phones`) → Ban on
-Google/Facebook → leftover audit → other keeper smokes → phone audit → extra-read walk.
-**Native:** may start on live Firebase now. Job photos should use small+large URLs
-once that build ships. Remaining Ban/dummy tests do not block that.
+**Track E A closed** (small photo on the card, large photo on the gig page).
+**Track E B closed.** Launch Feed two buckets are live. Owner smoke passed 2026-09-23:
+
+- Gig: “Deliver expo kiosk canopy parts to Mall loading dock” (`z7j35EDpKPtvAtrfelHT`)
+- Hatod, status `active`, stored `applicationCount` 20
+- Owner saw it in the second (bottom) bucket
+
+**Next = Pre-launch QA:**
+
+- Dummy-account deletes. Wipe Auth + `users` / `user_private` / `security_metadata`. Do **not** put those numbers on `banned_phones`. Do **not** Ban them first.
+- Ban test on a throwaway Google or Facebook account (not a phone+password dummy)
+- Leftover audit after that Ban test
+- Other Settings keeper on/off smokes
+- Pre-launch phone audit
+- Admin dashboard extra-read walk
+
+Phone+password retirement stays a small later build, after the dummies are gone.
+**Native:** may start on live Firebase now. Job photos already use the small card
+URL and the large gig-page URL (Track E A, 2026-09-11). Remaining Ban/dummy tests
+do not block native work.
 **Why not Ban a dummy then Unban then delete:** Unban restores login but **does not
 remove** the number from `banned_phones`. That fake number stays blocked for new
 signups. Phone+password Ban also does not prove “same Google/Facebook cannot come back.”
@@ -451,8 +464,8 @@ that the whole dashboard section is finished forever.
          normalized phone, or is cleaned / gated.
       7. **[ ] Dummy test-account delete (no banlist).** Auth + Firestore
          docs. US fakes do not go on the list. Do not Ban them first: Unban
-         does not clear `banned_phones`. Use them for Launch Feed 20-app
-         smoke, then delete-without-ban.
+         does not clear `banned_phones`. Launch Feed 20-app smoke passed
+         2026-09-23. Next is delete-without-ban.
       8. **[ ] Owner Ban test (deferred).** After dummy deletes. Prefer a
          throwaway Google/Facebook account (same-social refuse). Phone+password
          Ban is a weaker proof.
@@ -551,7 +564,7 @@ that the whole dashboard section is finished forever.
          among themselves. 20+ stay on the feed. No Due date / High interest
          picker. Owner 2026-09-11: no visible “Popular” line. Switch OFF =
          no second group (mature: existing pause + block Apply at 10).
-         Owner dummy smoke still open (Track E B item 6).
+         Owner dummy smoke passed 2026-09-23 (Track E B item 6).
       10. **[x] Leftover audit** — “not enforced” banner replaced with live notice.
          Composers persist to Firestore + public policy. Login / admin-dashboard
          never get the maintenance cover. If the public Settings doc cannot
@@ -954,11 +967,12 @@ that the whole dashboard section is finished forever.
         go away. Function runs are cheap; those scans are what hit the bank.
 
 - [ ] **Pre-launch QA (NOW — Phase 12 shipped. Not more lockdown.).**
-      Immediate **builds** first (Track E A then B). Then dummy deletes.
-      0. **[ ] Launch Feed smoke (after B ships).** Settings ON. One gig, 20+
-         dummy applies. Hatod (and any category) still **shows** it, in the
-         **bottom** bucket, soonest-ending among other 20+ gigs. Under-20
-         gigs stay on top. Do not Ban those dummies.
+      Track E A and B are closed. Next is dummy deletes.
+      0. **[x] Launch Feed smoke.** Passed 2026-09-23. Settings were ON.
+         - Gig: “Deliver expo kiosk canopy parts to Mall loading dock” (`z7j35EDpKPtvAtrfelHT`)
+         - Hatod, still `active`, stored `applicationCount` 20
+         - Owner saw it in the bottom bucket
+         - Do not Ban those dummies. Deletes are item 1.
       1. **[ ] Dummy-account deletes.** Wipe Auth + `users` / `user_private` /
          `security_metadata`. Do **not** stamp those numbers on `banned_phones`.
          Do **not** Ban-then-Unban-then-delete: Unban does not remove the phone
@@ -971,7 +985,7 @@ that the whole dashboard section is finished forever.
          suspended; phone stamp stays on the list.
       3. **[ ] Leftover audit** after the Ban test.
       4. **[ ] Remaining Phase 11 keeper on/off smokes** (#3 already accepted;
-         Launch Feed two-bucket smoke is item 0 above).
+         Launch Feed two-bucket smoke passed 2026-09-23, item 0 above).
       5. **[ ] Phone+password retirement** — small later *build*, after dummies
          so test accounts can still be minted.
       6. **[ ] Pre-launch phone audit.**
@@ -1958,7 +1972,7 @@ that the whole dashboard section is finished forever.
       = gig-page URL (~1200px `.jpg`). Live post door: `new-post2.js`. Cards:
       `listing.js` reads `thumbnail`. Gig page prefers `photoFull`.
       **Microtasklist:** 1–6 shipped. Owner: no more A testing.
-- [ ] **B. Launch Feed two buckets (rebuilt 2026-09-11).**
+- [x] **B. Launch Feed two buckets (rebuilt 2026-09-11, smoke passed 2026-09-23).**
       Switch ON = launch. Every category is **one scroll, two groups, no
       visible divider:** (1) under 20 apps, soonest ending on top; (2) 20+
       apps at the bottom, soonest ending among themselves. 20+ stay on the
@@ -1976,10 +1990,11 @@ that the whole dashboard section is finished forever.
       4. **[x] Dashboard copy.** ON: stay live; 20+ stay on the list at
          the bottom. OFF: no second group; pause and block Apply at 10.
       5. **[x] Comments / policy text** in `firebase-db.js` match the copy.
-      6. **[ ] Smoke (dummies, before dummy deletes).** Settings ON. One
-         gig to 20+ apps. It stays on Hatod **at the bottom**, soonest
-         among other 20+ if any. Under-20 gigs still on top. Poster still
-         gets the 20-app review alert. Gig stays `active`. Do not Ban.
+      6. **[x] Smoke (dummies, before dummy deletes).** Passed 2026-09-23.
+         - “Deliver expo kiosk canopy parts to Mall loading dock” (`z7j35EDpKPtvAtrfelHT`)
+         - Hatod, `active`, `applicationCount` 20
+         - Owner saw it in the bottom bucket
+         - Do not Ban those dummies. Dummy deletes are Pre-launch QA item 1.
 
 - [x] **Phone tray tap → Alerts (LOCKED 2026-07-20 — shipped + user-confirmed in phone retests).**
       **Implementation:** push payload switched to **data-only** (no top-level `notification`)
@@ -2694,22 +2709,23 @@ User confirmed on phone — **alert card + unread count + phone tray** for each 
 > **Track G auth CLOSED.** Meta FB app Live.
 > **Admin Dashboard Phases 1–11 builds done.** Phase 10 retired as open work.
 > **Phase 12 lockdown SHIPPED** (rules `9430a319` + Gigs Manager lock smoke 2026-09-06–09).
-> **Next linchpin = B owner dummy smoke (20+ at bottom of Hatod), then dummy deletes.**
+> **Next linchpin = dummy-account deletes (not on `banned_phones`), then the Ban test.**
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ Item 3 Alerts/Support pages (+ theme fill polish). ✅ Track G.
    ✅ Meta FB app Live. ✅ Item 3 alert cards + unread counts + tray (§E0 / §E0d).
    ✅ Admin Dashboard Phases 1–11 (builds). ✅ Phase 12 Track B lockdown.
 1. **A. Gig-card small photo + gig-page large photo** (Track E). Closed 2026-09-11.
-2. **B. Launch Feed two buckets** rebuilt 2026-09-11. Owner smoke: dummy to 20+
-   apps, stays on Hatod at the bottom. Do not Ban them.
+2. **B. Launch Feed two buckets** closed 2026-09-23. Owner smoke: “Deliver expo
+   kiosk canopy parts to Mall loading dock” stayed `active` on Hatod in the
+   bottom bucket at 20 apps. Do not Ban those dummies.
 3. **Pre-launch QA:** dummy-account deletes (**not** on `banned_phones`) → Ban test on
    Google/Facebook (not phone+password dummy) → leftover audit → remaining keeper
    smokes → phone audit → admin extra-read walk. Phone+password sunset after dummies.
 4. **Native app** may start wiring the **existing** Firebase backend in parallel (Auth,
    Firestore, Storage, Functions/callables, FCM). Locked rules + clerks are the contract.
-   Remaining Ban/dummy tests do not block that. Prefer job photos as small+large URLs
-   once item 1 ships.
+   Remaining Ban/dummy tests do not block that. Job photos already use the small
+   card URL and the large gig-page URL.
 5. **Later product:** region-aware listings feed (Edit Profile already has GPS recapture;
    optional 17-region picker is the extra if GPS is not the home they want — do not
    rewrite location copy unless asked); Privacy/Terms + in-app account deletion;
