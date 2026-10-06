@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-09-23
+> Status: **Active** · Last updated: 2026-10-06
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model),
 > `docs/IOS_ALL_DEVICES_CLEARANCE_TASKLIST.md` (all-iPhone data path — opened 2026-09-17).
@@ -42,6 +42,11 @@ signups. Phone+password Ban also does not prove “same Google/Facebook cannot c
 **Later product (not QA):** region-aware listings feed; Privacy/Terms; in-app account
 deletion; Semaphore OTP (needs business registration); block-user as a real product;
 ID verification; G-Coins purchase.
+**Listings download (spec 2026-10-06, not built):** category pages download every
+live gig in that category, then only draw 20 cards. Rebuild is
+`docs/LISTINGS_PAGED_FETCH_TASKLIST.md`. Do not start until Peter says so.
+A later full-library read audit is `docs/FULL_LIBRARY_READ_AUDIT_TASKLIST.md`
+(final review, not this build).
 
 ### Where we were (2026-07-20) — history
 **Track G (login / auth) is CLOSED.** **Item 3 SHIPPED** (code + hosting/functions deploy):
