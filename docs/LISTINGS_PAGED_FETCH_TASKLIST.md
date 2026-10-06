@@ -1,9 +1,29 @@
 # Category listings — download a page, not the whole category
 
-> Status: **Spec only. Do not build until Peter says start.**
-> Written: 2026-10-06
-> No query change, no new database indexes, and no deploy came with this file.
+> Status: **Micro list ready. Build not started.**
+> Written: 2026-10-06. Micro list added 2026-10-06.
+> Existing gigs stay. Stamp the new facts onto them. Do not delete them.
 > Live web is the north star. The phone app copies this only after the website proves it.
+> Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
+
+## Micro tasklist
+
+- [ ] **1. Map every place a gig is saved, and every place the application count is saved.** List which of those are actually used. No code change in this step.
+- [ ] **2. Audit step 1.** The map is written here. Unused code is marked unused. Then step 3 may start.
+- [ ] **3. Save a real start time on new gigs and edited gigs.** Keep the date and time text the screens already show. Do not change what the category page downloads yet.
+- [ ] **4. Audit step 3.** A new or edited gig has the start time stored, and the old date and time still show.
+- [ ] **5. Save the busy / not-busy marker everywhere the application count is saved.** Under 20 stays not busy. 20 or more becomes busy. If the count falls back under 20, it becomes not busy again.
+- [ ] **6. Audit step 5.** Name each live save that updates the marker. Confirm an unused path was not treated as live.
+- [ ] **7. Add a server pass that marks a gig not live once its end time has passed.** The category page must be able to skip it because it is no longer live, not because the phone hid it after downloading it.
+- [ ] **8. Audit step 7.** One gig whose time has passed is marked not live. A gig that has not ended is left live.
+- [ ] **9. Dry run the stamp on existing gigs.** Report how many would get a start time, how many would be marked busy, how many would be marked not live, and how many have no date. Change nothing in this step.
+- [ ] **10. Audit step 9.** The counts match the gigs on file (65 gigs as of 2026-10-06: 35 live, 28 completed, 2 in progress). The canopy gig would be busy and still live.
+- [ ] **11. Run the stamp for real.** Fill start time and busy/not-busy on existing gigs. Mark already-ended live gigs not live. Do not delete gigs, applications, or reviews.
+- [ ] **12. Audit step 11.** Check the canopy gig, one completed gig, and one in-progress gig. Each has the new facts or was left alone for a written reason.
+- [ ] **13. Add the database indexes the new download needs.** Do this with the download change, not before the stamp is audited.
+- [ ] **14. Switch the website so a category asks for the first 20, then the next 15 on scroll.** Same filters, same order, same bottom group for busy gigs. Changing city or type starts again at 20. It does not download the rest of the category first.
+- [ ] **15. Audit step 14 on the live site.** Write down today’s first 20 Transporter titles before the switch. After it, those 20 match, the canopy gig is still in the bottom group, scroll adds 15, and a weak connection does not wait on every live gig. The checks in “How Peter tests it” below are this step.
+- [ ] **16. Leave the phone app on today’s full download** until step 15 is marked done and Peter says to copy it.
 
 ## What is wrong today
 
