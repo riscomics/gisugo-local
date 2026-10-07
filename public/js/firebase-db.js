@@ -1837,6 +1837,11 @@ async function updateJob(jobId, jobData) {
         const stamped = {};
         if (schedule.scheduledStart) stamped.scheduledStart = schedule.scheduledStart;
         if (schedule.scheduledEnd) stamped.scheduledEnd = schedule.scheduledEnd;
+        const existingStatus = String((existingData && existingData.status) || '').toLowerCase();
+        if (existingStatus === 'expired' && schedule.scheduledEnd && schedule.scheduledEnd.toDate().getTime() > Date.now()) {
+          stamped.status = 'active';
+          stamped.expiredAt = firebase.firestore.FieldValue.delete();
+        }
         return stamped;
       })(),
       priceOffer: jobData.priceOffer || jobData.paymentAmount,

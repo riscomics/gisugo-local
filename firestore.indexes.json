@@ -167,6 +167,20 @@
       ]
     },
     {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scheduledEnd",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "gig_reports",
       "queryScope": "COLLECTION",
       "fields": [

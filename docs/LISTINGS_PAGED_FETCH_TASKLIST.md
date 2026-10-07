@@ -1,7 +1,7 @@
 # Category listings — download a page, not the whole category
 
-> Status: **Steps 1–6 done. Stopped before step 7.**
-> Written: 2026-10-06. Micro list added 2026-10-06. Cost rules added 2026-10-07. Map audited 2026-10-07. Steps 4–6 audited 2026-10-07.
+> Status: **Steps 1–7 done. Step 8 waits on one gig whose end time is already past.**
+> Written: 2026-10-06. Micro list added 2026-10-06. Cost rules added 2026-10-07. Map audited 2026-10-07. Steps 4–6 audited 2026-10-07. Step 7 added 2026-10-07.
 > Existing gigs stay. Stamp the new facts onto them. Do not delete them.
 > Live web is the north star. The phone app copies this only after the website proves it.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
@@ -14,8 +14,8 @@
 - [x] **4. Audit step 3.** A new or edited gig has both times stored, and the old date and time still show. Checked 2026-10-07 on “Deliver 10 trays of bread from bakeshop to Mall” (`oeQrrwM5ZI3aw7ncVH8f`): start text 7 AM, end text 8 AM, real start 7:00 AM, real end 8:00 AM, date November 30, 2026. Still live.
 - [x] **5. Save the busy / not-busy marker everywhere the application count is saved.** Under 20 stays not busy. 20 or more becomes busy. If the count falls back under 20, it becomes not busy again.
 - [x] **6. Audit step 5.** Name each live save that updates the marker. Confirm an unused path was not treated as live. Named below. The old post page, the unused count fixer, and the unlinked cleanup page were not changed.
-- [ ] **7. Add a server pass that marks a gig not live once its stored end time has passed.** It asks only for live gigs whose end time is already past, in a small batch. It does not read every live gig. It does not mark them completed. The one index that question needs ships with this step.
-- [ ] **8. Audit step 7.** One gig whose time has passed is marked not live and is not completed. A gig that has not ended is left live. The pass did not read the whole live set.
+- [x] **7. Add a server pass that marks a gig not live once its stored end time has passed.** It asks only for live gigs whose end time is already past, in a small batch. It does not read every live gig. It does not mark them completed. The one index that question needs ships with this step. The gig stays in the Listings tab with the EXPIRED label. Editing the date into the future makes it live again.
+- [ ] **8. Audit step 7.** One gig whose time has passed is marked not live and is not completed. A gig that has not ended is left live. The pass did not read the whole live set. Waiting on one edited gig whose end time is already past.
 - [ ] **9. Dry run the stamp on existing gigs.** Report how many would get a start time, how many would get an end time, how many would be marked busy, how many would be marked not live, and how many have no date. Change nothing in this step.
 - [ ] **10. Audit step 9.** The counts match the gigs on file (65 gigs as of 2026-10-06: 35 live, 28 completed, 2 in progress). As of 2026-10-07 the 35 live gigs have a future end time, so the dry run should mark none of them not live. The canopy gig would be busy and still live.
 - [ ] **11. Run the stamp for real.** Fill start time, end time, and busy/not-busy on existing gigs. Mark already-ended live gigs not live by the same rule as step 7. Do not delete gigs, applications, or reviews. Do not mark them completed.

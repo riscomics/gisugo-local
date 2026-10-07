@@ -668,7 +668,7 @@ window.JobsDataService = {
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
                     const listingsPromise = this._withTimeout(
-                        getUserJobListings(user.uid, ['active', 'paused']),
+                        getUserJobListings(user.uid, ['active', 'paused', 'expired']),
                         'getAllJobs:getUserJobListings'
                     );
                     const countsPromise = (!skipLiveCounts && typeof getPendingApplicationCountsByOwner === 'function')

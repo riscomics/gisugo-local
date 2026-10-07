@@ -1343,6 +1343,43 @@ exports.cleanupOldReadNotifications = onSchedule(
   }
 );
 
+// Marks live gigs EXPIRED after the stored end time. Asks only for gigs
+// already past that time, in a small batch. Does not read every live gig.
+// Does not set status to completed. Gigs Manager still shows them in Listings.
+const EXPIRE_GIGS_BATCH = 20;
+
+exports.expireGigsPastEndTime = onSchedule(
+  { schedule: "every 15 minutes", region: "asia-southeast1", timeZone: "Asia/Manila" },
+  async () => {
+    const now = admin.firestore.Timestamp.now();
+    const snap = await db.collection("jobs")
+      .where("status", "==", "active")
+      .where("scheduledEnd", "<=", now)
+      .orderBy("scheduledEnd", "asc")
+      .limit(EXPIRE_GIGS_BATCH)
+      .get();
+
+    if (snap.empty) {
+      logger.info("expireGigsPastEndTime: none due");
+      return;
+    }
+
+    const batch = db.batch();
+    snap.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        status: "expired",
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastModified: admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+    logger.info("expireGigsPastEndTime: marked expired", {
+      count: snap.size,
+      ids: snap.docs.map((doc) => doc.id)
+    });
+  }
+);
+
 exports.syncNotificationCountersOnWrite = onDocumentWritten(
   { document: "notifications/{notificationId}", region: "asia-southeast1" },
   async (event) => {
