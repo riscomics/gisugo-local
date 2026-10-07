@@ -1,17 +1,17 @@
 # Category listings — download a page, not the whole category
 
-> Status: **Micro list ready. Build not started.**
-> Written: 2026-10-06. Micro list added 2026-10-06. Cost rules added 2026-10-07.
+> Status: **Steps 1–3 done. Stopped at step 4 for one live edit.**
+> Written: 2026-10-06. Micro list added 2026-10-06. Cost rules added 2026-10-07. Map audited 2026-10-07.
 > Existing gigs stay. Stamp the new facts onto them. Do not delete them.
 > Live web is the north star. The phone app copies this only after the website proves it.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
 
 ## Micro tasklist
 
-- [ ] **1. Map every place a gig is saved, and every place the application count is saved.** List which of those are actually used. No code change in this step.
-- [ ] **2. Audit step 1.** The map is written here. Unused code is marked unused. Then step 3 may start.
-- [ ] **3. Save a real start time and a real end time on new gigs and edited gigs.** Keep the date and time text the screens already show. Do not change what the category page downloads yet.
-- [ ] **4. Audit step 3.** A new or edited gig has both times stored, and the old date and time still show.
+- [x] **1. Map every place a gig is saved, and every place the application count is saved.** List which of those are actually used. No code change in this step.
+- [x] **2. Audit step 1.** The map is written here. Unused code is marked unused. Then step 3 may start.
+- [x] **3. Save a real start time and a real end time on new gigs and edited gigs.** Keep the date and time text the screens already show. Do not change what the category page downloads yet.
+- [ ] **4. Audit step 3.** A new or edited gig has both times stored, and the old date and time still show. Waiting on one live edit before step 5.
 - [ ] **5. Save the busy / not-busy marker everywhere the application count is saved.** Under 20 stays not busy. 20 or more becomes busy. If the count falls back under 20, it becomes not busy again.
 - [ ] **6. Audit step 5.** Name each live save that updates the marker. Confirm an unused path was not treated as live.
 - [ ] **7. Add a server pass that marks a gig not live once its stored end time has passed.** It asks only for live gigs whose end time is already past, in a small batch. It does not read every live gig. It does not mark them completed. The one index that question needs ships with this step.
@@ -24,6 +24,44 @@
 - [ ] **14. Switch the website so a category asks for the first 20, then the next 15 on scroll.** Same filters, same order, same bottom group for busy gigs. Changing city or type starts again at 20. Remove the background download of the whole category. The saved list is only pages already loaded. The read is one-shot. Do not leave a live listener on the category.
 - [ ] **15. Audit step 14 on the live site.** Write down today’s first 20 Transporter titles before the switch. After it, those 20 match, the canopy gig is still in the bottom group, scroll adds 15, and a weak connection does not wait on every live gig. The checks in “How Peter tests it” below are this step.
 - [ ] **16. Leave the phone app on today’s full download** until step 15 is marked done and Peter says to copy it.
+
+## Step 1 map (audited 2026-10-07)
+
+Date and time text stay as they are. `scheduledStart` and `scheduledEnd` are added only on the two live saves that write that text.
+
+**Live gig saves that write the date and time**
+
+- `createJob` in `public/js/firebase-db.js`. Used by Post and by Relist on `new-post2.html`. Sets `scheduledStart` and `scheduledEnd` from the date plus the start and end clocks.
+- `updateJob` in `public/js/firebase-db.js`. Used by Edit on `new-post2.html`. Same two fields. The date text, start text, and end text are still written.
+
+**Live gig saves that do not change the date.** These leave the new fields alone. They were not given the new times in step 3.
+
+- Photo attach after Post or Relist (`new-post2.js`). Writes the photo addresses only.
+- Hire (`hireWorker`). Offer accept, offer decline, relist, resign, and complete, both from Gigs Manager and from the offer buttons in Alerts, Messages, and Support.
+- Pause and resume on a listing (`handlePauseJob` in `jobs.js`).
+- Apply, when Launch Feed is off and the gig hits 10 applications, sets status to paused. It does not change the date.
+- Admin suspend, reinstate, and ignore (`adminModerateGig`), and the report counter that can set status to reported.
+- Worker review on a completed gig. Writes the review fields only.
+- Delete gig. Removes the document.
+
+**Unused gig saves. Left unused.**
+
+- `public/js/new-post.js` and `new-post.html`. Nothing in the site links to that page. Post, Edit, and Relist all go to `new-post2.html`.
+- `JobsDataService.updateJobStatus` in `jobs.js`. Defined, never called.
+- `fixApplicationCounts` in `firebase-db.js`. Defined, never called. The cleanup page has its own copy and is not linked from the site.
+
+**Live saves of the waiting count.** Step 5 adds the busy marker on these, in the same save. One rules note is part of that step: a person who is not the poster may today change only `applicationCount` and `applicationIds`. The marker has to be added to that allow list or Apply and Withdraw will be rejected.
+
+- `syncJobApplicationCount` (normal browser) and `syncJobApplicationCountViaFirestoreRest` (iPhone). Used by Apply, Withdraw, offer decline, relist, resign, and the listings recount that corrects a stale count.
+- `hireWorker`. Sets the waiting count to 0 directly, not through the shared save.
+- Offer decline inside Gigs Manager (`rejectGigOffer` in `jobs.js`). Writes the count on that status save.
+- `ownerRejectApplication` in `functions/index.js`. Poster rejects one application.
+- Ban cascade in `functions/index.js`. Withdraws that person’s waiting applications and rewrites the count.
+
+**Not a website path**
+
+- `scripts/reconcile-application-counts.js`. Manual script. It is not called by the site. It still writes the count, so step 5 updates it too. Otherwise a later manual run would leave the busy marker stale.
+- `cleanup-duplicate-applications.html`. Not linked. Left unused.
 
 ## What is wrong today
 

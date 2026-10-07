@@ -1225,6 +1225,56 @@ function getCachedJobsByCategory(category) {
  * @param {Object} jobData - Job data to create
  * @returns {Promise<Object>} - Result with jobId
  */
+function parseGigClockHour(timeStr) {
+  const match = String(timeStr || '').match(/(\d+)\s*(AM|PM)/i);
+  if (!match) return null;
+  let hour = parseInt(match[1], 10);
+  if (!Number.isFinite(hour)) return null;
+  const isPM = match[2].toUpperCase() === 'PM';
+  if (isPM && hour !== 12) hour += 12;
+  if (!isPM && hour === 12) hour = 0;
+  return hour;
+}
+
+function gigCalendarDay(jobDate) {
+  if (!jobDate) return null;
+  if (typeof jobDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(jobDate)) {
+    const [year, month, day] = jobDate.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return isNaN(date.getTime()) ? null : date;
+  }
+  if (jobDate.toDate && typeof jobDate.toDate === 'function') {
+    const date = jobDate.toDate();
+    return isNaN(date.getTime()) ? null : new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+  if (jobDate instanceof Date && !isNaN(jobDate.getTime())) {
+    return new Date(jobDate.getFullYear(), jobDate.getMonth(), jobDate.getDate());
+  }
+  return null;
+}
+
+// Start and end instants for sorting and the later "already ended" pass.
+// Same local clock the category page already uses. Missing clock falls back
+// the way that page does: start at the beginning of the day, end one day later.
+function gigScheduleTimestamps(jobDate, startTime, endTime) {
+  const day = gigCalendarDay(jobDate);
+  if (!day || typeof firebase === 'undefined' || !firebase.firestore) {
+    return { scheduledStart: null, scheduledEnd: null };
+  }
+  const startHour = parseGigClockHour(startTime);
+  const endHour = parseGigClockHour(endTime);
+  const start = new Date(day.getTime());
+  if (startHour == null) start.setHours(0, 0, 0, 0);
+  else start.setHours(startHour, 0, 0, 0);
+  const end = new Date(day.getTime());
+  if (endHour == null) end.setTime(day.getTime() + (24 * 60 * 60 * 1000));
+  else end.setHours(endHour, 0, 0, 0);
+  return {
+    scheduledStart: firebase.firestore.Timestamp.fromDate(start),
+    scheduledEnd: firebase.firestore.Timestamp.fromDate(end)
+  };
+}
+
 async function createJob(jobData) {
   const db = getFirestore();
   const textValidation = validateAllowedTextChars([
@@ -1333,6 +1383,13 @@ async function createJob(jobData) {
       })() : (jobData.scheduledDate || null),
       startTime: jobData.startTime,
       endTime: jobData.endTime,
+      ...(() => {
+        const schedule = gigScheduleTimestamps(jobData.jobDate || jobData.scheduledDate, jobData.startTime, jobData.endTime);
+        const stamped = {};
+        if (schedule.scheduledStart) stamped.scheduledStart = schedule.scheduledStart;
+        if (schedule.scheduledEnd) stamped.scheduledEnd = schedule.scheduledEnd;
+        return stamped;
+      })(),
       
       // Pricing
       priceOffer: jobData.priceOffer || jobData.paymentAmount,
@@ -1765,6 +1822,13 @@ async function updateJob(jobId, jobData) {
       })() : (jobData.scheduledDate || null),
       startTime: jobData.startTime,
       endTime: jobData.endTime,
+      ...(() => {
+        const schedule = gigScheduleTimestamps(jobData.jobDate || jobData.scheduledDate, jobData.startTime, jobData.endTime);
+        const stamped = {};
+        if (schedule.scheduledStart) stamped.scheduledStart = schedule.scheduledStart;
+        if (schedule.scheduledEnd) stamped.scheduledEnd = schedule.scheduledEnd;
+        return stamped;
+      })(),
       priceOffer: jobData.priceOffer || jobData.paymentAmount,
       gigUseType: jobData.gigUseType || 'Personal',
       extras: jobData.extras || [],
