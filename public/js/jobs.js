@@ -4825,6 +4825,7 @@ async function rejectGigOffer(jobId) {
             };
             if (restoreCount !== null) {
                 declineJobUpdate.applicationCount = restoreCount;
+                declineJobUpdate.feedGroup = feedGroupForApplicationCount(restoreCount);
             }
             await db.collection('jobs').doc(jobId).update(declineJobUpdate);
             

@@ -1,5 +1,6 @@
 /**
- * One-time / safe-to-rerun: set jobs.applicationCount = count of pending applications.
+ * One-time / safe-to-rerun: set jobs.applicationCount = count of pending applications,
+ * and jobs.feedGroup from that same count (0 under 20, 1 at 20 or more).
  *
  * Stale counts happen when applicants delete accounts or apps leave pending without
  * decrementing the denormalized field. Listing badges then lie; View Applications
@@ -73,8 +74,11 @@ async function run() {
     const stored = Number(data.applicationCount);
     const current = Number.isFinite(stored) ? stored : 0;
     const correct = pendingByJob.get(jobId) || 0;
+    const nextGroup = correct >= 20 ? 1 : 0;
+    const storedGroup = Number(data.feedGroup);
+    const groupMatches = storedGroup === nextGroup;
 
-    if (current === correct) {
+    if (current === correct && groupMatches) {
       ok++;
       continue;
     }
@@ -88,7 +92,10 @@ async function run() {
     });
 
     if (!dryRun) {
-      await db.collection('jobs').doc(jobId).update({ applicationCount: correct });
+      await db.collection('jobs').doc(jobId).update({
+        applicationCount: correct,
+        feedGroup: nextGroup
+      });
     }
     fixed++;
   }

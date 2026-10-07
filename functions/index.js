@@ -1810,6 +1810,8 @@ exports.refreshTrafficSnapshot = onCall(
 // update rule in firestore.rules explicitly blocks the job poster from
 // touching either, so a reported gig can't quietly un-report itself.
 const GIG_REPORT_THRESHOLD_DEFAULT = 2;
+// Same line as the website: 20 or more waiting applications is the busy group.
+const LISTING_FEED_BUSY_AT = 20;
 
 exports.syncGigReportCountersOnCreate = onDocumentCreated(
   { document: "gig_reports/{reportId}", region: "asia-southeast1" },
@@ -2514,7 +2516,11 @@ exports.executeBanCascadeOnUserSuspend = onDocumentWritten(
               .where("jobId", "==", jobId)
               .where("status", "==", "pending")
               .get();
-            await db.collection("jobs").doc(jobId).update({ applicationCount: stillPending.size });
+            const pendingCount = stillPending.size;
+            await db.collection("jobs").doc(jobId).update({
+              applicationCount: pendingCount,
+              feedGroup: pendingCount >= LISTING_FEED_BUSY_AT ? 1 : 0
+            });
           } catch (error) {
             logger.warn("Ban cascade: applicationCount resync skipped", { jobId, error: String(error) });
           }
@@ -3699,7 +3705,10 @@ exports.ownerRejectApplication = onCall(
     await appRef.update(updatePayload);
 
     const rejectCount = Math.max(0, (Number(job.applicationCount) || 0) - 1);
-    await jobRef.update({ applicationCount: rejectCount });
+    await jobRef.update({
+      applicationCount: rejectCount,
+      feedGroup: rejectCount >= LISTING_FEED_BUSY_AT ? 1 : 0
+    });
 
     let coins = null;
     if (wasHolding && applicantId) {

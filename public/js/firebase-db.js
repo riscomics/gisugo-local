@@ -31,6 +31,11 @@ function launchFeedBucketMinApps() {
   return Number.isFinite(n) && n > 0 ? n : 20;
 }
 
+function feedGroupForApplicationCount(count) {
+  const n = Math.max(0, Number(count) || 0);
+  return n >= launchFeedBucketMinApps() ? 1 : 0;
+}
+
 function maturePauseAtApps() {
   const n = Number(window.GisugoGigFeedPolicy && window.GisugoGigFeedPolicy.maturePauseAt);
   return Number.isFinite(n) && n > 0 ? n : 10;
@@ -858,10 +863,11 @@ async function syncJobApplicationCountViaFirestoreRest(jobId, applicationId = ''
     update: {
       name: `projects/${projectId}/databases/(default)/documents/jobs/${safeJobId}`,
       fields: {
-        applicationCount: { integerValue: String(correctCount) }
+        applicationCount: { integerValue: String(correctCount) },
+        feedGroup: { integerValue: String(feedGroupForApplicationCount(correctCount)) }
       }
     },
-    updateMask: { fieldPaths: ['applicationCount'] }
+    updateMask: { fieldPaths: ['applicationCount', 'feedGroup'] }
   };
   if (fieldTransforms.length) {
     write.updateTransforms = fieldTransforms;
@@ -939,7 +945,10 @@ async function syncJobApplicationCount(jobId, options = {}) {
       return correctCount;
     }
 
-    const updatePayload = { applicationCount: correctCount };
+    const updatePayload = {
+      applicationCount: correctCount,
+      feedGroup: feedGroupForApplicationCount(correctCount)
+    };
     if (unionId) {
       updatePayload.applicationIds = firebase.firestore.FieldValue.arrayUnion(unionId);
     }
@@ -1405,6 +1414,7 @@ async function createJob(jobData) {
       
       // Applications
       applicationCount: 0,
+      feedGroup: 0,
       applicationIds: [],
       
       // Technical
@@ -2939,6 +2949,7 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
       hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
       // Offer-out UI: badge shows 0 until worker responds (other pendings stay pending).
       applicationCount: 0,
+      feedGroup: 0,
       heldPendingCount: Math.max(0, (Number(jobData.applicationCount) || 0) - 1)
     });
     
