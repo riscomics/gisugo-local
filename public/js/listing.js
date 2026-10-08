@@ -177,49 +177,103 @@ function mapFirestoreRestDoc(rawDoc) {
   return mapped;
 }
 
-async function fetchCategoryJobsViaFirestoreRest(category) {
-  const projectId = getProjectIdForFirestoreRest();
-  if (!projectId) throw new Error('Missing projectId for Firestore REST fallback');
-  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
-  const payload = {
-    structuredQuery: {
-      from: [{ collectionId: 'jobs' }],
-      where: {
-        compositeFilter: {
-          op: 'AND',
-          filters: [
-            {
-              fieldFilter: {
-                field: { fieldPath: 'category' },
-                op: 'EQUAL',
-                value: { stringValue: String(category || '').trim() }
-              }
-            },
-            {
-              fieldFilter: {
-                field: { fieldPath: 'status' },
-                op: 'EQUAL',
-                value: { stringValue: 'active' }
-              }
-            }
-          ]
-        }
-      }
+function listingStoredGigUseType(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized === 'BUSINESS') return 'Business';
+  if (normalized === 'PERSONAL') return 'Personal';
+  return '';
+}
+
+function listingMillis(value) {
+  if (value == null || value === '') return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.toDate === 'function') {
+    const date = value.toDate();
+    return date && !isNaN(date.getTime()) ? date.getTime() : 0;
+  }
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function listingCursorFromJob(job) {
+  if (!job || !job.id) return null;
+  return {
+    id: job.id,
+    feedGroup: Number(job.feedGroup) || 0,
+    scheduledStart: listingMillis(job.scheduledStart),
+    scheduledEnd: listingMillis(job.scheduledEnd)
+  };
+}
+
+function listingRestEqual(fieldPath, stringValue) {
+  return {
+    fieldFilter: {
+      field: { fieldPath },
+      op: 'EQUAL',
+      value: { stringValue: String(stringValue || '') }
     }
   };
+}
+
+function listingRestOrder(fieldPath) {
+  return { field: { fieldPath }, direction: 'ASCENDING' };
+}
+
+async function fetchCategoryJobsViaFirestoreRest(category, filters = {}, page = {}) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for Firestore REST fallback');
+  const limit = Math.max(1, Math.min(100, Number(page.limit) || 20));
+  const launchFeedOn = page.launchFeedOn !== false;
+  const region = String(filters.region || '').trim();
+  const city = String(filters.city || '').trim();
+  const whereFilters = [
+    listingRestEqual('category', String(category || '').trim()),
+    listingRestEqual('status', 'active'),
+    listingRestEqual('region', region),
+    listingRestEqual('city', city)
+  ];
+  const gigUseType = listingStoredGigUseType(filters.gigUseType);
+  if (gigUseType) whereFilters.push(listingRestEqual('gigUseType', gigUseType));
+
+  const orderBy = [];
+  if (launchFeedOn) orderBy.push(listingRestOrder('feedGroup'));
+  orderBy.push(listingRestOrder('scheduledStart'), listingRestOrder('scheduledEnd'), listingRestOrder('__name__'));
+
+  const structuredQuery = {
+    from: [{ collectionId: 'jobs' }],
+    where: { compositeFilter: { op: 'AND', filters: whereFilters } },
+    orderBy,
+    limit
+  };
+  if (page.cursor && page.cursor.id) {
+    const values = [];
+    if (launchFeedOn) values.push({ integerValue: String(Number(page.cursor.feedGroup) || 0) });
+    values.push(
+      { timestampValue: new Date(Number(page.cursor.scheduledStart) || 0).toISOString() },
+      { timestampValue: new Date(Number(page.cursor.scheduledEnd) || 0).toISOString() },
+      { referenceValue: `projects/${projectId}/databases/(default)/documents/jobs/${page.cursor.id}` }
+    );
+    structuredQuery.startAt = { values, before: false };
+  }
+
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ structuredQuery })
   });
   if (!response.ok) {
     throw new Error(`REST runQuery failed (${response.status})`);
   }
   const rows = await response.json();
-  if (!Array.isArray(rows)) return [];
-  return rows
-    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
-    .filter(Boolean);
+  const jobs = Array.isArray(rows)
+    ? rows.map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null)).filter(Boolean)
+    : [];
+  return {
+    jobs,
+    hasMore: jobs.length === limit,
+    cursor: jobs.length ? listingCursorFromJob(jobs[jobs.length - 1]) : null
+  };
 }
 
 function listingTrace() {
@@ -1213,21 +1267,26 @@ function withListingTimeout(promise, label, timeoutMs = LISTING_FETCH_TIMEOUT_MS
   });
 }
 
-async function fetchCategoryJobsWithRetry(category, filters, attempts = 2) {
+async function fetchCategoryJobsWithRetry(category, filters, attempts = 2, page = {}) {
   let lastError = null;
   const safeFilters = { ...(filters || {}) };
   const strictFirebase = safeFilters.__strictFirebase === true;
   delete safeFilters.__strictFirebase;
+  const pageRequest = {
+    limit: Math.max(1, Number(page.limit) || 20),
+    cursor: page.cursor || null,
+    launchFeedOn: page.launchFeedOn !== false
+  };
   if (strictFirebase && isIOSWebKitBrowserForDataPath()) {
     try {
       listingTrace('firebase:rest:primary:start', { category });
-      const restJobs = await withListingTimeout(
-        fetchCategoryJobsViaFirestoreRest(category),
+      const restPage = await withListingTimeout(
+        fetchCategoryJobsViaFirestoreRest(category, safeFilters, pageRequest),
         `fetchCategoryJobsViaFirestoreRest(${category})`,
         12000
       );
-      listingTrace('firebase:rest:primary:ok', { count: Array.isArray(restJobs) ? restJobs.length : 0 });
-      return restJobs;
+      listingTrace('firebase:rest:primary:ok', { count: Array.isArray(restPage && restPage.jobs) ? restPage.jobs.length : 0 });
+      return restPage;
     } catch (restPrimaryError) {
       listingTrace('firebase:rest:primary:error', (restPrimaryError && restPrimaryError.message) ? restPrimaryError.message : String(restPrimaryError));
       lastError = restPrimaryError;
@@ -1235,11 +1294,11 @@ async function fetchCategoryJobsWithRetry(category, filters, attempts = 2) {
       if (isLegacyIOSListingHangPath()) {
         try {
           const restRetry = await withListingTimeout(
-            fetchCategoryJobsViaFirestoreRest(category),
+            fetchCategoryJobsViaFirestoreRest(category, safeFilters, pageRequest),
             `fetchCategoryJobsViaFirestoreRest(${category})#retry`,
             12000
           );
-          listingTrace('firebase:rest:primary:retry-ok', { count: Array.isArray(restRetry) ? restRetry.length : 0 });
+          listingTrace('firebase:rest:primary:retry-ok', { count: Array.isArray(restRetry && restRetry.jobs) ? restRetry.jobs.length : 0 });
           return restRetry;
         } catch (restRetryError) {
           listingTrace('firebase:rest:primary:retry-error', (restRetryError && restRetryError.message) ? restRetryError.message : String(restRetryError));
@@ -1251,21 +1310,21 @@ async function fetchCategoryJobsWithRetry(category, filters, attempts = 2) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       return await withListingTimeout(
-        getJobsByCategory(category, safeFilters, { allowFallback: !strictFirebase }),
-        `getJobsByCategory(${category})#${attempt}`
+        getJobsByCategoryPage(category, safeFilters, pageRequest),
+        `getJobsByCategoryPage(${category})#${attempt}`
       );
     } catch (error) {
       lastError = error;
       if (strictFirebase && isSafariOnlyBrowserForDataPath()) {
         try {
           listingTrace('firebase:rest:fallback:start', { category });
-          const restJobs = await withListingTimeout(
-            fetchCategoryJobsViaFirestoreRest(category),
+          const restPage = await withListingTimeout(
+            fetchCategoryJobsViaFirestoreRest(category, safeFilters, pageRequest),
             `fetchCategoryJobsViaFirestoreRest(${category})`,
             15000
           );
-          listingTrace('firebase:rest:fallback:ok', { count: restJobs.length });
-          return restJobs;
+          listingTrace('firebase:rest:fallback:ok', { count: Array.isArray(restPage && restPage.jobs) ? restPage.jobs.length : 0 });
+          return restPage;
         } catch (restError) {
           listingTrace('firebase:rest:fallback:error', (restError && restError.message) ? restError.message : String(restError));
           lastError = restError;
@@ -1309,7 +1368,7 @@ function normalizeListingCardNavigation(card, category) {
 }
 
 const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
-const LISTING_CACHE_PREFIX = 'listing-cache-v4:';
+const LISTING_CACHE_PREFIX = 'listing-cache-v5:';
 const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
 
 // Ticket counter so an older, slower filterAndSortJobs() call can tell it's been
@@ -1358,7 +1417,8 @@ function buildListingCacheKey(category, region, city, payType) {
   const safeRegion = String(region || '').toUpperCase();
   const safeCity = String(city || '').toUpperCase();
   const safePayType = String(payType || 'GIG TYPE').toUpperCase();
-  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safeCity}:${safePayType}`;
+  const feedFlag = isLaunchFeedBucketOn() ? '1' : '0';
+  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safeCity}:${safePayType}:lf${feedFlag}`;
 }
 
 function readListingCache(cacheKey) {
@@ -1368,24 +1428,37 @@ function readListingCache(cacheKey) {
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.jobs) || !Number.isFinite(parsed.savedAt)) return null;
     if ((Date.now() - parsed.savedAt) > LISTING_CACHE_TTL_MS) return null;
+    const meta = {
+      hasMore: parsed.hasMore === true,
+      cursor: parsed.cursor || null
+    };
     // Sliding expiration: refresh timestamp on successful cache read so TTL
     // reflects active user flow instead of original fetch time only.
-    writeListingCache(cacheKey, parsed.jobs);
-    return parsed.jobs;
+    writeListingCache(cacheKey, parsed.jobs, meta);
+    return { jobs: parsed.jobs, hasMore: meta.hasMore, cursor: meta.cursor };
   } catch (_) {
     return null;
   }
 }
 
-function writeListingCache(cacheKey, jobs) {
+function writeListingCache(cacheKey, jobs, meta) {
   try {
     sessionStorage.setItem(cacheKey, JSON.stringify({
       savedAt: Date.now(),
-      jobs: Array.isArray(jobs) ? jobs : []
+      jobs: Array.isArray(jobs) ? jobs : [],
+      hasMore: !!(meta && meta.hasMore),
+      cursor: meta && meta.cursor ? meta.cursor : null
     }));
   } catch (_) {
     // Ignore storage errors to avoid blocking listing load.
   }
+}
+
+function listingPageMeta() {
+  return {
+    hasMore: PAGINATION.serverHasMore === true,
+    cursor: PAGINATION.serverCursor || null
+  };
 }
 
 function buildListingViewStateKey(cacheKey) {
@@ -1473,39 +1546,111 @@ function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
 }
 
 // Filter and sort jobs based on selected criteria
+function normalizeListingFirebaseJob(firebaseJob) {
+  const date = firebaseJob.scheduledDate
+    ? (firebaseJob.scheduledDate.toDate ? firebaseJob.scheduledDate.toDate() : new Date(firebaseJob.scheduledDate))
+    : null;
+  const formattedDate = date
+    ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'TBD';
+  const timeDisplay = `${firebaseJob.startTime || 'TBD'} - ${firebaseJob.endTime || 'TBD'}`;
+  return {
+    id: firebaseJob.id,
+    jobNumber: firebaseJob.id,
+    category: firebaseJob.category,
+    title: firebaseJob.title,
+    photo: firebaseJob.thumbnail || firebaseJob.photo || LISTING_THUMBNAIL_FALLBACK,
+    extra1: getExtrasValue(firebaseJob.extras, 0),
+    extra2: getExtrasValue(firebaseJob.extras, 1),
+    price: formatGigPrice(firebaseJob.priceOffer),
+    rate: firebaseJob.gigUseType,
+    date: formattedDate,
+    time: timeDisplay,
+    region: firebaseJob.region,
+    city: firebaseJob.city,
+    status: firebaseJob.status,
+    templateUrl: buildDynamicJobUrl(firebaseJob.category, firebaseJob.id),
+    createdAt: getDatePostedIso(firebaseJob),
+    fullDate: date,
+    scheduledTimestamp: date ? date.getTime() : 0,
+    applicationCount: Number(firebaseJob.applicationCount) || 0,
+    feedGroup: Number(firebaseJob.feedGroup) || 0,
+    scheduledStartMs: listingMillis(firebaseJob.scheduledStart),
+    scheduledEndMs: listingMillis(firebaseJob.scheduledEnd)
+  };
+}
+
+function listingCardStillOpen(job) {
+  const now = Date.now();
+  if (job && job.scheduledEndMs) return job.scheduledEndMs >= now;
+  if (!job || !job.fullDate) return true;
+  const endTime = parseJobEndTime(job.date, job.time);
+  const expirationTime = endTime || (job.scheduledTimestamp + (24 * 60 * 60 * 1000));
+  return expirationTime >= now;
+}
+
+function rememberListingPage(page, launchFeedOn) {
+  PAGINATION.serverPaging = true;
+  PAGINATION.launchFeedOn = launchFeedOn !== false;
+  PAGINATION.serverHasMore = !!(page && page.hasMore);
+  PAGINATION.serverCursor = page && page.cursor ? page.cursor : null;
+  PAGINATION.hasMore = PAGINATION.serverHasMore;
+}
+
 async function filterAndSortJobs() {
   const myRequestGeneration = ++listingRequestGeneration;
+  PAGINATION.isLoading = true;
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
-  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
-  const viewStateKey = buildListingViewStateKey(cacheKey);
   let renderedFromCache = false;
   let cachedJobsSignature = '';
+  let cacheKey = '';
+  let viewStateKey = '';
+  let refreshLimit = PAGINATION.initialBatchSize;
   
   if (!headerSpacer) {
     console.error('Header spacer not found');
+    if (myRequestGeneration === listingRequestGeneration) PAGINATION.isLoading = false;
     return;
   }
   
   // Hide empty state while loading new results
   setListingEmptyStateVisible(false, headerSpacer);
 
-  const cachedJobs = readListingCache(cacheKey);
-  if (cachedJobs) {
+  if (typeof getPublicPlatformPolicy === 'function') {
+    try {
+      const policy = await Promise.race([
+        getPublicPlatformPolicy(),
+        new Promise(function (_, reject) {
+          setTimeout(function () { reject(new Error('policy timeout')); }, 8000);
+        })
+      ]);
+      if (window.GisugoGigFeedPolicy) {
+        window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
+      }
+    } catch (_) {}
+  }
+
+  if (myRequestGeneration !== listingRequestGeneration) {
+    return;
+  }
+
+  cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
+  viewStateKey = buildListingViewStateKey(cacheKey);
+  const cached = readListingCache(cacheKey);
+  if (cached && Array.isArray(cached.jobs) && cached.jobs.length) {
     const viewState = readListingViewState(viewStateKey);
-    const initialTarget = viewState && viewState.displayedCount > 0
-      ? viewState.displayedCount
-      : PAGINATION.initialBatchSize;
-    const orderedCached = applyLaunchFeedBucketOrder(cachedJobs);
-    renderListingJobs(orderedCached, headerSpacer, { targetCount: initialTarget });
-    cachedJobsSignature = getListingJobsSignature(orderedCached);
+    renderListingJobs(cached.jobs, headerSpacer, { targetCount: cached.jobs.length });
+    rememberListingPage({ hasMore: cached.hasMore, cursor: cached.cursor }, isLaunchFeedBucketOn());
+    cachedJobsSignature = getListingJobsSignature(cached.jobs);
+    refreshLimit = Math.max(PAGINATION.initialBatchSize, cached.jobs.length);
     if (viewState && viewState.scrollY > 0) {
       requestAnimationFrame(() => {
         window.scrollTo(0, viewState.scrollY);
       });
     }
     renderedFromCache = true;
-    console.log(`⚡ Warm listing cache restored (${cachedJobs.length} jobs)`);
+    console.log(`⚡ Warm listing cache restored (${cached.jobs.length} jobs)`);
   }
 
   // Show loading modal only for true cold loads.
@@ -1531,66 +1676,14 @@ async function filterAndSortJobs() {
   
   let categoryCards = [];
   let firebaseFetchFailed = false;
-  
-  // Helper function to normalize Firebase data to UI format
-  function _normalizeFirebaseJob(firebaseJob) {
-    // Parse full date with year
-    const date = firebaseJob.scheduledDate ? 
-      (firebaseJob.scheduledDate.toDate ? firebaseJob.scheduledDate.toDate() : new Date(firebaseJob.scheduledDate)) 
-      : null;
-    
-    // Format for display (with year for clarity)
-    const formattedDate = date ? 
-      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
-      'TBD';
-    
-    // Format time
-    const timeDisplay = `${firebaseJob.startTime || 'TBD'} - ${firebaseJob.endTime || 'TBD'}`;
-    return {
-      id: firebaseJob.id,
-      jobNumber: firebaseJob.id,  // Use document ID, not jobId field
-      category: firebaseJob.category,
-      title: firebaseJob.title,
-      photo: firebaseJob.thumbnail || firebaseJob.photo || LISTING_THUMBNAIL_FALLBACK,
-      extra1: getExtrasValue(firebaseJob.extras, 0),
-      extra2: getExtrasValue(firebaseJob.extras, 1),
-      price: formatGigPrice(firebaseJob.priceOffer),
-      rate: firebaseJob.gigUseType,
-      date: formattedDate,
-      time: timeDisplay,
-      region: firebaseJob.region,
-      city: firebaseJob.city,
-      status: firebaseJob.status,
-      // Always use doc-ID URL path to avoid stale legacy jobPageUrl mismatches.
-      templateUrl: buildDynamicJobUrl(firebaseJob.category, firebaseJob.id),
-      createdAt: getDatePostedIso(firebaseJob),
-      // Store full date object for sorting and expiration checking
-      fullDate: date,
-      scheduledTimestamp: date ? date.getTime() : 0,
-      applicationCount: Number(firebaseJob.applicationCount) || 0
-    };
-  }
+  let fetchedPage = { jobs: [], hasMore: false, cursor: null };
 
   const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
     ? APP_CONFIG.useFirebaseData()
     : true;
 
-  if (!shouldUseFirebase || typeof getJobsByCategory !== 'function' || typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+  if (!shouldUseFirebase || typeof getJobsByCategoryPage !== 'function' || typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
     throw new Error('Listings backend unavailable');
-  }
-
-  if (typeof getPublicPlatformPolicy === 'function') {
-    try {
-      const policy = await Promise.race([
-        getPublicPlatformPolicy(),
-        new Promise(function (_, reject) {
-          setTimeout(function () { reject(new Error('policy timeout')); }, 8000);
-        })
-      ]);
-      if (window.GisugoGigFeedPolicy) {
-        window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
-      }
-    } catch (_) {}
   }
 
   if (shouldUseFirebase) {
@@ -1604,26 +1697,17 @@ async function filterAndSortJobs() {
         gigUseType: activePay !== 'GIG TYPE' ? activePay : null
       };
       
-      const rawJobs = await fetchCategoryJobsWithRetry(currentCategory, { ...filters, __strictFirebase: true });
-      listingTrace('firebase:ok', { count: Array.isArray(rawJobs) ? rawJobs.length : 0 });
-      categoryCards = rawJobs.map(job => normalizeListingCardNavigation(_normalizeFirebaseJob(job), currentCategory));
-      console.log(`✅ Firebase: Found ${categoryCards.length} jobs (normalized for UI)`);
-      
-      // Filter out expired gigs (past end time)
-      const now = new Date().getTime();
-      const beforeFilter = categoryCards.length;
-      categoryCards = categoryCards.filter(job => {
-        if (!job.fullDate) return true; // Keep jobs without dates (TBD)
-        
-        // Parse end time to get full expiration timestamp
-        const endTime = parseJobEndTime(job.date, job.time);
-        
-        // If no end time, use start of day after job date as expiration
-        const expirationTime = endTime || (job.scheduledTimestamp + (24 * 60 * 60 * 1000));
-        
-        return expirationTime >= now; // Only show future or current gigs
+      fetchedPage = await fetchCategoryJobsWithRetry(currentCategory, { ...filters, __strictFirebase: true }, 2, {
+        limit: refreshLimit,
+        cursor: null,
+        launchFeedOn: isLaunchFeedBucketOn()
       });
-      console.log(`🗑️  Filtered out ${beforeFilter - categoryCards.length} expired gigs`);
+      const rawJobs = Array.isArray(fetchedPage && fetchedPage.jobs) ? fetchedPage.jobs : [];
+      listingTrace('firebase:ok', { count: rawJobs.length });
+      categoryCards = rawJobs
+        .map(job => normalizeListingCardNavigation(normalizeListingFirebaseJob(job), currentCategory))
+        .filter(listingCardStillOpen);
+      console.log(`✅ Firebase: Found ${categoryCards.length} jobs (normalized for UI)`);
       
     } catch (error) {
       firebaseFetchFailed = true;
@@ -1683,51 +1767,12 @@ async function filterAndSortJobs() {
     });
   }
 
-  // ============================================================================
-  // ✅ FIREBASE-READY - SORTING LOGIC (Keep this section as-is)
-  // ============================================================================
-  // This sorting logic works with both mock data and Firebase data.
-  // You could optionally move sorting to Firebase with orderBy(), but client-side
-  // sorting gives you more flexibility for complex multi-field sorting.
-  
-  // Sort jobs by earliest job schedule date/time, then by earliest end time
-  filteredJobs.sort((a, b) => {
-    // Convert job date and time to comparable format
-    const dateTimeA = parseJobDateTime(a.date, a.time);
-    const dateTimeB = parseJobDateTime(b.date, b.time);
-    
-    // Sort by earliest job date/time first
-    if (dateTimeA && dateTimeB) {
-      const timeDiff = dateTimeA - dateTimeB;
-      
-      // If start times are the same, sort by end time (earliest end time first)
-      if (timeDiff === 0) {
-        const endTimeA = parseJobEndTime(a.date, a.time);
-        const endTimeB = parseJobEndTime(b.date, b.time);
-        
-        if (endTimeA && endTimeB) {
-          return endTimeA - endTimeB; // Earliest end time first
-        }
-      }
-      
-      return timeDiff; // Earliest start time first
-    }
-    
-    // Fallback: if date parsing fails, sort by creation time
-    const createdA = new Date(a.createdAt || 0).getTime();
-    const createdB = new Date(b.createdAt || 0).getTime();
-    return createdB - createdA; // Newest created first
-  });
-
-  // Launch feed ON: keep 20+ on this same scroll, under-20 first, then 20+.
-  // OFF: no second group; list stays soonest-ending only. No on-screen divider.
-  filteredJobs = applyLaunchFeedBucketOrder(filteredJobs);
-  
+  // The database already returned this page in screen order:
+  // busy marker, then soonest start, then soonest end. Do not sort it again.
   
   // ============================================================================
-  // 🔥 PAGINATION - STORE FILTERED JOBS & RENDER INITIAL BATCH
+  // 🔥 PAGINATION - STORE THIS PAGE & RENDER IT
   // ============================================================================
-  // Store all filtered jobs for pagination, then render only the initial batch
   
   // Show empty state when no gigs are available
   if (filteredJobs.length === 0) {
@@ -1740,15 +1785,16 @@ async function filterAndSortJobs() {
     PAGINATION.allJobs = [];
     PAGINATION.currentIndex = 0;
     PAGINATION.displayedJobs = [];
-    PAGINATION.hasMore = false;
+    rememberListingPage({ hasMore: false, cursor: null }, isLaunchFeedBucketOn());
     setListingEmptyStateVisible(true, headerSpacer);
-    writeListingCache(cacheKey, []);
+    writeListingCache(cacheKey, [], listingPageMeta());
     return; // Exit early if no jobs
   }
 
   const freshJobsSignature = getListingJobsSignature(filteredJobs);
   if (renderedFromCache && cachedJobsSignature && freshJobsSignature === cachedJobsSignature) {
-    writeListingCache(cacheKey, filteredJobs);
+    rememberListingPage(fetchedPage, isLaunchFeedBucketOn());
+    writeListingCache(cacheKey, filteredJobs, listingPageMeta());
     writeListingViewState(viewStateKey, {
       scrollY: window.scrollY,
       displayedCount: PAGINATION.displayedJobs.length
@@ -1758,9 +1804,9 @@ async function filterAndSortJobs() {
   }
 
   const previousScrollY = renderedFromCache ? window.scrollY : 0;
-  const preservedCount = renderedFromCache ? PAGINATION.displayedJobs.length : PAGINATION.initialBatchSize;
-  renderListingJobs(filteredJobs, headerSpacer, { targetCount: preservedCount });
-  writeListingCache(cacheKey, filteredJobs);
+  renderListingJobs(filteredJobs, headerSpacer, { targetCount: filteredJobs.length });
+  rememberListingPage(fetchedPage, isLaunchFeedBucketOn());
+  writeListingCache(cacheKey, filteredJobs, listingPageMeta());
   writeListingViewState(viewStateKey, {
     scrollY: previousScrollY,
     displayedCount: PAGINATION.displayedJobs.length
@@ -1805,9 +1851,12 @@ async function filterAndSortJobs() {
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
     if (loadingOverlayTimer) clearTimeout(loadingOverlayTimer);
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-      console.log('✅ Loading overlay hidden');
+    if (myRequestGeneration === listingRequestGeneration) {
+      PAGINATION.isLoading = false;
+      if (loadingOverlay) {
+        loadingOverlay.classList.remove('show');
+        console.log('✅ Loading overlay hidden');
+      }
     }
   }
 }
@@ -1818,7 +1867,7 @@ window.addEventListener('pagehide', () => {
   const viewStateKey = buildListingViewStateKey(cacheKey);
   // Refresh cache timestamp when leaving listings so TTL starts from departure.
   if (Array.isArray(PAGINATION.allJobs) && PAGINATION.allJobs.length > 0) {
-    writeListingCache(cacheKey, PAGINATION.allJobs);
+    writeListingCache(cacheKey, PAGINATION.allJobs, listingPageMeta());
   }
   writeListingViewState(viewStateKey, {
     scrollY: window.scrollY,
@@ -1842,7 +1891,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   
   if (jobsToRender === 0) {
     console.log('✅ All jobs rendered');
-    PAGINATION.hasMore = false;
+    PAGINATION.hasMore = PAGINATION.serverPaging && PAGINATION.serverHasMore === true;
     return;
   }
   
@@ -1887,7 +1936,11 @@ function renderJobBatch(batchSize, headerSpacer) {
   
   // Update pagination state
   PAGINATION.currentIndex += jobsToRender;
-  PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  if (PAGINATION.serverPaging) {
+    PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length || PAGINATION.serverHasMore === true;
+  } else {
+    PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  }
   setListingEmptyStateVisible(false, headerSpacer);
   renderInlineAdsByGigPositions(headerSpacer.parentNode);
 
@@ -1981,11 +2034,15 @@ window.addEventListener('load', truncateBarangayNames);
 const PAGINATION = {
   initialBatchSize: 20,
   loadMoreBatchSize: 15,
-  allJobs: [],           // Full list of filtered/sorted jobs
+  allJobs: [],           // Pages loaded so far, already in screen order
   displayedJobs: [],     // Jobs currently displayed
   currentIndex: 0,       // Index of next job to display
   isLoading: false,      // Prevent concurrent loads
-  hasMore: true          // Whether more jobs exist to load
+  hasMore: true,         // Whether more jobs exist to load
+  serverPaging: true,
+  serverHasMore: false,
+  serverCursor: null,
+  launchFeedOn: true
 };
 
 let listingAdRuntime = null;
@@ -4088,7 +4145,12 @@ function initJobcatButtonAutoResize() {
   }
   
   function loadMoreJobs() {
+    if (!PAGINATION.serverPaging || !PAGINATION.serverCursor) {
+      PAGINATION.hasMore = false;
+      return;
+    }
     PAGINATION.isLoading = true;
+    const generation = listingRequestGeneration;
     console.log('📦 Loading more jobs...');
     
     const headerSpacer = document.querySelector('.jobcat-header-spacer');
@@ -4103,16 +4165,44 @@ function initJobcatButtonAutoResize() {
     
     // Small delay to show indicator (prevents jarring immediate load)
     const loadTimer = setTimeout(() => {
-      renderJobBatch(PAGINATION.loadMoreBatchSize, headerSpacer);
-      hideLoadingIndicator();
-      PAGINATION.isLoading = false;
-      
-      // Log progress
-      if (PAGINATION.hasMore) {
-        console.log(`📊 Progress: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs loaded`);
-      } else {
-        console.log('✅ All jobs loaded');
-      }
+      const filters = {
+        region: activeRegion,
+        city: activeCity,
+        gigUseType: activePay !== 'GIG TYPE' ? activePay : null,
+        __strictFirebase: true
+      };
+      fetchCategoryJobsWithRetry(getCurrentCategory(), filters, 2, {
+        limit: PAGINATION.loadMoreBatchSize,
+        cursor: PAGINATION.serverCursor,
+        launchFeedOn: PAGINATION.launchFeedOn !== false
+      }).then((page) => {
+        if (generation !== listingRequestGeneration) return;
+        const rawJobs = Array.isArray(page && page.jobs) ? page.jobs : [];
+        const cards = rawJobs
+          .map((job) => normalizeListingCardNavigation(normalizeListingFirebaseJob(job), getCurrentCategory()))
+          .filter(listingCardStillOpen);
+        PAGINATION.serverCursor = page && page.cursor ? page.cursor : null;
+        PAGINATION.serverHasMore = !!(page && page.hasMore);
+        if (!rawJobs.length) PAGINATION.serverHasMore = false;
+        if (cards.length) {
+          PAGINATION.allJobs = PAGINATION.allJobs.concat(cards);
+          renderJobBatch(cards.length, headerSpacer);
+        } else {
+          PAGINATION.hasMore = PAGINATION.serverHasMore === true;
+        }
+        const cacheKey = buildListingCacheKey(getCurrentCategory(), activeRegion, activeCity, activePay);
+        writeListingCache(cacheKey, PAGINATION.allJobs, listingPageMeta());
+        if (PAGINATION.hasMore) {
+          console.log(`📊 Progress: ${PAGINATION.displayedJobs.length} jobs loaded`);
+        } else {
+          console.log('✅ All jobs loaded');
+        }
+      }).catch((error) => {
+        console.error('❌ Failed to load the next listing page:', error);
+      }).finally(() => {
+        hideLoadingIndicator();
+        if (generation === listingRequestGeneration) PAGINATION.isLoading = false;
+      });
     }, 300);
     
     // Register timer for cleanup

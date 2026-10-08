@@ -1631,6 +1631,95 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
   }
 }
 
+function storedGigUseTypeForListing(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  if (normalized === 'BUSINESS') return 'Business';
+  if (normalized === 'PERSONAL') return 'Personal';
+  return '';
+}
+
+/**
+ * One page of a category, already in screen order.
+ * First call asks for 20. The next call asks for 15 after the last gig shown.
+ * This is one read. It does not listen, and it does not download the rest of the category.
+ */
+async function getJobsByCategoryPage(category, filters = {}, options = {}) {
+  const db = getFirestore();
+  if (!db) return { jobs: [], hasMore: false, cursor: null };
+
+  const limit = Math.max(1, Math.min(100, Number(options.limit) || 20));
+  const launchFeedOn = options.launchFeedOn !== false;
+  const region = String(filters.region || '').trim();
+  const city = String(filters.city || '').trim();
+  if (!category || !region || !city) return { jobs: [], hasMore: false, cursor: null };
+
+  try {
+    let query = db.collection('jobs')
+      .where('category', '==', category)
+      .where('status', '==', 'active')
+      .where('region', '==', region)
+      .where('city', '==', city);
+
+    const gigUseType = storedGigUseTypeForListing(filters.gigUseType);
+    if (gigUseType) query = query.where('gigUseType', '==', gigUseType);
+
+    if (launchFeedOn) query = query.orderBy('feedGroup', 'asc');
+    query = query
+      .orderBy('scheduledStart', 'asc')
+      .orderBy('scheduledEnd', 'asc')
+      .orderBy(firebase.firestore.FieldPath.documentId(), 'asc');
+
+    const cursor = options.cursor;
+    if (cursor && cursor.id) {
+      const start = firebase.firestore.Timestamp.fromMillis(Number(cursor.scheduledStart) || 0);
+      const end = firebase.firestore.Timestamp.fromMillis(Number(cursor.scheduledEnd) || 0);
+      const values = [];
+      if (launchFeedOn) values.push(Number(cursor.feedGroup) || 0);
+      values.push(start, end, String(cursor.id));
+      query = query.startAfter.apply(query, values);
+    }
+
+    query = query.limit(limit);
+    let snapshot = await query.get();
+    if (snapshot.empty && !(cursor && cursor.id)) {
+      try {
+        const serverSnapshot = await query.get({ source: 'server' });
+        if (serverSnapshot && !serverSnapshot.empty) snapshot = serverSnapshot;
+      } catch (serverReadError) {
+        console.warn('⚠️ getJobsByCategoryPage server retry skipped/failed:', serverReadError);
+      }
+    }
+
+    const jobs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const last = snapshot.docs.length ? snapshot.docs[snapshot.docs.length - 1] : null;
+    let nextCursor = null;
+    if (last) {
+      const data = last.data() || {};
+      const startMs = data.scheduledStart && typeof data.scheduledStart.toMillis === 'function'
+        ? data.scheduledStart.toMillis()
+        : 0;
+      const endMs = data.scheduledEnd && typeof data.scheduledEnd.toMillis === 'function'
+        ? data.scheduledEnd.toMillis()
+        : 0;
+      nextCursor = {
+        id: last.id,
+        feedGroup: Number(data.feedGroup) || 0,
+        scheduledStart: startMs,
+        scheduledEnd: endMs
+      };
+    }
+
+    return {
+      jobs,
+      hasMore: snapshot.size === limit,
+      cursor: nextCursor
+    };
+  } catch (error) {
+    console.error('❌ Error getting job page:', error);
+    throw error;
+  }
+}
+
 /**
  * Get user's job listings (as poster)
  * @param {string} userId - User ID
@@ -6464,6 +6553,7 @@ window.createJob = createJob;
 window.updateJob = updateJob;
 window.getJobById = getJobById;
 window.getJobsByCategory = getJobsByCategory;
+window.getJobsByCategoryPage = getJobsByCategoryPage;
 window.getUserJobListings = getUserJobListings;
 window.updateJobStatus = updateJobStatus;
 window.deleteJob = deleteJob;
