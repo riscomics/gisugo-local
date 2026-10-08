@@ -1617,24 +1617,7 @@ async function filterAndSortJobs() {
   // Hide empty state while loading new results
   setListingEmptyStateVisible(false, headerSpacer);
 
-  if (typeof getPublicPlatformPolicy === 'function') {
-    try {
-      const policy = await Promise.race([
-        getPublicPlatformPolicy(),
-        new Promise(function (_, reject) {
-          setTimeout(function () { reject(new Error('policy timeout')); }, 8000);
-        })
-      ]);
-      if (window.GisugoGigFeedPolicy) {
-        window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
-      }
-    } catch (_) {}
-  }
-
-  if (myRequestGeneration !== listingRequestGeneration) {
-    return;
-  }
-
+  const loadingOverlay = document.getElementById('loadingOverlay');
   cacheKey = buildListingCacheKey(currentCategory, activeRegion, activeCity, activePay);
   viewStateKey = buildListingViewStateKey(cacheKey);
   const cached = readListingCache(cacheKey);
@@ -1651,19 +1634,23 @@ async function filterAndSortJobs() {
     }
     renderedFromCache = true;
     console.log(`⚡ Warm listing cache restored (${cached.jobs.length} jobs)`);
+  } else if (loadingOverlay) {
+    // Cold load: show the animation now. It used to wait until after the
+    // feed-setting read, so it appeared at the end of the blank wait.
+    loadingOverlay.classList.add('show');
   }
 
-  // Show loading modal only for true cold loads.
-  // If we already rendered warm cache, keep background refresh non-blocking.
-  const loadingOverlay = document.getElementById('loadingOverlay');
-  const LOADING_OVERLAY_DELAY_MS = 220;
-  const loadingOverlayTimer = renderedFromCache
-    ? null
-    : setTimeout(() => {
-        if (loadingOverlay) {
-          loadingOverlay.classList.add('show');
-        }
-      }, LOADING_OVERLAY_DELAY_MS);
+  const launchFeedAtQuery = isLaunchFeedBucketOn();
+  if (typeof getPublicPlatformPolicy === 'function') {
+    getPublicPlatformPolicy().then((policy) => {
+      if (myRequestGeneration !== listingRequestGeneration) return;
+      if (window.GisugoGigFeedPolicy) {
+        window.GisugoGigFeedPolicy.launchBucketOn = !policy || policy.launchBucketOn !== false;
+      }
+      if (isLaunchFeedBucketOn() === launchFeedAtQuery) return;
+      filterAndSortJobs();
+    }).catch(() => {});
+  }
   
   // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
   try {
@@ -1850,7 +1837,6 @@ async function filterAndSortJobs() {
     }
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
-    if (loadingOverlayTimer) clearTimeout(loadingOverlayTimer);
     if (myRequestGeneration === listingRequestGeneration) {
       PAGINATION.isLoading = false;
       if (loadingOverlay) {
