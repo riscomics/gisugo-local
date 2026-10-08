@@ -181,6 +181,58 @@
       ]
     },
     {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "region", "order": "ASCENDING" },
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "feedGroup", "order": "ASCENDING" },
+        { "fieldPath": "scheduledStart", "order": "ASCENDING" },
+        { "fieldPath": "scheduledEnd", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "region", "order": "ASCENDING" },
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "scheduledStart", "order": "ASCENDING" },
+        { "fieldPath": "scheduledEnd", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "region", "order": "ASCENDING" },
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "gigUseType", "order": "ASCENDING" },
+        { "fieldPath": "feedGroup", "order": "ASCENDING" },
+        { "fieldPath": "scheduledStart", "order": "ASCENDING" },
+        { "fieldPath": "scheduledEnd", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "jobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "region", "order": "ASCENDING" },
+        { "fieldPath": "city", "order": "ASCENDING" },
+        { "fieldPath": "gigUseType", "order": "ASCENDING" },
+        { "fieldPath": "scheduledStart", "order": "ASCENDING" },
+        { "fieldPath": "scheduledEnd", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "gig_reports",
       "queryScope": "COLLECTION",
       "fields": [
