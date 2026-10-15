@@ -1846,6 +1846,15 @@ function formatPaymentTypeDisplay(gigUseType) {
 // Single owner for #previewPostBtn — edit mode must NOT also fire postJob()
 // (that race wiped gigs with empty np2State defaults after the phone-gate await).
 let previewPostClickHandler = null;
+let postJobInFlight = false;
+
+function setPreviewPostBusy(isBusy) {
+  const postBtn = document.getElementById('previewPostBtn');
+  if (!postBtn) return;
+  postBtn.disabled = !!isBusy;
+  postBtn.style.opacity = isBusy ? '0.5' : '';
+  postBtn.style.cursor = isBusy ? 'not-allowed' : '';
+}
 
 function setPreviewPostClickHandler(handler) {
   const postBtn = document.getElementById('previewPostBtn');
@@ -1906,6 +1915,19 @@ async function postJob() {
     return;
   }
 
+  if (postJobInFlight) return;
+  postJobInFlight = true;
+  setPreviewPostBusy(true);
+
+  try {
+  await postJobBody();
+  } finally {
+    postJobInFlight = false;
+    setPreviewPostBusy(false);
+  }
+}
+
+async function postJobBody() {
   // Require a phone number on file before posting (backfill for older accounts).
   if (typeof window.ensurePhoneOnFile === 'function') {
     const hasPhone = await window.ensurePhoneOnFile();
