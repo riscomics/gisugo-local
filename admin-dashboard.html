@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=40">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=41">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2878,7 +2878,7 @@
                     <p class="section-subtitle">Configure feed cadence, zones, and ad inventory</p>
                 </div>
 
-                <div class="ad-hero">
+                <div class="placement-hero">
                     <div class="ad-hero-icon">✨</div>
                     <div class="ad-hero-copy">
                         <div class="ad-hero-title">Campaign Control Center</div>
@@ -2976,7 +2976,7 @@
                         </div>
                         <div id="adItemCardBody" class="ad-card-body">
                         <div class="ad-field-grid">
-                            <label class="ad-field ad-field-full">
+                            <label class="placement-field ad-field-full">
                                 <span>Type</span>
                                 <select id="adItemType">
                                     <option value="site_offer">site_offer</option>
@@ -2985,39 +2985,39 @@
                                 </select>
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span>Ad ID</span>
                                 <input type="text" id="adItemId" placeholder="e.g. offer-verify-launch">
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span>Image URL</span>
                                 <input type="text" id="adItemImageSrc" placeholder="public/images/verify.png">
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span>Alt Text</span>
                                 <input type="text" id="adItemAltText" placeholder="Get verified for safer gigs">
                             </label>
                         </div>
 
                         <div class="ad-action-row">
-                            <label class="ad-field ad-type-field" data-ad-type="site_offer">
+                            <label class="placement-field ad-type-field" data-ad-type="site_offer">
                                 <span>Action Target</span>
                                 <input type="text" id="adItemActionTarget" placeholder="profile.html or #accountOverlay">
                                 <span class="ad-field-caption">For site offers: modal selector or internal page route.</span>
                             </label>
-                            <label class="ad-field ad-type-field" data-ad-type="sponsored_external">
+                            <label class="placement-field ad-type-field" data-ad-type="sponsored_external">
                                 <span>Destination URL</span>
                                 <input type="text" id="adItemExternalUrl" placeholder="https://example.com">
                                 <span class="ad-field-caption">Used for sponsored external ad clicks.</span>
                             </label>
-                            <label class="ad-field ad-type-field" data-ad-type="video_popup">
+                            <label class="placement-field ad-type-field" data-ad-type="video_popup">
                                 <span>YouTube URL</span>
                                 <input type="text" id="adItemVideoUrl" placeholder="https://www.youtube.com/watch?v=...">
                                 <span class="ad-field-caption">Watch, share, or embed URL supported.</span>
                             </label>
-                            <label class="ad-field ad-type-field" data-ad-type="video_popup">
+                            <label class="placement-field ad-type-field" data-ad-type="video_popup">
                                 <span>Video Thumbnail URL</span>
                                 <input type="text" id="adItemVideoThumbnail" placeholder="public/images/womensafety.jpg">
                                 <span class="ad-field-caption">Image shown on the ad card before opening the popup.</span>
@@ -3025,7 +3025,7 @@
                         </div>
 
                         <div class="ad-ops-grid">
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">🟢</span><span>AD<br>Status</span></span>
                                 <select id="adItemStatus">
                                     <option value="active">active</option>
@@ -3034,7 +3034,7 @@
                                 </select>
                             </label>
 
-                            <label class="ad-field ad-type-field" data-ad-type="site_offer">
+                            <label class="placement-field ad-type-field" data-ad-type="site_offer">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">🧭</span><span>Action<br>Type</span></span>
                                 <select id="adItemActionType">
                                     <option value="navigate">navigate</option>
@@ -3042,24 +3042,24 @@
                                 </select>
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">⚖️</span><span>Weight<br>Rotation</span></span>
                                 <input type="number" id="adItemWeight" min="1" max="1000" value="100">
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">👁️</span><span>Max<br>Impressions</span></span>
                                 <input type="number" id="adItemMaxImpressions" min="0" max="1000000" value="0">
                                 <span class="ad-field-caption">(0 = unlimited)</span>
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">👆</span><span>Max<br>Clicks</span></span>
                                 <input type="number" id="adItemMaxClicks" min="0" max="1000000" value="0">
                                 <span class="ad-field-caption">(0 = unlimited)</span>
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">📊</span><span>CTR<br>Rate</span></span>
                                 <input type="text" id="adItemCtr" value="0.00%" readonly>
                                 <span class="ad-field-caption">Clicks divided by impressions</span>
@@ -3068,20 +3068,20 @@
                         </div>
 
                         <div class="ad-date-row">
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">🗓️</span><span>Start Date / Time</span></span>
                                 <input type="datetime-local" id="adItemStartAt">
                             </label>
 
-                            <label class="ad-field">
+                            <label class="placement-field">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">🏁</span><span>End Date / Time</span></span>
                                 <input type="datetime-local" id="adItemEndAt">
                             </label>
                         </div>
 
                         <div class="ad-form-actions">
-                            <button id="adAddOrUpdateBtn" class="ad-btn primary">Add / Update Ad</button>
-                            <button id="adClearFormBtn" class="ad-btn">Clear Form</button>
+                            <button id="adAddOrUpdateBtn" class="placement-btn primary">Add / Update Ad</button>
+                            <button id="adClearFormBtn" class="placement-btn">Clear Form</button>
                         </div>
                         </div>
                     </div>
@@ -3116,8 +3116,8 @@
                         </div>
                         <div id="adActionsCardBody" class="ad-card-body">
                         <div class="ad-form-actions">
-                            <button id="adSaveBtn" class="ad-btn primary">Save Ad Settings</button>
-                            <button id="adResetBtn" class="ad-btn danger">Reset to Defaults</button>
+                            <button id="adSaveBtn" class="placement-btn primary">Save Ad Settings</button>
+                            <button id="adResetBtn" class="placement-btn danger">Reset to Defaults</button>
                         </div>
                         </div>
                     </div>

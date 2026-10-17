@@ -10863,7 +10863,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     gap: 0.75rem;
 }
 
-.ad-field {
+.placement-field {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
@@ -10871,8 +10871,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     font-size: 0.85rem;
 }
 
-.ad-field input,
-.ad-field select {
+.placement-field input,
+.placement-field select {
     background: rgba(17, 24, 39, 0.9);
     border: 1px solid rgba(148, 163, 184, 0.3);
     color: #e5e7eb;
@@ -10903,7 +10903,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     margin-top: 0.9rem;
 }
 
-.ad-btn {
+.placement-btn {
     border: 1px solid rgba(148, 163, 184, 0.35);
     background: rgba(15, 23, 42, 0.9);
     color: #f8fafc;
@@ -10912,12 +10912,12 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     cursor: pointer;
 }
 
-.ad-btn.primary {
+.placement-btn.primary {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border-color: rgba(16, 185, 129, 0.65);
 }
 
-.ad-btn.danger {
+.placement-btn.danger {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border-color: rgba(239, 68, 68, 0.65);
 }
@@ -11027,7 +11027,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     margin-bottom: 0.85rem;
 }
 
-.ad-hero {
+.placement-hero {
     display: flex;
     align-items: center;
     gap: 0.9rem;
@@ -11161,13 +11161,13 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     display: none;
 }
 
-.ad-field span {
+.placement-field span {
     color: rgba(230, 214, 174, 0.95);
     font-weight: 600;
 }
 
-.ad-field input,
-.ad-field select {
+.placement-field input,
+.placement-field select {
     border-radius: 10px;
     border: 1px solid rgba(16, 185, 129, 0.28);
     padding: 0.62rem 0.72rem;
@@ -11175,8 +11175,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
-.ad-field input:focus,
-.ad-field select:focus {
+.placement-field input:focus,
+.placement-field select:focus {
     outline: none;
     border-color: rgba(16, 185, 129, 0.62);
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
@@ -11257,7 +11257,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     gap: 0.68rem;
 }
 
-.ad-action-row .ad-field {
+.ad-action-row .placement-field {
     width: 100%;
 }
 
@@ -11268,8 +11268,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     gap: 0.68rem;
 }
 
-.ad-ops-grid .ad-field,
-.ad-date-row .ad-field {
+.ad-ops-grid .placement-field,
+.ad-date-row .placement-field {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -11282,8 +11282,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ad-ops-grid .ad-field:hover,
-.ad-date-row .ad-field:hover {
+.ad-ops-grid .placement-field:hover,
+.ad-date-row .placement-field:hover {
     border-color: rgba(16, 185, 129, 0.45);
     box-shadow: 0 0 12px rgba(16, 185, 129, 0.18);
 }
@@ -11318,20 +11318,20 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.ad-field:hover .ad-field-icon {
+.placement-field:hover .ad-field-icon {
     transform: translateY(-2px) scale(1.14);
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.34);
 }
 
-.ad-ops-grid .ad-field input,
-.ad-ops-grid .ad-field select,
-.ad-date-row .ad-field input {
+.ad-ops-grid .placement-field input,
+.ad-ops-grid .placement-field select,
+.ad-date-row .placement-field input {
     width: 100%;
     text-align: center;
     font-weight: 700;
 }
 
-.ad-ops-grid .ad-field input[readonly] {
+.ad-ops-grid .placement-field input[readonly] {
     opacity: 0.92;
     cursor: default;
 }
@@ -11443,14 +11443,14 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     gap: 0.55rem;
 }
 
-.ad-btn {
+.placement-btn {
     border-radius: 10px;
     min-height: 40px;
     font-weight: 700;
     letter-spacing: 0.01em;
 }
 
-.ad-btn:hover {
+.placement-btn:hover {
     filter: brightness(1.08);
 }
 
@@ -11496,7 +11496,7 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .ad-form-actions .ad-btn {
+    .ad-form-actions .placement-btn {
         flex: 1 1 calc(50% - 0.4rem);
     }
 
@@ -11525,8 +11525,8 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .ad-ops-grid .ad-field,
-    .ad-date-row .ad-field {
+    .ad-ops-grid .placement-field,
+    .ad-date-row .placement-field {
         min-height: 158px;
         padding: 0.5rem 0.5rem;
     }
