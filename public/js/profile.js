@@ -1997,10 +1997,6 @@ function handleAccountAction(action) {
       console.log('Edit Profile clicked - opening edit profile overlay');
       openEditProfileOverlay();
       break;
-    case 'privacy-settings':
-      console.log('Privacy Settings clicked');
-      // TODO: Open privacy settings
-      break;
     case 'notification-settings':
       console.log('Notification Settings clicked');
       openNotificationSettingsOverlay();

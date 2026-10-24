@@ -1,6 +1,6 @@
 # Account Settings — deferred / relocated UI
 
-> Updated: 2026-07-17  
+> Updated: 2026-10-24  
 > File: `profile.html` — `#accountOverlay` (Account Settings).
 
 ## Hidden until ready (not deleted)
@@ -40,7 +40,8 @@ Edit Profile no longer contains a Face Verification section (basic info / about 
 **Account Management**
 1. Edit Profile  
 2. Notifications  
-3. Privacy Settings (row present; settings UI still TODO)
+
+Privacy Settings was removed on 2026-10-24. The row opened nothing. Profile visibility, the phone number, and alerts do not need a separate settings page.
 
 ## Cross-refs
 
