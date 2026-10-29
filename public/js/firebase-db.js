@@ -1234,14 +1234,14 @@ function getCachedJobsByCategory(category) {
  * @param {Object} jobData - Job data to create
  * @returns {Promise<Object>} - Result with jobId
  */
-function parseGigClockHour(timeStr) {
+function parseGigClockHour(timeStr, isEndTime = false) {
   const match = String(timeStr || '').match(/(\d+)\s*(AM|PM)/i);
   if (!match) return null;
   let hour = parseInt(match[1], 10);
   if (!Number.isFinite(hour)) return null;
   const isPM = match[2].toUpperCase() === 'PM';
   if (isPM && hour !== 12) hour += 12;
-  if (!isPM && hour === 12) hour = 0;
+  if (!isPM && hour === 12) hour = isEndTime ? 24 : 0;
   return hour;
 }
 
@@ -1270,8 +1270,8 @@ function gigScheduleTimestamps(jobDate, startTime, endTime) {
   if (!day || typeof firebase === 'undefined' || !firebase.firestore) {
     return { scheduledStart: null, scheduledEnd: null };
   }
-  const startHour = parseGigClockHour(startTime);
-  const endHour = parseGigClockHour(endTime);
+  const startHour = parseGigClockHour(startTime, false);
+  const endHour = parseGigClockHour(endTime, true);
   const start = new Date(day.getTime());
   if (startHour == null) start.setHours(0, 0, 0, 0);
   else start.setHours(startHour, 0, 0, 0);

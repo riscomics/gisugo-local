@@ -2209,11 +2209,9 @@ async function loadListingsContent() {
             return;
         }
         
-        // Sort by job date (earliest jobs first - most urgent at top)
+        // Sort by scheduledEnd / end-time ascending (ending soonest at top, matching native app)
         const sortedListings = listings.sort((a, b) => {
-            const dateA = new Date(a.jobDate);
-            const dateB = new Date(b.jobDate);
-            return dateA - dateB;
+            return getListingEndTimeMs(a) - getListingEndTimeMs(b);
         });
         
         // Generate listings HTML
@@ -2309,6 +2307,32 @@ function generateListingCardHTML(listing) {
     `;
 }
 
+function getListingEndTimeMs(listing) {
+    if (!listing) return 0;
+    const rawEnd = listing.scheduledEnd;
+    if (rawEnd) {
+        if (typeof rawEnd.toMillis === 'function') return rawEnd.toMillis();
+        if (typeof rawEnd.seconds === 'number') return rawEnd.seconds * 1000;
+        const parsedTs = new Date(rawEnd).getTime();
+        if (Number.isFinite(parsedTs)) return parsedTs;
+    }
+    const parsedDate = parseJobDateInput(listing.jobDate);
+    if (!parsedDate || isNaN(parsedDate.getTime())) return 0;
+    const dateObj = new Date(parsedDate.getTime());
+    const endTimeText = String(listing.endTime || '');
+    const endTimeMatch = endTimeText.match(/-\s*(\d+)\s*(AM|PM)/i) || endTimeText.match(/(\d+)\s*(AM|PM)/i);
+    if (endTimeMatch) {
+        let hour = parseInt(endTimeMatch[1], 10);
+        const isPM = endTimeMatch[2].toUpperCase() === 'PM';
+        if (isPM && hour !== 12) hour += 12;
+        if (!isPM && hour === 12) hour = 24;
+        dateObj.setHours(hour, 0, 0, 0);
+    } else {
+        dateObj.setHours(23, 59, 59, 999);
+    }
+    return dateObj.getTime();
+}
+
 function checkIfJobExpired(jobDate, endTime) {
     if (!jobDate || !endTime) return false;
     
@@ -2326,7 +2350,7 @@ function checkIfJobExpired(jobDate, endTime) {
             const isPM = endTimeMatch[2].toUpperCase() === 'PM';
             
             if (isPM && hour !== 12) hour += 12;
-            if (!isPM && hour === 12) hour = 0;
+            if (!isPM && hour === 12) hour = 24;
             
             dateObj.setHours(hour, 0, 0, 0);
         } else {

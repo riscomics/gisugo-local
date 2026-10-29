@@ -1180,10 +1180,10 @@ function parseJobEndTime(dateStr, timeStr) {
     const hour = parseInt(endTimeMatch[1]);
     const isPM = endTimeMatch[2].toUpperCase() === 'PM';
     
-    // Convert to 24-hour format
+    // Convert to 24-hour format (end time 12 AM = 24:00 midnight at end of day)
     let hour24 = hour;
     if (isPM && hour !== 12) hour24 += 12;
-    if (!isPM && hour === 12) hour24 = 0;
+    if (!isPM && hour === 12) hour24 = 24;
     
     dateObj.setHours(hour24, 0, 0, 0);
     return dateObj.getTime();

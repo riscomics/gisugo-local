@@ -15,13 +15,13 @@ const admin = require(path.join(__dirname, '../functions/node_modules/firebase-a
 const apply = process.argv.includes('--apply');
 const keyPath = path.join(__dirname, 'github-action-gisugo1-key.json');
 
-function parseHour(timeStr) {
+function parseHour(timeStr, isEndTime = false) {
   const match = String(timeStr || '').match(/(\d+)\s*(AM|PM)/i);
   if (!match) return null;
   let hour = parseInt(match[1], 10);
   const isPM = match[2].toUpperCase() === 'PM';
   if (isPM && hour !== 12) hour += 12;
-  if (!isPM && hour === 12) hour = 0;
+  if (!isPM && hour === 12) hour = isEndTime ? 24 : 0;
   return hour;
 }
 
@@ -29,8 +29,8 @@ function scheduleFromJob(data) {
   const raw = data.scheduledDate && data.scheduledDate.toDate ? data.scheduledDate.toDate() : null;
   if (!raw || isNaN(raw.getTime())) return null;
   const day = new Date(raw.getFullYear(), raw.getMonth(), raw.getDate());
-  const startHour = parseHour(data.startTime);
-  const endHour = parseHour(data.endTime);
+  const startHour = parseHour(data.startTime, false);
+  const endHour = parseHour(data.endTime, true);
   const start = new Date(day.getTime());
   if (startHour == null) start.setHours(0, 0, 0, 0);
   else start.setHours(startHour, 0, 0, 0);

@@ -350,12 +350,23 @@ const extrasConfig = {
 // ========================== HELPER FUNCTIONS ==========================
 
 function convertTo24Hour(hour, period) {
-  // Convert 12-hour format to 24-hour format
+  // Convert 12-hour format to 24-hour format (start of day: 12 AM -> 0)
   let hour24 = parseInt(hour);
   if (period === 'PM' && hour24 !== 12) {
     hour24 += 12;
   } else if (period === 'AM' && hour24 === 12) {
     hour24 = 0;
+  }
+  return hour24;
+}
+
+function convertEndTo24Hour(hour, period) {
+  // Convert 12-hour end time to 24-hour format (end of night: 12 AM -> 24)
+  let hour24 = parseInt(hour);
+  if (period === 'PM' && hour24 !== 12) {
+    hour24 += 12;
+  } else if (period === 'AM' && hour24 === 12) {
+    hour24 = 24;
   }
   return hour24;
 }
@@ -766,10 +777,12 @@ function validateCurrentStep() {
         return false;
       }
       
-      // Validate time range (end time must be after start time)
+      // Validate time range (end time must be after start time; 12 AM end = 24:00, block 12 AM to 12 AM)
+      const isBothMidnight = String(np2State.startHour) === '12' && np2State.startPeriod === 'AM'
+        && String(np2State.endHour) === '12' && np2State.endPeriod === 'AM';
       const startHour24 = convertTo24Hour(parseInt(np2State.startHour), np2State.startPeriod);
-      const endHour24 = convertTo24Hour(parseInt(np2State.endHour), np2State.endPeriod);
-      if (endHour24 <= startHour24) {
+      const endHour24 = convertEndTo24Hour(parseInt(np2State.endHour), np2State.endPeriod);
+      if (isBothMidnight || endHour24 <= startHour24) {
         showToast('End time must be after start time', 'error');
         return false;
       }
@@ -2996,6 +3009,14 @@ async function handleRelistFormSubmit(category) {
     showToast('Please fill in all required fields', 'error');
     return;
   }
+  const isBothMidnight = String(np2State.startHour) === '12' && np2State.startPeriod === 'AM'
+    && String(np2State.endHour) === '12' && np2State.endPeriod === 'AM';
+  const relistStartHour24 = convertTo24Hour(parseInt(np2State.startHour), np2State.startPeriod);
+  const relistEndHour24 = convertEndTo24Hour(parseInt(np2State.endHour), np2State.endPeriod);
+  if (isBothMidnight || relistEndHour24 <= relistStartHour24) {
+    showToast('End time must be after start time', 'error');
+    return;
+  }
   await postJob();
 }
 
@@ -3034,6 +3055,17 @@ async function handleEditFormSubmit(jobId, category) {
     console.warn('⚠️ Validation failed - missing required fields');
     if (loadingOverlay) loadingOverlay.classList.remove('show');
     showToast('Please fill in all required fields', 'error');
+    return;
+  }
+
+  // Validate time range (end time must be after start time; 12 AM end = 24:00, block 12 AM to 12 AM)
+  const isBothMidnight = String(startHour) === '12' && startPeriod === 'AM'
+    && String(endHour) === '12' && endPeriod === 'AM';
+  const editStartHour24 = convertTo24Hour(parseInt(startHour), startPeriod);
+  const editEndHour24 = convertEndTo24Hour(parseInt(endHour), endPeriod);
+  if (isBothMidnight || editEndHour24 <= editStartHour24) {
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
+    showToast('End time must be after start time', 'error');
     return;
   }
   
