@@ -2832,6 +2832,7 @@ async function showHiringOptionsOverlay(jobData) {
     // Set overlay data attributes
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-role', jobData.role);
+    overlay.setAttribute('data-status', jobData.status || '');
     overlay.setAttribute('data-title', jobData.title);
     overlay.setAttribute('data-price-offer', jobData.priceOffer || '');
     overlay.setAttribute('data-agreed-price', jobData.priceOffer || '');
@@ -3100,6 +3101,7 @@ function getHiringJobDataFromOverlay() {
     return {
         jobId: overlay.getAttribute('data-job-id'),
         role: overlay.getAttribute('data-role'),
+        status: overlay.getAttribute('data-status'),
         title: overlay.getAttribute('data-title'),
         priceOffer: overlay.getAttribute('data-price-offer'),
         agreedPrice: overlay.getAttribute('data-agreed-price') || overlay.getAttribute('data-price-offer'),
@@ -4977,6 +4979,7 @@ async function handleRelistJob(jobData) {
         const hiredJobs = await JobsDataService.getAllHiredJobs();
         const job = hiredJobs.find(j => j.jobId === jobData.jobId);
     const workerName = job ? job.hiredWorkerName : 'the worker';
+    const isRetractOffer = String((job && job.status) || jobData.status || '').toLowerCase() === 'hired';
     
     // Show relist confirmation overlay (overlay already defined above)
     const subtitle = document.getElementById('relistJobSubtitle');
@@ -4996,7 +4999,10 @@ async function handleRelistJob(jobData) {
     workerNameInputSpan.textContent = workerName;
     
     // Reset form state and button text for hiring context
-    if (categorySelect) categorySelect.value = '';
+    if (categorySelect) {
+        categorySelect.value = '';
+        categorySelect.style.display = isRetractOffer ? 'none' : '';
+    }
     if (categoryCaption) {
         categoryCaption.textContent = '';
         categoryCaption.classList.remove('show');
@@ -5018,6 +5024,7 @@ async function handleRelistJob(jobData) {
     overlay.setAttribute('data-job-title', jobData.title);
     overlay.setAttribute('data-worker-name', workerName);
     overlay.setAttribute('data-hired-worker-id', job ? job.hiredWorkerId : '');
+    overlay.setAttribute('data-is-retract-offer', isRetractOffer ? 'true' : 'false');
     overlay.removeAttribute('data-relist-type'); // Clear previous relist type
     
     overlay.classList.add('show');
@@ -5588,7 +5595,8 @@ function initializeRelistJobConfirmationHandlers() {
         const text = reasonInput ? reasonInput.value : '';
         const length = text.length;
         const trimmedLength = text.trim().length;
-        const hasCategory = Boolean(categorySelect && categorySelect.value);
+        const isRetractOffer = overlay.getAttribute('data-is-retract-offer') === 'true';
+        const hasCategory = isRetractOffer || Boolean(categorySelect && categorySelect.value);
         if (charCount) charCount.textContent = length;
         if (trimmedLength >= 2 && length <= 55 && hasCategory) {
             if (yesBtn) yesBtn.disabled = false;
@@ -5675,11 +5683,12 @@ function initializeRelistJobConfirmationHandlers() {
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const relistType = overlay.getAttribute('data-relist-type');
-            const reasonCategory = categorySelect ? String(categorySelect.value || '').trim() : '';
+            const isRetractOffer = overlay.getAttribute('data-is-retract-offer') === 'true';
+            const reasonCategory = (!isRetractOffer && categorySelect) ? String(categorySelect.value || '').trim() : '';
             const reason = reasonInput ? sanitizeTextInput(reasonInput.value).trim().slice(0, 55) : '';
             
-            // Validate reason category and input
-            if (!reasonCategory || !reason || reason.length < 2) {
+            // Validate reason category (only for accepted hires) and input
+            if ((!isRetractOffer && !reasonCategory) || !reason || reason.length < 2) {
                 if (reasonError) reasonError.classList.add('show');
                 overlay.dataset.processing = 'false'; // Reset processing flag
                 yesBtn.disabled = false; // Re-enable button
@@ -5762,25 +5771,30 @@ function initializeRelistJobConfirmationHandlers() {
                         
                         console.log('✅ Job relisted in Firebase, restored to active status');
 
-                        // Single-side fault-based tally: customer_cancelled counts on customer; worker-fault reasons count on worker.
-                        try {
-                            const actingCustomerId = firebase.auth().currentUser?.uid;
-                            if (reasonCategory === 'customer_cancelled') {
-                                if (actingCustomerId) {
-                                    await db.collection('users').doc(actingCustomerId).update({
-                                        'statistics.customer.totalWorkersFired': firebase.firestore.FieldValue.increment(1),
-                                        [`statistics.customer.firedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
+                        // Single-side fault-based tally (ONLY when voiding an accepted hire; retracting an unaccepted offer adds 0 tally).
+                        const wasAcceptedHire = String(priorVoidJob.status || '').toLowerCase() === 'accepted' && !isRetractOffer;
+                        if (wasAcceptedHire) {
+                            try {
+                                const actingCustomerId = firebase.auth().currentUser?.uid;
+                                if (reasonCategory === 'customer_cancelled') {
+                                    if (actingCustomerId) {
+                                        await db.collection('users').doc(actingCustomerId).update({
+                                            'statistics.customer.totalWorkersFired': firebase.firestore.FieldValue.increment(1),
+                                            [`statistics.customer.firedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
+                                        });
+                                    }
+                                } else if (hiredWorkerId && reasonCategory) {
+                                    await db.collection('users').doc(hiredWorkerId).update({
+                                        'statistics.worker.totalGigsRemoved': firebase.firestore.FieldValue.increment(1),
+                                        [`statistics.worker.removedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
                                     });
                                 }
-                            } else if (hiredWorkerId) {
-                                await db.collection('users').doc(hiredWorkerId).update({
-                                    'statistics.worker.totalGigsRemoved': firebase.firestore.FieldValue.increment(1),
-                                    [`statistics.worker.removedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
-                                });
+                                console.log('✅ Relist activity statistics updated (single-side tally)');
+                            } catch (statsError) {
+                                console.warn('⚠️ Could not update relist activity statistics:', statsError);
                             }
-                            console.log('✅ Relist activity statistics updated (single-side tally)');
-                        } catch (statsError) {
-                            console.warn('⚠️ Could not update relist activity statistics:', statsError);
+                        } else {
+                            console.log('ℹ️ Retract offer (unaccepted): skipped tally increment');
                         }
                         
                         // Verify the update by reading the document back
