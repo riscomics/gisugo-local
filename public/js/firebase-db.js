@@ -6634,12 +6634,16 @@ async function sendContractVoidedNotification(workerId, workerName, jobId, jobTi
   console.log('📋 Worker:', workerName, '| Job:', jobTitle);
   
   try {
+    const safeReason = String(voidReason || '').trim().slice(0, 55);
     const result = await callCreateUserAlert({
       type: 'contract_voided',
       recipientId: workerId,
       jobId: jobId,
       jobTitle: jobTitle || 'Gig',
-      message: `Customer voided your work on ${jobTitle || 'Gig'}.`,
+      reasonText: safeReason,
+      message: safeReason
+        ? `Customer voided your work on "${jobTitle || 'Gig'}". Reason: "${safeReason}"`
+        : `Customer voided your work on "${jobTitle || 'Gig'}".`,
       actionRequired: false
     });
     
@@ -6703,12 +6707,16 @@ async function sendWorkerResignedNotification(customerId, customerName, jobId, j
   console.log('📋 Customer:', customerName, '| Worker:', workerName, '| Job:', jobTitle);
   
   try {
+    const safeReason = String(resignReason || '').trim().slice(0, 55);
     const result = await callCreateUserAlert({
       type: 'worker_resigned',
       recipientId: customerId,
       jobId: jobId,
       jobTitle: jobTitle || 'Gig',
-      message: `${workerName} has resigned from "${jobTitle}". Reason: ${resignReason}. Your job is now active for new applications.`,
+      reasonText: safeReason,
+      message: safeReason
+        ? `${workerName} has resigned from "${jobTitle}". Reason: "${safeReason}"`
+        : `${workerName} has resigned from "${jobTitle}".`,
       actionRequired: false
     });
     

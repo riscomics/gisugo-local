@@ -3338,6 +3338,7 @@ function buildCreateUserAlertDoc({
   jobId,
   jobTitle,
   message,
+  reasonText,
   actionRequired,
   dedupeKey,
   title,
@@ -3357,6 +3358,7 @@ function buildCreateUserAlertDoc({
     actionRequired: !!actionRequired,
     dedupeKey: dedupeKey || null
   };
+  if (reasonText) notification.reasonText = reasonText;
   if (title) notification.title = title;
   if (supportRequestId) notification.supportRequestId = supportRequestId;
   if (link) notification.link = link;
@@ -3514,6 +3516,7 @@ exports.createUserAlert = onCall(
     const jobId = String(data.jobId || "").trim();
     const jobTitle = String(data.jobTitle || "").trim();
     const message = String(data.message || "").trim().slice(0, ALERT_MESSAGE_MAX_CHARS);
+    const reasonText = String(data.reasonText || "").trim().slice(0, 55);
     const dedupeKey = String(data.dedupeKey || "").trim();
     const title = String(data.title || "").trim();
     const supportRequestId = String(data.supportRequestId || "").trim();
@@ -3562,6 +3565,7 @@ exports.createUserAlert = onCall(
       jobId,
       jobTitle: jobTitle || String((job && job.title) || ""),
       message,
+      reasonText,
       actionRequired: !!data.actionRequired,
       dedupeKey,
       title,

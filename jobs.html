@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <!-- UNIFORM HEADER SYSTEM -->
     <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-    <link rel="stylesheet" href="public/css/jobs.css?v=6.22">
+    <link rel="stylesheet" href="public/css/jobs.css?v=6.23">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-jobs">
@@ -252,19 +252,27 @@
                 </div>
             </div>
             <div class="reason-input-section">
-                <label for="relistReasonInput" class="reason-label" id="relistReasonLabel">
+                <label for="relistReasonCategory" class="reason-label" id="relistReasonLabel">
                     For records, please provide reason why you are firing <span id="relistWorkerNameInput">the worker</span>:
                 </label>
+                <select id="relistReasonCategory" class="reason-select">
+                    <option value="">Select reason category...</option>
+                    <option value="no_show">No-show / Unresponsive</option>
+                    <option value="unqualified">Unqualified / Missing tools</option>
+                    <option value="unable_to_complete">Unable to complete</option>
+                    <option value="customer_cancelled">Plans changed / Cancelled</option>
+                </select>
+                <div class="reason-category-caption" id="relistCategoryCaption"></div>
                 <textarea 
                     id="relistReasonInput" 
-                    class="reason-textarea" 
-                    placeholder="Enter reason for termination (minimum 2 characters)"
-                    maxlength="200"
-                    rows="2"></textarea>
+                    class="reason-textarea reason-textarea-compact" 
+                    placeholder="Brief note for worker (2-55 chars)"
+                    maxlength="55"
+                    rows="1"></textarea>
                 <div class="reason-char-count">
-                    <span id="relistCharCount">0</span>/200 characters
+                    <span id="relistCharCount">0</span>/55 characters
                 </div>
-                <div class="reason-error" id="relistReasonError">Please enter at least 2 characters</div>
+                <div class="reason-error" id="relistReasonError">Select a category and enter 2-55 characters</div>
             </div>
             <div class="delete-confirmation-actions">
                 <button class="delete-confirmation-btn cancel" id="relistJobNoBtn">
@@ -302,19 +310,27 @@
                 </div>
             </div>
             <div class="reason-input-section">
-                <label for="resignReasonInput" class="reason-label" id="resignReasonLabel">
+                <label for="resignReasonCategory" class="reason-label" id="resignReasonLabel">
                     For records, please provide reason why you are quitting before the job is complete:
                 </label>
+                <select id="resignReasonCategory" class="reason-select">
+                    <option value="">Select reason category...</option>
+                    <option value="unsafe_environment">Unsafe environment</option>
+                    <option value="inaccurate_description">Inaccurate gig description</option>
+                    <option value="terms_changed">Schedule or pay changed</option>
+                    <option value="unable_to_complete">Unable to complete</option>
+                </select>
+                <div class="reason-category-caption" id="resignCategoryCaption"></div>
                 <textarea 
                     id="resignReasonInput" 
-                    class="reason-textarea" 
-                    placeholder="Enter reason for resignation (minimum 2 characters)"
-                    maxlength="200"
-                    rows="2"></textarea>
+                    class="reason-textarea reason-textarea-compact" 
+                    placeholder="Brief note for customer (2-55 chars)"
+                    maxlength="55"
+                    rows="1"></textarea>
                 <div class="reason-char-count">
-                    <span id="resignCharCount">0</span>/200 characters
+                    <span id="resignCharCount">0</span>/55 characters
                 </div>
-                <div class="reason-error" id="resignReasonError">Please enter at least 2 characters</div>
+                <div class="reason-error" id="resignReasonError">Select a category and enter 2-55 characters</div>
             </div>
             <div class="delete-confirmation-actions">
                 <button class="delete-confirmation-btn cancel" id="resignJobNoBtn">
@@ -1391,7 +1407,7 @@
     <script src="public/js/firebase-config.js?v=20260821ga"></script>
     <script src="public/js/firebase-auth.js?v=38"></script>
     <script src="public/js/push-notifications.js?v=9"></script>
-    <script src="public/js/firebase-db.js?v=104"></script>
+    <script src="public/js/firebase-db.js?v=105"></script>
     <script src="public/js/firebase-storage.js?v=6"></script>
     
     <!-- UNIFORM HEADER SYSTEM -->
@@ -1402,6 +1418,6 @@
     <script src="public/js/chat-thread-service.js?v=1"></script>
     <script src="public/js/contact-reveal.js?v=15"></script>
     <script src="public/js/gig-overlays.js?v=16"></script>
-    <script src="public/js/jobs.js?v=178"></script>
+    <script src="public/js/jobs.js?v=179"></script>
 </body>
 </html> 

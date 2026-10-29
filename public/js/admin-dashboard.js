@@ -8248,6 +8248,49 @@ function calculateAgeFromDOB(dateOfBirth) {
     return age;
 }
 
+function formatAdminReasonBreakdown(reasonMap, labels) {
+    if (!reasonMap || typeof reasonMap !== 'object') return '';
+    const parts = [];
+    labels.forEach(([code, shortLabel]) => {
+        const count = Number(reasonMap[code] || 0);
+        if (count > 0) parts.push(`${shortLabel}: ${count}`);
+    });
+    return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
+function buildAdminUserTerminationTally(statistics) {
+    const stats = statistics || {};
+    const worker = stats.worker || {};
+    const customer = stats.customer || {};
+
+    const removedTotal = Number(worker.totalGigsRemoved || 0);
+    const resignedTotal = Number(worker.totalGigsResigned || 0);
+    const removedDetail = formatAdminReasonBreakdown(worker.removedReasons, [
+        ['no_show', 'No-show'],
+        ['unqualified', 'Unqualified'],
+        ['unable_to_complete', 'Unable']
+    ]);
+    const resignedDetail = formatAdminReasonBreakdown(worker.resignedReasons, [
+        ['unable_to_complete', 'Unable']
+    ]);
+
+    const firedTotal = Number(customer.totalWorkersFired || 0);
+    const quitTotal = Number(customer.totalWorkersQuit || 0);
+    const firedDetail = formatAdminReasonBreakdown(customer.firedReasons, [
+        ['customer_cancelled', 'Cancelled']
+    ]);
+    const quitDetail = formatAdminReasonBreakdown(customer.quitReasons, [
+        ['unsafe_environment', 'Unsafe'],
+        ['inaccurate_description', 'Inaccurate'],
+        ['terms_changed', 'Terms']
+    ]);
+
+    return {
+        workerSummary: `${removedTotal}${removedDetail} / ${resignedTotal}${resignedDetail}`,
+        customerSummary: `${firedTotal}${firedDetail} / ${quitTotal}${quitDetail}`
+    };
+}
+
 function normalizeUserForDisplay(id, data) {
     const d = data || {};
     const verification = d.verification || {};
@@ -8257,6 +8300,7 @@ function normalizeUserForDisplay(id, data) {
 
     const isBanned = d.status === 'banned';
     const isSuspended = d.status === 'suspended' || isBanned;
+    const termTally = buildAdminUserTerminationTally(d.statistics);
 
     return {
         id,
@@ -8272,6 +8316,8 @@ function normalizeUserForDisplay(id, data) {
         education: d.educationLevel || 'Not specified',
         signupProviderLabel: formatSignupProviderLabel(d.authProvider),
         introduction: (d.userSummary || '').trim() || 'No introduction provided.',
+        workerTermTally: termTally.workerSummary,
+        customerTermTally: termTally.customerSummary,
         socialMediaLinks: {
             facebook: d.socialMedia?.facebook || null,
             instagram: d.socialMedia?.instagram || null,
@@ -8572,6 +8618,10 @@ function displayUserDetails(user) {
     if (signupEl) signupEl.textContent = user.signupProviderLabel || 'Unknown';
     document.getElementById('userGigsListed').textContent = user.gigsListed;
     document.getElementById('userApplications').textContent = user.applications;
+    const workerTermEl = document.getElementById('userWorkerTermTally');
+    const customerTermEl = document.getElementById('userCustomerTermTally');
+    if (workerTermEl) workerTermEl.textContent = user.workerTermTally || '0 / 0';
+    if (customerTermEl) customerTermEl.textContent = user.customerTermTally || '0 / 0';
     document.getElementById('userIntro').textContent = user.introduction;
     
     // Update action buttons based on tab
@@ -9958,6 +10008,16 @@ function showUserDetailOverlay(user) {
                 <div class="user-info-item">
                     <div class="user-info-label">APPLICATIONS:</div>
                     <div class="user-info-value">${user.applications}</div>
+                </div>
+            </div>
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">WORKER REMOVED / RESIGNED:</div>
+                    <div class="user-info-value">${escapeHtml(String(user.workerTermTally || '0 / 0'))}</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">CUSTOMER FIRED / QUIT ON:</div>
+                    <div class="user-info-value">${escapeHtml(String(user.customerTermTally || '0 / 0'))}</div>
                 </div>
             </div>
         </div>

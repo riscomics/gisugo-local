@@ -10083,6 +10083,7 @@ function mapSupportRecordToUnifiedMessage(doc) {
     return {
         id: `support_${doc.id}`,
         supportRequestId: doc.id,
+        jobId: String(data?.jobId || '').trim() || null,
         messageType: 'direct',
         topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
         subject: (typeof window.displaySupportSubject === 'function')
@@ -10112,6 +10113,7 @@ function pickOpenSupportTicketFromList(messages, topicCode) {
     return messages.find((msg) => {
         const status = String(msg.supportStatus || '');
         if (status !== 'pending' && status !== 'replied') return false;
+        if (msg.jobId) return false;
         if (!wantedTopic) return true;
         return String(msg.topic || '') === wantedTopic;
     }) || null;

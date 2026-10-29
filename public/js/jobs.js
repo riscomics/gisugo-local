@@ -4959,6 +4959,8 @@ async function handleRelistJob(jobData) {
     const workerNameSpan = document.getElementById('relistWorkerName');
     const workerNameReminderSpan = document.getElementById('relistWorkerNameReminder');
     const workerNameInputSpan = document.getElementById('relistWorkerNameInput');
+    const categorySelect = document.getElementById('relistReasonCategory');
+    const categoryCaption = document.getElementById('relistCategoryCaption');
     const reasonInput = document.getElementById('relistReasonInput');
     const charCount = document.getElementById('relistCharCount');
     const reasonError = document.getElementById('relistReasonError');
@@ -4970,6 +4972,11 @@ async function handleRelistJob(jobData) {
     workerNameInputSpan.textContent = workerName;
     
     // Reset form state and button text for hiring context
+    if (categorySelect) categorySelect.value = '';
+    if (categoryCaption) {
+        categoryCaption.textContent = '';
+        categoryCaption.classList.remove('show');
+    }
     if (reasonInput) {
         reasonInput.value = '';
         charCount.textContent = '0';
@@ -5017,8 +5024,21 @@ const RELIST_MODAL_TRANSLATIONS = {
 • Make the gig available for new applications<br>
 • Move it back to your active listings<br><br>
 Please make sure you have notified {workerName} that you are removing them from this gig before proceeding.`,
-        reasonLabel: 'For records, please provide reason why you are firing {workerName}:',
-        reasonPlaceholder: 'Enter reason for termination (minimum 2 characters)',
+        reasonLabel: 'For records, select a reason and brief note for {workerName}:',
+        reasonPlaceholder: 'Brief note for worker (2-55 chars)',
+        categoryPlaceholder: 'Select reason category...',
+        categories: {
+            no_show: 'No-show / Unresponsive',
+            unqualified: 'Unqualified / Missing tools',
+            unable_to_complete: 'Unable to complete',
+            customer_cancelled: 'Plans changed / Cancelled'
+        },
+        captions: {
+            no_show: "Worker didn't arrive or stopped responding.",
+            unqualified: 'Lacked required skills, vehicle, or tools.',
+            unable_to_complete: "Arrived or started, but couldn't finish.",
+            customer_cancelled: "Your plans changed (counts on your profile, not worker's)."
+        },
         cancel: 'NO, KEEP CONTRACT',
         confirm: 'YES, VOID & RELIST'
     },
@@ -5031,8 +5051,21 @@ Please make sure you have notified {workerName} that you are removing them from 
 • Mahimong available usab ang trabaho para sa bag-ong applicants<br>
 • Mobalik kini sa imong active listings<br><br>
 Palihug siguroa nga imong napahibaloan si {workerName} nga tangtangon siya ani nga trabaho sa dili pa mopadayon.`,
-        reasonLabel: 'Para sa record, palihug butangi og rason nganong imong tangtangon si {workerName}:',
-        reasonPlaceholder: 'Ibutang ang rason sa termination (minimum 2 ka karakter)',
+        reasonLabel: 'Para sa record, pagpili og rason ug mubo nga mensahe para kang {workerName}:',
+        reasonPlaceholder: 'Mubo nga rason (2-55 ka karakter)',
+        categoryPlaceholder: 'Pagpili og kategorya sa rason...',
+        categories: {
+            no_show: 'Wala motunga / Dili motubag',
+            unqualified: 'Kulang sa abilidad / gamit',
+            unable_to_complete: 'Wala mahuman ang trabaho',
+            customer_cancelled: 'Nausab ang plano / Gi-cancel'
+        },
+        captions: {
+            no_show: 'Wala motunga o nihunong na sa pagtubag ang worker.',
+            unqualified: 'Walay saktong kahanas, sakyanan, o gamit.',
+            unable_to_complete: 'Nagsugod apan wala makahuman sa trabaho.',
+            customer_cancelled: 'Imong plano ang nausab (maihap sa imong profile, dili sa worker).'
+        },
         cancel: 'DILI, ITIPIG ANG KONTRATA',
         confirm: 'OO, I-VOID UG RELIST'
     },
@@ -5045,12 +5078,38 @@ Palihug siguroa nga imong napahibaloan si {workerName} nga tangtangon siya ani n
 • Magiging available ulit ang gig para sa bagong applicants<br>
 • Babalik ito sa active listings mo<br><br>
 Siguraduhing nasabihan mo si {workerName} na aalisin mo siya sa gig na ito bago magpatuloy.`,
-        reasonLabel: 'Para sa records, ilagay ang dahilan kung bakit mo tatanggalin si {workerName}:',
-        reasonPlaceholder: 'Ilagay ang dahilan ng termination (minimum 2 characters)',
+        reasonLabel: 'Para sa records, pumili ng dahilan at maikling note para kay {workerName}:',
+        reasonPlaceholder: 'Maikling dahilan (2-55 characters)',
+        categoryPlaceholder: 'Pumili ng kategorya ng dahilan...',
+        categories: {
+            no_show: 'Hindi sumipot / Hindi sumasagot',
+            unqualified: 'Kulang sa kasanayan / gamit',
+            unable_to_complete: 'Hindi natapos ang trabaho',
+            customer_cancelled: 'Nagbago ang plano / Kinansela'
+        },
+        captions: {
+            no_show: 'Hindi dumating o tumigil sa pagsagot ang worker.',
+            unqualified: 'Walang sapat na kasanayan, sasakyan, o gamit.',
+            unable_to_complete: 'Dumating o nagsimula pero hindi natapos.',
+            customer_cancelled: 'Nagbago ang plano mo (sa profile mo ang bilang, hindi sa worker).'
+        },
         cancel: 'HINDI, ITULOY ANG KONTRATA',
         confirm: 'OO, I-VOID AT RELIST'
     }
 };
+
+function updateRelistCategoryCaption() {
+    const tabContainer = document.getElementById('relistLangTabs');
+    const activeLang = tabContainer?.querySelector('.lang-tab.active')?.dataset?.lang || 'english';
+    const t = RELIST_MODAL_TRANSLATIONS[activeLang] || RELIST_MODAL_TRANSLATIONS.english;
+    const selectEl = document.getElementById('relistReasonCategory');
+    const captionEl = document.getElementById('relistCategoryCaption');
+    if (!selectEl || !captionEl) return;
+    const val = selectEl.value;
+    const captionText = (val && t.captions && t.captions[val]) ? t.captions[val] : '';
+    captionEl.textContent = captionText;
+    captionEl.classList.toggle('show', Boolean(captionText));
+}
 
 function applyRelistLanguage(lang) {
     const key = RELIST_MODAL_TRANSLATIONS[lang] ? lang : 'english';
@@ -5062,6 +5121,7 @@ function applyRelistLanguage(lang) {
     const subtitleEl = document.getElementById('relistJobSubtitle');
     const warningEl = document.getElementById('relistWarningText');
     const reasonLabelEl = document.getElementById('relistReasonLabel');
+    const categorySelectEl = document.getElementById('relistReasonCategory');
     const reasonInputEl = document.getElementById('relistReasonInput');
     const cancelBtn = document.getElementById('relistJobNoBtn');
     const confirmBtn = document.getElementById('relistJobYesBtn');
@@ -5070,6 +5130,16 @@ function applyRelistLanguage(lang) {
     if (subtitleEl) subtitleEl.textContent = replaceWorker(t.subtitle);
     if (warningEl) warningEl.innerHTML = replaceWorker(t.warning);
     if (reasonLabelEl) reasonLabelEl.textContent = replaceWorker(t.reasonLabel);
+    if (categorySelectEl && t.categories) {
+        Array.from(categorySelectEl.options).forEach((opt) => {
+            if (!opt.value) {
+                opt.textContent = t.categoryPlaceholder || 'Select reason category...';
+            } else if (t.categories[opt.value]) {
+                opt.textContent = t.categories[opt.value];
+            }
+        });
+    }
+    updateRelistCategoryCaption();
     if (reasonInputEl) reasonInputEl.placeholder = replaceWorker(t.reasonPlaceholder);
     if (cancelBtn) cancelBtn.textContent = replaceWorker(t.cancel);
     if (confirmBtn) confirmBtn.textContent = replaceWorker(t.confirm);
@@ -5115,6 +5185,8 @@ async function handleResignJob(jobData) {
     const overlay = document.getElementById('resignJobConfirmationOverlay');
     const subtitle = document.getElementById('resignJobSubtitle');
     const customerNameSpan = document.getElementById('resignCustomerName');
+    const categorySelect = document.getElementById('resignReasonCategory');
+    const categoryCaption = document.getElementById('resignCategoryCaption');
     const reasonInput = document.getElementById('resignReasonInput');
     const charCount = document.getElementById('resignCharCount');
     const reasonError = document.getElementById('resignReasonError');
@@ -5124,6 +5196,11 @@ async function handleResignJob(jobData) {
     customerNameSpan.textContent = customerName;
     
     // Reset form state
+    if (categorySelect) categorySelect.value = '';
+    if (categoryCaption) {
+        categoryCaption.textContent = '';
+        categoryCaption.classList.remove('show');
+    }
     if (reasonInput) {
         reasonInput.value = '';
         charCount.textContent = '0';
@@ -5155,8 +5232,21 @@ const RESIGN_MODAL_TRANSLATIONS = {
 • Remove you from this gig<br>
 • Make the gig available for new applications<br><br>
 Please ensure you have contacted the customer about quitting before proceeding.`,
-        reasonLabel: 'For records, please provide reason why you are quitting before the gig is complete:',
-        reasonPlaceholder: 'Enter reason for resignation (minimum 2 characters)',
+        reasonLabel: 'For records, select a reason and brief note for {customerName}:',
+        reasonPlaceholder: 'Brief note for customer (2-55 chars)',
+        categoryPlaceholder: 'Select reason category...',
+        categories: {
+            unsafe_environment: 'Unsafe environment',
+            inaccurate_description: 'Inaccurate gig description',
+            terms_changed: 'Schedule or pay changed',
+            unable_to_complete: 'Unable to complete'
+        },
+        captions: {
+            unsafe_environment: 'Safety hazard or unsafe location.',
+            inaccurate_description: "Actual work or load didn't match the post.",
+            terms_changed: 'Customer changed agreed time, scope, or pay.',
+            unable_to_complete: "Personal emergency or issue (counts on your profile, not customer's)."
+        },
         cancel: 'NO, CONTINUE WORKING',
         confirm: 'YES, RESIGN'
     },
@@ -5168,8 +5258,21 @@ Please ensure you have contacted the customer about quitting before proceeding.`
 • Matangtang ka ani nga trabaho<br>
 • Mahimong available usab ang trabaho para sa bag-ong applicants<br><br>
 Palihug siguroa nga nakaistorya na nimo ang customer sa dili pa mopadayon.`,
-        reasonLabel: 'Para sa record, palihug butangi og rason nganong muhawa ka sa dili pa mahuman ang trabaho:',
-        reasonPlaceholder: 'Ibutang ang rason sa pag-resign (minimum 2 ka karakter)',
+        reasonLabel: 'Para sa record, pagpili og rason ug mubo nga mensahe para kang {customerName}:',
+        reasonPlaceholder: 'Mubo nga rason (2-55 ka karakter)',
+        categoryPlaceholder: 'Pagpili og kategorya sa rason...',
+        categories: {
+            unsafe_environment: 'Dili luwas ang lugar / trabaho',
+            inaccurate_description: 'Dili tugma sa gig description',
+            terms_changed: 'Nausab ang oras o suhol',
+            unable_to_complete: 'Dili mahuman ang trabaho'
+        },
+        captions: {
+            unsafe_environment: 'Naa sa peligro o dili luwas ang lokasyon.',
+            inaccurate_description: 'Lahi ang aktwal nga trabaho kaysa sa naka-post.',
+            terms_changed: 'Gi-usab sa customer ang sabot sa oras, trabaho, o bayad.',
+            unable_to_complete: 'Personal nga emerhensya (maihap sa imong profile, dili sa customer).'
+        },
         cancel: 'DILI, PADAYON TRABAHO',
         confirm: 'OO, MUHAWA'
     },
@@ -5181,12 +5284,38 @@ Palihug siguroa nga nakaistorya na nimo ang customer sa dili pa mopadayon.`,
 • Aalis ka sa gig na ito<br>
 • Magiging available ulit ang gig para sa bagong applicants<br><br>
 Siguraduhing nakausap mo na ang customer bago magpatuloy.`,
-        reasonLabel: 'Para sa records, ilagay ang dahilan kung bakit ka magre-resign bago matapos ang gig:',
-        reasonPlaceholder: 'Ilagay ang dahilan ng resignation (minimum 2 characters)',
+        reasonLabel: 'Para sa records, pumili ng dahilan at maikling note para kay {customerName}:',
+        reasonPlaceholder: 'Maikling dahilan (2-55 characters)',
+        categoryPlaceholder: 'Pumili ng kategorya ng dahilan...',
+        categories: {
+            unsafe_environment: 'Hindi ligtas ang lugar',
+            inaccurate_description: 'Hindi tugma sa gig description',
+            terms_changed: 'Nagbago ang oras o bayad',
+            unable_to_complete: 'Hindi matatapos ang trabaho'
+        },
+        captions: {
+            unsafe_environment: 'May panganib o hindi ligtas ang lokasyon.',
+            inaccurate_description: 'Iba ang aktwal na trabaho kaysa sa naka-post.',
+            terms_changed: 'Binago ng customer ang usapan sa oras, trabaho, o bayad.',
+            unable_to_complete: 'Personal na emergency (sa profile mo ang bilang, hindi sa customer).'
+        },
         cancel: 'HINDI, TUTULOY AKO',
         confirm: 'OO, MAG-RESIGN'
     }
 };
+
+function updateResignCategoryCaption() {
+    const tabContainer = document.getElementById('resignLangTabs');
+    const activeLang = tabContainer?.querySelector('.lang-tab.active')?.dataset?.lang || 'english';
+    const t = RESIGN_MODAL_TRANSLATIONS[activeLang] || RESIGN_MODAL_TRANSLATIONS.english;
+    const selectEl = document.getElementById('resignReasonCategory');
+    const captionEl = document.getElementById('resignCategoryCaption');
+    if (!selectEl || !captionEl) return;
+    const val = selectEl.value;
+    const captionText = (val && t.captions && t.captions[val]) ? t.captions[val] : '';
+    captionEl.textContent = captionText;
+    captionEl.classList.toggle('show', Boolean(captionText));
+}
 
 function applyResignLanguage(lang) {
     const key = RESIGN_MODAL_TRANSLATIONS[lang] ? lang : 'english';
@@ -5198,6 +5327,7 @@ function applyResignLanguage(lang) {
     const subtitleEl = document.getElementById('resignJobSubtitle');
     const warningEl = document.getElementById('resignWarningText');
     const reasonLabelEl = document.getElementById('resignReasonLabel');
+    const categorySelectEl = document.getElementById('resignReasonCategory');
     const reasonInputEl = document.getElementById('resignReasonInput');
     const cancelBtn = document.getElementById('resignJobNoBtn');
     const confirmBtn = document.getElementById('resignJobYesBtn');
@@ -5206,6 +5336,16 @@ function applyResignLanguage(lang) {
     if (subtitleEl) subtitleEl.textContent = replaceCustomer(t.subtitle);
     if (warningEl) warningEl.innerHTML = replaceCustomer(t.warning);
     if (reasonLabelEl) reasonLabelEl.textContent = replaceCustomer(t.reasonLabel);
+    if (categorySelectEl && t.categories) {
+        Array.from(categorySelectEl.options).forEach((opt) => {
+            if (!opt.value) {
+                opt.textContent = t.categoryPlaceholder || 'Select reason category...';
+            } else if (t.categories[opt.value]) {
+                opt.textContent = t.categories[opt.value];
+            }
+        });
+    }
+    updateResignCategoryCaption();
     if (reasonInputEl) reasonInputEl.placeholder = replaceCustomer(t.reasonPlaceholder);
     if (cancelBtn) cancelBtn.textContent = replaceCustomer(t.cancel);
     if (confirmBtn) confirmBtn.textContent = replaceCustomer(t.confirm);
@@ -5413,29 +5553,45 @@ function initializeRelistJobConfirmationHandlers() {
     
     const yesBtn = document.getElementById('relistJobYesBtn');
     const noBtn = document.getElementById('relistJobNoBtn');
+    const categorySelect = document.getElementById('relistReasonCategory');
     const reasonInput = document.getElementById('relistReasonInput');
     const charCount = document.getElementById('relistCharCount');
     const reasonError = document.getElementById('relistReasonError');
     
+    blockUnsupportedCharsForInput(reasonInput);
+
+    const evaluateRelistFormValidity = function() {
+        const text = reasonInput ? reasonInput.value : '';
+        const length = text.length;
+        const trimmedLength = text.trim().length;
+        const hasCategory = Boolean(categorySelect && categorySelect.value);
+        if (charCount) charCount.textContent = length;
+        if (trimmedLength >= 2 && length <= 55 && hasCategory) {
+            if (yesBtn) yesBtn.disabled = false;
+            if (reasonError) reasonError.classList.remove('show');
+        } else {
+            if (yesBtn) yesBtn.disabled = true;
+            if (length > 0 && trimmedLength < 2 && reasonError) {
+                reasonError.classList.add('show');
+            }
+        }
+    };
+
+    if (categorySelect) {
+        const categoryHandler = function() {
+            updateRelistCategoryCaption();
+            evaluateRelistFormValidity();
+        };
+        categorySelect.addEventListener('change', categoryHandler);
+        registerCleanup('confirmation', 'relistCategory', () => {
+            categorySelect.removeEventListener('change', categoryHandler);
+        });
+    }
+
     // Initialize input validation handlers
     if (reasonInput) {
         const inputHandler = function() {
-            const text = reasonInput.value;
-            const length = text.length;
-            
-            // Update character count
-            charCount.textContent = length;
-            
-            // Check minimum length requirement
-            if (length >= 2) {
-                yesBtn.disabled = false;
-                reasonError.classList.remove('show');
-            } else {
-                yesBtn.disabled = true;
-                if (length > 0) {
-                    reasonError.classList.add('show');
-                }
-            }
+            evaluateRelistFormValidity();
         };
         
         // Focus handler for mobile keyboard positioning
@@ -5495,11 +5651,12 @@ function initializeRelistJobConfirmationHandlers() {
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const relistType = overlay.getAttribute('data-relist-type');
-            const reason = reasonInput ? reasonInput.value.trim() : '';
+            const reasonCategory = categorySelect ? String(categorySelect.value || '').trim() : '';
+            const reason = reasonInput ? sanitizeTextInput(reasonInput.value).trim().slice(0, 55) : '';
             
-            // Validate reason input
-            if (!reason || reason.length < 2) {
-                reasonError.classList.add('show');
+            // Validate reason category and input
+            if (!reasonCategory || !reason || reason.length < 2) {
+                if (reasonError) reasonError.classList.add('show');
                 overlay.dataset.processing = 'false'; // Reset processing flag
                 yesBtn.disabled = false; // Re-enable button
                 return;
@@ -5573,6 +5730,7 @@ function initializeRelistJobConfirmationHandlers() {
                             acceptedAt: firebase.firestore.FieldValue.delete(), // Remove if worker had accepted before relist
                             relistedAt: firebase.firestore.FieldValue.serverTimestamp(),
                             relistReason: reason,
+                            relistReasonCategory: reasonCategory,
                             voidedWorker: workerName,
                             voidedWorkerId: hiredWorkerId,
                             lastModified: firebase.firestore.FieldValue.serverTimestamp()
@@ -5580,20 +5738,23 @@ function initializeRelistJobConfirmationHandlers() {
                         
                         console.log('✅ Job relisted in Firebase, restored to active status');
 
-                        // Track firing/removal activity for customer and worker.
+                        // Single-side fault-based tally: customer_cancelled counts on customer; worker-fault reasons count on worker.
                         try {
                             const actingCustomerId = firebase.auth().currentUser?.uid;
-                            if (actingCustomerId) {
-                                await db.collection('users').doc(actingCustomerId).update({
-                                    'statistics.customer.totalWorkersFired': firebase.firestore.FieldValue.increment(1)
-                                });
-                            }
-                            if (hiredWorkerId) {
+                            if (reasonCategory === 'customer_cancelled') {
+                                if (actingCustomerId) {
+                                    await db.collection('users').doc(actingCustomerId).update({
+                                        'statistics.customer.totalWorkersFired': firebase.firestore.FieldValue.increment(1),
+                                        [`statistics.customer.firedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
+                                    });
+                                }
+                            } else if (hiredWorkerId) {
                                 await db.collection('users').doc(hiredWorkerId).update({
-                                    'statistics.worker.totalGigsRemoved': firebase.firestore.FieldValue.increment(1)
+                                    'statistics.worker.totalGigsRemoved': firebase.firestore.FieldValue.increment(1),
+                                    [`statistics.worker.removedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
                                 });
                             }
-                            console.log('✅ Relist activity statistics updated');
+                            console.log('✅ Relist activity statistics updated (single-side tally)');
                         } catch (statsError) {
                             console.warn('⚠️ Could not update relist activity statistics:', statsError);
                         }
@@ -5618,7 +5779,8 @@ function initializeRelistJobConfirmationHandlers() {
                                     batch.update(doc.ref, {
                                         status: 'voided',
                                         voidedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                        voidReason: reason
+                                        voidReason: reason,
+                                        voidReasonCategory: reasonCategory
                                     });
                                 });
                                 await batch.commit();
@@ -5721,29 +5883,45 @@ function initializeResignJobConfirmationHandlers() {
     
     const yesBtn = document.getElementById('resignJobYesBtn');
     const noBtn = document.getElementById('resignJobNoBtn');
+    const categorySelect = document.getElementById('resignReasonCategory');
     const reasonInput = document.getElementById('resignReasonInput');
     const charCount = document.getElementById('resignCharCount');
     const reasonError = document.getElementById('resignReasonError');
     
+    blockUnsupportedCharsForInput(reasonInput);
+
+    const evaluateResignFormValidity = function() {
+        const text = reasonInput ? reasonInput.value : '';
+        const length = text.length;
+        const trimmedLength = text.trim().length;
+        const hasCategory = Boolean(categorySelect && categorySelect.value);
+        if (charCount) charCount.textContent = length;
+        if (trimmedLength >= 2 && length <= 55 && hasCategory) {
+            if (yesBtn) yesBtn.disabled = false;
+            if (reasonError) reasonError.classList.remove('show');
+        } else {
+            if (yesBtn) yesBtn.disabled = true;
+            if (length > 0 && trimmedLength < 2 && reasonError) {
+                reasonError.classList.add('show');
+            }
+        }
+    };
+
+    if (categorySelect) {
+        const categoryHandler = function() {
+            updateResignCategoryCaption();
+            evaluateResignFormValidity();
+        };
+        categorySelect.addEventListener('change', categoryHandler);
+        registerCleanup('confirmation', 'resignCategory', () => {
+            categorySelect.removeEventListener('change', categoryHandler);
+        });
+    }
+
     // Initialize input validation handlers
     if (reasonInput) {
         const inputHandler = function() {
-            const text = reasonInput.value;
-            const length = text.length;
-            
-            // Update character count
-            charCount.textContent = length;
-            
-            // Check minimum length requirement
-            if (length >= 2) {
-                yesBtn.disabled = false;
-                reasonError.classList.remove('show');
-            } else {
-                yesBtn.disabled = true;
-                if (length > 0) {
-                    reasonError.classList.add('show');
-                }
-            }
+            evaluateResignFormValidity();
         };
         
         // Focus handler for mobile keyboard positioning
@@ -5753,13 +5931,15 @@ function initializeResignJobConfirmationHandlers() {
             overlay.classList.add('input-focused');
             
             // Small delay to allow keyboard to appear
-            setTimeout(() => {
+            const scrollTimeoutId = setTimeout(() => {
                 reasonInput.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center',
                     inline: 'nearest'
                 });
             }, 300);
+            if (!window._resignScrollTimeouts) window._resignScrollTimeouts = [];
+            window._resignScrollTimeouts.push(scrollTimeoutId);
         };
         
         // Blur handler to remove focused state
@@ -5775,6 +5955,10 @@ function initializeResignJobConfirmationHandlers() {
             reasonInput.removeEventListener('input', inputHandler);
             reasonInput.removeEventListener('focus', focusHandler);
             reasonInput.removeEventListener('blur', blurHandler);
+            if (window._resignScrollTimeouts?.length) {
+                window._resignScrollTimeouts.forEach(clearTimeout);
+                window._resignScrollTimeouts = [];
+            }
         });
     }
     
@@ -5797,11 +5981,12 @@ function initializeResignJobConfirmationHandlers() {
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const customerName = overlay.getAttribute('data-customer-name');
-            const reason = reasonInput ? reasonInput.value.trim() : '';
+            const reasonCategory = categorySelect ? String(categorySelect.value || '').trim() : '';
+            const reason = reasonInput ? sanitizeTextInput(reasonInput.value).trim().slice(0, 55) : '';
             
-            // Validate reason input
-            if (!reason || reason.length < 2) {
-                reasonError.classList.add('show');
+            // Validate reason category and input
+            if (!reasonCategory || !reason || reason.length < 2) {
+                if (reasonError) reasonError.classList.add('show');
                 overlay.dataset.processing = 'false'; // Reset processing flag
                 yesBtn.disabled = false; // Re-enable button
                 return;
@@ -5850,6 +6035,7 @@ function initializeResignJobConfirmationHandlers() {
                         acceptedAt: firebase.firestore.FieldValue.delete(),
                         resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
                         resignReason: reason,
+                        resignReasonCategory: reasonCategory,
                         resignedWorkerId: currentUserId,
                         resignedWorkerName: resignedWorkerName,
                         lastModified: firebase.firestore.FieldValue.serverTimestamp()
@@ -5857,19 +6043,22 @@ function initializeResignJobConfirmationHandlers() {
                     
                     console.log('✅ Job resigned in Firebase, restored to active status');
 
-                    // Track worker quit and customer worker-quit activity.
+                    // Single-side fault-based tally: unable_to_complete counts on worker; customer-fault reasons count on customer.
                     try {
-                        if (currentUserId) {
-                            await db.collection('users').doc(currentUserId).update({
-                                'statistics.worker.totalGigsResigned': firebase.firestore.FieldValue.increment(1)
-                            });
-                        }
-                        if (customerId) {
+                        if (reasonCategory === 'unable_to_complete') {
+                            if (currentUserId) {
+                                await db.collection('users').doc(currentUserId).update({
+                                    'statistics.worker.totalGigsResigned': firebase.firestore.FieldValue.increment(1),
+                                    [`statistics.worker.resignedReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
+                                });
+                            }
+                        } else if (customerId) {
                             await db.collection('users').doc(customerId).update({
-                                'statistics.customer.totalWorkersQuit': firebase.firestore.FieldValue.increment(1)
+                                'statistics.customer.totalWorkersQuit': firebase.firestore.FieldValue.increment(1),
+                                [`statistics.customer.quitReasons.${reasonCategory}`]: firebase.firestore.FieldValue.increment(1)
                             });
                         }
-                        console.log('✅ Resignation activity statistics updated');
+                        console.log('✅ Resignation activity statistics updated (single-side tally)');
                     } catch (statsError) {
                         console.warn('⚠️ Could not update resignation activity statistics:', statsError);
                     }
@@ -5892,7 +6081,8 @@ function initializeResignJobConfirmationHandlers() {
                                 batch.update(doc.ref, {
                                     status: 'resigned',
                                     resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                    resignReason: reason
+                                    resignReason: reason,
+                                    resignReasonCategory: reasonCategory
                                 });
                             });
                             await batch.commit();
@@ -7362,13 +7552,16 @@ async function showPreviousOptionsOverlay(jobData) {
             `;
         }
     } else if (jobData.role === 'customer') {
-        // Customer perspective: You hired someone and completed the job - can relist
+        // Customer perspective: You hired someone and completed the job - can relist or report dispute
         buttonsHTML = `
             <button class="listing-option-btn view" id="viewCompletedGigPostBtn">
                 VIEW GIG POST
             </button>
             <button class="listing-option-btn modify" id="relistCompletedJobBtn">
                 RELIST GIG
+            </button>
+            <button class="listing-option-btn delete" id="reportDisputeBtn">
+                REPORT DISPUTE
             </button>
             <button class="listing-option-btn cancel" id="cancelPreviousBtn">
                 CLOSE
@@ -7671,18 +7864,27 @@ function handleLeaveFeedback(jobData) {
 }
 
 function handleReportDispute(jobData) {
-    console.log(`⚠️ REPORT DISPUTE for customer: ${jobData.posterName}`);
+    const isCustomer = jobData.role === 'customer';
+    const counterpartName = isCustomer
+        ? (jobData.hiredWorkerName || 'the worker')
+        : (jobData.posterName || 'the customer');
+    const counterpartId = isCustomer
+        ? (jobData.hiredWorkerId || '')
+        : (jobData.posterId || '');
+    console.log(`⚠️ REPORT DISPUTE (${jobData.role || 'worker'}) against: ${counterpartName}`);
     hidePreviousOptionsOverlay();
     
     // Update dispute overlay content
     document.getElementById('disputeJobSubtitle').textContent = `Report an issue with "${jobData.title}"`;
-    document.getElementById('disputeCustomerName').textContent = jobData.posterName;
+    document.getElementById('disputeCustomerName').textContent = counterpartName;
     
     // Store job data in the overlay for submission
     const disputeOverlay = document.getElementById('reportDisputeOverlay');
-    disputeOverlay.setAttribute('data-job-id', jobData.jobId);
-    disputeOverlay.setAttribute('data-customer-name', jobData.posterName);
-    disputeOverlay.setAttribute('data-job-title', jobData.title);
+    disputeOverlay.setAttribute('data-job-id', jobData.jobId || '');
+    disputeOverlay.setAttribute('data-customer-name', counterpartName);
+    disputeOverlay.setAttribute('data-counterpart-id', counterpartId);
+    disputeOverlay.setAttribute('data-role', jobData.role || 'worker');
+    disputeOverlay.setAttribute('data-job-title', jobData.title || 'Completed Gig');
     
     // Reset dispute form
     resetDisputeForm();
@@ -10487,6 +10689,7 @@ function initializeDisputeCharacterCount() {
     const errorDiv = document.getElementById('disputeReasonError');
     
     if (!textarea || !charCount || !submitBtn || !errorDiv) return;
+    blockUnsupportedCharsForInput(textarea);
     
     const updateHandler = function() {
         const count = textarea.value.length;
@@ -10549,41 +10752,121 @@ function handleDisputeTextareaBlur(e) {
 
 async function submitDispute() {
     const overlay = document.getElementById('reportDisputeOverlay');
-    const jobId = overlay.getAttribute('data-job-id');
-    const customerName = overlay.getAttribute('data-customer-name');
-    const jobTitle = overlay.getAttribute('data-job-title');
-    const disputeReason = document.getElementById('disputeReasonInput').value.trim();
+    if (!overlay || overlay.dataset.processing === 'true') return;
+    const submitBtn = document.getElementById('submitDisputeBtn');
+    const jobId = String(overlay.getAttribute('data-job-id') || '').trim();
+    const customerName = String(overlay.getAttribute('data-customer-name') || 'the other party').trim();
+    const counterpartId = String(overlay.getAttribute('data-counterpart-id') || '').trim();
+    const role = String(overlay.getAttribute('data-role') || 'worker').trim();
+    const jobTitle = String(overlay.getAttribute('data-job-title') || 'Completed Gig').trim();
+    const rawReason = document.getElementById('disputeReasonInput')?.value || '';
+    const disputeReason = sanitizeTextInput(rawReason).trim().slice(0, 500);
     
     if (disputeReason.length < 10) {
         showErrorNotification('Please provide at least 10 characters for the dispute reason');
         return;
     }
+
+    if (typeof getPublicPlatformPolicy === 'function') {
+        try {
+            const policy = await getPublicPlatformPolicy();
+            if (policy && policy.suspendMessages) {
+                showErrorNotification('Support messages are paused right now. Please try again later.');
+                return;
+            }
+        } catch (_) {}
+    }
+
+    overlay.dataset.processing = 'true';
+    if (submitBtn) submitBtn.disabled = true;
     
-    console.log('⚠️ Submitting dispute:', {
+    console.log('⚠️ Submitting dispute as per-gig support ticket:', {
         jobId,
         customerName,
+        role,
         jobTitle,
         disputeReason
     });
     
     try {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // await db.collection('disputes').add({
-        //     jobId: jobId,
-        //     reporterUserId: currentUserId,
-        //     reportedUserId: customerUserId,
-        //     jobTitle: jobTitle,
-        //     disputeReason: disputeReason,
-        //     status: 'pending',
-        //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //     priority: 'medium'
-        // });
-        
-        // Mock submission delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+        if (useFirebase && typeof firebase !== 'undefined' && firebase.firestore) {
+            const db = firebase.firestore();
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser || !currentUser.uid) {
+                throw new Error('Please log in to submit a dispute report.');
+            }
+            const userId = currentUser.uid;
+            const userName = typeof getFreshOwnDisplayName === 'function'
+                ? await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'User')
+                : (currentUser.displayName || 'User');
+            const userEmail = String(currentUser.email || '').trim();
+            const now = new Date();
+            const referenceId = `DSP-${now.getTime().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+            const roleLabel = role === 'customer' ? 'Customer' : 'Worker';
+            const counterpartLabel = role === 'customer' ? 'Worker' : 'Customer';
+            const subject = `Dispute: ${jobTitle}`.slice(0, 200);
+            const fullMessage = `[${roleLabel} Dispute — Gig: "${jobTitle}" | ${counterpartLabel}: ${customerName}]\n${disputeReason}`.slice(0, 5000);
+
+            await db.collection('support_requests').add({
+                source: 'completed_dispute',
+                messageType: 'support_request',
+                channel: 'gigs_manager',
+                categoryCode: 'complaints_disputes',
+                categoryLabel: 'Complaints & Disputes',
+                subject,
+                message: fullMessage,
+                requester: {
+                    userId,
+                    guestSessionId: null,
+                    name: userName,
+                    email: userEmail
+                },
+                attachments: {
+                    photoUrl: null,
+                    photoPath: null,
+                    photoThumbUrl: null,
+                    photoThumbPath: null
+                },
+                status: 'pending',
+                lastSender: 'user',
+                messages: [{
+                    sender: 'user',
+                    senderId: userId,
+                    senderName: userName,
+                    message: fullMessage,
+                    photoUrl: null,
+                    photoThumbUrl: null,
+                    createdAtISO: now.toISOString(),
+                    createdAtMs: now.getTime()
+                }],
+                priority: 'normal',
+                assignedTo: null,
+                isReadByRequester: false,
+                referenceId,
+                jobId: jobId || null,
+                jobTitle: jobTitle || null,
+                reportedUserId: counterpartId || null,
+                reportedUserName: customerName || null,
+                reporterRole: role,
+                topic: 'complaints_disputes',
+                userName,
+                userEmail,
+                userId,
+                photoUrl: null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAtISO: now.toISOString(),
+                updatedAtISO: now.toISOString(),
+                lastUpdatedAtISO: now.toISOString(),
+                createdAtMs: now.getTime(),
+                updatedAtMs: now.getTime(),
+                lastUpdatedAtMs: now.getTime()
+            });
+        } else {
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
         
         hideDisputeOverlay();
         showDisputeSubmittedSuccess(customerName, jobTitle);
@@ -10591,6 +10874,9 @@ async function submitDispute() {
     } catch (error) {
         console.error('❌ Error submitting dispute:', error);
         showErrorNotification('Failed to submit dispute. Please try again.');
+    } finally {
+        delete overlay.dataset.processing;
+        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
@@ -10639,7 +10925,7 @@ function showDisputeSubmittedSuccess(customerName, jobTitle) {
     const overlay = document.getElementById('disputeSubmittedOverlay');
     const message = document.getElementById('disputeSubmittedMessage');
     
-    message.textContent = `Your dispute regarding "${jobTitle}" with ${customerName} has been submitted and will be reviewed by our support team within 24-48 hours.`;
+    message.textContent = `Your dispute regarding "${jobTitle}" with ${customerName} has been sent to GISUGO Support. You can track and reply to this thread in your Support inbox.`;
     
     const okBtn = document.getElementById('disputeSubmittedOkBtn');
     const okHandler = function() {

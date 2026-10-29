@@ -139,7 +139,8 @@ service cloud.firestore {
         && affectedKeys.hasOnly([
           'status', 'hiredWorkerId', 'hiredWorkerName', 'hiredWorkerThumbnail',
           'agreedPrice', 'hiredAt', 'acceptedAt', 'resignedAt', 'resignReason',
-          'resignedWorkerId', 'resignedWorkerName', 'applicationCount', 'lastModified'
+          'resignReasonCategory', 'resignedWorkerId', 'resignedWorkerName',
+          'applicationCount', 'lastModified'
         ]);
     }
     

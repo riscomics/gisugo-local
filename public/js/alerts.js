@@ -807,10 +807,25 @@ function tAlertLang(key) {
     return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
 }
 
+function extractAlertReasonText(notif) {
+    const explicit = String(notif?.reasonText || '').trim();
+    if (explicit) return explicit.slice(0, 55);
+    const rawMsg = String(notif?.message || '');
+    const match = rawMsg.match(/Reason:\s*"?([^"]+)"?(?:\.\s*Your job is now active|$)/i);
+    if (match && match[1]) {
+        return match[1].trim().slice(0, 55);
+    }
+    return '';
+}
+
 function getLocalizedAlertMessage(notif, type) {
     const jobTitle = notif.jobTitle || 'Gig';
     const gigTitleHtml = `<strong class="alert-gig-title">${escapeHtml(String(jobTitle).trim() || 'Gig')}</strong>`;
-    const workerName = notif.workerName || 'Worker';
+    const workerName = escapeHtml(String(notif.workerName || 'Worker').trim() || 'Worker');
+    const reasonText = extractAlertReasonText(notif);
+    const reasonSuffixEn = reasonText ? ` Reason: "${escapeHtml(reasonText)}"` : '';
+    const reasonSuffixBi = reasonText ? ` Rason: "${escapeHtml(reasonText)}"` : '';
+    const reasonSuffixTl = reasonText ? ` Dahilan: "${escapeHtml(reasonText)}"` : '';
     const closureCount = Math.max(1, Number(notif.closureCount || 1));
     // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
     // the two legacy ones still in the DB) render this same abundance message.
@@ -827,64 +842,64 @@ function getLocalizedAlertMessage(notif, type) {
         english: {
             offer_sent: `Click to Accept or Decline: ${gigTitleHtml}!`,
             offer_accepted: `Your ${gigTitleHtml} is now live in Hiring Tab.`,
-            job_completed: `Gig "${jobTitle}" has been marked completed.`,
+            job_completed: `Gig ${gigTitleHtml} has been marked completed.`,
             feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
-            contract_voided: `Customer voided your work on ${gigTitleHtml}.`,
+            contract_voided: `Customer voided your work on ${gigTitleHtml}.${reasonSuffixEn}`,
             application_received: `Someone applied to ${gigTitleHtml}. Click here to review.`,
-            application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
-            gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
-            gig_review_needed: `Your gig "${jobTitle}" has 20 applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
-            offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
-            worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
+            application_milestone: `Your gig ${gigTitleHtml} has 5+ applications pending review.`,
+            gig_auto_paused: `Your gig ${gigTitleHtml} is auto-paused at 10 applications. Review applications to proceed.`,
+            gig_review_needed: `Your gig ${gigTitleHtml} has 20 applications. Review them in Gigs Manager — hire one or reject applicants you won't use.`,
+            offer_rejected: `${workerName} has rejected your offer for ${gigTitleHtml}.`,
+            worker_resigned: `${workerName} has resigned from ${gigTitleHtml}.${reasonSuffixEn}`,
             worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
-            worker_banned_gig_reopened: `Worker account revoked — your gig "${jobTitle}" has been opened again on the market.`,
+            worker_banned_gig_reopened: `Worker account revoked — your gig ${gigTitleHtml} has been opened again on the market.`,
             application_not_selected_batch: slotsEn,
             application_rejected_batch: slotsEn,
             application_slots_reopened_batch: slotsEn,
             support_admin_message: jobTitle && jobTitle !== 'Gig'
-                ? `GISUGO sent you a message about "${jobTitle}". Open Support to read and reply.`
+                ? `GISUGO sent you a message about ${gigTitleHtml}. Open Support to read and reply.`
                 : 'GISUGO sent you a message. Open Support to read and reply.'
         },
         bisaya: {
             offer_sent: `I-click para modawat o modili: ${gigTitleHtml}!`,
             offer_accepted: `Ang imong ${gigTitleHtml} buhi na sa Hiring Tab.`,
-            job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
+            job_completed: `Ang gig ${gigTitleHtml} gimarkahan na nga completed.`,
             feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
-            contract_voided: `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.`,
+            contract_voided: `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.${reasonSuffixBi}`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click diri para i-review.`,
-            application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
-            gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
-            gig_review_needed: `Ang imong gig "${jobTitle}" naa nay 20 ka applications. I-review sa Gigs Manager — hire usa o i-reject ang dili nimo gamiton.`,
-            offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
-            worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
+            application_milestone: `Ang imong gig ${gigTitleHtml} naa nay 5+ ka pending applications.`,
+            gig_auto_paused: `Ang imong gig ${gigTitleHtml} gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
+            gig_review_needed: `Ang imong gig ${gigTitleHtml} naa nay 20 ka applications. I-review sa Gigs Manager — hire usa o i-reject ang dili nimo gamiton.`,
+            offer_rejected: `${workerName} midili sa imong offer para sa ${gigTitleHtml}.`,
+            worker_resigned: `${workerName} ni-resign sa ${gigTitleHtml}.${reasonSuffixBi}`,
             worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
-            worker_banned_gig_reopened: `Gi-revoke ang account sa worker — nabuksan na usab ang imong gig nga "${jobTitle}" sa market.`,
+            worker_banned_gig_reopened: `Gi-revoke ang account sa worker — nabuksan na usab ang imong gig nga ${gigTitleHtml} sa market.`,
             application_not_selected_batch: slotsBi,
             application_rejected_batch: slotsBi,
             application_slots_reopened_batch: slotsBi,
             support_admin_message: jobTitle && jobTitle !== 'Gig'
-                ? `Nagdala ang GISUGO og mensahe bahin sa "${jobTitle}". Ablihi ang Support aron mabasa ug motubag.`
+                ? `Nagdala ang GISUGO og mensahe bahin sa ${gigTitleHtml}. Ablihi ang Support aron mabasa ug motubag.`
                 : 'Nagdala ang GISUGO og mensahe. Ablihi ang Support aron mabasa ug motubag.'
         },
         tagalog: {
             offer_sent: `I-click para tanggapin o tanggihan: ${gigTitleHtml}!`,
             offer_accepted: `Live na ang ${gigTitleHtml} mo sa Hiring Tab.`,
-            job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
+            job_completed: `Ang gig na ${gigTitleHtml} ay minarkahan nang completed.`,
             feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
-            contract_voided: `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.`,
+            contract_voided: `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.${reasonSuffixTl}`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click dito para i-review.`,
-            application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
-            gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
-            gig_review_needed: `May 20 applications na ang gig mo na "${jobTitle}". I-review sa Gigs Manager — mag-hire o i-reject ang hindi mo gagamitin.`,
-            offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
-            worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
+            application_milestone: `Ang gig mo na ${gigTitleHtml} ay may 5+ pending applications.`,
+            gig_auto_paused: `Auto-paused ang gig mo na ${gigTitleHtml} sa 10 applications. I-review para makapagpatuloy.`,
+            gig_review_needed: `May 20 applications na ang gig mo na ${gigTitleHtml}. I-review sa Gigs Manager — mag-hire o i-reject ang hindi mo gagamitin.`,
+            offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa ${gigTitleHtml}.`,
+            worker_resigned: `${workerName} ay nag-resign sa ${gigTitleHtml}.${reasonSuffixTl}`,
             worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
-            worker_banned_gig_reopened: `Binawi ang account ng worker — nabuksan muli ang gig mong "${jobTitle}" sa market.`,
+            worker_banned_gig_reopened: `Binawi ang account ng worker — nabuksan muli ang gig mong ${gigTitleHtml} sa market.`,
             application_not_selected_batch: slotsTl,
             application_rejected_batch: slotsTl,
             application_slots_reopened_batch: slotsTl,
             support_admin_message: jobTitle && jobTitle !== 'Gig'
-                ? `May mensahe ang GISUGO tungkol sa "${jobTitle}". Buksan ang Support para basahin at sagutin.`
+                ? `May mensahe ang GISUGO tungkol sa ${gigTitleHtml}. Buksan ang Support para basahin at sagutin.`
                 : 'May mensahe ang GISUGO. Buksan ang Support para basahin at sagutin.'
         }
     };
@@ -3517,7 +3532,7 @@ function generateNotificationHTML(notification) {
                 <div class="notification-title">${transformed.title}</div>
                 <div class="notification-message">${transformed.message}</div>
                 <div class="notification-meta">
-                    <span class="notification-time">${transformed.timeDisplay}</span>
+                    ${transformed.timeDisplay ? `<span class="notification-time">${transformed.timeDisplay}</span>` : ''}
                     <span class="notification-date">${transformed.dateDisplay}</span>
                 </div>
                 ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
@@ -3646,8 +3661,8 @@ function transformFirebaseNotification(notif) {
         } else if (diffDays < 7) {
             timeDisplay = `${diffDays} days ago`;
         } else {
-            // Use user's locale for longer periods
-            timeDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            // 7+ days old: hide relative time span so date doesn't repeat next to dateDisplay
+            timeDisplay = '';
         }
         
         // Format date in user's local timezone

@@ -6717,6 +6717,10 @@ function displayActivityStatistics(userProfile) {
 
   const workerStats = stats.worker || {};
   const customerStats = stats.customer || {};
+  window.__currentProfileActivityStats = {
+    worker: workerStats,
+    customer: customerStats
+  };
 
   applyRoleYearView('worker', 'all', workerStats);
   applyRoleYearView('customer', 'all', customerStats);
@@ -6759,7 +6763,85 @@ function displayActivityStatistics(userProfile) {
   console.log('✅ Activity statistics displayed');
 }
 
-function openMetricInfoOverlay(title, description, emoji) {
+const METRIC_REASON_BREAKDOWN_CONFIG = {
+  workerRemoved: {
+    role: 'worker',
+    mapKey: 'removedReasons',
+    labels: [
+      ['no_show', 'No-show / Unresponsive'],
+      ['unqualified', 'Unqualified / Missing tools'],
+      ['unable_to_complete', 'Unable to complete']
+    ]
+  },
+  workerResigned: {
+    role: 'worker',
+    mapKey: 'resignedReasons',
+    labels: [
+      ['unable_to_complete', 'Unable to complete']
+    ]
+  },
+  customerFired: {
+    role: 'customer',
+    mapKey: 'firedReasons',
+    labels: [
+      ['customer_cancelled', 'Plans changed / Cancelled']
+    ]
+  },
+  customerQuit: {
+    role: 'customer',
+    mapKey: 'quitReasons',
+    labels: [
+      ['unsafe_environment', 'Unsafe environment'],
+      ['inaccurate_description', 'Inaccurate gig description'],
+      ['terms_changed', 'Schedule or pay changed']
+    ]
+  }
+};
+
+function renderMetricBreakdownInto(containerEl, metricKey) {
+  if (!containerEl) return;
+  containerEl.innerHTML = '';
+  const cfg = metricKey ? METRIC_REASON_BREAKDOWN_CONFIG[metricKey] : null;
+  const statsRoot = window.__currentProfileActivityStats || {};
+  const reasonMap = cfg && statsRoot[cfg.role] && statsRoot[cfg.role][cfg.mapKey]
+    ? statsRoot[cfg.role][cfg.mapKey]
+    : null;
+
+  if (!cfg || !reasonMap || typeof reasonMap !== 'object') {
+    containerEl.style.display = 'none';
+    return;
+  }
+
+  const rows = [];
+  cfg.labels.forEach(([code, label]) => {
+    const count = Number(reasonMap[code] || 0);
+    if (count > 0) {
+      rows.push({ label, count });
+    }
+  });
+
+  if (rows.length === 0) {
+    containerEl.style.display = 'none';
+    return;
+  }
+
+  rows.forEach(({ label, count }) => {
+    const row = document.createElement('div');
+    row.className = 'metric-breakdown-row';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'metric-breakdown-label';
+    labelSpan.textContent = label;
+    const countSpan = document.createElement('span');
+    countSpan.className = 'metric-breakdown-count';
+    countSpan.textContent = String(count);
+    row.appendChild(labelSpan);
+    row.appendChild(countSpan);
+    containerEl.appendChild(row);
+  });
+  containerEl.style.display = 'block';
+}
+
+function openMetricInfoOverlay(title, description, emoji, metricKey) {
   const reopenBlockedUntil = window.__metricInfoReopenBlockedUntil || 0;
   if (Date.now() < reopenBlockedUntil) {
     return;
@@ -6769,11 +6851,13 @@ function openMetricInfoOverlay(title, description, emoji) {
   const titleEl = document.getElementById('metricInfoTitle');
   const descEl = document.getElementById('metricInfoDescription');
   const iconEl = document.getElementById('metricInfoIcon');
+  const breakdownEl = document.getElementById('metricInfoBreakdown');
 
   if (!overlay || !titleEl || !descEl || !iconEl) return;
 
   titleEl.textContent = title || 'Metric Info';
   descEl.textContent = description || 'This metric shows related activity on your profile.';
+  renderMetricBreakdownInto(breakdownEl, metricKey);
   if (emoji) {
     iconEl.textContent = emoji;
     iconEl.classList.remove('hidden');
@@ -6857,6 +6941,7 @@ function initializeMetricInfoCards() {
     const title = item.getAttribute('data-metric-title') || 'Metric Info';
     const description = item.getAttribute('data-metric-description') || '';
     const emoji = item.getAttribute('data-metric-emoji') || '';
+    const metricKey = item.getAttribute('data-metric-key') || '';
     const nestedYearDropdown = item.querySelector('.year-dropdown');
 
     item.setAttribute('role', 'button');
@@ -6872,13 +6957,13 @@ function initializeMetricInfoCards() {
     item.addEventListener('click', (event) => {
       if (event.target && event.target.closest && event.target.closest('.stats-year-selector')) return;
       if (overlay.classList.contains('active')) return;
-      openMetricInfoOverlay(title, description, emoji);
+      openMetricInfoOverlay(title, description, emoji, metricKey);
     });
 
     item.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        openMetricInfoOverlay(title, description, emoji);
+        openMetricInfoOverlay(title, description, emoji, metricKey);
       }
     });
 
