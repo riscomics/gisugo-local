@@ -5809,11 +5809,15 @@ function initializeRelistJobConfirmationHandlers() {
                                 const applicationsSnapshot = await db.collection('applications')
                                     .where('jobId', '==', jobId)
                                     .where('applicantId', '==', hiredWorkerId)
-                                    .where('status', '==', 'accepted')
                                     .get();
                                 
+                                const targetApplications = applicationsSnapshot.docs.filter((doc) => {
+                                    const status = String(doc.data()?.status || '').toLowerCase();
+                                    return status === 'accepted' || status === 'hired' || status === 'pending';
+                                });
+                                
                                 const batch = db.batch();
-                                applicationsSnapshot.docs.forEach(doc => {
+                                targetApplications.forEach(doc => {
                                     batch.update(doc.ref, {
                                         status: 'voided',
                                         voidedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -5821,11 +5825,13 @@ function initializeRelistJobConfirmationHandlers() {
                                         voidReasonCategory: reasonCategory
                                     });
                                 });
-                                await batch.commit();
-                                console.log('✅ Worker application marked as voided');
+                                if (targetApplications.length > 0) {
+                                    await batch.commit();
+                                    console.log(`✅ Worker application marked as voided (${targetApplications.length})`);
+                                }
 
                                 if (typeof releaseApplicationCoinForApplication === 'function') {
-                                    const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                                    const releasePromises = targetApplications.map((doc) =>
                                         releaseApplicationCoinForApplication(doc.id, 'voided_by_customer')
                                             .catch((error) => console.warn('⚠️ Could not release coin for voided application:', error))
                                     );
@@ -6111,11 +6117,15 @@ function initializeResignJobConfirmationHandlers() {
                             const applicationsSnapshot = await db.collection('applications')
                                 .where('jobId', '==', jobId)
                                 .where('applicantId', '==', currentUserId)
-                                .where('status', '==', 'accepted')
                                 .get();
                             
+                            const targetApplications = applicationsSnapshot.docs.filter((doc) => {
+                                const status = String(doc.data()?.status || '').toLowerCase();
+                                return status === 'accepted' || status === 'hired' || status === 'pending';
+                            });
+                            
                             const batch = db.batch();
-                            applicationsSnapshot.docs.forEach(doc => {
+                            targetApplications.forEach(doc => {
                                 batch.update(doc.ref, {
                                     status: 'resigned',
                                     resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -6123,11 +6133,13 @@ function initializeResignJobConfirmationHandlers() {
                                     resignReasonCategory: reasonCategory
                                 });
                             });
-                            await batch.commit();
-                            console.log('✅ Worker application marked as resigned');
+                            if (targetApplications.length > 0) {
+                                await batch.commit();
+                                console.log(`✅ Worker application marked as resigned (${targetApplications.length})`);
+                            }
 
                             if (typeof releaseApplicationCoinForApplication === 'function') {
-                                const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                                const releasePromises = targetApplications.map((doc) =>
                                     releaseApplicationCoinForApplication(doc.id, 'resigned_by_worker')
                                         .catch((error) => console.warn('⚠️ Could not release coin for resigned application:', error))
                                 );
