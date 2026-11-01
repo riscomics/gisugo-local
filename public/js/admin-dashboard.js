@@ -6177,6 +6177,108 @@ function attachOverlayCloseListeners() {
 }
 
 // Open stat overlay
+function manilaDayKey(date) {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(date);
+}
+
+function shiftManilaDay(dayKey, deltaDays) {
+    const utc = new Date(`${dayKey}T00:00:00+08:00`);
+    utc.setUTCDate(utc.getUTCDate() + deltaDays);
+    return manilaDayKey(utc);
+}
+
+function sumFlaggedDays(flaggedByDay, startOffset, endOffset) {
+    const today = manilaDayKey(new Date());
+    let sum = 0;
+    for (let offset = startOffset; offset <= endOffset; offset++) {
+        const key = shiftManilaDay(today, -offset);
+        sum += Number(flaggedByDay && flaggedByDay[key]) || 0;
+    }
+    return sum;
+}
+
+function formatReportShare(part, total) {
+    const n = Number(part) || 0;
+    const den = Number(total) || 0;
+    if (den <= 0) return '0%';
+    return `${Math.round((n / den) * 100)}%`;
+}
+
+function setReportStat(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (Number(value) || 0).toLocaleString();
+}
+
+// Gigs Reported overlay. Reads platform_analytics/reports. The date dropdown
+// stays on screen and is not wired: Total Reported is the live queue.
+async function renderGigReportsOverlay() {
+    const summary = (typeof getGigReportSummary === 'function')
+        ? await getGigReportSummary()
+        : null;
+    const data = summary || {};
+    const byReason = data.byReason || {};
+    const queueCount = Number(data.queueCount) || 0;
+    const ignoredCount = Number(data.ignoredCount) || 0;
+    const suspendedCount = Number(data.suspendedCount) || 0;
+    const reasons = {
+        inappropriate_content: Number(byReason.inappropriate_content) || 0,
+        scam_fraud: Number(byReason.scam_fraud) || 0,
+        misleading_info: Number(byReason.misleading_info) || 0,
+        duplicate_post: Number(byReason.duplicate_post) || 0,
+        other_reasons: Number(byReason.other_reasons) || 0
+    };
+    const reasonTotal = Object.values(reasons).reduce((sum, n) => sum + n, 0);
+    const statusTotal = queueCount + ignoredCount + suspendedCount;
+    const thisWeek = sumFlaggedDays(data.flaggedByDay, 0, 6);
+    const prevWeek = sumFlaggedDays(data.flaggedByDay, 7, 13);
+    let changeRate = 0;
+    if (prevWeek === 0) changeRate = thisWeek > 0 ? 100 : 0;
+    else changeRate = Math.round(((thisWeek - prevWeek) / prevWeek) * 100);
+
+    const totalEl = document.getElementById('gigsReportedTotalDisplay');
+    if (totalEl) totalEl.textContent = queueCount.toLocaleString();
+    const weekEl = document.getElementById('gigsReportedWeekDisplay');
+    if (weekEl) weekEl.textContent = thisWeek.toLocaleString();
+    const changeEl = document.getElementById('gigsReportedChangeDisplay');
+    if (changeEl) changeEl.textContent = `${changeRate}%`;
+    const trendEl = document.getElementById('gigsReportedChangeTrend');
+    if (trendEl) trendEl.textContent = `${changeRate < 0 ? '▼' : '▲'} From Last Period`;
+
+    setReportStat('inappropriateContentValue', reasons.inappropriate_content);
+    setReportStat('scamFraudValue', reasons.scam_fraud);
+    setReportStat('misleadingInfoValue', reasons.misleading_info);
+    setReportStat('duplicatePostingValue', reasons.duplicate_post);
+    setReportStat('otherReasonValue', reasons.other_reasons);
+    const inappropriatePct = document.getElementById('inappropriateContentPercent');
+    if (inappropriatePct) inappropriatePct.textContent = formatReportShare(reasons.inappropriate_content, reasonTotal);
+    const scamPct = document.getElementById('scamFraudPercent');
+    if (scamPct) scamPct.textContent = formatReportShare(reasons.scam_fraud, reasonTotal);
+    const misleadingPct = document.getElementById('misleadingInfoPercent');
+    if (misleadingPct) misleadingPct.textContent = formatReportShare(reasons.misleading_info, reasonTotal);
+    const duplicatePct = document.getElementById('duplicatePostingPercent');
+    if (duplicatePct) duplicatePct.textContent = formatReportShare(reasons.duplicate_post, reasonTotal);
+    const otherPct = document.getElementById('otherReasonPercent');
+    if (otherPct) otherPct.textContent = formatReportShare(reasons.other_reasons, reasonTotal);
+
+    setReportStat('pendingReviewValue', queueCount);
+    setReportStat('ignoredReportsValue', ignoredCount);
+    setReportStat('suspendedReportsValue', suspendedCount);
+    const pendingPct = document.getElementById('pendingReviewPercent');
+    if (pendingPct) pendingPct.textContent = formatReportShare(queueCount, statusTotal);
+    const ignoredPct = document.getElementById('ignoredReportsPercent');
+    if (ignoredPct) ignoredPct.textContent = formatReportShare(ignoredCount, statusTotal);
+    const suspendedPct = document.getElementById('suspendedReportsPercent');
+    if (suspendedPct) suspendedPct.textContent = formatReportShare(suspendedCount, statusTotal);
+
+    const tile = document.getElementById('gigsReportedNumber');
+    if (tile) tile.textContent = queueCount.toLocaleString();
+}
+
 function openStatOverlay(type) {
     const overlays = {
         totalUsers: 'totalUsersOverlay',
@@ -6196,12 +6298,13 @@ function openStatOverlay(type) {
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden'; // Prevent background scroll
 
-        // NOTE: most overlay content isn't wired to a real data source yet.
-        // Previously this populated the overlay from mock localStorage on a
-        // recurring timer -- that's been removed. Once Firestore-backed
-        // analytics exist, populate the overlay's fields here.
+        // Verification and revenue overlays are still unwired placeholders.
+        // Wired overlays populate themselves below. The Gigs Reported date
+        // dropdown is left unwired on purpose: Total Reported is the live queue.
         if (type === 'gigsAnalytics') {
             renderGigsAnalyticsOverlay();
+        } else if (type === 'gigsReported') {
+            renderGigReportsOverlay();
         } else if (type === 'totalUsers') {
             renderAgeGroupsBreakdown();
         } else if (type === 'storageUsage') {

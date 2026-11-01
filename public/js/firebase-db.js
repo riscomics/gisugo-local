@@ -4978,27 +4978,50 @@ async function getAdminAnalytics() {
   
   // Verification submissions and revenue have no live data source yet
   // (no verification-review pipeline, no payments/transactions collection),
-  // so they're not fetched here. Total users and reported gigs are real,
-  // permitted Firestore reads and are fetched independently of each other
-  // so a problem with one can never zero out the other.
-  const [usersResult, jobsResult] = await Promise.allSettled([
+  // so they're not fetched here. Total users still counts the users
+  // collection. Reported gigs is the live queue on platform_analytics/reports
+  // (queueCount), not a jobs scan. The two reads stay independent so a
+  // problem with one can never zero out the other.
+  const [usersResult, reportsResult] = await Promise.allSettled([
       db.collection('users').get(),
-      db.collection('jobs').where('status', '==', 'reported').get()
+      db.collection('platform_analytics').doc('reports').get()
     ]);
     
   if (usersResult.status === 'rejected') {
     console.error('❌ Error getting total users count:', usersResult.reason);
   }
-  if (jobsResult.status === 'rejected') {
-    console.error('❌ Error getting reported gigs count:', jobsResult.reason);
+  if (reportsResult.status === 'rejected') {
+    console.error('❌ Error getting reported gigs count:', reportsResult.reason);
+  }
+
+  let reportedGigs = 0;
+  if (reportsResult.status === 'fulfilled' && reportsResult.value.exists) {
+    reportedGigs = Number(reportsResult.value.data().queueCount) || 0;
   }
 
   return {
     totalUsers: usersResult.status === 'fulfilled' ? usersResult.value.size : 0,
     verificationSubmissions: 0,
     monthlyRevenue: 0,
-    reportedGigs: jobsResult.status === 'fulfilled' ? jobsResult.value.size : 0
+    reportedGigs
   };
+}
+
+/**
+ * Gigs Reported overlay. One admin-only summary doc written by Cloud Functions.
+ * @returns {Promise<Object|null>}
+ */
+async function getGigReportSummary() {
+  const db = getFirestore();
+  if (!db) return null;
+  try {
+    const snap = await db.collection('platform_analytics').doc('reports').get();
+    if (!snap.exists) return null;
+    return snap.data() || null;
+  } catch (error) {
+    console.error('❌ Error loading gig report summary:', error);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -6610,6 +6633,7 @@ window.subscribeToThreadMessages = subscribeToThreadMessages;
 
 // Admin
 window.getAdminAnalytics = getAdminAnalytics;
+window.getGigReportSummary = getGigReportSummary;
 window.getPlatformAnalyticsGigs = getPlatformAnalyticsGigs;
 window.getPlatformAnalyticsApplications = getPlatformAnalyticsApplications;
 window.getPlatformAnalyticsUsers = getPlatformAnalyticsUsers;

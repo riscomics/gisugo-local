@@ -1,6 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentWritten, onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten, onDocumentCreated, onDocumentUpdated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onObjectFinalized, onObjectDeleted } = require("firebase-functions/v2/storage");
 const {
   classifyStoragePath,
@@ -1850,21 +1850,115 @@ const GIG_REPORT_THRESHOLD_DEFAULT = 2;
 // Same line as the website: 20 or more waiting applications is the busy group.
 const LISTING_FEED_BUSY_AT = 20;
 
+// Admin Overview "Gigs Reported" tile + overlay. One doc, admin-read only.
+// Reasons count each report. queueCount is gigs sitting in status "reported".
+// ignoredCount / suspendedCount are outcome totals, not live queues.
+// flaggedByDay counts gigs that newly entered the queue, Manila calendar days.
+const REPORT_SUMMARY_DOC = () => db.collection("platform_analytics").doc("reports");
+const REPORT_SUMMARY_MARKERS = () => db.collection("report_summary_markers");
+const REPORT_REASON_KEYS = [
+  "inappropriate_content",
+  "scam_fraud",
+  "misleading_info",
+  "duplicate_post",
+  "other_reasons"
+];
+const REPORT_SUMMARY_DAY_KEEP = 60;
+
+function emptyReportSummary() {
+  return {
+    queueCount: 0,
+    ignoredCount: 0,
+    suspendedCount: 0,
+    byReason: {
+      inappropriate_content: 0,
+      scam_fraud: 0,
+      misleading_info: 0,
+      duplicate_post: 0,
+      other_reasons: 0
+    },
+    flaggedByDay: {}
+  };
+}
+
+function manilaDayKey(date) {
+  const when = date instanceof Date ? date : new Date();
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(when);
+}
+
+function normalizeReportReasonKey(raw) {
+  const key = String(raw || "").trim();
+  return REPORT_REASON_KEYS.includes(key) ? key : "other_reasons";
+}
+
+function clampReportCount(value) {
+  const n = Number(value) || 0;
+  return n > 0 ? n : 0;
+}
+
+function pruneFlaggedByDay(flaggedByDay) {
+  const cutoff = manilaDayKey(new Date(Date.now() - REPORT_SUMMARY_DAY_KEEP * 24 * 60 * 60 * 1000));
+  const next = {};
+  Object.keys(flaggedByDay || {}).forEach((day) => {
+    if (day >= cutoff) next[day] = clampReportCount(flaggedByDay[day]);
+  });
+  return next;
+}
+
+function nextReportSummary(current, delta) {
+  const base = current && typeof current === "object" ? current : emptyReportSummary();
+  const byReason = { ...emptyReportSummary().byReason, ...(base.byReason || {}) };
+  const flaggedByDay = { ...(base.flaggedByDay || {}) };
+  if (delta.reasonKey) {
+    const key = normalizeReportReasonKey(delta.reasonKey);
+    byReason[key] = clampReportCount(byReason[key]) + 1;
+  }
+  if (delta.dayKey) {
+    flaggedByDay[delta.dayKey] = clampReportCount(flaggedByDay[delta.dayKey]) + 1;
+  }
+  return {
+    queueCount: clampReportCount(clampReportCount(base.queueCount) + (Number(delta.queueDelta) || 0)),
+    ignoredCount: clampReportCount(clampReportCount(base.ignoredCount) + (Number(delta.ignoredDelta) || 0)),
+    suspendedCount: clampReportCount(clampReportCount(base.suspendedCount) + (Number(delta.suspendedDelta) || 0)),
+    byReason,
+    flaggedByDay: pruneFlaggedByDay(flaggedByDay),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+}
+
 exports.syncGigReportCountersOnCreate = onDocumentCreated(
   { document: "gig_reports/{reportId}", region: "asia-southeast1" },
   async (event) => {
     const report = event.data?.data() || {};
     const jobId = String(report.jobId || "").trim();
-    if (!jobId) return;
+    const reportRef = event.data?.ref;
+    if (!jobId || !reportRef) return;
 
     const jobRef = db.collection("jobs").doc(jobId);
+    let queueFlip = false;
     try {
-      await db.runTransaction(async (tx) => {
+      queueFlip = await db.runTransaction(async (tx) => {
+        const reportSnap = await tx.get(reportRef);
         const jobSnap = await tx.get(jobRef);
-        if (!jobSnap.exists) return;
+        if (!reportSnap.exists) return false;
+        const stored = reportSnap.data() || {};
+        // A retried trigger must not bump the gig count or the queue twice.
+        if (stored.jobCountApplied === true) {
+          return stored.queueFlip === true;
+        }
+        if (!jobSnap.exists) {
+          tx.update(reportRef, { jobCountApplied: true, queueFlip: false });
+          return false;
+        }
         const job = jobSnap.data() || {};
         const newCount = (Number(job.reportCount) || 0) + 1;
         const threshold = Number(job.reportThreshold) || GIG_REPORT_THRESHOLD_DEFAULT;
+        const didFlip = newCount >= threshold && job.status === "active";
 
         const update = {
           reportCount: newCount,
@@ -1873,7 +1967,7 @@ exports.syncGigReportCountersOnCreate = onDocumentCreated(
         // Only escalate a currently-active gig into the moderation queue --
         // a gig that's already reported/suspended/hired/completed isn't
         // re-flagged or overwritten by a late-arriving report.
-        if (newCount >= threshold && job.status === "active") {
+        if (didFlip) {
           update.status = "reported";
           // Lock the threshold in explicitly (was implicit default before)
           // so a future "Ignore" action has a real number to add the
@@ -1881,9 +1975,33 @@ exports.syncGigReportCountersOnCreate = onDocumentCreated(
           update.reportThreshold = threshold;
         }
         tx.update(jobRef, update);
+        tx.update(reportRef, { jobCountApplied: true, queueFlip: didFlip });
+        return didFlip;
       });
     } catch (error) {
       logger.error("syncGigReportCountersOnCreate failed", { jobId, error: String(error) });
+      return;
+    }
+
+    // Separate from the gig update. A summary failure must not undo the report.
+    try {
+      await db.runTransaction(async (tx) => {
+        const reportSnap = await tx.get(reportRef);
+        if (!reportSnap.exists) return;
+        const stored = reportSnap.data() || {};
+        if (stored.summaryCounted === true) return;
+        const summarySnap = await tx.get(REPORT_SUMMARY_DOC());
+        const enteredQueue = stored.queueFlip === true || queueFlip === true;
+        const next = nextReportSummary(summarySnap.exists ? summarySnap.data() : null, {
+          reasonKey: stored.reasonKey || report.reasonKey,
+          queueDelta: enteredQueue ? 1 : 0,
+          dayKey: enteredQueue ? manilaDayKey(new Date()) : null
+        });
+        tx.set(REPORT_SUMMARY_DOC(), next);
+        tx.update(reportRef, { summaryCounted: true });
+      });
+    } catch (error) {
+      logger.error("syncGigReportCountersOnCreate summary failed", { jobId, error: String(error) });
     }
   }
 );
@@ -1929,6 +2047,7 @@ exports.adminModerateGig = onCall(
 
     await db.runTransaction(async (tx) => {
       const jobSnap = await tx.get(jobRef);
+      const summarySnap = await tx.get(REPORT_SUMMARY_DOC());
       if (!jobSnap.exists) {
         throw new HttpsError("not-found", "Gig not found.");
       }
@@ -1987,6 +2106,16 @@ exports.adminModerateGig = onCall(
           lastModified: admin.firestore.FieldValue.serverTimestamp()
         });
       }
+
+      // Live queue moves only when this gig was in the reported queue.
+      // A suspend from Posted does not touch the summary.
+      if (previousStatus === "reported" && (action === "ignore" || action === "suspend")) {
+        tx.set(REPORT_SUMMARY_DOC(), nextReportSummary(summarySnap.exists ? summarySnap.data() : null, {
+          queueDelta: -1,
+          ignoredDelta: action === "ignore" ? 1 : 0,
+          suspendedDelta: action === "suspend" ? 1 : 0
+        }));
+      }
     });
 
     // Best-effort audit trail -- never let a logging failure undo/mask an
@@ -2007,6 +2136,37 @@ exports.adminModerateGig = onCall(
     }
 
     return { success: true, status: newStatus };
+  }
+);
+
+// Permanent delete of a gig that is still in the reported queue.
+// deleteJob() removes the job from the client, so this is the reliable place
+// to drop the live queue count. It does not count as Ignored or Suspended.
+exports.syncGigReportSummaryOnJobDelete = onDocumentDeleted(
+  { document: "jobs/{jobId}", region: "asia-southeast1" },
+  async (event) => {
+    const job = event.data?.data() || {};
+    const jobId = String(event.params?.jobId || "").trim();
+    if (!jobId || String(job.status || "") !== "reported") return;
+
+    const markerRef = REPORT_SUMMARY_MARKERS().doc(`job-delete-${jobId}`);
+    try {
+      await db.runTransaction(async (tx) => {
+        const markerSnap = await tx.get(markerRef);
+        if (markerSnap.exists) return;
+        const summarySnap = await tx.get(REPORT_SUMMARY_DOC());
+        tx.set(REPORT_SUMMARY_DOC(), nextReportSummary(summarySnap.exists ? summarySnap.data() : null, {
+          queueDelta: -1
+        }));
+        tx.set(markerRef, {
+          jobId,
+          kind: "job-delete",
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      });
+    } catch (error) {
+      logger.error("syncGigReportSummaryOnJobDelete failed", { jobId, error: String(error) });
+    }
   }
 );
 
