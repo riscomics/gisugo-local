@@ -2542,7 +2542,7 @@ async function applyForJob(jobId, applicationData) {
         };
       }
       
-      if (existingApp.status === 'accepted') {
+      if (existingApp.status === 'accepted' || existingApp.status === 'hired' || existingApp.status === 'completed') {
         console.warn('⚠️ User has already been hired for this gig');
         return {
           success: false,

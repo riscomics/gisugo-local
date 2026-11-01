@@ -2605,7 +2605,7 @@ async function checkIfUserAlreadyApplied(jobId) {
         // Set appropriate tooltip based on status
         if (mostRecentApp.status === 'pending') {
           applyBtn.title = 'Your application is pending review';
-        } else if (mostRecentApp.status === 'accepted') {
+        } else if (mostRecentApp.status === 'accepted' || mostRecentApp.status === 'hired' || mostRecentApp.status === 'completed') {
           applyBtn.title = 'You have been hired for this job';
         } else {
           applyBtn.title = 'You have already applied to this job';

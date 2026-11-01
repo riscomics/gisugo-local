@@ -1,6 +1,6 @@
 const MY_APP_TABS = {
   active: ['pending'],
-  closed: ['rejected', 'expired', 'rejected_by_worker', 'voided', 'resigned'],
+  closed: ['rejected', 'expired', 'rejected_by_worker', 'voided', 'resigned', 'completed'],
   withdrawn: ['withdrawn']
 };
 
@@ -11,6 +11,7 @@ const MY_APP_CAPTIONS = {
   rejected_by_worker: 'You declined this offer. This application has been returned to you.',
   voided: 'This contract was ended by the customer. This application has been returned to you.',
   resigned: 'You ended this gig before completion. This application has been returned to you.',
+  completed: 'You were hired and completed this gig. This application has been returned to you.',
   withdrawn: 'You withdrew this application and it was returned to you.'
 };
 
@@ -21,6 +22,7 @@ const MY_APP_STATUS_LABELS = {
   rejected_by_worker: 'Rejected by Worker',
   voided: 'Expired',
   resigned: 'Rejected by Worker',
+  completed: 'Completed',
   withdrawn: 'Withdrawn'
 };
 

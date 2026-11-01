@@ -4694,22 +4694,33 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                 workerAccepted: true // Flag to indicate worker has accepted
             });
 
-            // Getting hired returns the worker's application slot (only pending/offer states hold one).
+            // Getting hired returns the worker's application slot (only pending/offer states hold one) and ensures status is 'accepted'.
             try {
                 const hiredWorker = firebase.auth().currentUser;
-                if (hiredWorker?.uid && typeof releaseApplicationCoinForApplication === 'function') {
+                if (hiredWorker?.uid) {
                     const ownApps = await db.collection('applications')
                         .where('jobId', '==', jobId)
                         .where('applicantId', '==', hiredWorker.uid)
                         .get();
-                    const releasePromises = ownApps.docs
-                        .filter((doc) => {
-                            const status = String((doc.data() || {}).status || '').toLowerCase();
-                            return status === 'accepted' || status === 'hired' || status === 'pending';
-                        })
-                        .map((doc) => releaseApplicationCoinForApplication(doc.id, 'hired')
-                            .catch((error) => console.warn('⚠️ Coin release on hire skipped:', error)));
-                    await Promise.all(releasePromises);
+                    const targetOwnApps = ownApps.docs.filter((doc) => {
+                        const status = String((doc.data() || {}).status || '').toLowerCase();
+                        return status === 'accepted' || status === 'hired' || status === 'pending';
+                    });
+                    const needStatusSync = targetOwnApps.filter((doc) => String((doc.data() || {}).status || '').toLowerCase() !== 'accepted');
+                    if (needStatusSync.length > 0) {
+                        const statusBatch = db.batch();
+                        needStatusSync.forEach((doc) => {
+                            statusBatch.update(doc.ref, { status: 'accepted' });
+                        });
+                        await statusBatch.commit();
+                    }
+                    if (typeof releaseApplicationCoinForApplication === 'function') {
+                        const releasePromises = targetOwnApps.map((doc) =>
+                            releaseApplicationCoinForApplication(doc.id, 'hired')
+                                .catch((error) => console.warn('⚠️ Coin release on hire skipped:', error))
+                        );
+                        await Promise.all(releasePromises);
+                    }
                 }
             } catch (hireReleaseError) {
                 console.warn('⚠️ Coin release on hire skipped:', hireReleaseError);
@@ -5470,19 +5481,22 @@ function initializeCompleteJobConfirmationHandlers() {
                         const acceptedAppsSnapshot = await db.collection('applications')
                             .where('jobId', '==', jobId)
                             .where('applicantId', '==', jobData.hiredWorkerId)
-                            .where('status', '==', 'accepted')
                             .get();
-                        const appBatch = db.batch();
-                        acceptedAppsSnapshot.docs.forEach((doc) => {
-                            appBatch.update(doc.ref, {
-                                status: 'completed',
-                                completedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
+                        const targetCompletedApps = acceptedAppsSnapshot.docs.filter((doc) => {
+                            const status = String(doc.data()?.status || '').toLowerCase();
+                            return status === 'accepted' || status === 'hired' || status === 'pending';
                         });
-                        if (!acceptedAppsSnapshot.empty) {
+                        if (targetCompletedApps.length > 0) {
+                            const appBatch = db.batch();
+                            targetCompletedApps.forEach((doc) => {
+                                appBatch.update(doc.ref, {
+                                    status: 'completed',
+                                    completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            });
                             await appBatch.commit();
                             if (typeof releaseApplicationCoinForApplication === 'function') {
-                                const releasePromises = acceptedAppsSnapshot.docs.map((doc) =>
+                                const releasePromises = targetCompletedApps.map((doc) =>
                                     releaseApplicationCoinForApplication(doc.id, 'gig_completed')
                                         .catch((error) => console.warn('⚠️ Could not release coin on completion:', error))
                                 );
