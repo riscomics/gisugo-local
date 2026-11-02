@@ -6653,23 +6653,34 @@ window.refreshTrafficSnapshot = refreshTrafficSnapshot;
  * Send notification to worker when contract is voided
  * Integrates with existing ALERTS tab in Messages page
  */
-async function sendContractVoidedNotification(workerId, workerName, jobId, jobTitle, voidReason, customerName) {
+async function sendContractVoidedNotification(workerId, workerName, jobId, jobTitle, voidReason, customerName, options = {}) {
   console.log('📬 sendContractVoidedNotification() called');
   console.log('📋 Worker:', workerName, '| Job:', jobTitle);
   
   try {
     const safeReason = String(voidReason || '').trim().slice(0, 55);
-    const result = await callCreateUserAlert({
+    const isRetractOffer = options && options.isRetractOffer === true;
+    const safeTitle = jobTitle || 'Gig';
+    const message = isRetractOffer
+      ? (safeReason
+          ? `You were offered "${safeTitle}", but the offer was retracted by the customer. Reason: "${safeReason}"`
+          : `You were offered "${safeTitle}", but the offer was retracted by the customer.`)
+      : (safeReason
+          ? `Customer voided your work on "${safeTitle}". Reason: "${safeReason}"`
+          : `Customer voided your work on "${safeTitle}".`);
+    const payload = {
       type: 'contract_voided',
       recipientId: workerId,
       jobId: jobId,
-      jobTitle: jobTitle || 'Gig',
+      jobTitle: safeTitle,
       reasonText: safeReason,
-      message: safeReason
-        ? `Customer voided your work on "${jobTitle || 'Gig'}". Reason: "${safeReason}"`
-        : `Customer voided your work on "${jobTitle || 'Gig'}".`,
+      message,
       actionRequired: false
-    });
+    };
+    if (isRetractOffer) {
+      payload.title = 'Gig Offer Retracted';
+    }
+    const result = await callCreateUserAlert(payload);
     
     if (result.success) {
       console.log('✅ Contract voided notification sent to ALERTS tab');

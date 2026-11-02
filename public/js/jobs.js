@@ -5863,7 +5863,8 @@ function initializeRelistJobConfirmationHandlers() {
                                             jobId,
                                             jobTitle,
                                             reason,
-                                            jobData.posterName || 'Customer'
+                                            jobData.posterName || 'Customer',
+                                            { isRetractOffer: !wasAcceptedHire }
                                         );
                                         
                                         if (notifResult.success) {

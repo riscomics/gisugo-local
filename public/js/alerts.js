@@ -800,11 +800,17 @@ const ALERT_READ_HIDE_AFTER_DAYS = 50;
 
 function tAlertLang(key) {
     const copy = {
-        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open', gisugoMessage: 'Message from GISUGO' },
-        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots', gisugoMessage: 'Mensahe gikan sa GISUGO' },
-        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots', gisugoMessage: 'Mensahe mula sa GISUGO' }
+        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', offerRetracted: 'Gig Offer Retracted', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open', gisugoMessage: 'Message from GISUGO' },
+        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', offerRetracted: 'Gi-retract ang Gig Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots', gisugoMessage: 'Mensahe gikan sa GISUGO' },
+        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', offerRetracted: 'Binawi ang Gig Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots', gisugoMessage: 'Mensahe mula sa GISUGO' }
     };
     return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
+}
+
+function isRetractedOfferAlert(notif) {
+    if (!notif) return false;
+    if (String(notif.title || '').trim() === 'Gig Offer Retracted') return true;
+    return /retracted/i.test(String(notif.message || ''));
 }
 
 function extractAlertReasonText(notif) {
@@ -826,6 +832,7 @@ function getLocalizedAlertMessage(notif, type) {
     const reasonSuffixEn = reasonText ? ` Reason: "${escapeHtml(reasonText)}"` : '';
     const reasonSuffixBi = reasonText ? ` Rason: "${escapeHtml(reasonText)}"` : '';
     const reasonSuffixTl = reasonText ? ` Dahilan: "${escapeHtml(reasonText)}"` : '';
+    const retractedOffer = type === 'contract_voided' && isRetractedOfferAlert(notif);
     const closureCount = Math.max(1, Number(notif.closureCount || 1));
     // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
     // the two legacy ones still in the DB) render this same abundance message.
@@ -844,7 +851,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Your ${gigTitleHtml} is now live in Hiring Tab.`,
             job_completed: `Gig ${gigTitleHtml} has been marked completed.`,
             feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
-            contract_voided: `Customer voided your work on ${gigTitleHtml}.${reasonSuffixEn}`,
+            contract_voided: retractedOffer
+                ? `You were offered ${gigTitleHtml}, but the offer was retracted by the customer.${reasonSuffixEn}`
+                : `Customer voided your work on ${gigTitleHtml}.${reasonSuffixEn}`,
             application_received: `Someone applied to ${gigTitleHtml}. Click here to review.`,
             application_milestone: `Your gig ${gigTitleHtml} has 5+ applications pending review.`,
             gig_auto_paused: `Your gig ${gigTitleHtml} is auto-paused at 10 applications. Review applications to proceed.`,
@@ -865,7 +874,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Ang imong ${gigTitleHtml} buhi na sa Hiring Tab.`,
             job_completed: `Ang gig ${gigTitleHtml} gimarkahan na nga completed.`,
             feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
-            contract_voided: `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.${reasonSuffixBi}`,
+            contract_voided: retractedOffer
+                ? `Gi-offer sa imo ang ${gigTitleHtml}, apan gi-retract sa customer ang offer.${reasonSuffixBi}`
+                : `Gi-void sa customer ang imong trabaho sa ${gigTitleHtml}.${reasonSuffixBi}`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click diri para i-review.`,
             application_milestone: `Ang imong gig ${gigTitleHtml} naa nay 5+ ka pending applications.`,
             gig_auto_paused: `Ang imong gig ${gigTitleHtml} gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
@@ -886,7 +897,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_accepted: `Live na ang ${gigTitleHtml} mo sa Hiring Tab.`,
             job_completed: `Ang gig na ${gigTitleHtml} ay minarkahan nang completed.`,
             feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
-            contract_voided: `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.${reasonSuffixTl}`,
+            contract_voided: retractedOffer
+                ? `Inalok sa iyo ang ${gigTitleHtml}, pero binawi ng customer ang offer.${reasonSuffixTl}`
+                : `Ini-void ng customer ang trabaho mo sa ${gigTitleHtml}.${reasonSuffixTl}`,
             application_received: `May nag-apply sa ${gigTitleHtml}. I-click dito para i-review.`,
             application_milestone: `Ang gig mo na ${gigTitleHtml} ay may 5+ pending applications.`,
             gig_auto_paused: `Auto-paused ang gig mo na ${gigTitleHtml} sa 10 applications. I-review para makapagpatuloy.`,
@@ -3579,7 +3592,9 @@ function transformFirebaseNotification(notif) {
         case 'contract_voided':
             icon = '🔄';
             iconClass = 'warning-icon';
-            title = 'Contract Voided - Gig Relisted';
+            title = isRetractedOfferAlert(notif)
+                ? tAlertLang('offerRetracted')
+                : 'Contract Voided - Gig Relisted';
             break;
         case 'application_received':
             icon = '📝';
