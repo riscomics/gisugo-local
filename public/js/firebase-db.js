@@ -4823,6 +4823,43 @@ function subscribeToUserNotifications(currentUser, callback) {
   }
 }
 
+const UNREAD_COUNTER_SESSION_KEY_PREFIX = 'gisugo_unread_counters_v1:';
+const UNREAD_COUNTER_OPTIMISTIC_GUARD_MS = 4000;
+
+function readCachedUnreadNotificationCounters(uid) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid || typeof sessionStorage === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(`${UNREAD_COUNTER_SESSION_KEY_PREFIX}${safeUid}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      counters: sanitizeNotificationCounters(parsed.counters),
+      updatedAtMs: Number(parsed.updatedAtMs) || 0,
+      source: String(parsed.source || '')
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeCachedUnreadNotificationCounters(uid, rawCounters, source = 'user_doc') {
+  const safeUid = String(uid || '').trim();
+  const counters = sanitizeNotificationCounters(rawCounters);
+  if (!safeUid || typeof sessionStorage === 'undefined') return counters;
+  try {
+    sessionStorage.setItem(`${UNREAD_COUNTER_SESSION_KEY_PREFIX}${safeUid}`, JSON.stringify({
+      counters,
+      updatedAtMs: Date.now(),
+      source
+    }));
+  } catch (_) {
+    // Ignore sessionStorage quota/privacy errors.
+  }
+  return counters;
+}
+
 function subscribeToUnreadNotificationCounters(currentUser, callback) {
   const db = getFirestore();
 
@@ -4831,20 +4868,36 @@ function subscribeToUnreadNotificationCounters(currentUser, callback) {
     return null;
   }
 
+  const uid = String(currentUser.uid).trim();
+  const cachedEntry = readCachedUnreadNotificationCounters(uid);
+  if (cachedEntry && typeof callback === 'function') {
+    callback(cachedEntry.counters);
+  }
+
   try {
-    // No orderBy('createdAt'): ordered queries can omit docs while serverTimestamp is still
-    // null, which delayed header/menu badges until navigate/refetch. Counts only need unread set.
-    return db.collection('notifications')
-      .where('recipientId', '==', currentUser.uid)
-      .where('read', '==', false)
-      .limit(200)
+    // Listen to the single users/{uid} document's notificationCounters map maintained by
+    // the syncNotificationCountersOnWrite Cloud Function (1 doc read instead of scanning
+    // up to 200 unread notification docs on every page navigation).
+    return db.collection('users')
+      .doc(uid)
       .onSnapshot(
       (snap) => {
-        const unreadNotifications = snap && Array.isArray(snap.docs)
-          ? snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-          : [];
-        const counters = sanitizeNotificationCounters(buildUnreadCountersFromNotifications(unreadNotifications));
-        if (typeof callback === 'function') callback(counters);
+        const snapData = snap && snap.exists && typeof snap.data === 'function' ? (snap.data() || {}) : {};
+        const docCounters = sanitizeNotificationCounters(snapData.notificationCounters || null);
+        const latestCache = readCachedUnreadNotificationCounters(uid);
+        if (
+          latestCache
+          && latestCache.source === 'alerts_page'
+          && (Date.now() - latestCache.updatedAtMs) < UNREAD_COUNTER_OPTIMISTIC_GUARD_MS
+          && docCounters.totalUnread > latestCache.counters.totalUnread
+        ) {
+          // Hold optimistic post-read count from alerts.html for a few seconds while the
+          // background Cloud Function finishes updating users/{uid}.notificationCounters.
+          if (typeof callback === 'function') callback(latestCache.counters);
+          return;
+        }
+        const saved = writeCachedUnreadNotificationCounters(uid, docCounters, 'user_doc');
+        if (typeof callback === 'function') callback(saved);
       },
       (error) => {
         console.warn('⚠️ Notification counters listener error:', error);
@@ -6628,6 +6681,7 @@ window.deleteNotification = deleteNotification;
 // Real-time Listeners
 window.subscribeToUserNotifications = subscribeToUserNotifications;
 window.subscribeToUnreadNotificationCounters = subscribeToUnreadNotificationCounters;
+window.writeCachedUnreadNotificationCounters = writeCachedUnreadNotificationCounters;
 window.subscribeToUserThreads = subscribeToUserThreads;
 window.subscribeToThreadMessages = subscribeToThreadMessages;
 

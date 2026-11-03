@@ -977,14 +977,20 @@ function updateAlertTabBadgeCounts(notifications) {
     setTabNotificationCount('#workerAlertsTab', workerUnread);
     setTabNotificationCount('#customerAlertsTab', customerUnread);
     updateRoleTopUnreadCounts();
-    // Feed shared-menu / header badge without a second Firestore unread query on this page.
+    // Feed shared-menu / header badge without a second Firestore unread query on this page,
+    // and persist to sessionStorage so navigating from an alert card paints the updated count immediately.
+    const nextCounters = {
+        workerUnread,
+        customerUnread,
+        totalUnread: workerUnread + customerUnread
+    };
+    const activeUid = ALERTS_STREAM_STATE.uid || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser.uid : '');
+    if (activeUid && typeof window.writeCachedUnreadNotificationCounters === 'function') {
+        window.writeCachedUnreadNotificationCounters(activeUid, nextCounters, 'alerts_page');
+    }
     try {
         document.dispatchEvent(new CustomEvent('gisugo:alerts-page-counter-update', {
-            detail: {
-                workerUnread,
-                customerUnread,
-                totalUnread: workerUnread + customerUnread
-            }
+            detail: nextCounters
         }));
     } catch (_) { /* ignore */ }
 }

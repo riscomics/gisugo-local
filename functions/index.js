@@ -90,7 +90,8 @@ function inferNotificationRoleForCounter(notification = {}) {
     "feedback_received",
     "contract_voided",
     "application_not_selected_batch",
-    "application_rejected_batch"
+    "application_rejected_batch",
+    "application_slots_reopened_batch"
   ]);
   const customerTypes = new Set([
     "application_received",
@@ -100,7 +101,8 @@ function inferNotificationRoleForCounter(notification = {}) {
     "offer_accepted",
     "offer_rejected",
     "worker_resigned",
-    "worker_feedback_received"
+    "worker_feedback_received",
+    "worker_banned_gig_reopened"
   ]);
 
   if (workerTypes.has(type)) return "worker";
