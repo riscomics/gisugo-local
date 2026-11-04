@@ -336,6 +336,35 @@ body {
   margin-bottom: 20px;
 }
 
+.founder-share-banner-btn {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 14px auto 2px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.38);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.founder-share-banner-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.48);
+}
+
+.founder-share-banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
 .founder-signoff {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding-top: 16px;

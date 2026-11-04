@@ -6,7 +6,7 @@
     <title>Updates - GISUGO</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <link rel="stylesheet" href="public/css/header-uniform.css?v=4.4">
-    <link rel="stylesheet" href="public/css/updates.css?v=1.5">
+    <link rel="stylesheet" href="public/css/updates.css?v=1.6">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body>
@@ -203,6 +203,9 @@
                         <li>Gigs come from customers, and more customers means more work for everyone. If you’d like to help, share GISUGO on Facebook or send it to someone who could use it: a business owner, a family with errands to run, or a relative abroad who needs something done in Cebu.</li>
                         <li>Sharing is optional and has no effect on who gets hired.</li>
                     </ul>
+                    <button class="founder-share-banner-btn" type="button" onclick="openUpdatesShareBanner()" aria-label="Share GISUGO with your network">
+                        <img src="public/images/sharebanner.jpg" alt="Share GISUGO with your network" class="founder-share-banner-img" loading="lazy" decoding="async">
+                    </button>
                 </div>
 
                 <div class="founder-signoff">
@@ -562,6 +565,25 @@
             iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
             iframe.style.display = 'block';
             thumbnail.style.display = 'none';
+        }
+
+        // ── Share Banner (mirrors homepage openHomeShareAd) ──
+        async function openUpdatesShareBanner() {
+            const sharePayload = {
+                title: 'Check out GisuGo',
+                text: 'Browse local gigs and opportunities on GisuGo.',
+                url: 'https://www.Gisugo.com'
+            };
+            try {
+                if (navigator.share) {
+                    await navigator.share(sharePayload);
+                    return;
+                }
+            } catch (error) {
+                if (error && error.name === 'AbortError') return;
+                console.warn('Share action failed, falling back to website open.', error);
+            }
+            window.open(sharePayload.url, '_blank', 'noopener');
         }
     </script>
 </body>
