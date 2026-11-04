@@ -160,7 +160,7 @@ function shouldPrunePushToken(errorCode = "") {
   );
 }
 
-function buildPushPayloadFromNotification(notification = {}) {
+function buildPushPayloadFromNotification(notification = {}, isNative = false) {
   const type = String(notification.type || notification.notificationType || "general").trim();
   const rawMessage = String(notification.message || "").trim();
   const message = rawMessage || "You have a new GISUGO alert.";
@@ -190,22 +190,43 @@ function buildPushPayloadFromNotification(notification = {}) {
     ? "/alerts.html?role=customer"
     : "/alerts.html?role=worker");
 
+  const dataPayload = {
+    title,
+    body: message,
+    notificationId: String(notification.id || ""),
+    type,
+    recipientId: String(notification.recipientId || ""),
+    jobId: String(notification.jobId || ""),
+    supportRequestId: String(notification.supportRequestId || ""),
+    role,
+    link: alertsLink
+  };
+
+  if (isNative) {
+    return {
+      notification: {
+        title,
+        body: message
+      },
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "gisugo_alerts",
+          sound: "default",
+          priority: "high"
+        }
+      },
+      data: dataPayload
+    };
+  }
+
   // Data-only payload (no top-level `notification`): with a notification payload the FCM SDK
   // inside the service worker auto-displays the tray entry and its own click handler intercepts
   // the tap (stopImmediatePropagation), so our notificationclick never controls navigation.
   // Data-only lets firebase-messaging-sw.js show the notification itself and own the tap →
   // reliable /alerts.html?role=… landing (tasklist D2).
   return {
-    data: {
-      title,
-      body: message,
-      notificationId: String(notification.id || ""),
-      type,
-      recipientId: String(notification.recipientId || ""),
-      jobId: String(notification.jobId || ""),
-      role,
-      link: alertsLink
-    },
+    data: dataPayload,
     webpush: {
       headers: {
         Urgency: "high"
@@ -292,28 +313,43 @@ async function sendPushForNotificationDoc(notificationId, notification = {}) {
   let sent = 0;
   let failed = 0;
   const staleRefs = [];
-  const payloadTemplate = buildPushPayloadFromNotification(notification);
 
-  const batches = chunkArray(tokenRows, PUSH_SEND_BATCH_SIZE);
-  for (const batch of batches) {
-    const tokens = batch.map((row) => String(row.token || "").trim()).filter(Boolean);
-    if (!tokens.length) continue;
+  const isNativePlatform = (row) => {
+    const p = String(row?.platform || "").trim().toLowerCase();
+    return p === "android" || p === "ios";
+  };
+  const webTokenRows = tokenRows.filter((row) => !isNativePlatform(row));
+  const nativeTokenRows = tokenRows.filter((row) => isNativePlatform(row));
 
-    const response = await admin.messaging().sendEachForMulticast({
-      ...payloadTemplate,
-      tokens
-    });
+  const sendRowsWithPayload = async (rows, payloadTemplate) => {
+    const batches = chunkArray(rows, PUSH_SEND_BATCH_SIZE);
+    for (const batch of batches) {
+      const tokens = batch.map((row) => String(row.token || "").trim()).filter(Boolean);
+      if (!tokens.length) continue;
 
-    sent += response.successCount || 0;
-    failed += response.failureCount || 0;
+      const response = await admin.messaging().sendEachForMulticast({
+        ...payloadTemplate,
+        tokens
+      });
 
-    response.responses.forEach((item, index) => {
-      if (item.success) return;
-      const code = item.error?.code || "";
-      if (shouldPrunePushToken(code) && batch[index]?.ref) {
-        staleRefs.push(batch[index].ref);
-      }
-    });
+      sent += response.successCount || 0;
+      failed += response.failureCount || 0;
+
+      response.responses.forEach((item, index) => {
+        if (item.success) return;
+        const code = item.error?.code || "";
+        if (shouldPrunePushToken(code) && batch[index]?.ref) {
+          staleRefs.push(batch[index].ref);
+        }
+      });
+    }
+  };
+
+  if (webTokenRows.length) {
+    await sendRowsWithPayload(webTokenRows, buildPushPayloadFromNotification(notification, false));
+  }
+  if (nativeTokenRows.length) {
+    await sendRowsWithPayload(nativeTokenRows, buildPushPayloadFromNotification(notification, true));
   }
 
   if (staleRefs.length) {
