@@ -3180,10 +3180,9 @@ function initializeMessageOverlay() {
     document.addEventListener('click', (e) => {
         
         // Close button in overlay (X button)
-        if (e.target.id === 'overlayCloseBtn') {
+        if (e.target.id === 'overlayCloseBtn' || e.target.id === 'overlayDismissBtn') {
             e.preventDefault();
             e.stopPropagation();
-            console.log('🖱️ Overlay X button clicked');
             hideMessageOverlay();
         }
         
@@ -4186,13 +4185,18 @@ function openSupportReplyModal() {
 
 // ----- Mobile overlay -----
 
+function closeSupportMessageOverlay() {
+    const overlayEl = document.getElementById('messageDetailOverlay');
+    if (!overlayEl) return;
+    overlayEl.classList.remove('active', 'show');
+    overlayEl.style.display = 'none';
+    document.body.style.overflow = '';
+    overlayEl.dataset.messageId = '';
+}
+
 function initializeSupportMobileOverlay() {
-    document.getElementById('overlayCloseBtn')?.addEventListener('click', () => {
-        const overlayEl = document.getElementById('messageDetailOverlay');
-        if (overlayEl) {
-            overlayEl.classList.remove('active', 'show');
-            overlayEl.style.display = 'none';
-        }
+    document.getElementById('overlayDismissBtn')?.addEventListener('click', () => {
+        closeSupportMessageOverlay();
     });
     document.getElementById('overlayReplyBtn')?.addEventListener('click', () => openSupportReplyModal());
     document.getElementById('overlayArchiveBtn')?.addEventListener('click', () => handleSupportCloseAction());
@@ -4233,7 +4237,7 @@ function showSupportOverlay(meta, bodyHTML, options = {}) {
         } else if (options.isResolved) {
             archiveBtn.style.display = 'none';
         } else {
-            archiveBtn.textContent = 'Mark Resolved';
+            archiveBtn.textContent = 'Resolved';
             archiveBtn.style.display = '';
         }
     }

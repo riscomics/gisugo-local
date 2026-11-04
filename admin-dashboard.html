@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=41">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=42">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -2388,7 +2388,6 @@
             <div id="messageDetailOverlay" class="message-detail-overlay">
                 <div class="overlay-content">
                     <div class="overlay-header">
-                        <button class="overlay-close-btn" id="overlayCloseBtn">✕</button>
                         <div class="overlay-header-content">
                             <div class="overlay-header-layout">
                                 <div class="overlay-sender-details">
@@ -2409,7 +2408,8 @@
                     </div>
                     <div class="overlay-footer">
                         <button class="detail-reply-btn" id="overlayReplyBtn">Reply</button>
-                        <button class="detail-close-btn" id="overlayArchiveBtn">Close</button>
+                        <button class="overlay-dismiss-btn" id="overlayDismissBtn" type="button">Close</button>
+                        <button class="detail-close-btn" id="overlayArchiveBtn">Resolved</button>
                     </div>
                 </div>
             </div>
@@ -3513,7 +3513,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=52"></script>
+    <script src="public/js/admin-dashboard.js?v=53"></script>
     
     
 </body>
