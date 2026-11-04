@@ -250,16 +250,16 @@ body {
 }
 
 .launch-wave-icons {
-  flex-shrink: 0;
-  margin-left: auto;
-  display: inline-flex;
+  margin-top: 10px;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .launch-wave-icons img {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
 }
 
