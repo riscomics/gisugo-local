@@ -581,108 +581,65 @@ function blockUnsupportedCharsForInput(inputEl) {
   DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(inputEl, 'input', inputHandler);
 }
 
-// Category configuration for extras
+// Category configuration for extras (synced across all 57 categories with new-post2.js)
 const extrasConfig = {
-  hatod: {
-    field1: { label: "Pickup at:" },
-    field2: { label: "Deliver to:" }
-  },
-  hakot: {
-    field1: { label: "Load at:" },
-    field2: { label: "Unload at:" }
-  },
-  kompra: {
-    field1: { label: "Shop at:" },
-    field2: { label: "Deliver to:" }
-  },
-  luto: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  hugas: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  laba: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  limpyo: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  tindera: {
-    field1: { label: "Location:" },
-    field2: { label: "Product:" }
-  },
-  bantay: {
-    field1: { label: "Location:" },
-    field2: { label: "Shift:" }
-  },
-  painter: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  carpenter: {
-    field1: { label: "Location:" },
-    field2: { label: "Materials:" }
-  },
-  plumber: {
-    field1: { label: "Location:" },
-    field2: { label: "Materials:" }
-  },
-  security: {
-    field1: { label: "Location:" },
-    field2: { label: "Shift:" }
-  },
-  driver: {
-    field1: { label: "Location:" },
-    field2: { label: "Location:" }
-  },
-  tutor: {
-    field1: { label: "Location:" },
-    field2: { label: "Subject:" }
-  },
-  clerical: {
-    field1: { label: "Location:" },
-    field2: { label: "Position:" }
-  },
-  builder: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  reception: {
-    field1: { label: "Location:" },
-    field2: { label: "Supplies:" }
-  },
-  nurse: {
-    field1: { label: "Location:" },
-    field2: { label: "Specialty:" }
-  },
-  doctor: {
-    field1: { label: "Location:" },
-    field2: { label: "Specialty:" }
-  },
-  lawyer: {
-    field1: { label: "Location:" },
-    field2: { label: "Practice:" }
-  },
-  mechanic: {
-    field1: { label: "Location:" },
-    field2: { label: "Vehicle:" }
-  },
-  electrician: {
-    field1: { label: "Location:" },
-    field2: { label: "Materials:" }
-  },
-  tailor: {
-    field1: { label: "Location:" },
-    field2: { label: "Garment:" }
-  },
-  pila: {
-    field1: { label: "Location:" },
-    field2: { label: "Position:" }
-  }
+  hatod: { field1: { label: "Pickup at:" }, field2: { label: "Deliver to:" } },
+  hakot: { field1: { label: "Load at:" }, field2: { label: "Unload at:" } },
+  kompra: { field1: { label: "Shop at:" }, field2: { label: "Deliver to:" } },
+  luto: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  hugas: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  laba: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  limpyo: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  tindera: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  bantay: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  painter: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  carpenter: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  plumber: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  security: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  driver: { field1: { label: "Location:" }, field2: { label: "Location:" } },
+  tutor: { field1: { label: "Location:" }, field2: { label: "Subject:" } },
+  clerical: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  builder: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  reception: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  nurse: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  doctor: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  lawyer: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  mechanic: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  electrician: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  tailor: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  trainer: { field1: { label: "Location:" }, field2: { label: "Subject:" } },
+  staff: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  petcare: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  photographer: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  videographer: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  musician: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  creative: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  editor: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  artist: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  researcher: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  social: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  secretary: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  consultant: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  engineer: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  programmer: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  therapist: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  marketer: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  gardner: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  performer: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  massage: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  handyman: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  barber: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  waiter: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  chef: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  ittech: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  realtor: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  solicitor: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  aircon: { field1: { label: "Location:" }, field2: { label: "Supplies:" } },
+  tourguide: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  pila: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  accountant: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  architect: { field1: { label: "Location:" }, field2: { label: "Position:" } },
+  landscaper: { field1: { label: "Location:" }, field2: { label: "Supplies:" } }
 };
 
 function getUrlParameters() {
@@ -1202,11 +1159,29 @@ async function loadCustomerRating(posterId) {
   }
 }
 
+function parseExtraLabelAndValue(rawExtra, fallbackLabel) {
+  const text = String(rawExtra || '').trim();
+  const colonIdx = text.indexOf(':');
+  if (colonIdx !== -1) {
+    const labelPart = text.slice(0, colonIdx).trim();
+    const valuePart = text.slice(colonIdx + 1).trim();
+    return {
+      label: labelPart ? `${labelPart}:` : (fallbackLabel || 'Detail:'),
+      value: valuePart || 'Not specified'
+    };
+  }
+  return {
+    label: fallbackLabel || 'Detail:',
+    value: text || 'Not specified'
+  };
+}
+
 function populateExtras(jobData) {
-  const category = jobData.category;
-  const config = extrasConfig[category];
+  const category = String(jobData?.category || '').trim().toLowerCase();
+  const config = extrasConfig[category] || null;
+  const extras = Array.isArray(jobData?.extras) ? jobData.extras : [];
   
-  if (!config || !jobData.extras || jobData.extras.length === 0) {
+  if (extras.length === 0) {
     return; // No extras to show
   }
   
@@ -1215,23 +1190,17 @@ function populateExtras(jobData) {
   extrasRow.style.display = 'flex';
   
   // Populate field 1
-  if (jobData.extras[0] && config.field1) {
-    const parts = jobData.extras[0].split(':');
-    const label = parts[0] ? parts[0].trim() + ':' : config.field1.label;
-    const value = parts[1] ? parts[1].trim() : '';
-    
-    safeSetText('jobExtra1Label', label);
-    safeSetText('jobExtra1Value', value || 'Not specified');
+  if (extras[0]) {
+    const parsed1 = parseExtraLabelAndValue(extras[0], config?.field1?.label || 'Location:');
+    safeSetText('jobExtra1Label', parsed1.label);
+    safeSetText('jobExtra1Value', parsed1.value);
   }
   
   // Populate field 2
-  if (jobData.extras[1] && config.field2) {
-    const parts = jobData.extras[1].split(':');
-    const label = parts[0] ? parts[0].trim() + ':' : config.field2.label;
-    const value = parts[1] ? parts[1].trim() : '';
-    
-    safeSetText('jobExtra2Label', label);
-    safeSetText('jobExtra2Value', value || 'Not specified');
+  if (extras[1]) {
+    const parsed2 = parseExtraLabelAndValue(extras[1], config?.field2?.label || 'Details:');
+    safeSetText('jobExtra2Label', parsed2.label);
+    safeSetText('jobExtra2Value', parsed2.value);
   }
 }
 

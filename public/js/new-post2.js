@@ -344,7 +344,10 @@ const extrasConfig = {
   solicitor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
   aircon: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   tourguide: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
-  pila: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  pila: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  accountant: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  architect: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  landscaper: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
