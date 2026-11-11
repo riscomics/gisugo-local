@@ -1559,6 +1559,126 @@ exports.syncGigCompletedVolumeOnUpdate = onDocumentUpdated(
   }
 );
 
+// Public per-category active gig tally (gig_location_counts/{category})
+// Powers the "Open" counts inside the Select Region / Select City modals on
+// category listing pages. Stores only regions/cities with count > 0; zero entries
+// and empty category docs are pruned cleanly inside a transaction so city names
+// containing periods (e.g. "Pres. Carlos P. Garcia") are never treated as dotted
+// Firestore field paths.
+const GIG_LOCATION_COUNTS_COLLECTION = "gig_location_counts";
+
+function extractActiveGigLocationBucket(job) {
+  if (!job || typeof job !== "object") return null;
+  if (String(job.status || "").trim() !== "active") return null;
+  const category = String(job.category || "").trim().toLowerCase();
+  const region = String(job.region || "").trim();
+  const city = String(job.city || "").trim();
+  if (!category || !region || !city) return null;
+  return { category, region, city };
+}
+
+function applyLocationDeltaToMap(byRegion, region, city, delta) {
+  const next = {};
+  if (byRegion && typeof byRegion === "object") {
+    for (const [rKey, citiesObj] of Object.entries(byRegion)) {
+      if (!citiesObj || typeof citiesObj !== "object") continue;
+      const copiedCities = {};
+      for (const [cKey, rawCount] of Object.entries(citiesObj)) {
+        const count = Math.floor(Number(rawCount) || 0);
+        if (count > 0) copiedCities[cKey] = count;
+      }
+      if (Object.keys(copiedCities).length > 0) {
+        next[rKey] = copiedCities;
+      }
+    }
+  }
+
+  const regionMap = next[region] ? { ...next[region] } : {};
+  const updatedCount = Math.max(0, (Math.floor(Number(regionMap[city]) || 0)) + delta);
+  if (updatedCount > 0) {
+    regionMap[city] = updatedCount;
+  } else {
+    delete regionMap[city];
+  }
+
+  if (Object.keys(regionMap).length > 0) {
+    next[region] = regionMap;
+  } else {
+    delete next[region];
+  }
+  return next;
+}
+
+async function adjustCategoryLocationTally(category, adjustments) {
+  if (!category || !Array.isArray(adjustments) || adjustments.length === 0) return;
+  const docRef = db.collection(GIG_LOCATION_COUNTS_COLLECTION).doc(category);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(docRef);
+    let byRegion = snap.exists ? (snap.data()?.byRegion || {}) : {};
+    for (const { region, city, delta } of adjustments) {
+      byRegion = applyLocationDeltaToMap(byRegion, region, city, delta);
+    }
+    if (Object.keys(byRegion).length === 0) {
+      if (snap.exists) tx.delete(docRef);
+      return;
+    }
+    tx.set(docRef, {
+      byRegion,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: false });
+  });
+}
+
+exports.syncGigLocationCountsOnWrite = onDocumentWritten(
+  { document: "jobs/{jobId}", region: "asia-southeast1" },
+  async (event) => {
+    const before = event.data?.before?.exists ? (event.data.before.data() || {}) : null;
+    const after = event.data?.after?.exists ? (event.data.after.data() || {}) : null;
+
+    const prevLoc = extractActiveGigLocationBucket(before);
+    const nextLoc = extractActiveGigLocationBucket(after);
+
+    if (!prevLoc && !nextLoc) return;
+    if (
+      prevLoc &&
+      nextLoc &&
+      prevLoc.category === nextLoc.category &&
+      prevLoc.region === nextLoc.region &&
+      prevLoc.city === nextLoc.city
+    ) {
+      return;
+    }
+
+    try {
+      if (prevLoc && nextLoc && prevLoc.category === nextLoc.category) {
+        await adjustCategoryLocationTally(prevLoc.category, [
+          { region: prevLoc.region, city: prevLoc.city, delta: -1 },
+          { region: nextLoc.region, city: nextLoc.city, delta: 1 }
+        ]);
+        return;
+      }
+
+      const ops = [];
+      if (prevLoc) {
+        ops.push(adjustCategoryLocationTally(prevLoc.category, [
+          { region: prevLoc.region, city: prevLoc.city, delta: -1 }
+        ]));
+      }
+      if (nextLoc) {
+        ops.push(adjustCategoryLocationTally(nextLoc.category, [
+          { region: nextLoc.region, city: nextLoc.city, delta: 1 }
+        ]));
+      }
+      await Promise.all(ops);
+    } catch (error) {
+      logger.error("Gig location counts sync failed", {
+        jobId: event.params?.jobId || "",
+        error: String(error)
+      });
+    }
+  }
+);
+
 exports.syncApplicationAnalyticsCountersOnCreate = onDocumentCreated(
   { document: "applications/{applicationId}", region: "asia-southeast1" },
   async (event) => {

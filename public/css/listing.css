@@ -3906,6 +3906,90 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ===================== PICKER OPEN COUNTS & TWO-BUCKET LAYOUT ===================== */
+.region-picker-title.picker-title-with-count,
+.city-picker-title.picker-title-with-count {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  margin-top: clamp(18px, 3vh, 24px);
+  padding: 0 4px;
+}
+
+.picker-title-main {
+  min-width: 0;
+  text-align: left;
+}
+
+.picker-title-open-label {
+  flex-shrink: 0;
+  font-size: clamp(12px, 2.8vw, 14px);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: none;
+  min-width: 3.4ch;
+  text-align: right;
+  padding-right: clamp(10px, 2.2vw, 14px);
+}
+
+.region-picker-item.picker-row-with-count,
+.city-picker-item.picker-row-with-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.picker-row-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.picker-row-count {
+  flex: 0 0 auto;
+  min-width: 3.4ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.picker-row-count.picker-row-count--zero {
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 600;
+}
+
+.picker-bucket-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(16, 185, 129, 0.08) 0%,
+    rgba(16, 185, 129, 0.45) 50%,
+    rgba(16, 185, 129, 0.08) 100%
+  );
+  margin: 6px 0;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 411px) {
+  .region-picker-title.picker-title-with-count,
+  .city-picker-title.picker-title-with-count {
+    margin-top: 22px;
+  }
+  .picker-title-open-label {
+    padding-right: 8px;
+  }
+}
+
 /* ===================== PAY PICKER MODAL OVERLAY ===================== */
 
 .pay-picker-overlay {

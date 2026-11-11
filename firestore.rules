@@ -708,6 +708,18 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // GIG LOCATION COUNTS (Public listing region/city Open counts)
+    // One doc per category (gig_location_counts/{category}) holding
+    // active gig counts under byRegion[region][city]. Category pages
+    // are publicly browsable, so read is open; only Cloud Functions
+    // (Admin SDK) write here.
+    // ═══════════════════════════════════════════════════════════════
+    match /gig_location_counts/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT
     // ═══════════════════════════════════════════════════════════════
     match /{document=**} {

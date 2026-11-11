@@ -1456,7 +1456,8 @@ async function createJob(jobData) {
     }
     
     console.log('✅ Job created with ID:', docRef.id);
-    
+    invalidateCategoryLocationCountsCache(jobData.category);
+
     triggerPushMilestonePrompt('post');
     return {
       success: true,
@@ -1940,6 +1941,7 @@ async function updateJob(jobId, jobData) {
     };
     
     await db.collection('jobs').doc(jobId).update(updateData);
+    invalidateCategoryLocationCountsCache();
     console.log(`✅ Job ${jobId} updated`);
     return { success: true, message: 'Job updated', jobId };
   } catch (error) {
@@ -1968,7 +1970,8 @@ async function updateJobStatus(jobId, newStatus, additionalData = {}) {
       lastModified: firebase.firestore.FieldValue.serverTimestamp(),
       ...additionalData
     });
-    
+    invalidateCategoryLocationCountsCache();
+
     console.log(`✅ Job ${jobId} status updated to: ${newStatus}`);
     return { success: true, message: 'Job updated successfully' };
     
@@ -2235,7 +2238,8 @@ async function deleteJob(jobId) {
     // STEP 4: Delete the job document from Firestore
     // ═══════════════════════════════════════════════════════════════
     await db.collection('jobs').doc(jobId).delete();
-    
+    invalidateCategoryLocationCountsCache(jobData && jobData.category);
+
     console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications)`);
     return { 
       success: true, 
@@ -3046,6 +3050,7 @@ async function hireWorker(jobId, applicationId, confirmedPrice) {
       feedGroup: 0,
       heldPendingCount: Math.max(0, (Number(jobData.applicationCount) || 0) - 1)
     });
+    invalidateCategoryLocationCountsCache(jobData && jobData.category);
     
     // Update application status of the chosen applicant to 'accepted' (offer extended)
     await db.collection('applications').doc(applicationId).update({
@@ -3206,6 +3211,7 @@ async function rejectGigOfferInChat(jobId) {
       acceptedAt: firebase.firestore.FieldValue.delete(),
       rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    invalidateCategoryLocationCountsCache(jobData && jobData.category);
 
     const applicationsSnapshot = await db.collection('applications')
       .where('jobId', '==', safeJobId)
@@ -3316,6 +3322,7 @@ async function relistGigFromChat(jobId, reason) {
       voidedWorkerId: hiredWorkerId,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()
     });
+    invalidateCategoryLocationCountsCache(jobData && jobData.category);
 
     if (hiredWorkerId) {
       try {
@@ -3415,6 +3422,7 @@ async function resignGigFromChat(jobId, reason) {
       resignedWorkerName: workerName,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()
     });
+    invalidateCategoryLocationCountsCache(jobData && jobData.category);
 
     try {
       const applicationsSnapshot = await db.collection('applications')
@@ -6253,6 +6261,138 @@ async function saveAdSettings(settings) {
 
 window.getAdSettings = getAdSettings;
 window.saveAdSettings = saveAdSettings;
+
+// Public per-category active gig location counts (gig_location_counts/{category}).
+// Powers "Open" counts in Select Region / Select City modals on listing pages.
+const GIG_LOCATION_COUNTS_COLLECTION = 'gig_location_counts';
+const GIG_LOCATION_COUNTS_CACHE_PREFIX = 'gisugo_gig_loc_counts_v1:';
+const GIG_LOCATION_COUNTS_TTL_MS = 2 * 60 * 1000;
+
+function normalizeCategoryLocationCountsMap(rawByRegion) {
+  const clean = {};
+  if (!rawByRegion || typeof rawByRegion !== 'object') return clean;
+  Object.entries(rawByRegion).forEach(([regionKey, citiesObj]) => {
+    if (!citiesObj || typeof citiesObj !== 'object') return;
+    const regionCities = {};
+    Object.entries(citiesObj).forEach(([cityKey, rawVal]) => {
+      const count = Math.floor(Number(rawVal) || 0);
+      if (count > 0) regionCities[cityKey] = count;
+    });
+    if (Object.keys(regionCities).length > 0) {
+      clean[regionKey] = regionCities;
+    }
+  });
+  return clean;
+}
+
+function readCategoryLocationCountsCache(categoryKey) {
+  try {
+    const raw = sessionStorage.getItem(GIG_LOCATION_COUNTS_CACHE_PREFIX + categoryKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if ((Date.now() - (Number(parsed.at) || 0)) > GIG_LOCATION_COUNTS_TTL_MS) return null;
+    return normalizeCategoryLocationCountsMap(parsed.byRegion);
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeCategoryLocationCountsCache(categoryKey, byRegion) {
+  try {
+    sessionStorage.setItem(GIG_LOCATION_COUNTS_CACHE_PREFIX + categoryKey, JSON.stringify({
+      at: Date.now(),
+      byRegion: byRegion || {}
+    }));
+  } catch (_) {
+    // Ignore storage quota errors
+  }
+}
+
+async function fetchCategoryLocationCountsViaRest(categoryKey) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for location counts REST');
+  const endpoint = 'https://firestore.googleapis.com/v1/projects/'
+    + encodeURIComponent(projectId)
+    + '/databases/(default)/documents/'
+    + encodeURIComponent(GIG_LOCATION_COUNTS_COLLECTION)
+    + '/'
+    + encodeURIComponent(categoryKey);
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (response.status === 404) return {};
+  if (!response.ok) throw new Error('REST location counts fetch failed (' + response.status + ')');
+  const raw = await response.json();
+  const mapped = mapFirestoreRestDoc(raw);
+  return normalizeCategoryLocationCountsMap(mapped && mapped.byRegion);
+}
+
+async function getCategoryLocationCounts(category) {
+  const categoryKey = String(category || '').trim().toLowerCase();
+  if (!categoryKey) return {};
+
+  const cached = readCategoryLocationCountsCache(categoryKey);
+  if (cached) return cached;
+
+  if (isIOSWebKitBrowserForDataPath()) {
+    try {
+      const byRegion = await withFirestoreReadTimeout(
+        fetchCategoryLocationCountsViaRest(categoryKey),
+        8000
+      );
+      writeCategoryLocationCountsCache(categoryKey, byRegion);
+      return byRegion;
+    } catch (error) {
+      console.warn('⚠️ Category location counts REST failed (fail-open):', error && error.message ? error.message : error);
+      return {};
+    }
+  }
+
+  const db = getFirestore();
+  if (!db) return {};
+  try {
+    const ref = db.collection(GIG_LOCATION_COUNTS_COLLECTION).doc(categoryKey);
+    let snap;
+    try {
+      snap = await ref.get({ source: 'server' });
+    } catch (serverErr) {
+      snap = await ref.get();
+    }
+    if (!snap || !snap.exists) {
+      writeCategoryLocationCountsCache(categoryKey, {});
+      return {};
+    }
+    const data = snap.data() || {};
+    const byRegion = normalizeCategoryLocationCountsMap(data.byRegion);
+    writeCategoryLocationCountsCache(categoryKey, byRegion);
+    return byRegion;
+  } catch (error) {
+    console.warn('⚠️ Category location counts read failed (fail-open):', error && error.message ? error.message : error);
+    return {};
+  }
+}
+
+function invalidateCategoryLocationCountsCache(category) {
+  try {
+    if (category) {
+      const categoryKey = String(category || '').trim().toLowerCase();
+      if (categoryKey) sessionStorage.removeItem(GIG_LOCATION_COUNTS_CACHE_PREFIX + categoryKey);
+      return;
+    }
+    const keysToRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith(GIG_LOCATION_COUNTS_CACHE_PREFIX)) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch (_) {
+    // Ignore storage errors
+  }
+}
+
+window.getCategoryLocationCounts = getCategoryLocationCounts;
+window.invalidateCategoryLocationCountsCache = invalidateCategoryLocationCountsCache;
 
 /**
  * Get the Gigs Analytics counter doc (platform_analytics/gigs) — a tiny,

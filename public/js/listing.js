@@ -2620,17 +2620,16 @@ function getCurrentCategory() {
   // Title parsing is unreliable for multi-word service names.
   const url = window.location.pathname;
   const filename = url.substring(url.lastIndexOf('/') + 1);
-  const category = filename.replace('.html', '');
+  const category = filename.replace('.html', '').toLowerCase();
   if (category) {
-    return category === 'realtor' ? 'planner' : category;
+    return category;
   }
 
   // Legacy fallback: derive from title when URL is unavailable.
   const title = document.title || '';
   const titleMatch = title.match(/([A-Za-z]+)\s+Service/i);
   if (titleMatch) {
-    const fromTitle = String(titleMatch[1] || '').toLowerCase();
-    return fromTitle === 'realtor' ? 'planner' : fromTitle;
+    return String(titleMatch[1] || '').toLowerCase();
   }
 
   return 'hatod';
@@ -3377,12 +3376,19 @@ function initJobcatButtonAutoResize() {
   const filterArrow = document.getElementById('filterArrow'); // Arrow
   const regionButton = document.getElementById('regionButton');
   const cityButton = document.getElementById('cityButton');
-  const regionModalOverlay = document.getElementById('regionPickerOverlay');
-  const cityModalOverlay = document.getElementById('cityPickerOverlay');
-  const regionModalClose = document.getElementById('regionPickerCloseBtn');
-  const cityModalClose = document.getElementById('cityPickerCloseBtn');
-  const regionList = document.getElementById('regionPickerList');
-  const cityList = document.getElementById('cityPickerList');
+  function resolveBodyPickerOverlay(selector) {
+    const matches = Array.from(document.querySelectorAll(selector));
+    if (!matches.length) return null;
+    const outsideHeader = matches.find((el) => !el.closest('.jobcat-header'));
+    return outsideHeader || matches[matches.length - 1];
+  }
+
+  const regionModalOverlay = resolveBodyPickerOverlay('#regionPickerOverlay');
+  const cityModalOverlay = resolveBodyPickerOverlay('#cityPickerOverlay');
+  const regionModalClose = regionModalOverlay ? regionModalOverlay.querySelector('#regionPickerCloseBtn') : null;
+  const cityModalClose = cityModalOverlay ? cityModalOverlay.querySelector('#cityPickerCloseBtn') : null;
+  const regionList = regionModalOverlay ? regionModalOverlay.querySelector('#regionPickerList') : null;
+  const cityList = cityModalOverlay ? cityModalOverlay.querySelector('#cityPickerList') : null;
   const payOptionJob = document.getElementById('payOptionJob');
   const payOptionHour = document.getElementById('payOptionHour');
 
@@ -3412,6 +3418,113 @@ function initJobcatButtonAutoResize() {
     'MANILA': 'Manila'
   };
 
+  let locationCountsByRegion = {};
+  let locationCountsLoaded = false;
+
+  function escapePickerHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatPickerOpenCount(rawCount) {
+    const n = Math.max(0, Math.floor(Number(rawCount) || 0));
+    if (n >= 10000) {
+      return Math.round(n / 1000) + 'k';
+    }
+    return String(n);
+  }
+
+  function getRegionOpenCount(regionKey) {
+    const citiesMap = locationCountsByRegion && locationCountsByRegion[regionKey];
+    if (!citiesMap || typeof citiesMap !== 'object') return 0;
+    let sum = 0;
+    Object.values(citiesMap).forEach((val) => {
+      const n = Math.floor(Number(val) || 0);
+      if (n > 0) sum += n;
+    });
+    return sum;
+  }
+
+  function getCityOpenCount(regionKey, cityKey) {
+    const citiesMap = locationCountsByRegion && locationCountsByRegion[regionKey];
+    if (!citiesMap || typeof citiesMap !== 'object') return 0;
+    const n = Math.floor(Number(citiesMap[cityKey]) || 0);
+    return n > 0 ? n : 0;
+  }
+
+  function sortPickerEntriesWithBuckets(names, countFn) {
+    const activeBucket = [];
+    const zeroBucket = [];
+    names.forEach((name) => {
+      const count = countFn(name);
+      if (count > 0) {
+        activeBucket.push({ name, count });
+      } else {
+        zeroBucket.push({ name, count: 0 });
+      }
+    });
+    activeBucket.sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+    zeroBucket.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    return { activeBucket, zeroBucket };
+  }
+
+  function setupPickerModalTitleHeader(overlayEl, titleSelector, labelText) {
+    if (!overlayEl) return;
+    const titleEl = overlayEl.querySelector(titleSelector);
+    if (!titleEl || titleEl.querySelector('.picker-title-open-label')) return;
+    titleEl.classList.add('picker-title-with-count');
+    titleEl.innerHTML =
+      `<span class="picker-title-main">${escapePickerHtml(labelText)}</span>` +
+      `<span class="picker-title-open-label">Open</span>`;
+  }
+
+  function renderPickerRowHtml(itemClass, entry, isSelected) {
+    const safeVal = escapePickerHtml(entry.name);
+    const activeCls = isSelected ? ' active' : '';
+    if (!locationCountsLoaded) {
+      return `<div class="${itemClass} picker-row-with-count${activeCls}" data-value="${safeVal}">` +
+        `<span class="picker-row-name">${safeVal}</span>` +
+        `</div>`;
+    }
+    const zeroCls = entry.count === 0 ? ' picker-row-count--zero' : '';
+    return `<div class="${itemClass} picker-row-with-count${activeCls}" data-value="${safeVal}">` +
+      `<span class="picker-row-name">${safeVal}</span>` +
+      `<span class="picker-row-count${zeroCls}">${formatPickerOpenCount(entry.count)}</span>` +
+      `</div>`;
+  }
+
+  function buildBucketedPickerListHtml(names, countFn, itemClass, currentSelection) {
+    if (!locationCountsLoaded) {
+      const sortedPlain = [...names].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' })
+      );
+      return sortedPlain
+        .map((name) => renderPickerRowHtml(itemClass, { name, count: 0 }, name === currentSelection))
+        .join('');
+    }
+    const { activeBucket, zeroBucket } = sortPickerEntriesWithBuckets(names, countFn);
+    const parts = [];
+    activeBucket.forEach((entry) => {
+      parts.push(renderPickerRowHtml(itemClass, entry, entry.name === currentSelection));
+    });
+    if (activeBucket.length > 0 && zeroBucket.length > 0) {
+      parts.push('<div class="picker-bucket-divider" role="separator" aria-hidden="true"></div>');
+    }
+    zeroBucket.forEach((entry) => {
+      parts.push(renderPickerRowHtml(itemClass, entry, entry.name === currentSelection));
+    });
+    return parts.join('');
+  }
+
+  setupPickerModalTitleHeader(regionModalOverlay, '.region-picker-title', 'Select Region');
+  setupPickerModalTitleHeader(cityModalOverlay, '.city-picker-title', 'Select City');
+
   // Populate region picker list
   function populateRegions() {
     // Sourced from the shared public/js/ph-locations.js (same `regions` array used by the
@@ -3421,40 +3534,42 @@ function initJobcatButtonAutoResize() {
     // Shown raw (ALL CAPS, matching the underlying region key) rather than title-cased --
     // 2026-08-04, user asked for the selected Region display to match the selected City
     // display style, which has never applied any special formatting (city names just show
-    // exactly as stored). A previous version of this code title-cased region names for
-    // readability (e.g. "LA UNION" -> "La Union"), but that made the selected REGION button
-    // look inconsistent with the selected CITY button next to it.
+    // exactly as stored).
     const regionData = regions;
     if (regionList) {
-      regionList.innerHTML = regionData.map(region => 
-        `<div class="region-picker-item" data-value="${region}">${region}</div>`
-      ).join('');
-      
+      regionList.innerHTML = buildBucketedPickerListHtml(
+        regionData,
+        getRegionOpenCount,
+        'region-picker-item',
+        selectedRegion
+      );
+
       // Add click handlers to region items
       regionList.querySelectorAll('.region-picker-item').forEach(item => {
         item.addEventListener('click', (e) => {
           e.stopPropagation(); // Prevent gaming filter panel from closing
-          
+
           selectedRegion = item.getAttribute('data-value');
-          if (regionButton) regionButton.textContent = item.textContent;
-          
+          if (regionButton) regionButton.textContent = selectedRegion;
+
           // Update global filter variables
           activeRegion = selectedRegion;
-          
+
           // Close the region modal
           regionModalOverlay.classList.remove('show');
-          
-          // Populate cities for the new region
-          populateCities(selectedRegion);
-          
+
           // Set default city for this region
-          selectedCity = defaultCities[selectedRegion] || citiesByRegion[selectedRegion][0] || '';
+          selectedCity = defaultCities[selectedRegion] || (citiesByRegion[selectedRegion] && citiesByRegion[selectedRegion][0]) || '';
           activeCity = selectedCity;
           if (cityButton) cityButton.textContent = selectedCity;
-          
+
+          // Re-render both lists so active highlight + new region's cities reflect selection
+          populateRegions();
+          populateCities(selectedRegion);
+
           updateFilterDisplay();
           saveFilterPrefs(activeRegion, activeCity);
-          
+
           // Re-filter jobs with new region
           filterAndSortJobs();
           console.log('🎮 Region changed to:', selectedRegion, '- Jobs re-filtered');
@@ -3467,22 +3582,26 @@ function initJobcatButtonAutoResize() {
   function populateCities(region) {
     const cities = citiesByRegion[region] || [];
     if (cityList) {
-      cityList.innerHTML = cities.map(city => 
-        `<div class="city-picker-item" data-value="${city}">${city}</div>`
-      ).join('');
-      
+      cityList.innerHTML = buildBucketedPickerListHtml(
+        cities,
+        (city) => getCityOpenCount(region, city),
+        'city-picker-item',
+        selectedCity
+      );
+
       // Add click handlers to city items
       cityList.querySelectorAll('.city-picker-item').forEach(item => {
         item.addEventListener('click', (e) => {
           e.stopPropagation(); // Prevent gaming filter panel from closing
-          
+
           selectedCity = item.getAttribute('data-value');
           activeCity = selectedCity;
           if (cityButton) cityButton.textContent = selectedCity;
           cityModalOverlay.classList.remove('show');
+          populateCities(selectedRegion);
           updateFilterDisplay();
           saveFilterPrefs(activeRegion, activeCity);
-          
+
           // Re-filter jobs with new city
           filterAndSortJobs();
           console.log('🎮 City changed to:', selectedCity, '- Jobs re-filtered');
@@ -3494,6 +3613,22 @@ function initJobcatButtonAutoResize() {
   // Initialize with the restored (or default CEBU) region's cities
   populateRegions();
   populateCities(selectedRegion);
+
+  // Non-blocking fetch of per-category active gig counts for Region & City modals.
+  // Fails open to plain alphabetical list if unavailable.
+  (async function loadPickerLocationCounts() {
+    if (typeof getCategoryLocationCounts !== 'function') return;
+    try {
+      const cat = getCurrentCategory();
+      const map = await getCategoryLocationCounts(cat);
+      locationCountsByRegion = (map && typeof map === 'object') ? map : {};
+      locationCountsLoaded = true;
+      populateRegions();
+      populateCities(selectedRegion);
+    } catch (err) {
+      console.warn('⚠️ Picker location counts unavailable:', err && err.message ? err.message : err);
+    }
+  })();
 
   // Sync the always-visible REGION/CITY button labels to match the restored selection --
   // populateRegions()/populateCities() only build the picker list content, they don't touch
@@ -3530,23 +3665,26 @@ function initJobcatButtonAutoResize() {
   listingFilterUiSync = function (region, city) {
     selectedRegion = region;
     selectedCity = city;
+    populateRegions();
     populateCities(selectedRegion);
     updateFilterDisplay();
   };
   
   // Region button click - open modal (prevent panel from closing)
-  if (regionButton) {
+  if (regionButton && regionModalOverlay) {
     regionButton.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent any parent click handlers
       regionModalOverlay.classList.add('show');
+      if (regionList) regionList.scrollTop = 0;
     });
   }
   
   // City button click - open modal (prevent panel from closing)
-  if (cityButton) {
+  if (cityButton && cityModalOverlay) {
     cityButton.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent any parent click handlers
       cityModalOverlay.classList.add('show');
+      if (cityList) cityList.scrollTop = 0;
     });
   }
   
