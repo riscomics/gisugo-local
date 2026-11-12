@@ -133,6 +133,7 @@ const np2State = {
   paymentAmount: '',
   // Edit/Relist mode tracking
   mode: 'new', // 'new', 'edit', or 'relist'
+  selectedLang: 'english',
   editJobId: null,
   relistJobId: null,
   categoryLabel: '',
@@ -737,6 +738,55 @@ function updateProgressIndicator() {
   });
 }
 
+function escapeNp2Html(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function isNp2VirtualPositionSelected(extras2Text) {
+  return /\bvirtual\b/i.test(String(extras2Text || ''));
+}
+
+function renderNp2PriceGuide(targetId, categoryId, lang, isVirtual) {
+  const box = document.getElementById(targetId);
+  if (!box) return;
+  if (!window.GisugoCategoryGuides || typeof window.GisugoCategoryGuides.getCategoryGuide !== 'function' || !categoryId) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const guide = window.GisugoCategoryGuides.getCategoryGuide(categoryId, lang || np2State.selectedLang || 'english');
+  const pg = guide && guide.priceGuide ? guide.priceGuide : null;
+  if (!pg) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const headlineHtml = String(pg.headline || '')
+    .split('\n')
+    .map((line) => escapeNp2Html(line.trim()))
+    .filter(Boolean)
+    .join('<br>');
+  const bodyHtml = escapeNp2Html(pg.body || '');
+  const showTravel = Boolean(pg.travelTip) && !isVirtual;
+  const travelHtml = showTravel
+    ? `<div class="np2-price-guide-travel">${escapeNp2Html(pg.travelTip)}</div>`
+    : '';
+  const calloutHtml = pg.callout
+    ? `<div class="np2-price-guide-callout">${escapeNp2Html(pg.callout)}</div>`
+    : '';
+  box.innerHTML = `
+    <div class="np2-price-guide-headline">${headlineHtml}</div>
+    <div class="np2-price-guide-body">${bodyHtml}</div>
+    ${travelHtml}
+    ${calloutHtml}
+  `;
+  box.style.display = 'block';
+}
+
 function showSection(step) {
   // Use requestAnimationFrame to batch DOM updates and prevent flickering
   requestAnimationFrame(() => {
@@ -773,6 +823,12 @@ function showSection(step) {
       backBtn.style.display = 'inline-flex';
       nextBtn.style.display = 'none';
       previewBtn.style.display = 'inline-flex';
+      renderNp2PriceGuide(
+        'np2Step4PriceGuide',
+        np2State.selectedCategory,
+        np2State.selectedLang,
+        isNp2VirtualPositionSelected(np2State.extras2Value)
+      );
     } else {
       backBtn.style.display = 'inline-flex';
       nextBtn.style.display = 'inline-flex';
@@ -2789,6 +2845,12 @@ function showEditForm(jobData, category) {
     paymentTypeDisplay.textContent = formatPaymentTypeDisplay(gigUseType);
   }
   document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
+  renderNp2PriceGuide(
+    'np2EditPriceGuide',
+    category || jobData.category,
+    np2State.selectedLang,
+    isNp2VirtualPositionSelected(Array.isArray(jobData.extras) ? jobData.extras[1] : '')
+  );
   
   // Wire up buttons (relist uses different submit handler)
   initializeEditFormButtons(jobData, category, isRelist);
@@ -3518,6 +3580,15 @@ function initializeDisclaimerLangTabs() {
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const lang = tab.dataset.lang;
+      np2State.selectedLang = (lang === 'bisaya' || lang === 'tagalog') ? lang : 'english';
+      if (np2State.selectedCategory) {
+        renderNp2PriceGuide(
+          'np2Step4PriceGuide',
+          np2State.selectedCategory,
+          np2State.selectedLang,
+          isNp2VirtualPositionSelected(np2State.extras2Value)
+        );
+      }
       
       // Update active tab
       tabs.forEach(t => t.classList.remove('active'));

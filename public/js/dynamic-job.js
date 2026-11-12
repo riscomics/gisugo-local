@@ -1107,6 +1107,7 @@ function populateJobPage(jobData) {
   safeSetText('jobPaymentAmount', `₱${paymentAmount}`);
   safeSetText('jobPaymentRate', gigUseType);
   safeSetText('modalPaymentAmount', `₱${paymentAmount}`);
+  populateJobPriceGuide(jobData);
   
   // Set customer info (poster)
   const customerNameEl = document.getElementById('customerName');
@@ -1247,6 +1248,36 @@ function parseExtraLabelAndValue(rawExtra, fallbackLabel) {
     label: fallbackLabel || 'Detail:',
     value: text || 'Not specified'
   };
+}
+
+function populateJobPriceGuide(jobData) {
+  const card = document.getElementById('jobPriceGuideCard');
+  if (!card) return;
+  if (!window.GisugoCategoryGuides || typeof window.GisugoCategoryGuides.getCategoryGuide !== 'function') {
+    card.style.display = 'none';
+    return;
+  }
+  const category = String(jobData?.category || getUrlParameters().category || '').trim().toLowerCase();
+  if (!category) {
+    card.style.display = 'none';
+    return;
+  }
+  const guide = window.GisugoCategoryGuides.getCategoryGuide(category, 'english');
+  if (!guide || !guide.gigDetailPayNote) {
+    card.style.display = 'none';
+    return;
+  }
+  const headlineHtml = String(guide.priceGuide?.headline || '')
+    .split('\n')
+    .map((line) => escapeHtml(line.trim()))
+    .filter(Boolean)
+    .join('<br>');
+  const bodyHtml = window.GisugoCategoryGuides.renderStructuredGuideHtml(guide.gigDetailPayNote, { isPayNote: true });
+  card.innerHTML = `
+    ${headlineHtml ? `<div class="job-price-guide-headline">${headlineHtml}</div>` : ''}
+    <div class="job-price-guide-body">${bodyHtml}</div>
+  `;
+  card.style.display = 'block';
 }
 
 function populateExtras(jobData) {

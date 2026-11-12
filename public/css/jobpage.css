@@ -395,6 +395,27 @@ body::-webkit-scrollbar {
   padding: 0 15px;
 }
 
+.job-price-guide-card {
+  max-width: 680px;
+  margin: 16px auto 0;
+  padding: 14px 16px;
+  background: linear-gradient(145deg, rgba(6, 78, 59, 0.36) 0%, rgba(15, 23, 42, 0.88) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.42);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.job-price-guide-headline {
+  color: #6ee7b7;
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.38;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+}
+
 .job-payment-item {
   flex: 1;
   display: flex;

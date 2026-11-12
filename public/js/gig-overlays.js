@@ -390,6 +390,7 @@
                     applicationId: applicationId,
                     jobId: jobId,
                     jobTitle: String(data.jobTitle || '').trim(),
+                    category: String(data.category || overlay.getAttribute('data-category') || '').trim(),
                     userId: String(data.userId || '').trim(),
                     userName: String(data.userName || '').trim(),
                     userPhoto: String(data.userPhoto || '').trim(),
@@ -455,6 +456,7 @@
             reviewCount: Number(data.reviewCount || 0),
             jobId: String(data.jobId || '').trim(),
             jobTitle: String(data.jobTitle || '').trim(),
+            category: String(data.category || '').trim(),
             priceOffer: String(data.priceOffer || '').trim(),
             priceType: String(data.priceType || '').trim(),
             applicationStatus: String(data.applicationStatus || data.status || '').trim(),
@@ -473,6 +475,7 @@
         overlay.setAttribute('data-user-name', normalized.userName);
         overlay.setAttribute('data-job-id', normalized.jobId);
         overlay.setAttribute('data-job-title', normalized.jobTitle);
+        overlay.setAttribute('data-category', normalized.category);
 
         if (profileBtn) {
             profileBtn.setAttribute('data-user-id', normalized.userId);
@@ -1523,6 +1526,30 @@
             bisaya: getElement('confirmHireBisaya'),
             tagalog: getElement('confirmHireTagalog')
         };
+        const injectHireCategoryRules = function (catKey) {
+            if (!window.GisugoCategoryGuides || typeof window.GisugoCategoryGuides.renderCategoryRuleBoxHtml !== 'function') return;
+            const resolvedCat = String(catKey || '').trim().toLowerCase();
+            if (!resolvedCat) return;
+            Object.keys(allContent).forEach(function (langKey) {
+                const container = allContent[langKey];
+                if (!container) return;
+                let slot = container.querySelector('.gisugo-category-rule-slot');
+                if (!slot) {
+                    slot = document.createElement('div');
+                    slot.className = 'gisugo-category-rule-slot';
+                    container.appendChild(slot);
+                }
+                slot.innerHTML = window.GisugoCategoryGuides.renderCategoryRuleBoxHtml(resolvedCat, langKey, 'customer');
+            });
+        };
+        if (workerData.category) {
+            injectHireCategoryRules(workerData.category);
+        } else if (workerData.jobId && typeof window.getJobById === 'function') {
+            window.getJobById(workerData.jobId).then(function (jobDoc) {
+                if (signal.aborted || !jobDoc || !jobDoc.category) return;
+                injectHireCategoryRules(jobDoc.category);
+            }).catch(function () {});
+        }
         const langTabs = Array.from(tabsContainer.querySelectorAll('.lang-tab'));
         langTabs.forEach(function (tab) { tab.classList.remove('active'); });
         Object.keys(allContent).forEach(function (key) {

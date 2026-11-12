@@ -3567,6 +3567,24 @@ async function showConfirmAcceptGigOverlay(jobData) {
     
     // Initialize language tabs (resets state each time modal opens)
     initializeDisclaimerLanguageTabs('acceptGig');
+    if (window.GisugoCategoryGuides && typeof window.GisugoCategoryGuides.renderCategoryRuleBoxHtml === 'function' && jobData.category) {
+        const acceptMap = {
+            english: document.getElementById('acceptGigEnglish'),
+            bisaya: document.getElementById('acceptGigBisaya'),
+            tagalog: document.getElementById('acceptGigTagalog')
+        };
+        Object.keys(acceptMap).forEach((langKey) => {
+            const container = acceptMap[langKey];
+            if (!container) return;
+            let slot = container.querySelector('.gisugo-category-rule-slot');
+            if (!slot) {
+                slot = document.createElement('div');
+                slot.className = 'gisugo-category-rule-slot';
+                container.appendChild(slot);
+            }
+            slot.innerHTML = window.GisugoCategoryGuides.renderCategoryRuleBoxHtml(jobData.category, langKey, 'worker');
+        });
+    }
     
     // Show overlay before network work so Accept feels instant.
     overlay.classList.add('show');
@@ -8191,6 +8209,7 @@ async function showApplicationsOverlay(jobData) {
     }
     const requestToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     overlay.dataset.loadingJobId = String(jobData?.jobId || '');
+    overlay.dataset.category = String(jobData?.category || '').trim();
     overlay.dataset.requestToken = requestToken;
 
     console.log('═══════════════════════════════════════════════════════');
@@ -8647,6 +8666,7 @@ function initializeApplicationCardHandlers() {
         console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
         
         if (window.GigOverlays && typeof window.GigOverlays.showApplicationActionOverlay === 'function') {
+            const appsOverlay = document.getElementById('applicationsOverlay');
             window.GigOverlays.showApplicationActionOverlay({
                 applicationId: applicationId,
                 userId: userId,
@@ -8656,6 +8676,7 @@ function initializeApplicationCardHandlers() {
                 reviewCount: reviewCount,
                 jobId: jobId,
                 jobTitle: jobTitle,
+                category: (appsOverlay && appsOverlay.dataset.category) || '',
                 priceOffer: priceOffer,
                 priceType: priceType,
                 applicationStatus: applicationStatus,

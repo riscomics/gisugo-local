@@ -2328,3 +2328,48 @@ html body.page-post2:has(.uniform-header) {
  font-size: 16px;
  }
 }
+
+/* ===== STEP 4 & EDIT/RELIST PRICE GUIDE CARD ===== */
+.np2-price-guide-card {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(145deg, rgba(6, 78, 59, 0.36) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.42);
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.np2-price-guide-headline {
+  color: #6ee7b7;
+  font-size: 0.96rem;
+  font-weight: 800;
+  line-height: 1.38;
+  margin-bottom: 8px;
+}
+
+.np2-price-guide-body {
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.np2-price-guide-travel {
+  color: #93c5fd;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+.np2-price-guide-callout {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  border-radius: 10px;
+  color: #fde68a;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
