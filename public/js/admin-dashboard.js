@@ -6729,6 +6729,86 @@ async function loadGigsAnalyticsGlanceCard() {
     }
 }
 
+async function fetchAllActiveGigLocationsForAdmin() {
+    if (typeof getFirestore !== 'function') return {};
+    const db = getFirestore();
+    if (!db) return {};
+    try {
+        const ref = db.collection('gig_location_counts');
+        let snap;
+        try {
+            snap = await ref.get({ source: 'server' });
+        } catch (_) {
+            snap = await ref.get();
+        }
+        const merged = {};
+        if (!snap || snap.empty) return merged;
+        snap.docs.forEach((doc) => {
+            const byRegion = (doc.data() || {}).byRegion;
+            if (!byRegion || typeof byRegion !== 'object') return;
+            Object.entries(byRegion).forEach(([regionKey, citiesObj]) => {
+                if (!citiesObj || typeof citiesObj !== 'object') return;
+                if (!merged[regionKey]) merged[regionKey] = {};
+                Object.entries(citiesObj).forEach(([cityKey, rawVal]) => {
+                    const n = Math.floor(Number(rawVal) || 0);
+                    if (n > 0) {
+                        merged[regionKey][cityKey] = (merged[regionKey][cityKey] || 0) + n;
+                    }
+                });
+            });
+        });
+        return merged;
+    } catch (error) {
+        console.warn('⚠️ Active gig locations read failed:', error && error.message ? error.message : error);
+        return {};
+    }
+}
+
+function renderActiveGigsLocationBreakdownList(containerId, byRegion, emptyMessage) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const regionEntries = Object.entries(byRegion || {})
+        .map(([regionName, citiesObj]) => {
+            const cities = Object.entries(citiesObj || {})
+                .map(([cityName, count]) => ({ cityName, count: Math.floor(Number(count) || 0) }))
+                .filter((c) => c.count > 0)
+                .sort((a, b) => (b.count !== a.count ? b.count - a.count : a.cityName.localeCompare(b.cityName)));
+            const total = cities.reduce((sum, c) => sum + c.count, 0);
+            return { regionName, total, cities };
+        })
+        .filter((r) => r.total > 0)
+        .sort((a, b) => (b.total !== a.total ? b.total - a.total : a.regionName.localeCompare(b.regionName)));
+
+    if (regionEntries.length === 0) {
+        container.innerHTML = `<div class="breakdown-empty-note">${escapeHtml(emptyMessage || 'No active gigs right now.')}</div>`;
+        return;
+    }
+
+    const grandTotal = regionEntries.reduce((sum, r) => sum + r.total, 0);
+    container.innerHTML = regionEntries.map((entry) => {
+        const percentage = grandTotal > 0 ? Math.round((entry.total / grandTotal) * 100) : 0;
+        const citiesHtml = entry.cities.map((c) =>
+            `<span class="active-location-city-chip">` +
+                `<span>${escapeHtml(c.cityName)}</span>` +
+                `<span class="active-location-city-count">${c.count.toLocaleString()}</span>` +
+            `</span>`
+        ).join('');
+        return `
+            <div class="breakdown-item">
+                <div class="breakdown-bar-container">
+                    <span class="breakdown-label">📍 ${escapeHtml(entry.regionName)}</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-bar-fill green" style="width: ${percentage}%;"></div>
+                    </div>
+                    <span class="breakdown-value">${entry.total.toLocaleString()}</span>
+                </div>
+                <div class="active-location-cities-row">${citiesHtml}</div>
+            </div>
+        `;
+    }).join('');
+}
+
 async function renderGigsAnalyticsOverlay() {
     if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
         console.warn('⚠️ Gigs Analytics: Firebase offline, skipping load');
@@ -6740,9 +6820,10 @@ async function renderGigsAnalyticsOverlay() {
     }
 
     try {
-        const [gigsAnalytics, applicationsAnalytics] = await Promise.all([
+        const [gigsAnalytics, applicationsAnalytics, activeLocationsByRegion] = await Promise.all([
             getPlatformAnalyticsGigs(),
-            getPlatformAnalyticsApplications()
+            getPlatformAnalyticsApplications(),
+            fetchAllActiveGigLocationsForAdmin()
         ]);
 
         const totalGigs = gigsAnalytics.totalPosted || 0;
@@ -6757,6 +6838,7 @@ async function renderGigsAnalyticsOverlay() {
         setElementValue('gigsOverlayCompletedCount', completedCount.toLocaleString() + (completedCount === 1 ? ' gig' : ' gigs'));
 
         renderCategoryBreakdownList('gigsPostedBreakdownList', gigsAnalytics.byCategory, 'No gigs posted yet.');
+        renderActiveGigsLocationBreakdownList('activeGigsLocationBreakdownList', activeLocationsByRegion, 'No active gigs right now.');
         renderCategoryBreakdownList('applicationsBreakdownList', applicationsAnalytics.byCategory, 'No applications yet.');
         renderCompletedByCategoryList(
             'completedByCategoryBreakdownList',

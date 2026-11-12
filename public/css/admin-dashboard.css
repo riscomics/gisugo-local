@@ -8079,6 +8079,33 @@ body.admin-dashboard.overview-tiles-settled #overview .dashboard-card.clickable-
     padding: 0.75rem 0;
 }
 
+.active-location-cities-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.65rem;
+    margin-top: 0.45rem;
+    padding-left: 0.35rem;
+}
+
+.active-location-city-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(148, 163, 184, 0.1);
+    border: 1px solid rgba(230, 214, 174, 0.2);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.82rem;
+    color: rgba(230, 214, 174, 0.9);
+}
+
+.active-location-city-count {
+    color: #00ffc8;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
 /* Info Rows (for transaction stats) */
 .stat-info-row {
     display: flex;

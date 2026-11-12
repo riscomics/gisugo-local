@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GISUGO Admin Dashboard</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=42">
+    <link rel="stylesheet" href="public/css/admin-dashboard.css?v=43">
     <!-- Access gate: dashboard content stays hidden until admin-auth-gate.js
          confirms the signed-in account is on the admins list. Prevents a
          flash of real dashboard content for logged-out/non-admin visitors. -->
@@ -1285,6 +1285,20 @@
                                     <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs -->
                                     <div class="breakdown-list" id="gigsPostedBreakdownList">
                                         <div class="breakdown-empty-note">No gigs posted yet.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Gigs by Location -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="activeGigsLocationBreakdown">
+                                    <span class="breakdown-title">📍 Active Gigs by Location</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="activeGigsLocationBreakdown">
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from gig_location_counts -->
+                                    <div class="breakdown-list" id="activeGigsLocationBreakdownList">
+                                        <div class="breakdown-empty-note">No active gigs right now.</div>
                                     </div>
                                 </div>
                             </div>
@@ -3513,7 +3527,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=53"></script>
+    <script src="public/js/admin-dashboard.js?v=54"></script>
     
     
 </body>
