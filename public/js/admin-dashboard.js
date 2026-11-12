@@ -6679,9 +6679,22 @@ async function renderAgeGroupsBreakdown() {
     }
 }
 
-// Glance card on the main Overview grid (not the overlay) — shows the same
-// Total Gigs/Applications/Avg + Gig Use Type split at a glance, before the
-// admin even clicks in. Loads once on dashboard init (cheap: 2 doc reads).
+function sumActiveGigLocations(byRegion) {
+    let total = 0;
+    if (!byRegion || typeof byRegion !== 'object') return 0;
+    Object.values(byRegion).forEach((citiesObj) => {
+        if (!citiesObj || typeof citiesObj !== 'object') return;
+        Object.values(citiesObj).forEach((val) => {
+            const n = Math.floor(Number(val) || 0);
+            if (n > 0) total += n;
+        });
+    });
+    return total;
+}
+
+// Glance card on the main Overview grid (not the overlay) — shows Active Gigs,
+// Total Gigs, Applications, Avg, Completed Volume + Gig Use Type split at a
+// glance, before the admin even clicks in.
 async function loadGigsAnalyticsGlanceCard() {
     if (typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
         console.warn('⚠️ Gigs Analytics glance card: Firebase offline, skipping load');
@@ -6693,15 +6706,18 @@ async function loadGigsAnalyticsGlanceCard() {
     }
 
     try {
-        const [gigsAnalytics, applicationsAnalytics] = await Promise.all([
+        const [gigsAnalytics, applicationsAnalytics, activeLocationsByRegion] = await Promise.all([
             getPlatformAnalyticsGigs(),
-            getPlatformAnalyticsApplications()
+            getPlatformAnalyticsApplications(),
+            fetchAllActiveGigLocationsForAdmin()
         ]);
 
+        const activeGigs = sumActiveGigLocations(activeLocationsByRegion);
         const totalGigs = gigsAnalytics.totalPosted || 0;
         const totalApplications = applicationsAnalytics.totalApplications || 0;
         const avgPerGig = totalGigs > 0 ? (totalApplications / totalGigs) : 0;
 
+        setElementValue('activeGigsCount', activeGigs.toLocaleString());
         setElementValue('totalGigsPosted', totalGigs.toLocaleString());
         setElementValue('totalApplicants', totalApplications.toLocaleString());
         setElementValue('avgApplicantsPerGig', avgPerGig.toFixed(1));
@@ -6826,10 +6842,12 @@ async function renderGigsAnalyticsOverlay() {
             fetchAllActiveGigLocationsForAdmin()
         ]);
 
+        const activeGigs = sumActiveGigLocations(activeLocationsByRegion);
         const totalGigs = gigsAnalytics.totalPosted || 0;
         const totalApplications = applicationsAnalytics.totalApplications || 0;
         const avgPerGig = totalGigs > 0 ? (totalApplications / totalGigs) : 0;
 
+        setElementValue('activeGigsCount', activeGigs.toLocaleString());
         setElementValue('gigsOverlayTotalGigs', totalGigs.toLocaleString());
         setElementValue('gigsOverlayTotalApplicants', totalApplications.toLocaleString());
         setElementValue('gigsOverlayAvgPerGig', avgPerGig.toFixed(1));
