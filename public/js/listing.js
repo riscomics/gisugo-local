@@ -3481,7 +3481,21 @@ function initJobcatButtonAutoResize() {
     titleEl.classList.add('picker-title-with-count');
     titleEl.innerHTML =
       `<span class="picker-title-main">${escapePickerHtml(labelText)}</span>` +
-      `<span class="picker-title-open-label">Open</span>`;
+      `<span class="picker-title-open-label">Active</span>`;
+  }
+
+  function pickDefaultCityForRegion(regionKey) {
+    const cities = citiesByRegion[regionKey] || [];
+    if (locationCountsLoaded && cities.length > 0) {
+      const { activeBucket } = sortPickerEntriesWithBuckets(
+        cities,
+        (city) => getCityOpenCount(regionKey, city)
+      );
+      if (activeBucket.length > 0) {
+        return activeBucket[0].name;
+      }
+    }
+    return defaultCities[regionKey] || cities[0] || '';
   }
 
   function renderPickerRowHtml(itemClass, entry, isSelected) {
@@ -3558,8 +3572,8 @@ function initJobcatButtonAutoResize() {
           // Close the region modal
           regionModalOverlay.classList.remove('show');
 
-          // Set default city for this region
-          selectedCity = defaultCities[selectedRegion] || (citiesByRegion[selectedRegion] && citiesByRegion[selectedRegion][0]) || '';
+          // Set default city for this region (highest active count first when counts are loaded)
+          selectedCity = pickDefaultCityForRegion(selectedRegion);
           activeCity = selectedCity;
           if (cityButton) cityButton.textContent = selectedCity;
 
