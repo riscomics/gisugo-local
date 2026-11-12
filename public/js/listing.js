@@ -3481,7 +3481,7 @@ function initJobcatButtonAutoResize() {
     titleEl.classList.add('picker-title-with-count');
     titleEl.innerHTML =
       `<span class="picker-title-main">${escapePickerHtml(labelText)}</span>` +
-      `<span class="picker-title-open-label">Active</span>`;
+      `<span class="picker-title-open-label">GIGS:</span>`;
   }
 
   function pickDefaultCityForRegion(regionKey) {

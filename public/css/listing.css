@@ -3681,6 +3681,7 @@ body::-webkit-scrollbar {
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   text-align: center;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
 }
 
 .region-picker-list {
@@ -3818,6 +3819,7 @@ body::-webkit-scrollbar {
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   text-align: center;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
 }
 
 .city-picker-list {
@@ -3907,6 +3909,19 @@ body::-webkit-scrollbar {
 }
 
 /* ===================== PICKER OPEN COUNTS & TWO-BUCKET LAYOUT ===================== */
+.region-picker-modal,
+.city-picker-modal,
+.region-picker-title.picker-title-with-count,
+.city-picker-title.picker-title-with-count,
+.picker-title-main,
+.picker-title-open-label,
+.region-picker-item.picker-row-with-count,
+.city-picker-item.picker-row-with-count,
+.picker-row-name,
+.picker-row-count {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif !important;
+}
+
 .region-picker-title.picker-title-with-count,
 .city-picker-title.picker-title-with-count {
   display: flex;
