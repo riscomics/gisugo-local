@@ -1261,16 +1261,16 @@
                                 </div>
                             </div>
 
-                            <!-- Completed by Category -->
+                            <!-- Active Gigs by Location -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="completedByCategoryBreakdown">
-                                    <span class="breakdown-title">💵 Completed by Category</span>
+                                <div class="breakdown-header expandable" data-target="activeGigsLocationBreakdown">
+                                    <span class="breakdown-title">📍 Active Gigs by Location</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="completedByCategoryBreakdown">
-                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs completed maps -->
-                                    <div class="revenue-showcase completed-category-grid" id="completedByCategoryBreakdownList">
-                                        <div class="breakdown-empty-note">No completed gigs yet.</div>
+                                <div class="breakdown-content" id="activeGigsLocationBreakdown">
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from gig_location_counts -->
+                                    <div class="breakdown-list" id="activeGigsLocationBreakdownList">
+                                        <div class="breakdown-empty-note">No active gigs right now.</div>
                                     </div>
                                 </div>
                             </div>
@@ -1289,20 +1289,6 @@
                                 </div>
                             </div>
 
-                            <!-- Active Gigs by Location -->
-                            <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="activeGigsLocationBreakdown">
-                                    <span class="breakdown-title">📍 Active Gigs by Location</span>
-                                    <span class="expand-icon">▼</span>
-                                </div>
-                                <div class="breakdown-content" id="activeGigsLocationBreakdown">
-                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from gig_location_counts -->
-                                    <div class="breakdown-list" id="activeGigsLocationBreakdownList">
-                                        <div class="breakdown-empty-note">No active gigs right now.</div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Applications by Category -->
                             <div class="stat-breakdown-section">
                                 <div class="breakdown-header expandable" data-target="applicationsBreakdown">
@@ -1313,38 +1299,43 @@
                                     <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/applications -->
                                     <div class="breakdown-list" id="applicationsBreakdownList">
                                         <div class="breakdown-empty-note">No applications yet.</div>
-                                            </div>
-                                        </div>
-                                            </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <!-- Gig Use Type (Personal vs Business) -->
+                            <!-- Completed by Category -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="gigUseTypeBreakdown">
-                                    <span class="breakdown-title">🙋🏻/🏢 Gig Use Type</span>
+                                <div class="breakdown-header expandable" data-target="completedByCategoryBreakdown">
+                                    <span class="breakdown-title">💵 Completed by Category</span>
                                     <span class="expand-icon">▼</span>
-                                        </div>
-                                <div class="breakdown-content" id="gigUseTypeBreakdown">
-                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs.byGigUseType -->
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <span class="breakdown-label">🙋🏻 Personal</span>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill green" id="gigUseTypePersonalBar" style="width: 0%;"></div>
-                                            </div>
-                                            <span class="breakdown-value" id="gigUseTypePersonalValue">0</span>
-                                        </div>
-                                            </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <span class="breakdown-label">🏢 Business</span>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="gigUseTypeBusinessBar" style="width: 0%;"></div>
-                                        </div>
-                                            <span class="breakdown-value" id="gigUseTypeBusinessValue">0</span>
-                                            </div>
-                                        </div>
-                                            </div>
-                                        </div>
+                                </div>
+                                <div class="breakdown-content" id="completedByCategoryBreakdown">
+                                    <!-- Populated dynamically by renderGigsAnalyticsOverlay() from platform_analytics/gigs completed maps -->
+                                    <div class="revenue-showcase completed-category-grid" id="completedByCategoryBreakdownList">
+                                        <div class="breakdown-empty-note">No completed gigs yet.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gig Use Type (Personal vs Business — 2 open tiles) -->
+                            <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important; margin-bottom: 0;">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🙋🏻</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Personal</div>
+                                        <div class="revenue-amount" id="gigUseTypePersonalValue">0</div>
+                                        <div class="revenue-sublabel" id="gigUseTypePersonalPercent">0%</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🏢</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Business</div>
+                                        <div class="revenue-amount" id="gigUseTypeBusinessValue">0</div>
+                                        <div class="revenue-sublabel" id="gigUseTypeBusinessPercent">0%</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3531,7 +3522,7 @@
     <script src="public/js/admin-auth-gate.js?v=6"></script>
     
     <!-- Basic JavaScript for Navigation -->
-    <script src="public/js/admin-dashboard.js?v=55"></script>
+    <script src="public/js/admin-dashboard.js?v=56"></script>
     
     
 </body>

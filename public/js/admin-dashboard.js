@@ -6679,6 +6679,18 @@ async function renderAgeGroupsBreakdown() {
     }
 }
 
+function formatAdminTileCount(rawCount) {
+    const n = Math.max(0, Math.floor(Number(rawCount) || 0));
+    if (n > 99999) {
+        if (n >= 1000000) {
+            const millions = Math.round((n / 1000000) * 10) / 10;
+            return millions + 'M';
+        }
+        return Math.round(n / 1000) + 'k';
+    }
+    return n.toLocaleString();
+}
+
 function sumActiveGigLocations(byRegion) {
     let total = 0;
     if (!byRegion || typeof byRegion !== 'object') return 0;
@@ -6869,15 +6881,13 @@ async function renderGigsAnalyticsOverlay() {
         const personalCount = Number(byGigUseType.Personal) || 0;
         const businessCount = Number(byGigUseType.Business) || 0;
         const gigUseTypeTotal = personalCount + businessCount;
-        const personalPct = gigUseTypeTotal > 0 ? (personalCount / gigUseTypeTotal) * 100 : 0;
-        const businessPct = gigUseTypeTotal > 0 ? (businessCount / gigUseTypeTotal) * 100 : 0;
+        const personalPct = gigUseTypeTotal > 0 ? Math.round((personalCount / gigUseTypeTotal) * 100) : 0;
+        const businessPct = gigUseTypeTotal > 0 ? Math.round((businessCount / gigUseTypeTotal) * 100) : 0;
 
-        setElementValue('gigUseTypePersonalValue', personalCount.toLocaleString());
-        setElementValue('gigUseTypeBusinessValue', businessCount.toLocaleString());
-        const personalBar = document.getElementById('gigUseTypePersonalBar');
-        const businessBar = document.getElementById('gigUseTypeBusinessBar');
-        if (personalBar) personalBar.style.width = `${personalPct}%`;
-        if (businessBar) businessBar.style.width = `${businessPct}%`;
+        setElementValue('gigUseTypePersonalValue', formatAdminTileCount(personalCount));
+        setElementValue('gigUseTypeBusinessValue', formatAdminTileCount(businessCount));
+        setElementValue('gigUseTypePersonalPercent', `${personalPct}%`);
+        setElementValue('gigUseTypeBusinessPercent', `${businessPct}%`);
 
         console.log('✅ Gigs Analytics overlay populated from platform_analytics', {
             totalGigs, totalApplications, personalCount, businessCount,
