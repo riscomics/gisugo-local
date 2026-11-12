@@ -787,6 +787,188 @@ function renderNp2PriceGuide(targetId, categoryId, lang, isVirtual) {
   box.style.display = 'block';
 }
 
+function setLabelWithRequired(labelEl, text) {
+  if (!labelEl) return;
+  labelEl.textContent = text || '';
+  const requiredMark = document.createElement('span');
+  requiredMark.className = 'np2-required';
+  requiredMark.textContent = '*';
+  labelEl.appendChild(requiredMark);
+}
+
+function applyPostWizardLanguage(lang) {
+  const guidesApi = window.GisugoCategoryGuides;
+  if (!guidesApi || !guidesApi.POST_UI_COPY) return;
+  const safeLang = (lang === 'bisaya' || lang === 'tagalog') ? lang : 'english';
+  np2State.selectedLang = safeLang;
+  const ui = guidesApi.POST_UI_COPY[safeLang] || guidesApi.POST_UI_COPY.english;
+  const catGuide = typeof guidesApi.getCategoryGuide === 'function'
+    ? guidesApi.getCategoryGuide(np2State.selectedCategory, safeLang)
+    : null;
+
+  // Progress bar labels
+  if (Array.isArray(ui.stepLabels)) {
+    [1, 2, 3, 4].forEach((n, idx) => {
+      const lbl = document.getElementById(`progressLabel${n}`);
+      if (lbl && ui.stepLabels[idx]) lbl.textContent = ui.stepLabels[idx];
+    });
+  }
+
+  // Step 1
+  const beforeTitleEl = document.getElementById('beforeContinueTitle');
+  if (beforeTitleEl) beforeTitleEl.textContent = ui.beforeContinueTitle;
+  const selCatTitleEl = document.getElementById('selectCategoryTitle');
+  if (selCatTitleEl) selCatTitleEl.textContent = ui.selectCategoryTitle;
+  const selCatSubEl = document.getElementById('selectCategorySub');
+  if (selCatSubEl) selCatSubEl.textContent = ui.selectCategorySub;
+  const jobCategoryValueEl = document.getElementById('jobCategoryValue');
+  if (jobCategoryValueEl && !np2State.selectedCategory && jobCategoryValueEl.classList.contains('placeholder')) {
+    jobCategoryValueEl.textContent = ui.selectCategoryPlaceholder;
+  }
+
+  // Step 2
+  const locTitleEl = document.getElementById('locationDetailsTitle');
+  if (locTitleEl) locTitleEl.textContent = ui.locationDetailsTitle;
+  const locSubEl = document.getElementById('locationDetailsSub');
+  if (locSubEl) locSubEl.textContent = ui.locationDetailsSub;
+  setLabelWithRequired(document.getElementById('np2RegionLabel'), ui.regionLabel);
+  setLabelWithRequired(document.getElementById('np2CityLabel'), ui.cityLabel);
+  const regionValEl = document.getElementById('regionValue');
+  if (regionValEl && !np2State.selectedRegion && regionValEl.classList.contains('placeholder')) {
+    regionValEl.textContent = ui.regionPlaceholder;
+  }
+  const cityValEl = document.getElementById('cityValue');
+  if (cityValEl && !np2State.selectedCity && cityValEl.classList.contains('placeholder')) {
+    cityValEl.textContent = ui.cityPlaceholder;
+  }
+
+  const step2Cfg = np2State.selectedCategory ? extrasConfig[np2State.selectedCategory] : null;
+  [1, 2].forEach((fieldNumber) => {
+    const fieldCfg = step2Cfg && step2Cfg[`field${fieldNumber}`];
+    if (fieldCfg) {
+      const labelEl = document.getElementById(`extrasField${fieldNumber}Label`);
+      const translatedLabel = typeof guidesApi.translateExtraLabel === 'function'
+        ? guidesApi.translateExtraLabel(fieldCfg.label, safeLang)
+        : fieldCfg.label;
+      setLabelWithRequired(labelEl, translatedLabel);
+    }
+    const inputEl = document.getElementById(`extrasField${fieldNumber}Input`);
+    if (inputEl) inputEl.placeholder = ui.barangayPlaceholder;
+    const valEl = document.getElementById(`extrasField${fieldNumber}Value`);
+    if (valEl && valEl.classList.contains('placeholder')) {
+      valEl.textContent = ui.selectOptionPlaceholder;
+    }
+  });
+
+  // Step 3
+  const detailsTitleEl = document.getElementById('gigDetailsTitle');
+  if (detailsTitleEl) detailsTitleEl.textContent = ui.gigDetailsTitle;
+  const detailsSubEl = document.getElementById('gigDetailsSub');
+  if (detailsSubEl) detailsSubEl.textContent = ui.gigDetailsSub;
+  setLabelWithRequired(document.getElementById('np2GigTitleLabel'), ui.gigTitleLabel);
+  setLabelWithRequired(document.getElementById('np2GigDateLabel'), ui.gigDateLabel);
+  setLabelWithRequired(document.getElementById('np2StartTimeLabel'), ui.startTimeLabel);
+  setLabelWithRequired(document.getElementById('np2EndTimeLabel'), ui.endTimeLabel);
+
+  const startHourValEl = document.getElementById('startHourValue');
+  if (startHourValEl && !np2State.startHour) startHourValEl.textContent = ui.hourPlaceholder;
+  const endHourValEl = document.getElementById('endHourValue');
+  if (endHourValEl && !np2State.endHour) endHourValEl.textContent = ui.hourPlaceholder;
+
+  const photoLabelEl = document.getElementById('np2GigPhotoLabel');
+  if (photoLabelEl) photoLabelEl.textContent = ui.gigPhotoLabel;
+  const clickPhotoTextEl = document.getElementById('np2ClickPhotoText');
+  if (clickPhotoTextEl) clickPhotoTextEl.textContent = ui.clickPhotoText;
+  setLabelWithRequired(document.getElementById('np2DetailedDescriptionLabel'), ui.detailedDescriptionLabel);
+
+  const titleInputEl = document.getElementById('jobTitleInput');
+  if (titleInputEl && catGuide && catGuide.titlePlaceholder) {
+    titleInputEl.placeholder = catGuide.titlePlaceholder;
+  }
+  const titleTipStripEl = document.getElementById('np2TitleTipStrip');
+  if (titleTipStripEl && catGuide && catGuide.titleTip) {
+    titleTipStripEl.textContent = catGuide.titleTip;
+  }
+  const descTextareaEl = document.getElementById('jobDescriptionTextarea');
+  if (descTextareaEl && catGuide && catGuide.descriptionPlaceholder) {
+    descTextareaEl.placeholder = catGuide.descriptionPlaceholder;
+  }
+  const doneBtnEl = document.getElementById('np2DescriptionDoneBtn');
+  if (doneBtnEl && ui.doneTypingText) {
+    doneBtnEl.textContent = ui.doneTypingText;
+  }
+  const editDoneBtnEl = document.getElementById('editDescriptionDoneBtn');
+  if (editDoneBtnEl && ui.doneTypingText) {
+    editDoneBtnEl.textContent = ui.doneTypingText;
+  }
+
+  // Step 4
+  const payTitleEl = document.getElementById('paymentOfferTitle');
+  if (payTitleEl) payTitleEl.textContent = ui.paymentOfferTitle;
+  const paySubEl = document.getElementById('paymentOfferSub');
+  if (paySubEl) paySubEl.textContent = ui.paymentOfferSub;
+  setLabelWithRequired(document.getElementById('np2GigUseTypeLabel'), ui.gigUseTypeLabel);
+  const personalLblEl = document.getElementById('np2PersonalLabel');
+  if (personalLblEl) personalLblEl.textContent = ui.personalLabel;
+  const businessLblEl = document.getElementById('np2BusinessLabel');
+  if (businessLblEl) businessLblEl.textContent = ui.businessLabel;
+  setLabelWithRequired(document.getElementById('np2AmountLabel'), ui.amountLabel);
+
+  // Nav & Modals
+  const backBtnSpan = document.querySelector('#backBtn span');
+  if (backBtnSpan) backBtnSpan.textContent = ui.backBtn;
+  const nextBtnSpan = document.querySelector('#nextBtn span');
+  if (nextBtnSpan) nextBtnSpan.textContent = ui.continueBtn;
+  const previewBtnSpan = document.querySelector('#previewBtn span');
+  if (previewBtnSpan) previewBtnSpan.textContent = ui.previewBtn;
+  const searchInputEl = document.getElementById('categorySearchInput');
+  if (searchInputEl) searchInputEl.placeholder = ui.searchCategoriesPlaceholder;
+
+  const modalTitleMap = {
+    jobCategoryModalTitle: ui.selectCategoryTitle,
+    regionModalTitle: ui.selectRegionModalTitle,
+    cityModalTitle: ui.selectCityModalTitle,
+    extrasField1OverlayTitle: ui.selectOptionModalTitle,
+    extrasField2OverlayTitle: ui.selectOptionModalTitle,
+    startHourModalTitle: ui.selectHourModalTitle,
+    startPeriodModalTitle: ui.selectPeriodModalTitle,
+    endHourModalTitle: ui.selectHourModalTitle,
+    endPeriodModalTitle: ui.selectPeriodModalTitle,
+    previewModalTitle: ui.previewModalTitle
+  };
+  Object.keys(modalTitleMap).forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && modalTitleMap[id]) el.textContent = modalTitleMap[id];
+  });
+  const previewEditEl = document.getElementById('previewEditBtn');
+  if (previewEditEl) previewEditEl.textContent = ui.previewEditBtn;
+  const previewPostEl = document.getElementById('previewPostBtn');
+  if (previewPostEl && np2State.mode === 'new') previewPostEl.textContent = ui.previewPostBtn;
+
+  // Edit / Relist placeholders & Title tip
+  const editTitleEl = document.getElementById('editTitleInput');
+  if (editTitleEl && catGuide && catGuide.titlePlaceholder) {
+    editTitleEl.placeholder = catGuide.titlePlaceholder;
+  }
+  const editTipStripEl = document.getElementById('editTitleTipStrip');
+  if (editTipStripEl && catGuide && catGuide.titleTip) {
+    editTipStripEl.textContent = catGuide.titleTip;
+  }
+  const editDescEl = document.getElementById('editDescriptionInput');
+  if (editDescEl && catGuide && catGuide.descriptionPlaceholder) {
+    editDescEl.placeholder = catGuide.descriptionPlaceholder;
+  }
+
+  if (np2State.selectedCategory) {
+    renderNp2PriceGuide(
+      'np2Step4PriceGuide',
+      np2State.selectedCategory,
+      safeLang,
+      isNp2VirtualPositionSelected(np2State.extras2Value)
+    );
+  }
+}
+
 function showSection(step) {
   // Use requestAnimationFrame to batch DOM updates and prevent flickering
   requestAnimationFrame(() => {
@@ -1223,6 +1405,8 @@ function initializeJobCategory() {
       
       // Update extras for this category
       updateExtrasForCategory(value);
+      // Sync category-specific placeholders, title tip, privacy reminder & price guide
+      applyPostWizardLanguage(np2State.selectedLang);
     }
   });
   
@@ -1241,6 +1425,12 @@ function initializeJobCategory() {
           card.classList.add('hidden');
         }
       });
+    });
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        this.blur();
+      }
     });
   }
 }
@@ -1415,6 +1605,11 @@ function updateExtrasForCategory(category) {
   
   // Update Field 2
   updateExtrasField(2, config.field2);
+
+  const extInput1 = document.getElementById('extrasField1Input');
+  if (extInput1) {
+    extInput1.enterKeyHint = (config.field2 && config.field2.menuType === 'location') ? 'next' : 'done';
+  }
 }
 
 function updateExtrasField(fieldNumber, fieldConfig) {
@@ -1428,8 +1623,11 @@ function updateExtrasField(fieldNumber, fieldConfig) {
   
   if (!container || !label || !select || !value || !dropdown) return;
   
-  // Update label
-  label.textContent = fieldConfig.label || '';
+  // Update label (translated to current wizard language when available)
+  const translatedExtraLabel = (window.GisugoCategoryGuides && typeof window.GisugoCategoryGuides.translateExtraLabel === 'function')
+    ? window.GisugoCategoryGuides.translateExtraLabel(fieldConfig.label || '', np2State.selectedLang)
+    : (fieldConfig.label || '');
+  label.textContent = translatedExtraLabel;
   const requiredMark = document.createElement('span');
   requiredMark.className = 'np2-required';
   requiredMark.textContent = '*';
@@ -1441,9 +1639,12 @@ function updateExtrasField(fieldNumber, fieldConfig) {
   if (fieldConfig.menuType === 'location') {
     select.style.display = 'none';
     const counterEl = document.getElementById(`extrasField${fieldNumber}Counter`);
+    const uiLang = (window.GisugoCategoryGuides && window.GisugoCategoryGuides.POST_UI_COPY)
+      ? (window.GisugoCategoryGuides.POST_UI_COPY[np2State.selectedLang] || window.GisugoCategoryGuides.POST_UI_COPY.english)
+      : null;
     if (input) {
       input.style.display = 'block';
-      input.placeholder = fieldConfig.placeholder || 'Barangay name or general area';
+      input.placeholder = fieldConfig.placeholder || (uiLang && uiLang.barangayPlaceholder) || 'Barangay name or general area';
       input.value = '';
       if (charCounter) charCounter.textContent = '0';
       if (counterEl) counterEl.style.display = 'block';
@@ -1493,7 +1694,10 @@ function updateExtrasField(fieldNumber, fieldConfig) {
     });
     
     // Reset value
-    value.textContent = 'Select option...';
+    const uiLangOpt = (window.GisugoCategoryGuides && window.GisugoCategoryGuides.POST_UI_COPY)
+      ? (window.GisugoCategoryGuides.POST_UI_COPY[np2State.selectedLang] || window.GisugoCategoryGuides.POST_UI_COPY.english)
+      : null;
+    value.textContent = (uiLangOpt && uiLangOpt.selectOptionPlaceholder) || 'Select option...';
     value.classList.add('placeholder');
     
     // Clear state
@@ -1539,6 +1743,19 @@ function initializeExtras() {
         if (fieldNumber === 2) np2State.extras2Value = this.value;
         if (charCounter) charCounter.textContent = this.value.length;
       });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+          e.preventDefault();
+          if (fieldNumber === 1) {
+            const field2Input = document.getElementById('extrasField2Input');
+            if (field2Input && field2Input.style.display !== 'none') {
+              field2Input.focus();
+              return;
+            }
+          }
+          this.blur();
+        }
+      });
     }
   });
 }
@@ -1551,7 +1768,8 @@ function initializeJobDetails() {
   const dateInput = document.getElementById('jobDateInput');
   const descriptionTextarea = document.getElementById('jobDescriptionTextarea');
   
-  // Title input with character counter
+  // Title input with character counter + focus inline Title Tip
+  const titleTipStrip = document.getElementById('np2TitleTipStrip');
   if (titleInput && titleCharCount) {
     blockUnsupportedCharsForInput(titleInput, function(sanitizedValue) {
       np2State.jobTitle = sanitizedValue;
@@ -1560,6 +1778,20 @@ function initializeJobDetails() {
     titleInput.addEventListener('input', function() {
       np2State.jobTitle = this.value;
       titleCharCount.textContent = this.value.length;
+    });
+    titleInput.addEventListener('focus', function() {
+      if (titleTipStrip && titleTipStrip.textContent.trim()) {
+        titleTipStrip.style.display = 'block';
+      }
+    });
+    titleInput.addEventListener('blur', function() {
+      if (titleTipStrip) titleTipStrip.style.display = 'none';
+    });
+    titleInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        this.blur();
+      }
     });
   }
   
@@ -1570,7 +1802,8 @@ function initializeJobDetails() {
     });
   }
   
-  // Description textarea
+  // Description textarea + mobile Done ✓ pill
+  const descriptionDoneBtn = document.getElementById('np2DescriptionDoneBtn');
   if (descriptionTextarea) {
     blockUnsupportedCharsForInput(descriptionTextarea, function(sanitizedValue) {
       np2State.jobDescription = sanitizedValue;
@@ -1578,6 +1811,20 @@ function initializeJobDetails() {
     descriptionTextarea.addEventListener('input', function() {
       np2State.jobDescription = this.value;
     });
+    descriptionTextarea.addEventListener('focus', function() {
+      if (descriptionDoneBtn) descriptionDoneBtn.style.display = 'inline-flex';
+    });
+    descriptionTextarea.addEventListener('blur', function() {
+      if (descriptionDoneBtn) descriptionDoneBtn.style.display = 'none';
+    });
+    if (descriptionDoneBtn) {
+      descriptionDoneBtn.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+      });
+      descriptionDoneBtn.addEventListener('click', function() {
+        descriptionTextarea.blur();
+      });
+    }
   }
   
   // Initialize time selectors
@@ -2747,6 +2994,28 @@ function showEditForm(jobData, category) {
   // Store reference for cleanup
   np2State.titleInputHandler = titleInputHandler;
   np2State.editTitleInput = editTitleInput;
+
+  const editTitleTipStrip = document.getElementById('editTitleTipStrip');
+  const editTitleFocusHandler = function() {
+    if (editTitleTipStrip && editTitleTipStrip.textContent.trim()) {
+      editTitleTipStrip.style.display = 'block';
+    }
+  };
+  const editTitleBlurHandler = function() {
+    if (editTitleTipStrip) editTitleTipStrip.style.display = 'none';
+  };
+  const editTitleKeydownHandler = function(e) {
+    if (e.key === 'Enter' || e.keyCode === 13) {
+      e.preventDefault();
+      editTitleInput.blur();
+    }
+  };
+  editTitleInput.addEventListener('focus', editTitleFocusHandler);
+  editTitleInput.addEventListener('blur', editTitleBlurHandler);
+  editTitleInput.addEventListener('keydown', editTitleKeydownHandler);
+  np2State.editTitleFocusHandler = editTitleFocusHandler;
+  np2State.editTitleBlurHandler = editTitleBlurHandler;
+  np2State.editTitleKeydownHandler = editTitleKeydownHandler;
   
   // Populate date
   document.getElementById('editDateInput').value = jobData.jobDate || '';
@@ -2805,8 +3074,34 @@ function showEditForm(jobData, category) {
   
   // Populate description
   const editDescriptionInput = document.getElementById('editDescriptionInput');
+  const editDescriptionDoneBtn = document.getElementById('editDescriptionDoneBtn');
   editDescriptionInput.value = jobData.description || '';
   blockUnsupportedCharsForInput(editDescriptionInput);
+  if (editDescriptionDoneBtn && editDescriptionInput) {
+    const editDescFocus = function() {
+      editDescriptionDoneBtn.style.display = 'inline-flex';
+    };
+    const editDescBlur = function() {
+      editDescriptionDoneBtn.style.display = 'none';
+    };
+    const editDescDoneMousedown = function(e) {
+      e.preventDefault();
+    };
+    const editDescDoneClick = function() {
+      editDescriptionInput.blur();
+    };
+    editDescriptionInput.addEventListener('focus', editDescFocus);
+    editDescriptionInput.addEventListener('blur', editDescBlur);
+    editDescriptionDoneBtn.addEventListener('mousedown', editDescDoneMousedown);
+    editDescriptionDoneBtn.addEventListener('click', editDescDoneClick);
+    np2State.editDescCleanup = function() {
+      editDescriptionInput.removeEventListener('focus', editDescFocus);
+      editDescriptionInput.removeEventListener('blur', editDescBlur);
+      editDescriptionDoneBtn.removeEventListener('mousedown', editDescDoneMousedown);
+      editDescriptionDoneBtn.removeEventListener('click', editDescDoneClick);
+      editDescriptionDoneBtn.style.display = 'none';
+    };
+  }
   
   // Populate photo
   const photoImage = document.getElementById('editPhotoImage');
@@ -2845,6 +3140,7 @@ function showEditForm(jobData, category) {
     paymentTypeDisplay.textContent = formatPaymentTypeDisplay(gigUseType);
   }
   document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
+  applyPostWizardLanguage(np2State.selectedLang);
   renderNp2PriceGuide(
     'np2EditPriceGuide',
     category || jobData.category,
@@ -3096,8 +3392,24 @@ function initializeEditFormButtons(jobData, category, isRelist = false) {
     // Clean up title input listener
     if (np2State.titleInputHandler && np2State.editTitleInput) {
       np2State.editTitleInput.removeEventListener('input', np2State.titleInputHandler);
+      if (np2State.editTitleFocusHandler) {
+        np2State.editTitleInput.removeEventListener('focus', np2State.editTitleFocusHandler);
+        np2State.editTitleFocusHandler = null;
+      }
+      if (np2State.editTitleBlurHandler) {
+        np2State.editTitleInput.removeEventListener('blur', np2State.editTitleBlurHandler);
+        np2State.editTitleBlurHandler = null;
+      }
+      if (np2State.editTitleKeydownHandler) {
+        np2State.editTitleInput.removeEventListener('keydown', np2State.editTitleKeydownHandler);
+        np2State.editTitleKeydownHandler = null;
+      }
       np2State.titleInputHandler = null;
       np2State.editTitleInput = null;
+    }
+    if (typeof np2State.editDescCleanup === 'function') {
+      np2State.editDescCleanup();
+      np2State.editDescCleanup = null;
     }
   };
 }
@@ -3580,15 +3892,7 @@ function initializeDisclaimerLangTabs() {
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const lang = tab.dataset.lang;
-      np2State.selectedLang = (lang === 'bisaya' || lang === 'tagalog') ? lang : 'english';
-      if (np2State.selectedCategory) {
-        renderNp2PriceGuide(
-          'np2Step4PriceGuide',
-          np2State.selectedCategory,
-          np2State.selectedLang,
-          isNp2VirtualPositionSelected(np2State.extras2Value)
-        );
-      }
+      applyPostWizardLanguage(lang);
       
       // Update active tab
       tabs.forEach(t => t.classList.remove('active'));

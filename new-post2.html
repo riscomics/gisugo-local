@@ -8,7 +8,7 @@
   <!-- UNIFORM HEADER SYSTEM (shared) -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
   <!-- NEW POST 2 STYLES (experimental redesign) -->
-  <link rel="stylesheet" href="public/css/new-post2.css?v=46.9">
+  <link rel="stylesheet" href="public/css/new-post2.css?v=46.10">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-post2">
@@ -43,22 +43,22 @@
     <div class="np2-progress-container">
       <div class="np2-progress-step" data-step="1">
         <div class="np2-progress-circle active" id="progressStep1">1</div>
-        <div class="np2-progress-label">Category</div>
+        <div class="np2-progress-label" id="progressLabel1">Category</div>
       </div>
       <div class="np2-progress-line" id="progressLine1"></div>
       <div class="np2-progress-step" data-step="2">
         <div class="np2-progress-circle" id="progressStep2">2</div>
-        <div class="np2-progress-label">Location</div>
+        <div class="np2-progress-label" id="progressLabel2">Location</div>
       </div>
       <div class="np2-progress-line" id="progressLine2"></div>
       <div class="np2-progress-step" data-step="3">
         <div class="np2-progress-circle" id="progressStep3">3</div>
-        <div class="np2-progress-label">Details</div>
+        <div class="np2-progress-label" id="progressLabel3">Details</div>
       </div>
       <div class="np2-progress-line" id="progressLine3"></div>
       <div class="np2-progress-step" data-step="4">
         <div class="np2-progress-circle" id="progressStep4">4</div>
-        <div class="np2-progress-label">Payment</div>
+        <div class="np2-progress-label" id="progressLabel4">Payment</div>
       </div>
     </div>
 
@@ -67,7 +67,7 @@
       <!-- DISCLAIMER SECTION with Language Tabs -->
       <div class="np2-disclaimer-section">
         <div class="np2-disclaimer-icon-top">⚠️</div>
-        <div class="np2-disclaimer-title">Before You Continue</div>
+        <div class="np2-disclaimer-title" id="beforeContinueTitle">Before You Continue</div>
         
         <!-- Placeholder -->
         <div class="np2-disclaimer-placeholder" id="beforeContinuePlaceholder">
@@ -162,8 +162,8 @@
 
       <div class="np2-card" id="categoryCardSection">
         <div class="np2-card-header">
-          <div class="np2-card-title">Select Gig Category</div>
-          <div class="np2-card-subtitle">Choose the type of work you need help with</div>
+          <div class="np2-card-title" id="selectCategoryTitle">Select Gig Category</div>
+          <div class="np2-card-subtitle" id="selectCategorySub">Choose the type of work you need help with</div>
         </div>
         <div class="np2-card-body">
           <div class="np2-form-group">
@@ -182,13 +182,13 @@
     <div class="np2-section" id="section-location" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Location Details <span class="np2-header-category" id="headerCategory2"></span></div>
-          <div class="np2-card-subtitle">Where will this gig take place?</div>
+          <div class="np2-card-title"><span id="locationDetailsTitle">Location Details</span> <span class="np2-header-category" id="headerCategory2"></span></div>
+          <div class="np2-card-subtitle" id="locationDetailsSub">Where will this gig take place?</div>
         </div>
         <div class="np2-card-body">
           <!-- Region Selection -->
           <div class="np2-form-group">
-            <label class="np2-label">Region<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2RegionLabel">Region<span class="np2-required">*</span></label>
             <div class="np2-select-wrapper">
               <div class="np2-select" id="regionSelect" tabindex="0">
                 <div class="np2-select-value" id="regionValue">CEBU</div>
@@ -199,7 +199,7 @@
 
           <!-- City Selection -->
           <div class="np2-form-group">
-            <label class="np2-label">City/Municipality<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2CityLabel">City/Municipality<span class="np2-required">*</span></label>
             <div class="np2-select-wrapper">
               <div class="np2-select" id="citySelect" tabindex="0">
                 <div class="np2-select-value" id="cityValue">CEBU CITY</div>
@@ -219,7 +219,7 @@
                   <div class="np2-select-arrow">▼</div>
                 </div>
                 <!-- Free-text location detail input (shown for menuType "location" fields) -->
-                <input type="text" class="np2-input np2-extras-text-input" id="extrasField1Input" placeholder="Barangay name or general area" style="display: none;" maxlength="20" autocomplete="off">
+                <input type="text" class="np2-input np2-extras-text-input" id="extrasField1Input" placeholder="Barangay name or general area" style="display: none;" maxlength="20" autocomplete="off" enterkeyhint="next">
                 <div class="np2-char-counter" id="extrasField1Counter" style="display: none;"><span id="extrasField1CharCount">0</span>/20</div>
               </div>
             </div>
@@ -233,7 +233,7 @@
                   <div class="np2-select-arrow">▼</div>
                 </div>
                 <!-- Free-text location detail input (shown for menuType "location" fields) -->
-                <input type="text" class="np2-input np2-extras-text-input" id="extrasField2Input" placeholder="Barangay name or general area" style="display: none;" maxlength="20" autocomplete="off">
+                <input type="text" class="np2-input np2-extras-text-input" id="extrasField2Input" placeholder="Barangay name or general area" style="display: none;" maxlength="20" autocomplete="off" enterkeyhint="done">
                 <div class="np2-char-counter" id="extrasField2Counter" style="display: none;"><span id="extrasField2CharCount">0</span>/20</div>
               </div>
             </div>
@@ -246,29 +246,30 @@
     <div class="np2-section" id="section-details" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Gig Details <span class="np2-header-category" id="headerCategory3"></span></div>
-          <div class="np2-card-subtitle">Provide information about the gig</div>
+          <div class="np2-card-title"><span id="gigDetailsTitle">Gig Details</span> <span class="np2-header-category" id="headerCategory3"></span></div>
+          <div class="np2-card-subtitle" id="gigDetailsSub">Provide information about the gig</div>
         </div>
         <div class="np2-card-body">
           <!-- Job Title -->
           <div class="np2-form-group">
-            <label class="np2-label">Gig Title<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2GigTitleLabel">Gig Title<span class="np2-required">*</span></label>
             <div class="np2-input-wrapper">
-              <input type="text" class="np2-input" id="jobTitleInput" placeholder="Brief description of the work needed..." maxlength="55" autocomplete="off" spellcheck="false">
+              <input type="text" class="np2-input" id="jobTitleInput" placeholder="Brief description of the work needed..." maxlength="55" autocomplete="off" spellcheck="false" enterkeyhint="done">
               <div class="np2-char-counter"><span id="titleCharCount">0</span>/55</div>
             </div>
+            <div class="np2-inline-guide-strip" id="np2TitleTipStrip" style="display: none;"></div>
           </div>
 
           <!-- Job Date -->
           <div class="np2-form-group">
-            <label class="np2-label">Gig Date<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2GigDateLabel">Gig Date<span class="np2-required">*</span></label>
             <input type="date" class="np2-input np2-input-date" id="jobDateInput">
           </div>
 
           <!-- Time Range -->
           <div class="np2-form-row">
             <div class="np2-form-group np2-form-group-half">
-              <label class="np2-label">Start Time<span class="np2-required">*</span></label>
+              <label class="np2-label" id="np2StartTimeLabel">Start Time<span class="np2-required">*</span></label>
               <div class="np2-time-wrapper">
                 <div class="np2-select np2-select-time" id="startHourSelect" tabindex="0">
                   <div class="np2-select-value" id="startHourValue">Hour</div>
@@ -281,7 +282,7 @@
               </div>
             </div>
             <div class="np2-form-group np2-form-group-half">
-              <label class="np2-label">End Time<span class="np2-required">*</span></label>
+              <label class="np2-label" id="np2EndTimeLabel">End Time<span class="np2-required">*</span></label>
               <div class="np2-time-wrapper">
                 <div class="np2-select np2-select-time" id="endHourSelect" tabindex="0">
                   <div class="np2-select-value" id="endHourValue">Hour</div>
@@ -313,9 +314,10 @@
           </div>
 
           <!-- Job Description -->
-          <div class="np2-form-group">
-            <label class="np2-label">Detailed Description<span class="np2-required">*</span></label>
-            <textarea class="np2-textarea" id="jobDescriptionTextarea" placeholder="Describe the gig in detail... What needs to be done? Any special requirements or instructions?" rows="6" autocomplete="off" spellcheck="false"></textarea>
+          <div class="np2-form-group" id="np2DescriptionGroup">
+            <label class="np2-label" id="np2DetailedDescriptionLabel">Detailed Description<span class="np2-required">*</span></label>
+            <textarea class="np2-textarea" id="jobDescriptionTextarea" placeholder="Describe the gig in detail... What needs to be done? Any special requirements or instructions?" rows="7" autocomplete="off" spellcheck="false"></textarea>
+            <button type="button" class="np2-details-done-btn" id="np2DescriptionDoneBtn" style="display: none;">Done ✓</button>
           </div>
         </div>
       </div>
@@ -325,28 +327,28 @@
     <div class="np2-section" id="section-payment" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Payment Offer <span class="np2-header-category" id="headerCategory4"></span></div>
-          <div class="np2-card-subtitle">How much will you pay for this work?</div>
+          <div class="np2-card-title"><span id="paymentOfferTitle">Payment Offer</span> <span class="np2-header-category" id="headerCategory4"></span></div>
+          <div class="np2-card-subtitle" id="paymentOfferSub">How much will you pay for this work?</div>
         </div>
         <div class="np2-card-body">
           <!-- Gig Use Type Selection (Graphic Icons) -->
           <div class="np2-form-group">
-            <label class="np2-label">Gig Use Type<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2GigUseTypeLabel">Gig Use Type<span class="np2-required">*</span></label>
             <div class="np2-payment-type-selector">
               <div class="np2-payment-type-option active" data-value="Personal" id="paymentPerJob">
                 <div class="np2-payment-type-icon">🙋🏻</div>
-                <div class="np2-payment-type-label">Personal</div>
+                <div class="np2-payment-type-label" id="np2PersonalLabel">Personal</div>
               </div>
               <div class="np2-payment-type-option" data-value="Business" id="paymentPerHour">
                 <div class="np2-payment-type-icon">🏢</div>
-                <div class="np2-payment-type-label">Business</div>
+                <div class="np2-payment-type-label" id="np2BusinessLabel">Business</div>
               </div>
             </div>
           </div>
           
           <!-- Amount Input (Larger) -->
           <div class="np2-form-group">
-            <label class="np2-label">Amount<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2AmountLabel">Amount<span class="np2-required">*</span></label>
             <div class="np2-payment-input-wrapper-large">
               <span class="np2-payment-currency-large">₱</span>
               <input type="number" class="np2-input np2-payment-input-large" id="paymentAmountInput" placeholder="0" min="0" max="9999" step="1" autocomplete="off" inputmode="numeric">
@@ -383,11 +385,12 @@
 
           <!-- Job Title -->
           <div class="np2-edit-group">
-            <label class="np2-edit-label">Gig Title<span class="np2-required">*</span></label>
+            <label class="np2-edit-label" id="editTitleLabel">Gig Title<span class="np2-required">*</span></label>
             <div class="np2-input-wrapper">
-              <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown" maxlength="55">
+              <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown" maxlength="55" enterkeyhint="done">
               <div class="np2-char-counter"><span id="editTitleCharCount">0</span>/55</div>
             </div>
+            <div class="np2-inline-guide-strip" id="editTitleTipStrip" style="display: none;"></div>
           </div>
 
           <!-- Location (Read-only display) -->
@@ -435,7 +438,8 @@
           <!-- Description -->
           <div class="np2-edit-group">
             <label class="np2-edit-label">Gig Description<span class="np2-required">*</span></label>
-            <textarea class="np2-edit-textarea" id="editDescriptionInput" rows="6" placeholder="Describe the gig in detail..." maxlength="500"></textarea>
+            <textarea class="np2-edit-textarea" id="editDescriptionInput" rows="7" placeholder="Describe the gig in detail..." maxlength="500"></textarea>
+            <button type="button" class="np2-details-done-btn" id="editDescriptionDoneBtn" style="display: none;">Done ✓</button>
           </div>
 
           <!-- Photo -->
@@ -464,7 +468,7 @@
               <label class="np2-edit-label">Amount<span class="np2-required">*</span></label>
               <div class="np2-edit-payment-input">
                 <span class="np2-edit-currency">₱</span>
-                <input type="number" class="np2-edit-input np2-edit-amount" id="editPaymentAmountInput" placeholder="0" min="0" max="9999">
+                <input type="number" class="np2-edit-input np2-edit-amount" id="editPaymentAmountInput" placeholder="0" min="0" max="9999" enterkeyhint="done">
               </div>
             </div>
           </div>
@@ -504,7 +508,7 @@
   <div class="np2-overlay" id="previewOverlay">
     <div class="np2-overlay-container">
       <div class="np2-overlay-header">
-        <div class="np2-overlay-title">Gig Preview</div>
+        <div class="np2-overlay-title" id="previewModalTitle">Gig Preview</div>
         <button class="np2-overlay-close" id="previewCloseBtn">✕</button>
       </div>
       <div class="np2-overlay-content">
@@ -690,12 +694,12 @@
   <div class="np2-dropdown-overlay" id="jobCategoryOverlay">
     <div class="np2-dropdown np2-category-grid-modal">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Gig Category</div>
+        <div class="np2-dropdown-title" id="jobCategoryModalTitle">Select Gig Category</div>
         <button class="np2-dropdown-close" id="jobCategoryCloseBtn">×</button>
       </div>
       <div class="np2-dropdown-body np2-category-grid-body" id="jobCategoryDropdown">
         <div class="np2-dropdown-search">
-          <input type="text" id="categorySearchInput" placeholder="Search categories..." autocomplete="off">
+          <input type="text" id="categorySearchInput" placeholder="Search categories..." autocomplete="off" enterkeyhint="search">
         </div>
         <div class="np2-category-grid">
           <!-- Category cards are generated dynamically by public/js/new-post2.js -->
@@ -708,7 +712,7 @@
   <div class="np2-dropdown-overlay" id="regionOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Region</div>
+        <div class="np2-dropdown-title" id="regionModalTitle">Select Region</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="regionDropdown">
@@ -721,7 +725,7 @@
   <div class="np2-dropdown-overlay" id="cityOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select City/Municipality</div>
+        <div class="np2-dropdown-title" id="cityModalTitle">Select City/Municipality</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="cityDropdown">
@@ -760,7 +764,7 @@
   <div class="np2-dropdown-overlay" id="startHourOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Hour</div>
+        <div class="np2-dropdown-title" id="startHourModalTitle">Select Hour</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="startHourDropdown">
@@ -784,7 +788,7 @@
   <div class="np2-dropdown-overlay" id="startPeriodOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Period</div>
+        <div class="np2-dropdown-title" id="startPeriodModalTitle">Select Period</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="startPeriodDropdown">
@@ -798,7 +802,7 @@
   <div class="np2-dropdown-overlay" id="endHourOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Hour</div>
+        <div class="np2-dropdown-title" id="endHourModalTitle">Select Hour</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="endHourDropdown">
@@ -822,7 +826,7 @@
   <div class="np2-dropdown-overlay" id="endPeriodOverlay">
     <div class="np2-dropdown">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Period</div>
+        <div class="np2-dropdown-title" id="endPeriodModalTitle">Select Period</div>
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="endPeriodDropdown">
@@ -876,7 +880,7 @@
   <script src="public/js/jobs.js?v=187"></script>
   <script src="public/js/ph-locations.js?v=1"></script>
   <script src="public/js/category-guides.js?v=1"></script>
-  <script src="public/js/new-post2.js?v=32.28"></script>
+  <script src="public/js/new-post2.js?v=32.29"></script>
 
 </body>
 </html>
