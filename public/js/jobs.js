@@ -5280,13 +5280,13 @@ Please ensure you have contacted the customer about quitting before proceeding.`
         categories: {
             unsafe_environment: 'Unsafe environment',
             inaccurate_description: 'Inaccurate gig description',
-            terms_changed: 'Schedule or pay changed',
+            terms_changed: 'Schedule or pay issue',
             unable_to_complete: 'Unable to complete'
         },
         captions: {
             unsafe_environment: 'Safety hazard or unsafe location.',
             inaccurate_description: "Actual work or load didn't match the post.",
-            terms_changed: 'Customer changed agreed time, scope, or pay.',
+            terms_changed: 'Customer changed agreed time/scope or did not send agreed payment.',
             unable_to_complete: "Personal emergency or issue (counts on your profile, not customer's)."
         },
         cancel: 'NO, CONTINUE WORKING',
@@ -5306,13 +5306,13 @@ Palihug siguroa nga nakaistorya na nimo ang customer sa dili pa mopadayon.`,
         categories: {
             unsafe_environment: 'Dili luwas ang lugar / trabaho',
             inaccurate_description: 'Dili tugma sa gig description',
-            terms_changed: 'Nausab ang oras o suhol',
+            terms_changed: 'Problema sa oras o bayad',
             unable_to_complete: 'Dili mahuman ang trabaho'
         },
         captions: {
             unsafe_environment: 'Naa sa peligro o dili luwas ang lokasyon.',
             inaccurate_description: 'Lahi ang aktwal nga trabaho kaysa sa naka-post.',
-            terms_changed: 'Gi-usab sa customer ang sabot sa oras, trabaho, o bayad.',
+            terms_changed: 'Gi-usab sa customer ang sabot o wala gipadala ang nasabotan nga bayad.',
             unable_to_complete: 'Personal nga emerhensya (maihap sa imong profile, dili sa customer).'
         },
         cancel: 'DILI, PADAYON TRABAHO',
@@ -5332,13 +5332,13 @@ Siguraduhing nakausap mo na ang customer bago magpatuloy.`,
         categories: {
             unsafe_environment: 'Hindi ligtas ang lugar',
             inaccurate_description: 'Hindi tugma sa gig description',
-            terms_changed: 'Nagbago ang oras o bayad',
+            terms_changed: 'Problema sa oras o bayad',
             unable_to_complete: 'Hindi matatapos ang trabaho'
         },
         captions: {
             unsafe_environment: 'May panganib o hindi ligtas ang lokasyon.',
             inaccurate_description: 'Iba ang aktwal na trabaho kaysa sa naka-post.',
-            terms_changed: 'Binago ng customer ang usapan sa oras, trabaho, o bayad.',
+            terms_changed: 'Binago ng customer ang usapan o hindi ipinadala ang napagkasunduang bayad.',
             unable_to_complete: 'Personal na emergency (sa profile mo ang bilang, hindi sa customer).'
         },
         cancel: 'HINDI, TUTULOY AKO',

@@ -6793,7 +6793,7 @@ const METRIC_REASON_BREAKDOWN_CONFIG = {
     labels: [
       ['unsafe_environment', 'Unsafe environment'],
       ['inaccurate_description', 'Inaccurate gig description'],
-      ['terms_changed', 'Schedule or pay changed']
+      ['terms_changed', 'Schedule or pay issue']
     ]
   }
 };

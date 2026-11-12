@@ -4474,6 +4474,29 @@ async function submitGigReportToAdmin(jobId, reportData = {}) {
     return { success: false, message: 'Reporting backend unavailable' };
   }
 
+  try {
+    const reporterProfile = await getUserProfile(currentUser.uid);
+    const isFaceVerified = !!(
+      reporterProfile &&
+      reporterProfile.verification &&
+      (reporterProfile.verification.faceVerified === true || reporterProfile.verification.status === 'face_verified')
+    );
+    if (!isFaceVerified) {
+      return {
+        success: false,
+        code: 'face-verification-required',
+        message: 'Face Verification is required before reporting a gig.'
+      };
+    }
+  } catch (verifyErr) {
+    console.warn('⚠️ Could not verify reporter face status:', verifyErr);
+    return {
+      success: false,
+      code: 'face-verification-required',
+      message: 'Could not verify your account status. Please refresh and try again.'
+    };
+  }
+
   const reportId = buildGigReportDocumentId(safeJobId, currentUser.uid);
   const reportRef = db.collection('gig_reports').doc(reportId);
   const reporterName = await getFreshOwnDisplayName(currentUser, currentUser.displayName || 'Anonymous');

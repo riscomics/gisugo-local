@@ -861,13 +861,24 @@ async function loadJobData() {
 
 function maybeResumeFaceIntroApply() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('fvResume') !== '1' && params.get('fvCancel') !== '1') return;
+  const isResume = params.get('fvResume') === '1';
+  const isCancel = params.get('fvCancel') === '1';
+  if (!isResume && !isCancel) return;
   params.delete('fvResume');
   params.delete('fvCancel');
   const nextQuery = params.toString();
   window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`);
+  const draft = (typeof window.gisugoPeekFaceIntroDraft === 'function')
+    ? window.gisugoPeekFaceIntroDraft()
+    : null;
+  const intent = draft && draft.intent ? String(draft.intent) : 'apply';
   if (typeof window.gisugoTakeFaceIntroDraft === 'function') {
-    window.gisugoTakeFaceIntroDraft('apply');
+    window.gisugoTakeFaceIntroDraft(intent);
+  }
+  if (!isResume) return;
+  if (intent === 'report') {
+    handleDynamicGigReportAction();
+    return;
   }
   beginApplyFlow();
 }
@@ -2303,6 +2314,11 @@ async function handleDynamicGigReportAction() {
     if (posterId && posterId === authUser.uid) {
       showValidationError('You cannot report your own gig posting.');
       return;
+    }
+
+    if (typeof window.gisugoEnsureFaceIntro === 'function') {
+      const faceReady = await window.gisugoEnsureFaceIntro('report', { stage: 'entry', jobId: jobId });
+      if (!faceReady) return;
     }
 
     if (typeof hasSubmittedGigReport === 'function') {
