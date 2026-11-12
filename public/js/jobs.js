@@ -560,6 +560,71 @@ function debugDataStatus() {
 // This layer abstracts data access with CLEAN SEPARATION between Mock and Firebase
 // Uses DataService pattern - toggle controls which data source is used
 // ===== GLOBAL DATA SERVICE FOR CROSS-FILE ACCESS =====
+const JOBS_CATEGORY_FALLBACK_IMAGES = {
+    kompra: 'public/images/Kompra.png',
+    solicitor: 'public/images/Solicitor.png',
+    hatod: 'public/images/Hatod.png',
+    limpyo: 'public/images/Limpyo.png',
+    pila: 'public/images/pila.png',
+    luto: 'public/images/Luto.png',
+    hugas: 'public/images/Hugas.png',
+    barber: 'public/images/Barber.png',
+    driver: 'public/images/Driver.png',
+    gardner: 'public/images/Gardner.png',
+    petcare: 'public/images/Pet Care.png',
+    massage: 'public/images/Massager.png',
+    tutor: 'public/images/Tutor.png',
+    trainer: 'public/images/Trainer.png',
+    tourguide: 'public/images/tour guide.png',
+    hakot: 'public/images/Hakot.png',
+    plumber: 'public/images/Plumber.png',
+    handyman: 'public/images/Handyman.png',
+    electrician: 'public/images/Electrician.png',
+    carpenter: 'public/images/Carpenter.png',
+    painter: 'public/images/Painter.png',
+    mechanic: 'public/images/Mechanic.png',
+    aircon: 'public/images/AC-cleaning.png',
+    ittech: 'public/images/IT.png',
+    tailor: 'public/images/Tailor.png',
+    videographer: 'public/images/Videographer.png',
+    editor: 'public/images/Editor.png',
+    social: 'public/images/Social.png',
+    consultant: 'public/images/Consultant.png',
+    laba: 'public/images/Laba.png',
+    tindera: 'public/images/Tindera.png',
+    bantay: 'public/images/Bantay.png',
+    security: 'public/images/Security.png',
+    clerical: 'public/images/clerical.png',
+    builder: 'public/images/builder.png',
+    reception: 'public/images/reception.png',
+    nurse: 'public/images/Nurse.png',
+    doctor: 'public/images/Doctor.png',
+    lawyer: 'public/images/Lawyer.png',
+    staff: 'public/images/Staff.png',
+    photographer: 'public/images/Photographer.png',
+    musician: 'public/images/Musician.png',
+    creative: 'public/images/Creative.png',
+    artist: 'public/images/Graphic-artist.png',
+    researcher: 'public/images/Researcher.png',
+    secretary: 'public/images/Secretary.png',
+    engineer: 'public/images/Engineer.png',
+    programmer: 'public/images/Programmer.png',
+    therapist: 'public/images/Therapist.png',
+    marketer: 'public/images/Marketer.png',
+    performer: 'public/images/Performer.png',
+    waiter: 'public/images/Waiter.png',
+    chef: 'public/images/Chef.png',
+    realtor: 'public/images/Consultant.png',
+    accountant: 'public/images/Accountant.png',
+    architect: 'public/images/Designer.png',
+    landscaper: 'public/images/Gardner.png'
+};
+
+function getJobsCategoryFallbackImage(category) {
+    const key = String(category || '').trim().toLowerCase();
+    return JOBS_CATEGORY_FALLBACK_IMAGES[key] || 'public/images/Gisugo-icon.png';
+}
+
 window.JobsDataService = {
     
     // ===== MODE DETECTION =====
@@ -639,8 +704,8 @@ window.JobsDataService = {
             agreedPrice: job.agreedPrice ? 
                 (job.agreedPrice.toString().startsWith('₱') ? job.agreedPrice : `₱${job.agreedPrice}`) : 
                 undefined,
-            // Ensure thumbnail exists
-            thumbnail: job.thumbnail || job.photo || 'public/images/placeholder.png',
+            // Ensure thumbnail exists (use 57-category artwork fallback when gig has no custom photo)
+            thumbnail: job.thumbnail || job.photo || getJobsCategoryFallbackImage(job.category),
             // Ensure applicationCount is a number
             applicationCount: job.applicationCount || 0
         };
@@ -938,7 +1003,7 @@ window.JobsDataService = {
                         // Job details
                         title: data.title,
                         category: data.category,
-                        thumbnail: data.thumbnail,
+                        thumbnail: data.thumbnail || data.photo || getJobsCategoryFallbackImage(data.category),
                         description: data.description,
                         
                         // Scheduling
@@ -1671,7 +1736,7 @@ function generateOfferedJobCard(job) {
     const safeDueDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, getJobsCategoryFallbackImage(job.category)));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
     const safeUserName = escapeHtml(userName || 'User');
@@ -2265,7 +2330,7 @@ function generateListingCardHTML(listing) {
     const safeJobPageUrl = escapeHtml(sanitizeUrl(listing.jobPageUrl, '#'));
     const safePrice = escapeHtml(String(listing.price || 0));
     const safePaymentType = escapeHtml(listing.paymentType || 'Personal');
-    const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, 'public/images/Gisugo-icon.png'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, getJobsCategoryFallbackImage(listing.category)));
     const safeTitle = escapeHtml(listing.title || 'Untitled Job');
     const safeJobDate = escapeHtml(jobDateFormatted);
     const safeApplicationText = escapeHtml(applicationText);
@@ -2704,7 +2769,7 @@ function generateHiringCardHTML(job) {
     const safeDueDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, getJobsCategoryFallbackImage(job.category)));
     const safePriceOffer = escapeHtml(resolveAgreedPriceDisplay(job));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
@@ -6982,7 +7047,7 @@ function generateCompletedCardHTML(job) {
     const safeJobDate = escapeHtml(formatJobDate(job.jobDate || job.scheduledDate, { style: 'long' }));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, getJobsCategoryFallbackImage(job.category)));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeCompletedDate = escapeHtml(formatCompletedDate(job.completedAt));
     const safeRatingCount = escapeHtml(ratingCount);

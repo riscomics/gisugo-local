@@ -74,6 +74,71 @@ function sanitizeUrl(url, fallback = '#') {
 
 const LISTING_THUMBNAIL_FALLBACK = 'public/images/Gisugo-icon.png';
 
+const LISTING_CATEGORY_FALLBACK_IMAGES = {
+  kompra: 'public/images/Kompra.png',
+  solicitor: 'public/images/Solicitor.png',
+  hatod: 'public/images/Hatod.png',
+  limpyo: 'public/images/Limpyo.png',
+  pila: 'public/images/pila.png',
+  luto: 'public/images/Luto.png',
+  hugas: 'public/images/Hugas.png',
+  barber: 'public/images/Barber.png',
+  driver: 'public/images/Driver.png',
+  gardner: 'public/images/Gardner.png',
+  petcare: 'public/images/Pet Care.png',
+  massage: 'public/images/Massager.png',
+  tutor: 'public/images/Tutor.png',
+  trainer: 'public/images/Trainer.png',
+  tourguide: 'public/images/tour guide.png',
+  hakot: 'public/images/Hakot.png',
+  plumber: 'public/images/Plumber.png',
+  handyman: 'public/images/Handyman.png',
+  electrician: 'public/images/Electrician.png',
+  carpenter: 'public/images/Carpenter.png',
+  painter: 'public/images/Painter.png',
+  mechanic: 'public/images/Mechanic.png',
+  aircon: 'public/images/AC-cleaning.png',
+  ittech: 'public/images/IT.png',
+  tailor: 'public/images/Tailor.png',
+  videographer: 'public/images/Videographer.png',
+  editor: 'public/images/Editor.png',
+  social: 'public/images/Social.png',
+  consultant: 'public/images/Consultant.png',
+  laba: 'public/images/Laba.png',
+  tindera: 'public/images/Tindera.png',
+  bantay: 'public/images/Bantay.png',
+  security: 'public/images/Security.png',
+  clerical: 'public/images/clerical.png',
+  builder: 'public/images/builder.png',
+  reception: 'public/images/reception.png',
+  nurse: 'public/images/Nurse.png',
+  doctor: 'public/images/Doctor.png',
+  lawyer: 'public/images/Lawyer.png',
+  staff: 'public/images/Staff.png',
+  photographer: 'public/images/Photographer.png',
+  musician: 'public/images/Musician.png',
+  creative: 'public/images/Creative.png',
+  artist: 'public/images/Graphic-artist.png',
+  researcher: 'public/images/Researcher.png',
+  secretary: 'public/images/Secretary.png',
+  engineer: 'public/images/Engineer.png',
+  programmer: 'public/images/Programmer.png',
+  therapist: 'public/images/Therapist.png',
+  marketer: 'public/images/Marketer.png',
+  performer: 'public/images/Performer.png',
+  waiter: 'public/images/Waiter.png',
+  chef: 'public/images/Chef.png',
+  realtor: 'public/images/Consultant.png',
+  accountant: 'public/images/Accountant.png',
+  architect: 'public/images/Designer.png',
+  landscaper: 'public/images/Gardner.png'
+};
+
+function getListingCategoryFallbackImage(category) {
+  const key = String(category || '').trim().toLowerCase();
+  return LISTING_CATEGORY_FALLBACK_IMAGES[key] || LISTING_THUMBNAIL_FALLBACK;
+}
+
 function isGsStorageUrl(value) {
   return /^gs:\/\//i.test(String(value || '').trim());
 }
@@ -1559,7 +1624,7 @@ function normalizeListingFirebaseJob(firebaseJob) {
     jobNumber: firebaseJob.id,
     category: firebaseJob.category,
     title: firebaseJob.title,
-    photo: firebaseJob.thumbnail || firebaseJob.photo || LISTING_THUMBNAIL_FALLBACK,
+    photo: firebaseJob.thumbnail || firebaseJob.photo || getListingCategoryFallbackImage(firebaseJob.category),
     extra1: getExtrasValue(firebaseJob.extras, 0),
     extra2: getExtrasValue(firebaseJob.extras, 1),
     price: formatGigPrice(firebaseJob.priceOffer),

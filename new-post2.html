@@ -297,13 +297,13 @@
 
           <!-- Photo Upload -->
           <div class="np2-form-group">
-            <label class="np2-label">Gig Photo<span class="np2-required">*</span></label>
+            <label class="np2-label" id="np2GigPhotoLabel">Gig Photo (Optional)</label>
             <div class="np2-photo-upload-container">
               <input type="file" id="jobPhotoInput" accept="image/*" style="display: none;">
               <div class="np2-photo-upload-area" id="photoUploadArea">
                 <div class="np2-upload-icon">📷</div>
-                <div class="np2-upload-text">Click or drag photo here</div>
-                <div class="np2-upload-subtext">Max width: 720px • Aspect ratio: 16:9</div>
+                <div class="np2-upload-text" id="np2ClickPhotoText">Add Optional Photo here if available</div>
+                <div class="np2-upload-subtext" id="np2PhotoSubText" style="display: none;"></div>
               </div>
               <div class="np2-photo-preview" id="photoPreview" style="display: none;">
                 <img id="photoPreviewImage" src="" alt="Preview">
@@ -437,12 +437,12 @@
 
           <!-- Photo -->
           <div class="np2-edit-group">
-            <label class="np2-edit-label">Gig Photo</label>
+            <label class="np2-edit-label" id="editGigPhotoLabel">Gig Photo (Optional)</label>
             <div class="np2-edit-photo-preview" id="editPhotoPreview">
               <img id="editPhotoImage" src="" alt="Current gig photo">
-              <div id="editPhotoPlaceholder" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 60px; flex-direction: column; align-items: center; justify-content: center; gap: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%); border: 3px dashed #e74c3c; border-radius: 12px; padding: 40px 20px;">
-                <div style="font-size: 64px; filter: drop-shadow(0 4px 8px rgba(231, 76, 60, 0.2));">📷</div>
-                <div style="font-size: 17px; font-weight: 600; color: #e74c3c; line-height: 1.6; text-align: center;">Please select a photo<br>for your relisted gig</div>
+              <div id="editPhotoPlaceholder" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 60px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px dashed rgba(16, 185, 129, 0.45); border-radius: 12px; padding: 32px 20px;">
+                <div style="font-size: 48px; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));">📷</div>
+                <div id="editPhotoPlaceholderText" style="font-size: 15px; font-weight: 600; color: #94a3b8; line-height: 1.5; text-align: center;">Add Optional Photo here if available</div>
               </div>
               <button class="np2-edit-change-photo-btn" id="editChangePhotoBtn">Change Photo</button>
               <input type="file" id="editPhotoInput" accept="image/*" style="display: none;">
@@ -867,9 +867,9 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.3"></script>
   <script src="public/js/shared-menu.js?v=4.5"></script>
-  <script src="public/js/jobs.js?v=183"></script>
+  <script src="public/js/jobs.js?v=186"></script>
   <script src="public/js/ph-locations.js?v=1"></script>
-  <script src="public/js/new-post2.js?v=32.26"></script>
+  <script src="public/js/new-post2.js?v=32.27"></script>
 
 </body>
 </html>

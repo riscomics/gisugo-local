@@ -352,6 +352,72 @@ const extrasConfig = {
 
 // ========================== HELPER FUNCTIONS ==========================
 
+// 57-category artwork fallback map (exact case-sensitive filenames in public/images/)
+const NP2_CATEGORY_FALLBACK_IMAGES = {
+  kompra: 'public/images/Kompra.png',
+  solicitor: 'public/images/Solicitor.png',
+  hatod: 'public/images/Hatod.png',
+  limpyo: 'public/images/Limpyo.png',
+  pila: 'public/images/pila.png',
+  luto: 'public/images/Luto.png',
+  hugas: 'public/images/Hugas.png',
+  barber: 'public/images/Barber.png',
+  driver: 'public/images/Driver.png',
+  gardner: 'public/images/Gardner.png',
+  petcare: 'public/images/Pet Care.png',
+  massage: 'public/images/Massager.png',
+  tutor: 'public/images/Tutor.png',
+  trainer: 'public/images/Trainer.png',
+  tourguide: 'public/images/tour guide.png',
+  hakot: 'public/images/Hakot.png',
+  plumber: 'public/images/Plumber.png',
+  handyman: 'public/images/Handyman.png',
+  electrician: 'public/images/Electrician.png',
+  carpenter: 'public/images/Carpenter.png',
+  painter: 'public/images/Painter.png',
+  mechanic: 'public/images/Mechanic.png',
+  aircon: 'public/images/AC-cleaning.png',
+  ittech: 'public/images/IT.png',
+  tailor: 'public/images/Tailor.png',
+  videographer: 'public/images/Videographer.png',
+  editor: 'public/images/Editor.png',
+  social: 'public/images/Social.png',
+  consultant: 'public/images/Consultant.png',
+  laba: 'public/images/Laba.png',
+  tindera: 'public/images/Tindera.png',
+  bantay: 'public/images/Bantay.png',
+  security: 'public/images/Security.png',
+  clerical: 'public/images/clerical.png',
+  builder: 'public/images/builder.png',
+  reception: 'public/images/reception.png',
+  nurse: 'public/images/Nurse.png',
+  doctor: 'public/images/Doctor.png',
+  lawyer: 'public/images/Lawyer.png',
+  staff: 'public/images/Staff.png',
+  photographer: 'public/images/Photographer.png',
+  musician: 'public/images/Musician.png',
+  creative: 'public/images/Creative.png',
+  artist: 'public/images/Graphic-artist.png',
+  researcher: 'public/images/Researcher.png',
+  secretary: 'public/images/Secretary.png',
+  engineer: 'public/images/Engineer.png',
+  programmer: 'public/images/Programmer.png',
+  therapist: 'public/images/Therapist.png',
+  marketer: 'public/images/Marketer.png',
+  performer: 'public/images/Performer.png',
+  waiter: 'public/images/Waiter.png',
+  chef: 'public/images/Chef.png',
+  realtor: 'public/images/Consultant.png',
+  accountant: 'public/images/Accountant.png',
+  architect: 'public/images/Designer.png',
+  landscaper: 'public/images/Gardner.png'
+};
+
+function getNp2CategoryFallbackImage(category) {
+  const key = String(category || '').trim().toLowerCase();
+  return NP2_CATEGORY_FALLBACK_IMAGES[key] || 'public/images/Gisugo-icon.png';
+}
+
 function convertTo24Hour(hour, period) {
   // Convert 12-hour format to 24-hour format (start of day: 12 AM -> 0)
   let hour24 = parseInt(hour);
@@ -805,10 +871,7 @@ function validateCurrentStep() {
         showToast('Job date and time cannot be in the past', 'error');
         return false;
       }
-      if (!np2State.photoFile) {
-        showToast('Please add a gig photo', 'error');
-        return false;
-      }
+      // Gig photo is optional (when skipped, category artwork fallback is used on cards & gig page)
       if (!np2State.jobDescription.trim()) {
         showToast('Please enter a job description', 'error');
         return false;
@@ -1805,14 +1868,19 @@ function showPreview() {
   document.getElementById('previewLocation').textContent = `${np2State.selectedCity}, ${np2State.selectedRegion}`;
   document.getElementById('previewTitle').textContent = np2State.jobTitle;
   
-  // Photo
+  // Photo (use uploaded photo or category artwork fallback)
   const photoContainer = document.getElementById('previewPhotoContainer');
   const photo = document.getElementById('previewPhoto');
   if (np2State.photoDataUrl) {
     photo.src = np2State.photoDataUrl;
+    photo.style.objectFit = 'cover';
+    photo.style.background = '';
     photoContainer.style.display = 'block';
   } else {
-    photoContainer.style.display = 'none';
+    photo.src = getNp2CategoryFallbackImage(np2State.selectedCategory);
+    photo.style.objectFit = 'contain';
+    photo.style.background = 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)';
+    photoContainer.style.display = 'block';
   }
   
   // Date
@@ -2049,26 +2117,14 @@ async function postJobBody() {
       result = await createJob(jobData);
       
       // New gig always gets job_photos/{uid}/{newJobId}.jpg — never the old
-      // gig's filename. Relist copies the old Storage file if the user did
-      // not pick a new one.
-      if (result.success && result.jobId) {
+      // gig's filename. Photo is optional: if none was picked, 0 bytes are uploaded
+      // and cards/gig page render the category artwork fallback.
+      if (result.success && result.jobId && np2State.photoFile) {
         const useFirebaseStorage = typeof getFirebaseStorage === 'function' && getFirebaseStorage();
         let photoResult = null;
         try {
-          if (np2State.photoFile && typeof uploadJobPhoto === 'function' && useFirebaseStorage) {
+          if (typeof uploadJobPhoto === 'function' && useFirebaseStorage) {
             photoResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
-          } else if (
-            np2State.mode === 'relist'
-            && np2State.originalThumbnail
-            && typeof copyJobPhotoToNewJob === 'function'
-            && useFirebaseStorage
-          ) {
-            photoResult = await copyJobPhotoToNewJob(
-              np2State.originalThumbnail,
-              result.jobId,
-              currentUser.uid,
-              np2State.originalPhotoFull
-            );
           }
           if (photoResult && photoResult.success && photoResult.url && typeof getFirestore === 'function') {
             const db = getFirestore();
@@ -2082,7 +2138,7 @@ async function postJobBody() {
               ...photoFields,
               lastModified: firebase.firestore.FieldValue.serverTimestamp()
             });
-          } else if (np2State.photoFile || np2State.mode === 'relist') {
+          } else {
             alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
           }
         } catch (photoError) {
@@ -2709,7 +2765,7 @@ function showEditForm(jobData, category) {
     np2State.photoDataUrl = null;
     np2State.photoFile = null;
   } else {
-    // EDIT: Pre-load existing photo
+    // EDIT: Pre-load existing photo or show optional placeholder
     if (jobData.thumbnail) {
       photoImage.src = jobData.thumbnail;
       photoImage.style.display = 'block';
@@ -2720,7 +2776,7 @@ function showEditForm(jobData, category) {
       np2State.originalPhotoFull = jobData.photoFull || np2State.originalPhotoFull || jobData.thumbnail || null;
     } else {
       photoImage.style.display = 'none';
-      if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+      if (photoPlaceholder) photoPlaceholder.style.display = 'flex';
       np2State.photoDataUrl = null;
     }
   }
@@ -2914,10 +2970,10 @@ function initializeEditFormButtons(jobData, category, isRelist = false) {
     if (isRelist) {
       updateBtn.textContent = 'RELIST GIG';
       updateBtn.onclick = () => handleRelistFormSubmit(category);
-      // Disable button initially for relist - enabled when photo selected
-      updateBtn.disabled = true;
-      updateBtn.style.opacity = '0.5';
-      updateBtn.style.cursor = 'not-allowed';
+      // Photo is optional on relist — button is enabled immediately
+      updateBtn.disabled = false;
+      updateBtn.style.opacity = '1';
+      updateBtn.style.cursor = 'pointer';
     } else {
       updateBtn.textContent = 'UPDATE';
       updateBtn.onclick = () => handleEditFormSubmit(jobData.jobId, category);
@@ -3198,12 +3254,20 @@ function showEditPreview(updatedJob, category, jobId) {
   document.getElementById('previewPaymentAmount').textContent = `₱${updatedJob.paymentAmount}`;
   document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(updatedJob.gigUseType);
   
-  // Photo
-  if (updatedJob.thumbnail) {
-    const previewPhoto = document.getElementById('previewPhoto');
-    const previewPhotoContainer = document.getElementById('previewPhotoContainer');
-    if (previewPhoto) previewPhoto.src = updatedJob.thumbnail;
-    if (previewPhotoContainer) previewPhotoContainer.style.display = 'block';
+  // Photo (use uploaded photo or category artwork fallback)
+  const previewPhoto = document.getElementById('previewPhoto');
+  const previewPhotoContainer = document.getElementById('previewPhotoContainer');
+  if (previewPhoto && previewPhotoContainer) {
+    if (updatedJob.thumbnail) {
+      previewPhoto.src = updatedJob.thumbnail;
+      previewPhoto.style.objectFit = 'cover';
+      previewPhoto.style.background = '';
+    } else {
+      previewPhoto.src = getNp2CategoryFallbackImage(category || updatedJob.category);
+      previewPhoto.style.objectFit = 'contain';
+      previewPhoto.style.background = 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)';
+    }
+    previewPhotoContainer.style.display = 'block';
   }
   
   // Show preview overlay

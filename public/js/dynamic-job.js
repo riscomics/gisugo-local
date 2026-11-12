@@ -581,6 +581,72 @@ function blockUnsupportedCharsForInput(inputEl) {
   DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(inputEl, 'input', inputHandler);
 }
 
+// 57-category artwork fallback map (exact case-sensitive filenames in public/images/)
+const DYNAMIC_JOB_CATEGORY_FALLBACK_IMAGES = {
+  kompra: 'public/images/Kompra.png',
+  solicitor: 'public/images/Solicitor.png',
+  hatod: 'public/images/Hatod.png',
+  limpyo: 'public/images/Limpyo.png',
+  pila: 'public/images/pila.png',
+  luto: 'public/images/Luto.png',
+  hugas: 'public/images/Hugas.png',
+  barber: 'public/images/Barber.png',
+  driver: 'public/images/Driver.png',
+  gardner: 'public/images/Gardner.png',
+  petcare: 'public/images/Pet Care.png',
+  massage: 'public/images/Massager.png',
+  tutor: 'public/images/Tutor.png',
+  trainer: 'public/images/Trainer.png',
+  tourguide: 'public/images/tour guide.png',
+  hakot: 'public/images/Hakot.png',
+  plumber: 'public/images/Plumber.png',
+  handyman: 'public/images/Handyman.png',
+  electrician: 'public/images/Electrician.png',
+  carpenter: 'public/images/Carpenter.png',
+  painter: 'public/images/Painter.png',
+  mechanic: 'public/images/Mechanic.png',
+  aircon: 'public/images/AC-cleaning.png',
+  ittech: 'public/images/IT.png',
+  tailor: 'public/images/Tailor.png',
+  videographer: 'public/images/Videographer.png',
+  editor: 'public/images/Editor.png',
+  social: 'public/images/Social.png',
+  consultant: 'public/images/Consultant.png',
+  laba: 'public/images/Laba.png',
+  tindera: 'public/images/Tindera.png',
+  bantay: 'public/images/Bantay.png',
+  security: 'public/images/Security.png',
+  clerical: 'public/images/clerical.png',
+  builder: 'public/images/builder.png',
+  reception: 'public/images/reception.png',
+  nurse: 'public/images/Nurse.png',
+  doctor: 'public/images/Doctor.png',
+  lawyer: 'public/images/Lawyer.png',
+  staff: 'public/images/Staff.png',
+  photographer: 'public/images/Photographer.png',
+  musician: 'public/images/Musician.png',
+  creative: 'public/images/Creative.png',
+  artist: 'public/images/Graphic-artist.png',
+  researcher: 'public/images/Researcher.png',
+  secretary: 'public/images/Secretary.png',
+  engineer: 'public/images/Engineer.png',
+  programmer: 'public/images/Programmer.png',
+  therapist: 'public/images/Therapist.png',
+  marketer: 'public/images/Marketer.png',
+  performer: 'public/images/Performer.png',
+  waiter: 'public/images/Waiter.png',
+  chef: 'public/images/Chef.png',
+  realtor: 'public/images/Consultant.png',
+  accountant: 'public/images/Accountant.png',
+  architect: 'public/images/Designer.png',
+  landscaper: 'public/images/Gardner.png'
+};
+
+function getDynamicJobCategoryFallbackImage(category) {
+  const key = String(category || '').trim().toLowerCase();
+  return DYNAMIC_JOB_CATEGORY_FALLBACK_IMAGES[key] || 'public/images/Gisugo-icon.png';
+}
+
 // Category configuration for extras (synced across all 57 categories with new-post2.js)
 const extrasConfig = {
   hatod: { field1: { label: "Pickup at:" }, field2: { label: "Deliver to:" } },
@@ -959,55 +1025,51 @@ function populateJobPage(jobData) {
   // Set job title
   safeSetText('jobTitle', jobTitle);
   
-  // Set job photo if available (check both photo and thumbnail fields)
-  const photoSrc = jobData.photoFull || jobData.photo || jobData.thumbnail;
+  // Set job photo if available, otherwise fall back to the 57-category artwork banner
+  const customPhotoSrc = jobData.photoFull || jobData.photo || jobData.thumbnail;
+  const fallbackPhotoSrc = getDynamicJobCategoryFallbackImage(jobData.category || getUrlParameters().category);
+  const photoSrc = customPhotoSrc || fallbackPhotoSrc;
+  const isFallbackArtwork = !customPhotoSrc;
   console.log(`🖼️ Photo debugging:`, {
     hasPhotoFull: !!jobData.photoFull,
     hasPhoto: !!jobData.photo,
     hasThumbnail: !!jobData.thumbnail,
-    photoFullValue: jobData.photoFull,
-    photoValue: jobData.photo,
-    thumbnailValue: jobData.thumbnail,
-    finalPhotoSrc: photoSrc,
-    allJobFields: Object.keys(jobData)
+    isFallbackArtwork,
+    finalPhotoSrc: photoSrc
   });
   
-  if (photoSrc) {
-    const photoContainer = document.getElementById('jobPhotoContainer');
-    const photoBorderline = document.getElementById('jobPhotoBorderline');
-    const photoImg = document.getElementById('jobPhoto');
-    
-    if (photoContainer && photoBorderline && photoImg) {
-      photoImg.src = photoSrc;
+  const photoContainer = document.getElementById('jobPhotoContainer');
+  const photoBorderline = document.getElementById('jobPhotoBorderline');
+  const photoImg = document.getElementById('jobPhoto');
+  
+  if (photoContainer && photoBorderline && photoImg && photoSrc) {
+    photoImg.src = photoSrc;
+    photoImg.style.objectFit = isFallbackArtwork ? 'contain' : 'cover';
+    photoImg.style.padding = isFallbackArtwork ? '14px' : '';
+    photoContainer.style.background = isFallbackArtwork
+      ? 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)'
+      : '';
     photoContainer.style.display = 'block';
     photoBorderline.style.display = 'block';
-      console.log('✅ Job photo loaded successfully:', photoSrc);
-      
-      // Add error handling for broken images
-      photoImg.onload = function() {
-        console.log('✅ Photo image loaded successfully from:', photoSrc);
-      };
-      
-      photoImg.onerror = function() {
-        console.error('❌ Failed to load photo image from:', photoSrc);
-        photoContainer.style.display = 'none';
-        photoBorderline.style.display = 'none';
-      };
-    } else {
-      console.error('❌ Photo container elements not found:', {
-        photoContainer: !!photoContainer,
-        photoBorderline: !!photoBorderline,
-        photoImg: !!photoImg
-      });
-    }
-  } else {
-    console.log('⚠️ No job photo found. Job data structure:', {
-      availableFields: Object.keys(jobData),
-      photoField: jobData.photo,
-      thumbnailField: jobData.thumbnail,
-      imageField: jobData.image,
-      pictureField: jobData.picture
-    });
+    console.log('✅ Job photo loaded successfully:', photoSrc);
+    
+    photoImg.onload = function() {
+      console.log('✅ Photo image loaded successfully from:', photoSrc);
+    };
+    
+    photoImg.onerror = function() {
+      if (!isFallbackArtwork && fallbackPhotoSrc && photoImg.src.indexOf(fallbackPhotoSrc) === -1) {
+        console.warn('⚠️ Custom job photo failed, switching to category artwork fallback:', fallbackPhotoSrc);
+        photoImg.src = fallbackPhotoSrc;
+        photoImg.style.objectFit = 'contain';
+        photoImg.style.padding = '14px';
+        photoContainer.style.background = 'linear-gradient(145deg, #1e293b 0%, #0f172a 100%)';
+        return;
+      }
+      console.error('❌ Failed to load photo image from:', photoSrc);
+      photoContainer.style.display = 'none';
+      photoBorderline.style.display = 'none';
+    };
   }
   
   // Set region and city
