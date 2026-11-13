@@ -5529,32 +5529,20 @@ async function getSupportQueueOld(startAfterDoc = null) {
 }
 
 /**
- * Cheap-ish tab-count badges for the New/Old queue tabs.
- *
- * FIX (2026-08-11): originally used Firestore's count() aggregation
- * (`.where(...).count().get()`), which bills as ~1 read regardless of match
- * count. Confirmed (by inspecting the actual firebase-firestore-compat.js
- * v10.7.0 bundle served to the browser) that the COMPAT/namespaced client
- * SDK does not implement count() at all -- `getCountFromServer` only exists
- * in the modular SDK. Every call silently threw a TypeError, caught here by
- * Promise.allSettled, so both tab badges have shown 0 since Phase 4 shipped.
- * Swapped to a real `.get()` + `.size` -- support_requests is a small,
- * naturally bounded queue (not "every gig ever posted"), so the extra
- * per-document read cost vs. a true aggregate count is negligible.
+ * NEW tab badge and the sidebar Messages badge.
+ * Open tickets only (pending + replied). OLD and SENT have no number:
+ * resolved tickets are the whole history, and SENT is the broadcast list.
+ * Do not bring back a resolved-ticket download just to print a badge.
  */
 async function getSupportQueueCounts() {
   const db = getFirestore();
-  const empty = { newCount: 0, oldCount: 0 };
+  const empty = { newCount: 0 };
   if (!db) return empty;
   try {
-    const [newResult, oldResult] = await Promise.allSettled([
-      db.collection('support_requests').where('status', 'in', ['pending', 'replied']).get(),
-      db.collection('support_requests').where('status', '==', 'resolved').get()
-    ]);
-    return {
-      newCount: newResult.status === 'fulfilled' ? newResult.value.size : 0,
-      oldCount: oldResult.status === 'fulfilled' ? oldResult.value.size : 0
-    };
+    const snap = await db.collection('support_requests')
+      .where('status', 'in', ['pending', 'replied'])
+      .get();
+    return { newCount: snap.size };
   } catch (error) {
     console.error('❌ Error loading support queue counts (admin):', error);
     return empty;

@@ -3531,12 +3531,9 @@ async function loadSupportSentTab(options = {}) {
 
 async function refreshSupportTabCounts() {
     if (typeof window.getSupportQueueCounts !== 'function') return;
-    const { newCount, oldCount } = await window.getSupportQueueCounts();
-    document.getElementById('newCountLabel') && (document.getElementById('newCountLabel').textContent = formatCount(newCount));
-    document.getElementById('oldCountLabel') && (document.getElementById('oldCountLabel').textContent = formatCount(oldCount));
-    if (supportCurrentTab === 'sent' || supportBroadcasts.length) {
-        document.getElementById('sentCountLabel') && (document.getElementById('sentCountLabel').textContent = formatCount(supportBroadcasts.length));
-    }
+    const { newCount } = await window.getSupportQueueCounts();
+    const newLabel = document.getElementById('newCountLabel');
+    if (newLabel) newLabel.textContent = formatCount(newCount);
     if (typeof updateNavigationMessageBadge === 'function') {
         updateNavigationMessageBadge(newCount);
     }
