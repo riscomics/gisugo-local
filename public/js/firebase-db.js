@@ -5062,12 +5062,15 @@ async function getAdminAnalytics() {
   
   // Verification submissions and revenue have no live data source yet
   // (no verification-review pipeline, no payments/transactions collection),
-  // so they're not fetched here. Total users still counts the users
-  // collection. Reported gigs is the live queue on platform_analytics/reports
-  // (queueCount), not a jobs scan. The two reads stay independent so a
-  // problem with one can never zero out the other.
+  // so they're not fetched here. Total users is the account-type sum on
+  // platform_analytics/users (new + pro + business). That summary is the
+  // same document the Total Users overlay already reads, and every account
+  // sits in exactly one of those three buckets. Reported gigs is the live
+  // queue on platform_analytics/reports (queueCount), not a jobs scan. The
+  // two reads stay independent so a problem with one can never zero out
+  // the other.
   const [usersResult, reportsResult] = await Promise.allSettled([
-      db.collection('users').get(),
+      db.collection('platform_analytics').doc('users').get(),
       db.collection('platform_analytics').doc('reports').get()
     ]);
     
@@ -5078,13 +5081,21 @@ async function getAdminAnalytics() {
     console.error('❌ Error getting reported gigs count:', reportsResult.reason);
   }
 
+  let totalUsers = 0;
+  if (usersResult.status === 'fulfilled' && usersResult.value.exists) {
+    const byAccountType = (usersResult.value.data() || {}).byAccountType || {};
+    totalUsers = (Number(byAccountType.new) || 0)
+      + (Number(byAccountType.pro) || 0)
+      + (Number(byAccountType.business) || 0);
+  }
+
   let reportedGigs = 0;
   if (reportsResult.status === 'fulfilled' && reportsResult.value.exists) {
     reportedGigs = Number(reportsResult.value.data().queueCount) || 0;
   }
 
   return {
-    totalUsers: usersResult.status === 'fulfilled' ? usersResult.value.size : 0,
+    totalUsers,
     verificationSubmissions: 0,
     monthlyRevenue: 0,
     reportedGigs

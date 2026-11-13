@@ -2596,13 +2596,13 @@ exports.syncUserAnalyticsCountersOnWrite = onDocumentWritten(
 
     // Unlike Gigs Analytics (deliberately all-time cumulative), both Age
     // Groups and Account Types are meant to describe the CURRENT user base
-    // composition, matching the Overview headline's live totalUsers count
-    // (getAdminAnalytics() -> users collection .get().size, which already
-    // shrinks on deletion) -- so these counters move on create, update
+    // composition. The Overview headline is new + pro + business on this
+    // same document (getAdminAnalytics reads platform_analytics/users, not
+    // a users-collection scan) -- so these counters move on create, update
     // (account-type only -- a verification status change), AND delete, to
     // stay consistent with that number. Not tracking a competing totalUsers
-    // field here; these are breakdowns of that same live total, not a
-    // second source of truth for it.
+    // field here; the headline is the sum of these account-type buckets,
+    // not a second source of truth.
     // NOTE: every bucket update below uses a nested-object shape
     // (byAgeGroup: {bucket: increment(...)}), NEVER a dotted string key
     // (e.g. "byAgeGroup.18-25") -- set(..., {merge:true}) treats a dotted
