@@ -1,6 +1,6 @@
 # Tiered Posting, Application Slots, and G-Coins
 
-> Status: **Decisions locked 2026-11-13.** The tier system is documented and parked. Section 4 is the tasklist to build **without** the tier system. Do not build either list until Peter assigns a step.
+> Status: **Launch tasklist built 2026-11-13.** Section 4 is in the product. The tier system in section 3 stays parked. Do not build it until Peter assigns a step.
 
 ## 1. Payments stay off
 
@@ -123,19 +123,19 @@ Job creation through a Cloud Function, with client creates denied, so a logged-i
 
 Build these only when Peter assigns them. Do not add the tier toggle, tier fields, monthly allowance, PRO/Business controls, G-Coin UI, or checkout in this list.
 
-### [ ] 1. Count paused gigs toward the gig cap
+### [x] 1. Count paused gigs toward the gig cap
 
 In `createJob`, count the poster's gigs with `status` in `['active', 'paused']` against `maxActiveGigs`. Leave unpause, offer decline, resign, and customer void-and-relist unchecked. Those paths keep writing the same gig back to `active`.
 
-### [ ] 2. Super Admin bypass
+### [x] 2. Super Admin bypass
 
 Skip the gig cap in `createJob` and the application-slot check in Apply when `admins/{uid}.role == 'super_admin'`.
 
-### [ ] 3. Launch posting overlay
+### [x] 3. Launch posting overlay
 
 When a new gig or a completed-gig relist would pass the maximum, show one friendly overlay instead of the browser alert. Launch-phase explanation only. No tier names, prices, or Buy action. Below the maximum, no warning.
 
-### [ ] 4. Maximum Active Applications Per User
+### [x] 4. Maximum Active Applications Per User
 
 Add the field above Maximum Active Gigs. Default **10**. Save it with the other Gig & Content settings.
 
@@ -143,6 +143,6 @@ Signup writes that saved number onto `applicationCoinsMax` and `applicationCoins
 
 The dashboard client cannot update another user's application fields under current Firestore rules. Saving a **changed** number runs a super-admin Cloud Function that updates existing accounts: set the maximum to the new number, and set slots left to the new maximum minus applications still active. Leaving the number at 10 does not require that write. Signup already stored 10.
 
-### [ ] 5. Launch sentence on the application overlay
+### [x] 5. Launch sentence on the application overlay
 
 On the existing capacity overlay, add the launch explanation above the cancel list. Keep the cancel action. No second modal. No tier or KYC language.

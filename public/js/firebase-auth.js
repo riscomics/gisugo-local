@@ -1602,18 +1602,24 @@ async function logout() {
  * @returns {Promise<void>}
  */
 async function createUserProfile(userId, profileData) {
+  let signupPolicy = null;
   if (typeof getPublicPlatformPolicy === 'function') {
     try {
-      const policy = await getPublicPlatformPolicy();
-      if (policy && policy.allowRegistration === false) {
+      signupPolicy = await getPublicPlatformPolicy();
+      if (signupPolicy && signupPolicy.allowRegistration === false) {
         throw new Error('New registration is paused right now. Existing accounts can still log in.');
       }
     } catch (policyError) {
       if (policyError && /registration is paused/i.test(policyError.message || '')) {
         throw policyError;
       }
+      signupPolicy = null;
     }
   }
+  const applicationCapRaw = signupPolicy ? Number(signupPolicy.maxActiveApplications) : 10;
+  const applicationCap = Number.isFinite(applicationCapRaw) && applicationCapRaw >= 1
+    ? Math.min(100, Math.floor(applicationCapRaw))
+    : 10;
 
   const db = getFirestore();
   
@@ -1689,8 +1695,8 @@ async function createUserProfile(userId, profileData) {
       },
       
       // Application coins (profile stats live under statistics.*)
-      applicationCoinsCurrent: 10,
-      applicationCoinsMax: 10,
+      applicationCoinsCurrent: applicationCap,
+      applicationCoinsMax: applicationCap,
       
       // Financial Statistics (for tax reporting)
       statistics: {

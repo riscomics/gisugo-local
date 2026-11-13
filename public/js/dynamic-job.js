@@ -1363,13 +1363,14 @@ let applyConfirmLang = 'english';
 let applyConfirmCount = { current: 0, max: 10 };
 // True while the Confirm overlay is shown but the "applications remaining" number is still
 // being fetched — the count area shows a spinner instead of a stale/zero value.
-let applyConfirmLoading = false;
+let applyConfirmCapBypass = false;
 
 const APPLY_CONFIRM_COPY = {
   english: {
     ofWord: 'of',
     countLabel: 'applications remaining',
     noteLead: 'This uses 1 application and comes back:',
+    capBypassNote: 'This application does not use one of your slots.',
     noteBullets: ["If you're not hired by the customer", 'If you withdraw your application'],
     withdraw: 'You can withdraw an application anytime on your {link} page.',
     linkText: 'My Applications',
@@ -1379,6 +1380,7 @@ const APPLY_CONFIRM_COPY = {
     ofWord: 'sa',
     countLabel: 'nahabilin nga applications',
     noteLead: 'Mogamit ni og 1 ka application ug mobalik:',
+    capBypassNote: 'Dili ni mogamit og application slot.',
     noteBullets: ['Kung dili ka ma-hire sa customer', 'Kung mo-withdraw ka sa imong application'],
     withdraw: 'Pwede ka mo-withdraw og application bisan kanus-a sa imong {link} page.',
     linkText: 'My Applications',
@@ -1388,6 +1390,7 @@ const APPLY_CONFIRM_COPY = {
     ofWord: 'sa',
     countLabel: 'natitirang applications',
     noteLead: 'Gumagamit ito ng 1 application at babalik:',
+    capBypassNote: 'Hindi ito gagamit ng application slot.',
     noteBullets: ['Kung hindi ka na-hire ng customer', 'Kung i-withdraw mo ang iyong application'],
     withdraw: 'Pwede kang mag-withdraw ng application kahit kailan sa iyong {link} page.',
     linkText: 'My Applications',
@@ -1449,9 +1452,10 @@ function paintApplyCoinStatus(status) {
     return;
   }
   const current = Number(status.current ?? 0);
-  submitBtn.disabled = current <= 0;
-  submitBtn.style.opacity = current <= 0 ? '0.65' : '';
-  submitBtn.textContent = current <= 0 ? 'NO APPLICATIONS REMAINING' : 'APPLY TO GIG';
+  const blocked = current <= 0 && !status.capBypass;
+  submitBtn.disabled = blocked;
+  submitBtn.style.opacity = blocked ? '0.65' : '';
+  submitBtn.textContent = blocked ? 'NO APPLICATIONS REMAINING' : 'APPLY TO GIG';
 }
 
 // Fetch + paint (used when the compose box opens without a cached value, and by retry).
@@ -1488,12 +1492,15 @@ async function beginApplyFlow() {
       return;
     }
     if (Number(status.current) <= 0) {
-      // No slots left — swap the (already-visible) confirm for the capacity overlay.
-      closeConfirmOverlay();
-      openCapacityOverlay(status);
-      return;
+      const capBypass = typeof isCurrentUserSuperAdmin === 'function' && await isCurrentUserSuperAdmin();
+      if (!capBypass) {
+        closeConfirmOverlay();
+        openCapacityOverlay(status);
+        return;
+      }
+      status.capBypass = true;
+      lastApplyCoinStatus = status;
     }
-    // Slots available — fill the real number into the already-open overlay.
     fillConfirmOverlayCount(status);
   } finally {
     if (applyBtn) delete applyBtn.dataset.flowBusy;
@@ -1516,13 +1523,17 @@ function renderApplyConfirmContent() {
   }
   if (labelEl) labelEl.textContent = copy.countLabel;
   if (noteEl) {
-    const bullets = (copy.noteBullets || [])
-      .map(function(b) { return `<li>${escapeApplyFlowText(b)}</li>`; })
-      .join('');
     const consentHtml = copy.consent
       ? `<div class="apply-flow-consent" style="margin-top:12px;color:#93c5fd;font-size:0.82rem;line-height:1.4;">\u{1F4DE} ${escapeApplyFlowText(copy.consent)}</div>`
       : '';
-    noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.noteLead)}</span><ul class="apply-flow-note-bullets">${bullets}</ul>${consentHtml}`;
+    if (applyConfirmCapBypass && copy.capBypassNote) {
+      noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.capBypassNote)}</span>${consentHtml}`;
+    } else {
+      const bullets = (copy.noteBullets || [])
+        .map(function(b) { return `<li>${escapeApplyFlowText(b)}</li>`; })
+        .join('');
+      noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.noteLead)}</span><ul class="apply-flow-note-bullets">${bullets}</ul>${consentHtml}`;
+    }
   }
   if (withdrawEl) {
     const link = `<a href="my-applications.html" class="apply-flow-link">${copy.linkText}</a>`;
@@ -1544,6 +1555,7 @@ function openConfirmOverlay(status, options) {
   const opts = options || {};
   if (opts.loading) {
     applyConfirmLoading = true;
+    applyConfirmCapBypass = false;
   } else {
     applyConfirmLoading = false;
     const s = status || lastApplyCoinStatus || { current: 0, max: 10 };
@@ -1558,6 +1570,7 @@ function openConfirmOverlay(status, options) {
 function fillConfirmOverlayCount(status) {
   applyConfirmLoading = false;
   const s = status || lastApplyCoinStatus || { current: 0, max: 10 };
+  applyConfirmCapBypass = s.capBypass === true;
   applyConfirmCount = { current: Number(s.current), max: Number(s.max) };
   renderApplyConfirmContent();
 }

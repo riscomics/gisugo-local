@@ -7459,6 +7459,7 @@ const DEFAULT_SETTINGS = {
     allowRegistration: true,
 
     // Gig Moderation
+    maxActiveApplications: 10,
     maxActiveGigs: 0,
     minGigPrice: 50,
     maxGigPrice: 10000,
@@ -7469,6 +7470,7 @@ const SETTINGS_COMPOSER_KEYS = [
     'maintenanceTitle', 'maintenanceMessage', 'maintenanceStartTime', 'maintenanceEndTime', 'maintenanceContact'
 ];
 let loadedSettingsComposer = {};
+let applicationCapSyncedValue = 10;
 
 async function initializeSystemSettings() {
     console.log('⚙️ Initializing System Settings...');
@@ -7515,6 +7517,17 @@ async function initializeSystemSettings() {
     initializeMaintenanceComposer();
     
     console.log('✅ System Settings initialized');
+}
+
+async function syncExistingApplicationCaps(nextCap) {
+    try {
+        const callable = firebase.app().functions('asia-southeast1').httpsCallable('syncApplicationCap');
+        const result = await callable({ maxActiveApplications: nextCap });
+        return !!(result && result.data && result.data.success);
+    } catch (error) {
+        console.error('❌ Application cap sync failed:', error);
+        return false;
+    }
 }
 
 function initializeCollapsibleCategories() {
@@ -7575,6 +7588,8 @@ async function loadSettings() {
     });
 
     console.log('📥 Settings loaded from Firestore (platform_settings/general)');
+    const loadedCap = parseInt(document.getElementById('maxActiveApplications')?.value, 10);
+    applicationCapSyncedValue = Number.isFinite(loadedCap) && loadedCap >= 1 ? loadedCap : 10;
 }
 
 function saveSettings() {
@@ -7606,6 +7621,10 @@ function saveSettings() {
                 }
             });
 
+            settings.maxActiveApplications = Math.min(100, Math.max(1, Math.floor(Number(settings.maxActiveApplications) || 10)));
+            const capInput = document.getElementById('maxActiveApplications');
+            if (capInput) capInput.value = String(settings.maxActiveApplications);
+
             // Fix (2026-08-11): this write is a real Firestore round trip now
             // (not instant localStorage), so show a spinner instead of
             // leaving the button looking unresponsive for the ~1-3s it takes.
@@ -7625,6 +7644,15 @@ function saveSettings() {
 
             if (success) {
                 console.log('💾 Settings saved to Firestore:', settings);
+                const nextCap = Number(settings.maxActiveApplications);
+                if (Number.isFinite(nextCap) && nextCap >= 1 && nextCap !== applicationCapSyncedValue) {
+                    const synced = await syncExistingApplicationCaps(nextCap);
+                    if (synced) {
+                        applicationCapSyncedValue = nextCap;
+                    } else {
+                        showToast('Setting saved. Existing accounts were not updated. Save again to retry.', 'error');
+                    }
+                }
                 showSettingsSaveConfirmation();
             } else {
                 console.error('❌ Failed to save settings to Firestore');
@@ -7659,8 +7687,18 @@ function resetSettings() {
                 return;
             }
 
-            // Reload defaults into the form
+            const resetCap = DEFAULT_SETTINGS.maxActiveApplications;
+            const previousCap = applicationCapSyncedValue;
             await loadSettings();
+            if (resetCap !== previousCap) {
+                const synced = await syncExistingApplicationCaps(resetCap);
+                if (synced) {
+                    applicationCapSyncedValue = resetCap;
+                } else {
+                    applicationCapSyncedValue = previousCap;
+                    showToast('Settings reset. Existing application limits were not updated. Save again to retry.', 'error');
+                }
+            }
             
             console.log('🔄 Settings reset to defaults');
             

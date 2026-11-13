@@ -74,6 +74,7 @@ const DEFAULT_SETTINGS = {
   maintenanceContact: '',
   allowRegistration: true,
   maxActiveGigs: 0,
+  maxActiveApplications: 10,
   minGigPrice: 50,
   maxGigPrice: 10000,
   launchBucketOn: true
@@ -117,6 +118,9 @@ async function main() {
     maintenanceContact: String((generalData && generalData.maintenanceContact) || ''),
     allowRegistration: !generalData || generalData.allowRegistration !== false,
     maxActiveGigs: Number(generalData && generalData.maxActiveGigs) > 0 ? Number(generalData.maxActiveGigs) : 0,
+    maxActiveApplications: Number(generalData && generalData.maxActiveApplications) >= 1
+      ? Math.min(100, Math.floor(Number(generalData.maxActiveApplications)))
+      : 10,
     minGigPrice: Number(generalData && generalData.minGigPrice) >= 0 ? Number(generalData.minGigPrice) : 50,
     maxGigPrice: Number(generalData && generalData.maxGigPrice) > 0 ? Number(generalData.maxGigPrice) : 100000,
     launchBucketOn: !generalData || generalData.launchBucketOn !== false,

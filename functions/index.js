@@ -4116,3 +4116,65 @@ exports.ownerRejectApplication = onCall(
   }
 );
 
+exports.syncApplicationCap = onCall(
+  { region: "asia-southeast1", cors: true, timeoutSeconds: 300, memory: "256MiB" },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+    const adminDoc = await db.collection("admins").doc(uid).get();
+    const role = adminDoc.exists ? String((adminDoc.data() || {}).role || "") : "";
+    if (role !== "super_admin") {
+      throw new HttpsError("permission-denied", "Super admin access required.");
+    }
+
+    const nextMax = Math.floor(Number(request.data?.maxActiveApplications));
+    if (!Number.isFinite(nextMax) || nextMax < 1 || nextMax > 100) {
+      throw new HttpsError("invalid-argument", "maxActiveApplications must be from 1 to 100.");
+    }
+
+    let scanned = 0;
+    let updated = 0;
+    let lastDoc = null;
+    while (true) {
+      let query = db.collection("users")
+        .orderBy(admin.firestore.FieldPath.documentId())
+        .select("applicationCoinsMax", "applicationCoinsCurrent")
+        .limit(400);
+      if (lastDoc) query = query.startAfter(lastDoc);
+      const snap = await query.get();
+      if (snap.empty) break;
+      lastDoc = snap.docs[snap.docs.length - 1];
+      scanned += snap.size;
+
+      const batch = db.batch();
+      let writes = 0;
+      snap.docs.forEach((userDoc) => {
+        const data = userDoc.data() || {};
+        const oldMaxRaw = Number(data.applicationCoinsMax);
+        const oldMax = Number.isFinite(oldMaxRaw) && oldMaxRaw > 0 ? Math.floor(oldMaxRaw) : 10;
+        const oldCurrentRaw = Number(data.applicationCoinsCurrent);
+        const oldCurrent = Number.isFinite(oldCurrentRaw) ? Math.floor(oldCurrentRaw) : oldMax;
+        let nextCurrent = oldCurrent + (nextMax - oldMax);
+        if (nextCurrent < 0) nextCurrent = 0;
+        if (nextCurrent > nextMax) nextCurrent = nextMax;
+        if (oldMax === nextMax && oldCurrent === nextCurrent) return;
+        batch.set(userDoc.ref, {
+          applicationCoinsMax: nextMax,
+          applicationCoinsCurrent: nextCurrent
+        }, { merge: true });
+        writes += 1;
+      });
+      if (writes > 0) {
+        await batch.commit();
+        updated += writes;
+      }
+      if (snap.size < 400) break;
+    }
+
+    logger.info("syncApplicationCap complete", { uid, nextMax, scanned, updated });
+    return { success: true, scanned, updated, maxActiveApplications: nextMax };
+  }
+);
+

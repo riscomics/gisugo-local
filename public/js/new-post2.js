@@ -2466,6 +2466,12 @@ async function postJobBody() {
         document.getElementById('previewOverlay').classList.remove('show');
         showSuccessOverlay();
         return;
+      } else if (result && result.code === 'gig_cap') {
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        const preview = document.getElementById('previewOverlay');
+        if (preview) preview.classList.remove('show');
+        showGigCapOverlay(result.message);
+        return;
       } else {
         throw new Error(result.message || 'Failed to save job to Firebase');
       }
@@ -2497,6 +2503,47 @@ function showSuccessOverlay() {
   
   // Trigger confetti animation
   triggerConfetti();
+}
+
+function showGigCapOverlay(detail) {
+  const overlay = document.getElementById('gigCapOverlay');
+  if (!overlay) {
+    alert(detail || 'You have reached the listing limit.');
+    return;
+  }
+  const detailEl = document.getElementById('gigCapDetail');
+  if (detailEl) detailEl.textContent = detail || '';
+  const tabs = overlay.querySelectorAll('.np2-lang-tab');
+  const panels = {
+    english: document.getElementById('gigCapEnglish'),
+    bisaya: document.getElementById('gigCapBisaya'),
+    tagalog: document.getElementById('gigCapTagalog')
+  };
+  function showLang(lang) {
+    tabs.forEach((tab) => tab.classList.toggle('active', tab.getAttribute('data-lang') === lang));
+    Object.keys(panels).forEach((key) => {
+      if (panels[key]) panels[key].style.display = key === lang ? '' : 'none';
+    });
+  }
+  if (!overlay.dataset.bound) {
+    overlay.dataset.bound = '1';
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', function() {
+        showLang(tab.getAttribute('data-lang') || 'english');
+      });
+    });
+    const closeBtn = document.getElementById('gigCapCloseBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        overlay.classList.remove('show');
+      });
+    }
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) overlay.classList.remove('show');
+    });
+  }
+  showLang('english');
+  overlay.classList.add('show');
 }
 
 // Confetti Animation

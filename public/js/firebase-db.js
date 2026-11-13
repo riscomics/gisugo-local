@@ -131,6 +131,32 @@ function writeJsonStorageSafe(key, value) {
   }
 }
 
+let _superAdminCache = { uid: '', at: 0, value: false };
+
+// Own admins/{uid} doc only, and only when a cap would otherwise refuse.
+// Missing role is not super admin. A failed read stays capped.
+async function isCurrentUserSuperAdmin() {
+  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  const uid = user && user.uid ? String(user.uid) : '';
+  if (!uid) return false;
+  const now = Date.now();
+  if (_superAdminCache.uid === uid && (now - _superAdminCache.at) < 5 * 60 * 1000) {
+    return _superAdminCache.value;
+  }
+  const db = getFirestore();
+  if (!db) return false;
+  try {
+    const snap = await db.collection('admins').doc(uid).get();
+    const role = snap.exists ? String((snap.data() || {}).role || '') : '';
+    const value = role === 'super_admin';
+    _superAdminCache = { uid, at: now, value };
+    return value;
+  } catch (error) {
+    _superAdminCache = { uid, at: now, value: false };
+    return false;
+  }
+}
+
 function normalizeApplicationCoins(profile = {}) {
   const maxCoinsRaw = Number(profile.applicationCoinsMax);
   const maxCoins = Number.isFinite(maxCoinsRaw) && maxCoinsRaw > 0
@@ -790,8 +816,10 @@ async function createApplicationViaFirestoreRest(applicationData, headers = null
         ? { doubleValue: safeCounterOffer }
         : { nullValue: null },
       jobTitle: { stringValue: String(applicationData && applicationData.jobTitle ? applicationData.jobTitle : '') },
-      coinHeld: { booleanValue: true },
-      coinConsumedAt: { timestampValue: new Date().toISOString() }
+      coinHeld: { booleanValue: applicationData && applicationData.coinHeld === false ? false : true },
+      coinConsumedAt: applicationData && applicationData.coinHeld === false
+        ? { nullValue: null }
+        : { timestampValue: new Date().toISOString() }
     }
   };
   const response = await fetch(endpoint, {
@@ -1358,14 +1386,22 @@ async function createJob(jobData) {
       }
     }
     if (policy.maxActiveGigs > 0) {
-      const activeSnap = await db.collection('jobs')
+      const listedCap = policy.maxActiveGigs;
+      // Paused gigs stay off the public list and still occupy a slot.
+      // Compat SDK has no count(); limit(cap) answers "at or over" without
+      // reading every matching gig. posterId+status is already indexed.
+      // Hired and accepted are not counted. Unpause, decline, resign, and
+      // void do not call this check.
+      const listedSnap = await db.collection('jobs')
         .where('posterId', '==', currentUser.uid)
-        .where('status', '==', 'active')
+        .where('status', 'in', ['active', 'paused'])
+        .limit(listedCap)
         .get();
-      if (activeSnap.size >= policy.maxActiveGigs) {
+      if (listedSnap.size >= listedCap && !(await isCurrentUserSuperAdmin())) {
         return {
           success: false,
-          message: `You already have ${policy.maxActiveGigs} active gigs. Close or complete one before posting another.`
+          code: 'gig_cap',
+          message: `You already have ${listedCap} gigs listed right now, including paused ones. Close, complete, or delete one before posting another.`
         };
       }
     }
@@ -2598,38 +2634,42 @@ async function applyForJob(jobId, applicationData) {
 
     // Validate coin availability and consume one coin before writing the application.
     const coinState = await ensureApplicationCoinsForUser(currentUser.uid, db);
-    if (coinState.current <= 0) {
+    const bypassApplicationCap = coinState.current <= 0 && await isCurrentUserSuperAdmin();
+    if (coinState.current <= 0 && !bypassApplicationCap) {
       return {
         success: false,
+        code: 'application_cap',
         message: 'You have no applications remaining right now. Wait for a current application to close, or withdraw a pending one.'
       };
     }
-    emitIOSDataTrace('dynamic-job:apply', 'write:coin:start', {
-      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
-    });
-    if (useRestPrimaryForApply) {
-      await withFirestoreReadTimeout(
-        updateUserApplicationCoinsViaFirestoreRest(
-          currentUser.uid,
-          coinState.current - 1,
-          coinState.max,
-          restAuthHeaders
-        ),
-        applyWriteTimeoutMs
-      );
-    } else {
-      await withFirestoreReadTimeout(
-        db.collection('users').doc(currentUser.uid).set({
-          applicationCoinsCurrent: coinState.current - 1,
-          applicationCoinsMax: coinState.max
-        }, { merge: true }),
-        applyWriteTimeoutMs
-      );
+    if (!bypassApplicationCap) {
+      emitIOSDataTrace('dynamic-job:apply', 'write:coin:start', {
+        mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+      });
+      if (useRestPrimaryForApply) {
+        await withFirestoreReadTimeout(
+          updateUserApplicationCoinsViaFirestoreRest(
+            currentUser.uid,
+            coinState.current - 1,
+            coinState.max,
+            restAuthHeaders
+          ),
+          applyWriteTimeoutMs
+        );
+      } else {
+        await withFirestoreReadTimeout(
+          db.collection('users').doc(currentUser.uid).set({
+            applicationCoinsCurrent: coinState.current - 1,
+            applicationCoinsMax: coinState.max
+          }, { merge: true }),
+          applyWriteTimeoutMs
+        );
+      }
+      emitIOSDataTrace('dynamic-job:apply', 'write:coin:done', {
+        mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+      });
+      consumedCoin = true;
     }
-    emitIOSDataTrace('dynamic-job:apply', 'write:coin:done', {
-      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
-    });
-    consumedCoin = true;
     
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
@@ -2676,9 +2716,11 @@ async function applyForJob(jobId, applicationData) {
       message: applicationData.message || '',
       counterOffer: applicationData.counterOffer || null,
       jobTitle: job.title || '',
-      coinHeld: true,
-      coinConsumedAt: firebase.firestore.FieldValue.serverTimestamp()
+      coinHeld: !bypassApplicationCap
     };
+    if (!bypassApplicationCap) {
+      application.coinConsumedAt = firebase.firestore.FieldValue.serverTimestamp();
+    }
     
     emitIOSDataTrace('dynamic-job:apply', 'write:application:start', {
       mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
@@ -6026,6 +6068,7 @@ const SAFE_PUBLIC_PLATFORM_POLICY = {
   maintenanceContact: '',
   allowRegistration: true,
   maxActiveGigs: 0,
+  maxActiveApplications: 10,
   minGigPrice: 50,
   maxGigPrice: 100000,
   launchBucketOn: true
@@ -6035,6 +6078,7 @@ let _publicPlatformPolicyCache = { at: 0, value: null };
 function buildPublicPlatformPolicy(settings = {}) {
   const src = settings && typeof settings === 'object' ? settings : {};
   const maxActive = Number(src.maxActiveGigs);
+  const maxApplications = Number(src.maxActiveApplications);
   const minPrice = Number(src.minGigPrice);
   const maxPrice = Number(src.maxGigPrice);
   return {
@@ -6054,6 +6098,9 @@ function buildPublicPlatformPolicy(settings = {}) {
     maintenanceContact: String(src.maintenanceContact || ''),
     allowRegistration: src.allowRegistration !== false,
     maxActiveGigs: Number.isFinite(maxActive) && maxActive > 0 ? maxActive : 0,
+    maxActiveApplications: Number.isFinite(maxApplications) && maxApplications >= 1
+      ? Math.min(100, Math.floor(maxApplications))
+      : 10,
     minGigPrice: Number.isFinite(minPrice) && minPrice >= 0 ? minPrice : 50,
     maxGigPrice: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : 100000,
     launchBucketOn: src.launchBucketOn !== false
@@ -6752,6 +6799,7 @@ async function getUserProfile(userId) {
 
 // Jobs
 window.createJob = createJob;
+window.isCurrentUserSuperAdmin = isCurrentUserSuperAdmin;
 window.updateJob = updateJob;
 window.getJobById = getJobById;
 window.getJobsByCategory = getJobsByCategory;
