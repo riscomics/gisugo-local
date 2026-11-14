@@ -1269,7 +1269,7 @@ function populateJobPriceGuide(jobData) {
   }
   const headlineHtml = String(guide.priceGuide?.headline || '')
     .split('\n')
-    .map((line) => escapeHtml(line.trim()))
+    .map((line) => escapeApplyFlowText(line.trim()))
     .filter(Boolean)
     .join('<br>');
   const bodyHtml = window.GisugoCategoryGuides.renderStructuredGuideHtml(guide.gigDetailPayNote, { isPayNote: true });
