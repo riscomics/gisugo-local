@@ -1,6 +1,6 @@
 # Profile reviews — one page at a time, on every device
 
-> Status: **Not started.**
+> Status: **Steps 1–9 done 2026-11-14.** No role has more than 20 reviews, so the live screen did not ask for a second page. The cursor query was proven against production.
 > Written: 2026-11-14.
 > Scope: profile reviews only. Gigs Manager paging and the View Applications count split come after this list is done. Admin suspended and banned lists stay parked.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
@@ -17,15 +17,15 @@
 
 ## Micro tasklist
 
-- [ ] **1. Confirm the map below.** No code change in this step.
-- [ ] **2. Audit step 1.** The map matches the code. Unused tools are marked unused. A missed live writer or reader is added before step 3.
-- [ ] **3. Stamp the card fields on both live review writes.** Gig title, gig link, reviewer photo. Leave existing reviews as they are.
-- [ ] **4. Audit step 3.** Both directions store the three fields. An old review is unchanged. The create rule accepts the extra fields. Submit does not add a new full-library read.
-- [ ] **5. Add one paged review read and use it on every device.** First 20, then 15. Cursor is the last review’s time plus its id. iPhone uses the timed request with that same cursor. No listener. No full download.
-- [ ] **6. Audit step 5.** Computer, Android, and iPhone ask for the same numbers. A full page reports more. A short page reports done. Two reviews with the same time do not skip or repeat. The read is one query. The index used is named.
-- [ ] **7. Wire the profile screen to that read.** Visible role only. Scroll appends the next page. Cache remembers the cursor, not “this is the whole list.” Missing stamp fields fall back to one gig read and one reviewer read for that card.
-- [ ] **8. Audit step 7.** Opening a profile does not fetch the hidden role. Page 2 does not re-download page 1. The star average still comes from the user record. An old unstamped review still renders. A stamped review does not do the fallback reads. The empty state still shows when a role has no reviews.
-- [ ] **9. Audit on the live site.** Record which profile was opened, how many reviews that role has, and whether a second page was actually requested. If no role has more than 20 reviews, say so. Still prove the end signal on that short list, and prove the cursor query with a one-review page followed by `startAfter`. Do not invent reviews to force a second page.
+- [x] **1. Confirm the map below.** No code change in this step.
+- [x] **2. Audit step 1.** The map matches the code. Unused tools are marked unused. A missed live writer or reader is added before step 3.
+- [x] **3. Stamp the card fields on both live review writes.** Gig title, gig link, reviewer photo. Leave existing reviews as they are.
+- [x] **4. Audit step 3.** Both directions store the three fields. An old review is unchanged. The create rule accepts the extra fields. Submit does not add a new full-library read.
+- [x] **5. Add one paged review read and use it on every device.** First 20, then 15. Cursor is the last review’s time plus its id. iPhone uses the timed request with that same cursor. No listener. No full download.
+- [x] **6. Audit step 5.** Computer, Android, and iPhone ask for the same numbers. A full page reports more. A short page reports done. Two reviews with the same time do not skip or repeat. The read is one query. The index used is named.
+- [x] **7. Wire the profile screen to that read.** Visible role only. Scroll appends the next page. Cache remembers the cursor, not “this is the whole list.” Missing stamp fields fall back to one gig read and one reviewer read for that card.
+- [x] **8. Audit step 7.** Opening a profile does not fetch the hidden role. Page 2 does not re-download page 1. The star average still comes from the user record. An old unstamped review still renders. A stamped review does not do the fallback reads. The empty state still shows when a role has no reviews.
+- [x] **9. Audit on the live site.** Record which profile was opened, how many reviews that role has, and whether a second page was actually requested. If no role has more than 20 reviews, say so. Still prove the end signal on that short list, and prove the cursor query with a one-review page followed by `startAfter`. Do not invent reviews to force a second page.
 
 ## Step 1 map (confirm before any edit)
 
@@ -64,3 +64,49 @@ Use this on steps 4, 6, and 8, in addition to the step’s own checks.
 - Confirm Android is on the same page function as a computer. The only device branch left is the iPhone and iPad transport (timed web request, same limit, same cursor).
 - Confirm a second page uses `startAfter` the last shown review and does not request the first 20 again.
 - Confirm `fix-review-counts.html` was not edited and is not linked.
+
+## Step 2 audit (2026-11-14)
+
+The map held. No extra live writer or reader.
+
+Customer reviews go through `submitJobCompletionFeedback`. Two live callers: the completion overlay (`jobCompletedOkBtn`) and the leave-feedback overlay when the role is customer (`submitCustomerFeedbackBtn`). The worker review is the other branch of `submitCustomerFeedback`. Nothing in Cloud Functions creates a review.
+
+`fix-review-counts.html` is still unlinked. It was not used.
+
+## Step 4 audit (2026-11-14)
+
+Both writes store `gigTitle`, `gigLink`, and `reviewerPhoto`. Existing reviews are not rewritten.
+
+The create rule uses `hasAll` for the old keys, so the three new fields are allowed. No review was submitted on production to test that. The rule text was not changed.
+
+Each submit reads that one gig and that one reviewer, then reuses those reads for the alert. It does not read the review collection. The star average on the user document is still the same update as before.
+
+## Step 6 audit (2026-11-14)
+
+The live caller is `fetchUserReviews` in `profile.js`, used when a review tab opens. It calls `getUserReviewsPage`.
+
+A computer and Android use the Firestore query. iPhone and iPad use `fetchReviewsViaFirestoreRest` with the same limit and the same cursor. The only device branch is that transport.
+
+The query is `revieweeUserId` + `revieweeRole` + `createdAt` descending + document id descending, then `limit`. The index used is the existing `reviews` index (`revieweeUserId`, `revieweeRole`, `createdAt` descending). The document id rides on the end of that index. A full page sets `hasMore`. A short page does not. The next page uses `startAfter` that time and that id.
+
+There is no `onSnapshot` on reviews. The profile does not `.get()` the whole role.
+
+## Step 8 audit (2026-11-14)
+
+The profile opens on the info tab. Neither review list is fetched until that tab is opened. The old prefetch of both roles is gone.
+
+Pages already loaded are kept under the user and the role, with the cursor. Opening the same tab again renders that memory and does not ask for the first 20 again. The next scroll asks for 15 after the cursor and appends. A repeat id is not added twice.
+
+The star average and the review total still come from `averageRating` and `totalReviews` on the user. The review list does not write them.
+
+A review that already has `gigTitle` and `reviewerPhoto` does not read the gig or the reviewer. A review without those fields still does, once per card, for that card only.
+
+An empty role still shows “No Reviews Yet.”
+
+`fix-review-counts.html` was not edited.
+
+## Step 9 audit (2026-11-14)
+
+Production has 54 review documents across 4 person-and-role lists. The largest is 18. None is over 20, so the screen’s first page of 20 is the whole list and a short page is the end signal. No second page was requested.
+
+The cursor query was run on that list of 18: one review, then `startAfter` that review. The second id was different from the first. No reviews were created. The profile page was not clicked.

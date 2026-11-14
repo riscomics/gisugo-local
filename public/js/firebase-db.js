@@ -588,7 +588,26 @@ async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50, he
     .filter(Boolean);
 }
 
-async function fetchReviewsViaFirestoreRest(revieweeUserId, role, maxItems = 50) {
+function reviewCursorFromRecord(record) {
+  if (!record) return null;
+  const created = record.createdAt;
+  let millis = 0;
+  if (created && typeof created.toMillis === 'function') millis = created.toMillis();
+  else if (created && typeof created.seconds === 'number') millis = created.seconds * 1000;
+  else if (typeof created === 'string' || typeof created === 'number') {
+    const parsed = new Date(created).getTime();
+    millis = Number.isNaN(parsed) ? 0 : parsed;
+  }
+  const id = String(record.id || '').trim();
+  if (!id) return null;
+  return {
+    createdAtMillis: millis,
+    createdAtRaw: typeof created === 'string' ? created : '',
+    id: id
+  };
+}
+
+async function fetchReviewsViaFirestoreRest(revieweeUserId, role, maxItems = 20, cursor = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for reviews REST fallback');
   const safeUserId = String(revieweeUserId || '').trim();
@@ -619,10 +638,24 @@ async function fetchReviewsViaFirestoreRest(revieweeUserId, role, maxItems = 50)
           ]
         }
       },
-      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-      limit: Math.max(1, Math.min(Number(maxItems) || 50, 100))
+      orderBy: [
+        { field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' },
+        { field: { fieldPath: '__name__' }, direction: 'DESCENDING' }
+      ],
+      limit: Math.max(1, Math.min(Number(maxItems) || 20, 100))
     }
   };
+  if (cursor && cursor.id) {
+    const rawStamp = String(cursor.createdAtRaw || '').trim();
+    const timestampValue = rawStamp || new Date(Number(cursor.createdAtMillis) || 0).toISOString();
+    payload.structuredQuery.startAt = {
+      values: [
+        { timestampValue: timestampValue },
+        { referenceValue: `projects/${projectId}/databases/(default)/documents/reviews/${cursor.id}` }
+      ],
+      before: false
+    };
+  }
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -733,6 +766,51 @@ async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
   return rows
     .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
     .filter(Boolean);
+}
+
+/**
+ * One page of reviews for one person in one role, newest first.
+ * Computer, Android, and iPhone use this. iPhone keeps the timed web request.
+ * First call asks for 20. The next asks for 15 after the last review shown.
+ */
+async function getUserReviewsPage(userId, role, options = {}) {
+  const safeUserId = String(userId || '').trim();
+  const safeRole = String(role || '').trim();
+  const limit = Math.max(1, Math.min(100, Number(options && options.limit) || 20));
+  const cursor = options && options.cursor && options.cursor.id ? options.cursor : null;
+  if (!safeUserId || !safeRole) return { reviews: [], hasMore: false, cursor: null };
+
+  let records = [];
+  if (isIOSWebKitBrowserForDataPath()) {
+    const restRows = typeof withFirestoreReadTimeout === 'function'
+      ? await withFirestoreReadTimeout(fetchReviewsViaFirestoreRest(safeUserId, safeRole, limit, cursor), 10000)
+      : await fetchReviewsViaFirestoreRest(safeUserId, safeRole, limit, cursor);
+    records = Array.isArray(restRows) ? restRows : [];
+  } else {
+    const db = getFirestore();
+    if (!db) return { reviews: [], hasMore: false, cursor: null };
+    let query = db.collection('reviews')
+      .where('revieweeUserId', '==', safeUserId)
+      .where('revieweeRole', '==', safeRole)
+      .orderBy('createdAt', 'desc')
+      .orderBy(firebase.firestore.FieldPath.documentId(), 'desc')
+      .limit(limit);
+    if (cursor) {
+      query = query.startAfter(
+        firebase.firestore.Timestamp.fromMillis(Number(cursor.createdAtMillis) || 0),
+        String(cursor.id)
+      );
+    }
+    const snapshot = await query.get();
+    records = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+
+  const last = records.length ? records[records.length - 1] : null;
+  return {
+    reviews: records,
+    hasMore: records.length === limit,
+    cursor: reviewCursorFromRecord(last)
+  };
 }
 
 async function fetchJobByIdViaFirestoreRest(jobId) {
@@ -6810,6 +6888,7 @@ window.deleteJob = deleteJob;
 
 // Users
 window.fetchReviewsViaFirestoreRest = fetchReviewsViaFirestoreRest;
+window.getUserReviewsPage = getUserReviewsPage;
 window.fetchSupportRequestsViaFirestoreRest = fetchSupportRequestsViaFirestoreRest;
 
 // Applications

@@ -6555,6 +6555,41 @@ function getFeedbackRating() {
     return filledStars.length;
 }
 
+// Card fields stored on the review so the profile does not read the gig and the reviewer again.
+// A failed lookup still submits the review; the profile can fill that one card later.
+function reviewCardStamp(jobData, reviewerProfile, jobId) {
+    const data = jobData || {};
+    const title = String(data.title || '').trim() || 'Completed Gig';
+    const category = String(data.category || '').trim();
+    const storedLink = String(data.jobPageUrl || '').trim();
+    const gigLink = storedLink || (category && jobId
+        ? `dynamic-job.html?category=${category}&jobNumber=${jobId}`
+        : '');
+    const photo = String(
+        (reviewerProfile && (reviewerProfile.profilePhoto || reviewerProfile.profileImage)) || ''
+    ).trim() || 'public/users/default-user.jpg';
+    return { gigTitle: title, gigLink: gigLink, reviewerPhoto: photo };
+}
+
+async function loadReviewCardSources(db, jobId, reviewerUserId) {
+    let jobData = {};
+    let reviewerProfile = null;
+    try {
+        const jobSnap = await db.collection('jobs').doc(String(jobId || '')).get();
+        if (jobSnap.exists) jobData = jobSnap.data() || {};
+    } catch (stampJobError) {
+        console.warn('⚠️ Review card stamp could not read the gig:', stampJobError);
+    }
+    try {
+        if (typeof getUserProfile === 'function' && reviewerUserId) {
+            reviewerProfile = await getUserProfile(reviewerUserId);
+        }
+    } catch (stampProfileError) {
+        console.warn('⚠️ Review card stamp could not read the reviewer:', stampProfileError);
+    }
+    return { jobData, reviewerProfile, cardStamp: reviewCardStamp(jobData, reviewerProfile, jobId) };
+}
+
 // Firebase Integration Structure for Job Completion Feedback
 // This will replace the console.log when backend is ready
 async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, rating, feedbackText) {
@@ -6563,6 +6598,8 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     const db = firebase.firestore();
     const batch = db.batch();
     const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    const cardSources = await loadReviewCardSources(db, jobId, customerUserId);
+    const cardStamp = cardSources.cardStamp;
     
     // 1. Create review record in reviews collection
     const reviewRef = db.collection('reviews').doc();
@@ -6575,6 +6612,9 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
         revieweeRole: 'worker',
         rating: rating,                        // 1-5 stars
         feedbackText: feedbackText,            // Text feedback
+        gigTitle: cardStamp.gigTitle,
+        gigLink: cardStamp.gigLink,
+        reviewerPhoto: cardStamp.reviewerPhoto,
         createdAt: timestamp,
         modifiedAt: timestamp,
         status: 'active',
@@ -6634,18 +6674,15 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     // Worker alert: clerk writes feedback_received. Do not fail feedback if it fails.
     try {
       if (typeof callCreateUserAlert === 'function' && workerUserId) {
-        const jobDoc = await jobRef.get();
-        const jobData = jobDoc.data();
-        const customerProfile = typeof getUserProfile === 'function'
-          ? await getUserProfile(customerUserId)
-          : null;
-        const customerName = customerProfile?.fullName || 'Customer';
+        const jobData = cardSources.jobData || {};
+        const customerName = cardSources.reviewerProfile?.fullName || 'Customer';
+        const alertTitle = jobData.title || 'Completed Gig';
         await callCreateUserAlert({
           type: 'feedback_received',
           recipientId: workerUserId,
           jobId: jobId,
-          jobTitle: jobData.title || 'Completed Gig',
-          message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Leave your feedback in Gigs Manager > Completed. To view received feedback, open Profile > Feedback (Worker).`,
+          jobTitle: alertTitle,
+          message: `${customerName} left ${rating}-star feedback on "${alertTitle}". Leave your feedback in Gigs Manager > Completed. To view received feedback, open Profile > Feedback (Worker).`,
           actionRequired: false,
           dedupeKey: `feedback_received_customer_to_worker_${jobId}_${customerUserId}`
         });
@@ -10583,6 +10620,8 @@ async function submitCustomerFeedback() {
             const db = firebase.firestore();
             const batch = db.batch();
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+            const cardSources = await loadReviewCardSources(db, jobId, currentUserId);
+            const cardStamp = cardSources.cardStamp;
             
             // Create review document
             const reviewRef = db.collection('reviews').doc();
@@ -10595,6 +10634,9 @@ async function submitCustomerFeedback() {
                 revieweeRole: 'customer',
                 rating: rating,
                 feedbackText: feedbackText,
+                gigTitle: cardStamp.gigTitle,
+                gigLink: cardStamp.gigLink,
+                reviewerPhoto: cardStamp.reviewerPhoto,
                 createdAt: timestamp,
                 modifiedAt: timestamp,
                 status: 'active',
@@ -10617,18 +10659,15 @@ async function submitCustomerFeedback() {
             // Owner alert: clerk writes worker_feedback_received. Do not fail feedback if it fails.
             try {
                 if (typeof callCreateUserAlert === 'function' && targetUserId) {
-                    const jobDoc = await jobRef.get();
-                    const jobData = jobDoc.data();
-                    const workerProfile = typeof getUserProfile === 'function'
-                        ? await getUserProfile(currentUserId)
-                        : null;
-                    const workerName = workerProfile?.fullName || 'Worker';
+                    const jobData = cardSources.jobData || {};
+                    const workerName = cardSources.reviewerProfile?.fullName || 'Worker';
+                    const alertTitle = jobData.title || 'Completed Gig';
                     await callCreateUserAlert({
                         type: 'worker_feedback_received',
                         recipientId: targetUserId,
                         jobId: jobId,
-                        jobTitle: jobData.title || 'Completed Gig',
-                        message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}". To read it, open Profile > Feedback (Customer).`,
+                        jobTitle: alertTitle,
+                        message: `${workerName} left ${rating}-star feedback for you on "${alertTitle}". To read it, open Profile > Feedback (Customer).`,
                         actionRequired: false,
                         dedupeKey: `feedback_received_worker_to_customer_${jobId}_${currentUserId}`
                     });

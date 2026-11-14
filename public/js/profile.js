@@ -5455,8 +5455,6 @@ async function waitForAuthAndLoadProfile() {
             viewerContext: isViewingOwnProfile ? 'own_profile' : 'other_profile'
           });
           maybeStartFaceVerificationAfterSignup(firebaseProfile, isViewingOwnProfile);
-          // Warm both review tabs in the background for faster tab switching.
-          setTimeout(() => prefetchProfileReviews(profileUserId), 0);
         } else {
           // Profile not found
           if (isViewingOwnProfile) {
@@ -6345,50 +6343,17 @@ function sanitizeUrl(url, fallback = '') {
   return fallback;
 }
 
-const reviewDataCache = window.__profileReviewDataCache || new Map();
-window.__profileReviewDataCache = reviewDataCache;
-const reviewRequestCache = window.__profileReviewRequestCache || new Map();
-window.__profileReviewRequestCache = reviewRequestCache;
+const REVIEW_PAGE_FIRST = 20;
+const REVIEW_PAGE_MORE = 15;
+const reviewPageState = window.__profileReviewPageState || new Map();
+window.__profileReviewPageState = reviewPageState;
 
-function getReviewCacheKey(userId, role) {
+function getReviewStateKey(userId, role) {
   return `${userId}:${role}`;
 }
 
-async function getOrFetchUserReviews(userId, role) {
-  const cacheKey = getReviewCacheKey(userId, role);
-
-  if (reviewDataCache.has(cacheKey)) {
-    return reviewDataCache.get(cacheKey);
-  }
-
-  if (reviewRequestCache.has(cacheKey)) {
-    return reviewRequestCache.get(cacheKey);
-  }
-
-  const requestPromise = fetchUserReviews(userId, role)
-    .then((reviews) => {
-      reviewDataCache.set(cacheKey, reviews);
-      reviewRequestCache.delete(cacheKey);
-      return reviews;
-    })
-    .catch((error) => {
-      reviewRequestCache.delete(cacheKey);
-      throw error;
-    });
-
-  reviewRequestCache.set(cacheKey, requestPromise);
-  return requestPromise;
-}
-
-function prefetchProfileReviews(userId) {
-  if (!userId) return;
-  ['customer', 'worker'].forEach((role) => {
-    const cacheKey = getReviewCacheKey(userId, role);
-    if (reviewDataCache.has(cacheKey) || reviewRequestCache.has(cacheKey)) return;
-    getOrFetchUserReviews(userId, role).catch((error) => {
-      console.warn(`⚠️ Prefetch ${role} reviews failed:`, error);
-    });
-  });
+function getReviewPageState(userId, role) {
+  return reviewPageState.get(getReviewStateKey(userId, role)) || null;
 }
 
 /**
@@ -6407,31 +6372,24 @@ function reviewCreatedAtDate(createdAt) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function fetchUserReviews(userId, role) {
+async function fetchUserReviews(userId, role, options = {}) {
+  const emptyPage = { reviews: [], hasMore: false, cursor: null };
   try {
     console.log(`🔍 Fetching ${role} reviews for user:`, userId);
     const useTimedHttp = typeof isIOSWebKitBrowserForDataPath === 'function'
       && isIOSWebKitBrowserForDataPath();
+    if (typeof getUserReviewsPage !== 'function') return emptyPage;
 
-    let records = [];
-    if (useTimedHttp) {
-      if (typeof fetchReviewsViaFirestoreRest !== 'function') return [];
-      const restRows = typeof withFirestoreReadTimeout === 'function'
-        ? await withFirestoreReadTimeout(fetchReviewsViaFirestoreRest(userId, role, 50), 10000)
-        : await fetchReviewsViaFirestoreRest(userId, role, 50);
-      records = Array.isArray(restRows) ? restRows : [];
-    } else {
-      const db = firebase.firestore();
-      const snapshot = await db.collection('reviews')
-        .where('revieweeUserId', '==', userId)
-        .where('revieweeRole', '==', role)
-        .orderBy('createdAt', 'desc')
-        .get();
-      records = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    }
+    const page = await getUserReviewsPage(userId, role, {
+      limit: options.limit,
+      cursor: options.cursor || null
+    });
+    const records = Array.isArray(page && page.reviews) ? page.reviews : [];
 
     console.log(`📊 Found ${records.length} ${role} reviews`);
-    if (!records.length) return [];
+    if (!records.length) {
+      return { reviews: [], hasMore: false, cursor: null };
+    }
 
     const userDocCache = new Map();
     const jobDocCache = new Map();
@@ -6493,29 +6451,43 @@ async function fetchUserReviews(userId, role) {
     };
 
     const reviews = await Promise.all(records.map(async (data) => {
-      const reviewerThumbnail = await getReviewerPhoto(data.reviewerUserId);
-      const jobDetails = await getJobDetails(data.jobId);
       const created = reviewCreatedAtDate(data.createdAt);
       const feedbackDate = created
         ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : 'Recent';
+      const stamped = data
+        && typeof data.gigTitle === 'string'
+        && typeof data.reviewerPhoto === 'string';
+      let jobTitle = data.gigTitle;
+      let jobPostUrl = data.gigLink || null;
+      let userThumbnail = data.reviewerPhoto;
+      if (!stamped) {
+        userThumbnail = await getReviewerPhoto(data.reviewerUserId);
+        const jobDetails = await getJobDetails(data.jobId);
+        jobTitle = jobDetails.jobTitle;
+        jobPostUrl = jobDetails.jobPostUrl;
+      }
 
       return {
-        jobTitle: jobDetails.jobTitle,
+        jobTitle: jobTitle,
         feedbackDate: feedbackDate,
         rating: data.rating || 0,
-        userThumbnail: reviewerThumbnail,
+        userThumbnail: userThumbnail,
         feedbackText: data.feedbackText || 'No feedback provided.',
-        jobPostUrl: jobDetails.jobPostUrl,
+        jobPostUrl: jobPostUrl,
         reviewId: data.id
       };
     }));
 
     console.log(`✅ Formatted ${reviews.length} ${role} reviews`);
-    return reviews;
+    return {
+      reviews: reviews,
+      hasMore: page.hasMore === true,
+      cursor: page.cursor || null
+    };
   } catch (error) {
     console.error(`❌ Error fetching ${role} reviews:`, error);
-    return [];
+    return emptyPage;
   }
 }
 
@@ -6590,100 +6562,143 @@ function generateStarsHTML(rating) {
   return starsHTML;
 }
 
-// Populate customer reviews (backend ready)
-async function populateCustomerReviews(customerReviews = null, userName = null) {
-  const container = document.getElementById('reviewsCustomerContainer');
-  if (!container) return;
-  
-  // Get user name from profile or default
-  const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
-  
-  // Show loading state
+function renderReviewEmptyState(container, profileName, roleLabel) {
+  const safeProfileName = escapeHtml(profileName);
   container.innerHTML = `
-    <div style="text-align: center; color: #bfc6d0; padding: 2rem;">
-      <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
-      <p>Loading reviews...</p>
+    <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
+      <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
+      <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a ${roleLabel} will be displayed here.</p>
     </div>
   `;
-  
-  // Fetch reviews from Firebase if not provided
-  if (customerReviews === null) {
-    const userId = getUserIdFromProfile();
-    if (userId) {
-      customerReviews = await getOrFetchUserReviews(userId, 'customer');
-    } else {
-      customerReviews = sampleCustomerReviews;
-    }
-  }
-  
-  // Clear existing content
-  container.innerHTML = '';
-  
-  if (customerReviews.length === 0) {
-    const safeProfileName = escapeHtml(profileName);
-    container.innerHTML = `
-      <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
-        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a customer will be displayed here.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  customerReviews.forEach(review => {
-    const reviewCard = createReviewCard(review);
-    container.appendChild(reviewCard);
-  });
-  
-  console.log(`✅ Displayed ${customerReviews.length} customer reviews`);
 }
 
-// Populate worker reviews (backend ready)
-async function populateWorkerReviews(workerReviews = null, userName = null) {
-  const container = document.getElementById('reviewsWorkerContainer');
+function renderReviewCards(container, reviews) {
+  container.innerHTML = '';
+  reviews.forEach((review) => {
+    container.appendChild(createReviewCard(review));
+  });
+}
+
+function bindReviewListScroll(container, role) {
+  const scroller = container.closest('.tab-scroll-container');
+  if (!scroller || scroller.dataset.reviewScrollBound === role) return;
+  scroller.dataset.reviewScrollBound = role;
+  scroller.addEventListener('scroll', () => {
+    const remaining = scroller.scrollHeight - (scroller.scrollTop + scroller.clientHeight);
+    if (remaining > 280) return;
+    const userId = getUserIdFromProfile();
+    if (!userId) return;
+    loadMoreProfileReviews(userId, role, container);
+  }, { passive: true });
+}
+
+async function loadMoreProfileReviews(userId, role, container) {
+  const state = getReviewPageState(userId, role);
+  if (!state || state.loading || !state.hasMore) return;
+  state.loading = true;
+  try {
+    const page = await fetchUserReviews(userId, role, {
+      limit: REVIEW_PAGE_MORE,
+      cursor: state.cursor
+    });
+    const incoming = Array.isArray(page.reviews) ? page.reviews : [];
+    const seen = new Set(state.reviews.map((review) => String(review.reviewId || '')));
+    incoming.forEach((review) => {
+      const id = String(review.reviewId || '');
+      if (id && seen.has(id)) return;
+      if (id) seen.add(id);
+      state.reviews.push(review);
+      container.appendChild(createReviewCard(review));
+    });
+    state.cursor = page.cursor;
+    state.hasMore = page.hasMore === true;
+  } catch (error) {
+    console.warn(`⚠️ Could not load more ${role} reviews:`, error);
+  } finally {
+    state.loading = false;
+  }
+}
+
+async function populateReviewRole(role, containerId, roleLabel, sampleReviews) {
+  const container = document.getElementById(containerId);
   if (!container) return;
-  
-  // Get user name from profile or default
-  const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
-  
-  // Show loading state
+  const profileName = document.querySelector('.full-name')?.textContent || 'this user';
+  const userId = getUserIdFromProfile();
+  if (!userId) {
+    const samples = Array.isArray(sampleReviews) ? sampleReviews : [];
+    if (!samples.length) {
+      renderReviewEmptyState(container, profileName, roleLabel);
+      return;
+    }
+    renderReviewCards(container, samples);
+    return;
+  }
+
+  const existing = getReviewPageState(userId, role);
+  if (existing && existing.loading) return;
+  if (existing && existing.loaded) {
+    if (!existing.reviews.length) {
+      renderReviewEmptyState(container, profileName, roleLabel);
+    } else {
+      renderReviewCards(container, existing.reviews);
+    }
+    bindReviewListScroll(container, role);
+    return;
+  }
+
   container.innerHTML = `
     <div style="text-align: center; color: #bfc6d0; padding: 2rem;">
       <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
       <p>Loading reviews...</p>
     </div>
   `;
-  
-  // Fetch reviews from Firebase if not provided
-  if (workerReviews === null) {
-    const userId = getUserIdFromProfile();
-    if (userId) {
-      workerReviews = await getOrFetchUserReviews(userId, 'worker');
-    } else {
-      workerReviews = sampleWorkerReviews;
-    }
-  }
-  
-  // Clear existing content
-  container.innerHTML = '';
-  
-  if (workerReviews.length === 0) {
-    const safeProfileName = escapeHtml(profileName);
-    container.innerHTML = `
-      <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
-        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a worker will be displayed here.</p>
-      </div>
-    `;
-    return;
-  }
-  
-  workerReviews.forEach(review => {
-    const reviewCard = createReviewCard(review);
-    container.appendChild(reviewCard);
+
+  reviewPageState.set(getReviewStateKey(userId, role), {
+    reviews: [],
+    cursor: null,
+    hasMore: true,
+    loading: true,
+    loaded: false
   });
-  
-  console.log(`✅ Displayed ${workerReviews.length} worker reviews`);
+  const page = await fetchUserReviews(userId, role, { limit: REVIEW_PAGE_FIRST, cursor: null });
+  const reviews = Array.isArray(page.reviews) ? page.reviews : [];
+  reviewPageState.set(getReviewStateKey(userId, role), {
+    reviews: reviews,
+    cursor: page.cursor || null,
+    hasMore: page.hasMore === true,
+    loading: false,
+    loaded: true
+  });
+
+  if (!reviews.length) {
+    renderReviewEmptyState(container, profileName, roleLabel);
+  } else {
+    renderReviewCards(container, reviews);
+  }
+  bindReviewListScroll(container, role);
+  console.log(`✅ Displayed ${reviews.length} ${role} reviews`);
+  await fillReviewListIfShort(userId, role, container);
+}
+
+async function fillReviewListIfShort(userId, role, container) {
+  const scroller = container.closest('.tab-scroll-container');
+  if (!scroller) return;
+  let guard = 0;
+  while (guard < 8) {
+    const state = getReviewPageState(userId, role);
+    if (!state || state.loading || !state.hasMore) return;
+    if (scroller.scrollHeight > scroller.clientHeight + 40) return;
+    guard += 1;
+    await loadMoreProfileReviews(userId, role, container);
+  }
+}
+
+async function populateCustomerReviews() {
+  await populateReviewRole('customer', 'reviewsCustomerContainer', 'customer', sampleCustomerReviews);
+}
+
+async function populateWorkerReviews() {
+  await populateReviewRole('worker', 'reviewsWorkerContainer', 'worker', sampleWorkerReviews);
 }
 
 // ═══════════════════════════════════════════════════════════════
