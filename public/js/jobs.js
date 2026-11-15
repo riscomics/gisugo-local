@@ -423,6 +423,66 @@ function focusJobCardByJobId(jobId, options = {}) {
     return true;
 }
 
+function activeGigsTabKey() {
+    if (TAB_RENDER_GUARDS.activeRole === 'worker') return TAB_RENDER_GUARDS.activeWorkerTab;
+    return TAB_RENDER_GUARDS.activeCustomerTab;
+}
+
+function gigsTabContainer(tabKey) {
+    const selectors = {
+        listings: '.listings-container',
+        hiring: '.hiring-container',
+        previous: '.previous-container',
+        offered: '.offered-container',
+        accepted: '.accepted-container',
+        'worker-completed': '.worker-completed-container'
+    };
+    return document.querySelector(selectors[tabKey] || '');
+}
+
+function gigBelongsOnOpenTab(job, tabKey, userId) {
+    const spec = GIGS_TAB_QUERY[tabKey];
+    if (!spec || !job || !userId) return false;
+    const status = String(job.status || '').toLowerCase();
+    if (!spec.statuses.includes(status)) return false;
+    if (spec.side === 'poster') return String(job.posterId || '') === userId;
+    return String(job.hiredWorkerId || '') === userId;
+}
+
+async function showFocusedGigCard(jobId, options = {}) {
+    const safeJobId = String(jobId || '').trim();
+    const tabKey = activeGigsTabKey();
+    const container = gigsTabContainer(tabKey);
+    const user = typeof DataService !== 'undefined' ? await DataService.waitForAuth() : null;
+    if (!safeJobId || !container || !user) return false;
+    if (focusJobCardByJobId(safeJobId, options)) return true;
+
+    const raw = await readOneGig(safeJobId);
+    if (!raw || !gigBelongsOnOpenTab(raw, tabKey, user.uid)) return false;
+    const job = JobsDataService._normalizeFirebaseJob({
+        ...raw,
+        id: raw.id || safeJobId,
+        jobId: raw.jobId || raw.id || safeJobId,
+        role: GIGS_TAB_QUERY[tabKey].side === 'poster' ? 'customer' : 'worker'
+    });
+
+    const state = gigsTabPageState.get(tabKey);
+    if (state) {
+        const already = state.jobs.some((item) => String(item.jobId || item.id || '') === safeJobId);
+        if (!already) {
+            if (!state.extraIds) state.extraIds = new Set();
+            state.extraIds.add(safeJobId);
+        }
+    }
+
+    if (container.querySelector('.empty-state') && !container.querySelector('[data-job-id]')) {
+        container.innerHTML = '';
+    }
+
+    await appendGigsTabCards(tabKey, container, [job], 'afterbegin');
+    return focusJobCardByJobId(safeJobId, options);
+}
+
 async function focusListingFromUrlParams(preferredRole, preferredTab, targetJobId) {
     const safeJobId = String(targetJobId || '').trim();
     if (!safeJobId) return;
@@ -436,6 +496,10 @@ async function focusListingFromUrlParams(preferredRole, preferredTab, targetJobI
         }
         focused = focusJobCardByJobId(safeJobId);
         if (focused) break;
+    }
+
+    if (!focused) {
+        focused = await showFocusedGigCard(safeJobId);
     }
 
     if (!focused) {
@@ -1741,7 +1805,7 @@ async function ensureGigsTabFirstPage(tabKey, options = {}) {
     return state;
 }
 
-async function appendGigsTabCards(tabKey, container, jobs) {
+async function appendGigsTabCards(tabKey, container, jobs, position = 'beforeend') {
     if (!container || !jobs || !jobs.length) return;
     let html = '';
     if (tabKey === 'listings') html = jobs.map((job) => generateListingCardHTML(job)).join('');
@@ -1749,7 +1813,7 @@ async function appendGigsTabCards(tabKey, container, jobs) {
     else if (tabKey === 'offered') html = await generateMockOfferedJobs(jobs);
     else if (tabKey === 'previous' || tabKey === 'worker-completed') html = jobs.map((job) => generateCompletedCardHTML(job)).join('');
     if (!html) return;
-    container.insertAdjacentHTML('beforeend', html);
+    container.insertAdjacentHTML(position, html);
     if (tabKey === 'listings') initializeListingCardHandlers();
     else if (tabKey === 'hiring') initializeHiringCardHandlers();
     else if (tabKey === 'accepted') attachAcceptedCardHandlers();
@@ -1772,6 +1836,7 @@ async function loadMoreGigsTab(tabKey, container) {
         const incoming = (page.jobs || []).filter((job) => {
             const id = String(job.jobId || job.id || '');
             if (id && seen.has(id)) return false;
+            if (id && state.extraIds && state.extraIds.has(id)) return false;
             if (id) seen.add(id);
             return true;
         });
@@ -1826,6 +1891,7 @@ async function loadOfferedContent() {
         
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
         if (consumeJobsWarmIfMatched('offered', offeredJobs, warmMeta)) {
+            bindGigsTabScroll(container, 'offered');
             jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: offeredJobs.length, cacheHit: true });
             return;
         }
@@ -2030,6 +2096,7 @@ async function loadAcceptedContent() {
         
         console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
         if (consumeJobsWarmIfMatched('accepted', workerJobs, warmMeta)) {
+            bindGigsTabScroll(container, 'accepted');
             jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: workerJobs.length, cacheHit: true });
             return;
         }
@@ -2168,6 +2235,7 @@ async function loadWorkerCompletedContent() {
         
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
         if (consumeJobsWarmIfMatched('worker-completed', workerCompletedJobs, warmMeta)) {
+            bindGigsTabScroll(container, 'worker-completed');
             jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: workerCompletedJobs.length, cacheHit: true });
             return;
         }
@@ -2410,6 +2478,7 @@ async function loadListingsContent() {
         if (!shouldApplyTabRender('listings', renderToken)) return;
 
         if (consumeJobsWarmIfMatched('listings', listings, warmMeta)) {
+            bindGigsTabScroll(container, 'listings');
             jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: listings.length, cacheHit: true });
             return;
         }
@@ -2845,6 +2914,7 @@ async function loadHiringContent() {
         
         console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab`);
         if (consumeJobsWarmIfMatched('hiring', customerJobs, warmMeta)) {
+            bindGigsTabScroll(container, 'hiring');
             jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: customerJobs.length, cacheHit: true });
             return;
         }
@@ -4756,6 +4826,9 @@ async function animateOfferedCardTransferToWorking(jobId) {
     if (safeJobId) {
         await new Promise((resolve) => setTimeout(resolve, 160));
         focusJobCardByJobId(safeJobId, { durationMs: 1800 });
+        if (!document.querySelector(`.tab-content-wrapper.active [data-job-id="${safeJobId}"]`)) {
+            await showFocusedGigCard(safeJobId, { durationMs: 1800 });
+        }
     }
 }
 
@@ -7149,6 +7222,7 @@ async function loadPreviousContent() {
             // Warm-painted cards are kept, but initializePreviousTab() tore down the
             // 'previous-cards' listeners the warm paint attached, so re-arm them here.
             if (customerCompletedJobs.length > 0) initializeCompletedCardHandlers();
+            bindGigsTabScroll(container, 'previous');
             jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: customerCompletedJobs.length, cacheHit: true });
             return;
         }
