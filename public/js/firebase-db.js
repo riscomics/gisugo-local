@@ -1836,6 +1836,155 @@ async function getJobsByCategoryPage(category, filters = {}, options = {}) {
 }
 
 /**
+ * One page of one Gigs Manager tab.
+ * side poster: gigs this person posted. side worker: gigs someone else posted and this person was hired on.
+ * Computer and Android use the SDK. iPhone and iPad use the timed web request with the same limit and cursor.
+ */
+function gigsManagerCursorFromJob(job, orderField) {
+  if (!job || !job.id) return null;
+  const value = job[orderField];
+  let millis = 0;
+  let raw = '';
+  if (value && typeof value.toMillis === 'function') millis = value.toMillis();
+  else if (value && typeof value.seconds === 'number') millis = value.seconds * 1000;
+  else if (typeof value === 'string' || typeof value === 'number') {
+    if (typeof value === 'string') raw = value;
+    const parsed = new Date(value).getTime();
+    millis = Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return { millis: millis, raw: raw, id: String(job.id) };
+}
+
+async function fetchGigsManagerPageViaFirestoreRest(userId, side, statuses, orderField, orderDirection, limit, cursor) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for gigs manager REST page');
+  const idField = side === 'worker' ? 'hiredWorkerId' : 'posterId';
+  const direction = orderDirection === 'asc' ? 'ASCENDING' : 'DESCENDING';
+  const statusValues = (Array.isArray(statuses) ? statuses : []).map((status) => String(status || '').trim()).filter(Boolean);
+  if (!userId || !statusValues.length) return [];
+  const statusFilter = statusValues.length === 1
+    ? {
+        fieldFilter: {
+          field: { fieldPath: 'status' },
+          op: 'EQUAL',
+          value: { stringValue: statusValues[0] }
+        }
+      }
+    : {
+        fieldFilter: {
+          field: { fieldPath: 'status' },
+          op: 'IN',
+          value: { arrayValue: { values: statusValues.map((status) => ({ stringValue: status })) } }
+        }
+      };
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'jobs' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: idField },
+                op: 'EQUAL',
+                value: { stringValue: String(userId) }
+              }
+            },
+            statusFilter
+          ]
+        }
+      },
+      orderBy: [
+        { field: { fieldPath: orderField }, direction: direction },
+        { field: { fieldPath: '__name__' }, direction: direction }
+      ],
+      limit: Math.max(1, Math.min(Number(limit) || 20, 100))
+    }
+  };
+  if (cursor && cursor.id) {
+    const rawStamp = String(cursor.raw || '').trim();
+    const timestampValue = rawStamp || new Date(Number(cursor.millis) || 0).toISOString();
+    payload.structuredQuery.startAt = {
+      values: [
+        { timestampValue: timestampValue },
+        { referenceValue: `projects/${projectId}/databases/(default)/documents/jobs/${cursor.id}` }
+      ],
+      before: false
+    };
+  }
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST gigs manager page failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function getGigsManagerPage(options = {}) {
+  const userId = String(options.userId || '').trim();
+  const side = options.side === 'worker' ? 'worker' : 'poster';
+  const statuses = (Array.isArray(options.statuses) ? options.statuses : []).map((status) => String(status || '').trim()).filter(Boolean);
+  const orderField = String(options.orderField || '').trim();
+  const orderDirection = options.orderDirection === 'asc' ? 'asc' : 'desc';
+  const limit = Math.max(1, Math.min(100, Number(options.limit) || 20));
+  const cursor = options.cursor && options.cursor.id ? options.cursor : null;
+  if (!userId || !statuses.length || !orderField) {
+    return { jobs: [], hasMore: false, cursor: null };
+  }
+
+  let records = [];
+  if (isIOSWebKitBrowserForDataPath()) {
+    const restRows = await withFirestoreReadTimeout(
+      fetchGigsManagerPageViaFirestoreRest(userId, side, statuses, orderField, orderDirection, limit, cursor),
+      10000
+    );
+    records = Array.isArray(restRows) ? restRows : [];
+  } else {
+    const db = getFirestore();
+    if (!db) return { jobs: [], hasMore: false, cursor: null };
+    const idField = side === 'worker' ? 'hiredWorkerId' : 'posterId';
+    let query = db.collection('jobs').where(idField, '==', userId);
+    query = statuses.length === 1
+      ? query.where('status', '==', statuses[0])
+      : query.where('status', 'in', statuses);
+    query = query
+      .orderBy(orderField, orderDirection)
+      .orderBy(firebase.firestore.FieldPath.documentId(), orderDirection)
+      .limit(limit);
+    if (cursor) {
+      query = query.startAfter(
+        firebase.firestore.Timestamp.fromMillis(Number(cursor.millis) || 0),
+        String(cursor.id)
+      );
+    }
+    const snapshot = await query.get();
+    records = snapshot.docs.map((doc) => ({ id: doc.id, jobId: doc.id, ...doc.data() }));
+  }
+
+  const jobs = records.map((job) => ({
+    id: job.id,
+    jobId: job.jobId || job.id,
+    ...job,
+    role: side === 'poster' ? 'customer' : 'worker'
+  }));
+  const last = jobs.length ? jobs[jobs.length - 1] : null;
+  return {
+    jobs: jobs,
+    hasMore: jobs.length === limit,
+    cursor: gigsManagerCursorFromJob(last, orderField)
+  };
+}
+
+/**
  * Get user's job listings (as poster)
  * @param {string} userId - User ID
  * @param {Array} statuses - Array of status values to filter
@@ -6883,6 +7032,7 @@ window.getJobById = getJobById;
 window.getJobsByCategory = getJobsByCategory;
 window.getJobsByCategoryPage = getJobsByCategoryPage;
 window.getUserJobListings = getUserJobListings;
+window.getGigsManagerPage = getGigsManagerPage;
 window.updateJobStatus = updateJobStatus;
 window.deleteJob = deleteJob;
 

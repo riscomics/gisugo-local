@@ -218,7 +218,7 @@ async function paintJobsTabFromCache(tabType, jobs) {
                 </div>`;
             return true;
         }
-        const sorted = [...list].sort((a, b) => new Date(a.jobDate) - new Date(b.jobDate));
+        const sorted = [...list].sort((a, b) => getListingEndTimeMs(a) - getListingEndTimeMs(b));
         container.innerHTML = sorted.map((listing) => generateListingCardHTML(listing)).join('');
         initializeListingCardHandlers();
         return true;
@@ -1650,6 +1650,162 @@ async function initializeOfferedTab() {
     await loadOfferedContent();
 }
 
+const GIGS_PAGE_FIRST = 20;
+const GIGS_PAGE_MORE = 15;
+const GIGS_TAB_QUERY = {
+    listings: { side: 'poster', statuses: ['active', 'paused', 'expired'], orderField: 'scheduledEnd', orderDirection: 'asc' },
+    hiring: { side: 'poster', statuses: ['hired', 'accepted'], orderField: 'datePosted', orderDirection: 'desc' },
+    previous: { side: 'poster', statuses: ['completed'], orderField: 'completedAt', orderDirection: 'desc' },
+    offered: { side: 'worker', statuses: ['hired'], orderField: 'datePosted', orderDirection: 'desc' },
+    accepted: { side: 'worker', statuses: ['accepted'], orderField: 'datePosted', orderDirection: 'desc' },
+    'worker-completed': { side: 'worker', statuses: ['completed'], orderField: 'completedAt', orderDirection: 'desc' }
+};
+const gigsTabPageState = new Map();
+
+function gigsBadgeText(count, hasMore) {
+    const n = Number(count) || 0;
+    return hasMore ? `${n}+` : String(n);
+}
+
+function setGigsTabBadge(tabKey, count, hasMore) {
+    const selectors = {
+        listings: '#listingsTab .notification-count',
+        hiring: '#hiringTab .notification-count',
+        previous: '#previousTab .notification-count',
+        offered: '#offeredTab .notification-count',
+        accepted: '#acceptedTab .notification-count',
+        'worker-completed': '#workerCompletedTab .notification-count'
+    };
+    const el = document.querySelector(selectors[tabKey] || '');
+    if (!el) return;
+    el.classList.remove('loading');
+    el.textContent = gigsBadgeText(count, hasMore);
+}
+
+async function applyListingApplicationCounts(jobs) {
+    const user = await DataService.waitForAuth();
+    if (!user || typeof getPendingApplicationCountsByOwner !== 'function') return jobs;
+    const pendingCounts = await JobsDataService._withTimeout(
+        getPendingApplicationCountsByOwner(user.uid),
+        'gigsTab:listingsCounts',
+        10000
+    ).catch(() => null);
+    if (typeof applyPendingApplicationCountsToListings !== 'function') return jobs;
+    return applyPendingApplicationCountsToListings(jobs, pendingCounts);
+}
+
+async function fetchGigsTabPage(tabKey, options = {}) {
+    const spec = GIGS_TAB_QUERY[tabKey];
+    const user = await DataService.waitForAuth();
+    if (!user || !spec || typeof getGigsManagerPage !== 'function') {
+        return { jobs: [], hasMore: false, cursor: null };
+    }
+    const page = await JobsDataService._withTimeout(
+        getGigsManagerPage({
+            userId: user.uid,
+            side: spec.side,
+            statuses: spec.statuses,
+            orderField: spec.orderField,
+            orderDirection: spec.orderDirection,
+            limit: options.limit || GIGS_PAGE_FIRST,
+            cursor: options.cursor || null
+        }),
+        `gigsTab:${tabKey}`
+    );
+    let jobs = (page.jobs || []).map((job) => JobsDataService._normalizeFirebaseJob(job));
+    if (tabKey === 'listings' && options.includeApplicationCounts) {
+        jobs = await applyListingApplicationCounts(jobs);
+    }
+    return { jobs: jobs, hasMore: page.hasMore === true, cursor: page.cursor || null };
+}
+
+async function ensureGigsTabFirstPage(tabKey, options = {}) {
+    let state = gigsTabPageState.get(tabKey);
+    if (!state || !state.loaded) {
+        const page = await fetchGigsTabPage(tabKey, { limit: GIGS_PAGE_FIRST, includeApplicationCounts: false });
+        state = {
+            jobs: page.jobs,
+            cursor: page.cursor,
+            hasMore: page.hasMore === true,
+            loading: false,
+            loaded: true,
+            countsApplied: false
+        };
+        gigsTabPageState.set(tabKey, state);
+        setGigsTabBadge(tabKey, state.jobs.length, state.hasMore);
+    }
+    if (tabKey === 'listings' && options.includeApplicationCounts && !state.countsApplied) {
+        state.jobs = await applyListingApplicationCounts(state.jobs);
+        state.countsApplied = true;
+    }
+    return state;
+}
+
+async function appendGigsTabCards(tabKey, container, jobs) {
+    if (!container || !jobs || !jobs.length) return;
+    let html = '';
+    if (tabKey === 'listings') html = jobs.map((job) => generateListingCardHTML(job)).join('');
+    else if (tabKey === 'hiring' || tabKey === 'accepted') html = await generateMockHiredJobs(jobs);
+    else if (tabKey === 'offered') html = await generateMockOfferedJobs(jobs);
+    else if (tabKey === 'previous' || tabKey === 'worker-completed') html = jobs.map((job) => generateCompletedCardHTML(job)).join('');
+    if (!html) return;
+    container.insertAdjacentHTML('beforeend', html);
+    if (tabKey === 'listings') initializeListingCardHandlers();
+    else if (tabKey === 'hiring') initializeHiringCardHandlers();
+    else if (tabKey === 'accepted') attachAcceptedCardHandlers();
+    else if (tabKey === 'offered') attachOfferedCardHandlers();
+    else if (tabKey === 'previous') initializeCompletedCardHandlers();
+    else if (tabKey === 'worker-completed') attachWorkerCompletedCardHandlers();
+}
+
+async function loadMoreGigsTab(tabKey, container) {
+    const state = gigsTabPageState.get(tabKey);
+    if (!state || state.loading || !state.hasMore) return;
+    state.loading = true;
+    try {
+        const page = await fetchGigsTabPage(tabKey, {
+            limit: GIGS_PAGE_MORE,
+            cursor: state.cursor,
+            includeApplicationCounts: tabKey === 'listings'
+        });
+        const seen = new Set(state.jobs.map((job) => String(job.jobId || job.id || '')));
+        const incoming = (page.jobs || []).filter((job) => {
+            const id = String(job.jobId || job.id || '');
+            if (id && seen.has(id)) return false;
+            if (id) seen.add(id);
+            return true;
+        });
+        state.jobs = state.jobs.concat(incoming);
+        state.cursor = page.cursor;
+        state.hasMore = page.hasMore === true;
+        await appendGigsTabCards(tabKey, container, incoming);
+        setGigsTabBadge(tabKey, state.jobs.length, state.hasMore);
+        persistJobsTabCache(tabKey, state.jobs);
+    } catch (error) {
+        console.warn(`⚠️ Could not load more ${tabKey} gigs:`, error);
+    } finally {
+        state.loading = false;
+    }
+}
+
+function bindGigsTabScroll(container, tabKey) {
+    const scroller = container && container.closest ? container.closest('.tab-scroll-container') : null;
+    if (!scroller || scroller.dataset.gigsScrollBound === tabKey) return;
+    scroller.dataset.gigsScrollBound = tabKey;
+    scroller.addEventListener('scroll', () => {
+        const remaining = scroller.scrollHeight - (scroller.scrollTop + scroller.clientHeight);
+        if (remaining > 280) return;
+        loadMoreGigsTab(tabKey, container);
+    }, { passive: true });
+}
+
+async function readOneGig(jobId) {
+    const safeId = String(jobId || '').trim();
+    if (!safeId) return null;
+    if (typeof getJobById === 'function') return await getJobById(safeId);
+    return null;
+}
+
 async function loadOfferedContent() {
     const container = document.querySelector('.offered-container');
     if (!container) return;
@@ -1664,8 +1820,8 @@ async function loadOfferedContent() {
     
     try {
         // Get all offered jobs for current user (worker perspective)
-        console.log('🔄 Calling JobsDataService.getOfferedJobs()...');
-        const offeredJobs = await JobsDataService.getOfferedJobs();
+        const offeredState = await ensureGigsTabFirstPage('offered');
+        const offeredJobs = offeredState.jobs;
         if (!shouldApplyTabRender('offered', renderToken)) return;
         
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
@@ -1687,6 +1843,7 @@ async function loadOfferedContent() {
         
         // Attach event listeners for offered gig cards
         attachOfferedCardHandlers();
+        bindGigsTabScroll(container, 'offered');
         jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: offeredJobs.length });
         
     } catch (error) {
@@ -1867,12 +2024,9 @@ async function loadAcceptedContent() {
     
     try {
         // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
-        const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        const acceptedState = await ensureGigsTabFirstPage('accepted');
         if (!shouldApplyTabRender('accepted', renderToken)) return;
-        // Worker's Working tab shows only 'accepted' status (offers they've accepted)
-        const workerJobs = allHiredJobs.filter(job => 
-            job.role === 'worker' && job.status === 'accepted'
-        );
+        const workerJobs = acceptedState.jobs;
         
         console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
         if (consumeJobsWarmIfMatched('accepted', workerJobs, warmMeta)) {
@@ -1893,6 +2047,7 @@ async function loadAcceptedContent() {
         
         // Attach event listeners for worker perspective cards
         attachAcceptedCardHandlers();
+        bindGigsTabScroll(container, 'accepted');
         
         console.log('✅ Accepted gigs content loaded successfully');
         jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: workerJobs.length });
@@ -2007,9 +2162,9 @@ async function loadWorkerCompletedContent() {
     
     try {
         // Get all completed jobs and filter for worker perspective (where current user was the worker)
-        const allCompletedJobs = await JobsDataService.getCompletedJobs();
+        const workerCompletedState = await ensureGigsTabFirstPage('worker-completed');
         if (!shouldApplyTabRender('worker-completed', renderToken)) return;
-        const workerCompletedJobs = allCompletedJobs.filter(job => job.role === 'worker');
+        const workerCompletedJobs = workerCompletedState.jobs;
         
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
         if (consumeJobsWarmIfMatched('worker-completed', workerCompletedJobs, warmMeta)) {
@@ -2030,6 +2185,7 @@ async function loadWorkerCompletedContent() {
         
         // Attach event listeners for worker perspective completed cards
         attachWorkerCompletedCardHandlers();
+        bindGigsTabScroll(container, 'worker-completed');
         
         console.log('✅ Worker completed gigs content loaded successfully');
         jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: workerCompletedJobs.length });
@@ -2249,7 +2405,8 @@ async function loadListingsContent() {
     
     try {
         // Load listings data from backend service
-        const listings = await loadListingsData();
+        const listingsState = await ensureGigsTabFirstPage('listings', { includeApplicationCounts: true });
+        const listings = listingsState.jobs;
         if (!shouldApplyTabRender('listings', renderToken)) return;
 
         if (consumeJobsWarmIfMatched('listings', listings, warmMeta)) {
@@ -2286,6 +2443,7 @@ async function loadListingsContent() {
         
         // Initialize card click handlers
         initializeListingCardHandlers();
+        bindGigsTabScroll(container, 'listings');
         persistJobsTabCache('listings', sortedListings);
         jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: sortedListings.length });
     } catch (error) {
@@ -2681,14 +2839,11 @@ async function loadHiringContent() {
     
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
-        const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        const hiringState = await ensureGigsTabFirstPage('hiring');
         if (!shouldApplyTabRender('hiring', renderToken)) return;
-        // Customer's Hiring tab shows only 'hired' status (pending worker acceptance) and 'accepted' status (worker accepted)
-        const customerJobs = allHiredJobs.filter(job => 
-            job.role === 'customer' && (job.status === 'hired' || job.status === 'accepted')
-        );
+        const customerJobs = hiringState.jobs;
         
-        console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
+        console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab`);
         if (consumeJobsWarmIfMatched('hiring', customerJobs, warmMeta)) {
             jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: customerJobs.length, cacheHit: true });
             return;
@@ -2707,6 +2862,7 @@ async function loadHiringContent() {
         
         // Initialize event handlers for hiring cards
         initializeHiringCardHandlers();
+        bindGigsTabScroll(container, 'hiring');
         persistJobsTabCache('hiring', customerJobs);
         
         console.log(`👥 Loaded ${customerJobs.length} customer hired jobs`);
@@ -5026,9 +5182,8 @@ async function handleCompleteJob(jobData) {
     hideHiringOptionsOverlay();
     
     // Get worker name from job data
-    const hiredJobs = await JobsDataService.getAllHiredJobs();
-    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
-    const workerName = job ? job.hiredWorkerName : 'the worker';
+    const job = await readOneGig(jobData.jobId);
+    const workerName = job ? (job.hiredWorkerName || 'the worker') : 'the worker';
     
     // Show completion confirmation overlay
     const overlay = document.getElementById('completeJobConfirmationOverlay');
@@ -5070,9 +5225,8 @@ async function handleRelistJob(jobData) {
     
     try {
         // Get worker name from job data
-        const hiredJobs = await JobsDataService.getAllHiredJobs();
-        const job = hiredJobs.find(j => j.jobId === jobData.jobId);
-    const workerName = job ? job.hiredWorkerName : 'the worker';
+        const job = await readOneGig(jobData.jobId);
+    const workerName = job ? (job.hiredWorkerName || 'the worker') : 'the worker';
     const isRetractOffer = String((job && job.status) || jobData.status || '').toLowerCase() === 'hired';
     
     // Show relist confirmation overlay (overlay already defined above)
@@ -5302,9 +5456,8 @@ async function handleResignJob(jobData) {
     hideHiringOptionsOverlay();
     
     // Get customer name from job data
-    const hiredJobs = await JobsDataService.getAllHiredJobs();
-    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
-    const customerName = job ? job.posterName : 'the customer';
+    const job = await readOneGig(jobData.jobId);
+    const customerName = job ? (job.posterName || 'the customer') : 'the customer';
     
     // Show resign confirmation overlay
     const overlay = document.getElementById('resignJobConfirmationOverlay');
@@ -5806,8 +5959,7 @@ function initializeRelistJobConfirmationHandlers() {
                 console.log(`🔄 Creating job draft from completed job: ${jobId}`);
                 
                 // Get the completed job data to copy
-                const completedJobs = await JobsDataService.getCompletedJobs();
-                const sourceJob = completedJobs.find(j => j.jobId === jobId);
+                const sourceJob = await readOneGig(jobId);
                 
                 if (sourceJob) {
                     // Create new draft based on completed job
@@ -6356,8 +6508,7 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         // Get job and user data for Firebase integration
         const jobId = overlay.getAttribute('data-completed-job-id');
         // CRITICAL: Job was just marked as 'completed', so query completed jobs, not hired jobs!
-        const completedJobs = await JobsDataService.getCompletedJobs();
-        const job = completedJobs.find(j => j.jobId === jobId);
+        const job = await readOneGig(jobId);
         
         // Validate required fields
         if (rating === 0) {
@@ -6989,11 +7140,11 @@ async function loadPreviousContent() {
     
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)
-        const allCompletedJobs = await JobsDataService.getCompletedJobs();
+        const previousState = await ensureGigsTabFirstPage('previous');
         if (!shouldApplyTabRender('previous', renderToken)) return;
-        const customerCompletedJobs = allCompletedJobs.filter(job => job.role === 'customer');
+        const customerCompletedJobs = previousState.jobs;
         
-        console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
+        console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs`);
         if (consumeJobsWarmIfMatched('previous', customerCompletedJobs, warmMeta)) {
             // Warm-painted cards are kept, but initializePreviousTab() tore down the
             // 'previous-cards' listeners the warm paint attached, so re-arm them here.
@@ -7010,6 +7161,7 @@ async function loadPreviousContent() {
             await generateMockCompletedJobs(customerCompletedJobs);
             if (!shouldApplyTabRender('previous', renderToken)) return;
             initializeCompletedCardHandlers();
+            bindGigsTabScroll(container, 'previous');
             checkTruncatedFeedback();
             
             // Create overlay immediately for testing
@@ -8262,11 +8414,13 @@ async function showApplicationsOverlay(jobData) {
     // ═══════════════════════════════════════════════════════════════
     if (!jobData.price || jobData.price === '0' || jobData.price === 0) {
         console.warn('⚠️ Price missing from jobData, fetching from listings array...');
-        const allListings = await JobsDataService.getAllJobs({ skipLiveApplicationCounts: true });
-        const matchingListing = allListings.find(job => job.jobId === jobData.jobId);
+        const matchingListing = await readOneGig(jobData.jobId);
         if (matchingListing) {
-            jobData.price = matchingListing.price;
-            jobData.paymentType = matchingListing.paymentType;
+            const priceValue = matchingListing.priceOffer
+                ? parseInt(String(matchingListing.priceOffer).replace(/[₱,]/g, ''), 10)
+                : 0;
+            jobData.price = Number.isFinite(priceValue) ? priceValue : 0;
+            jobData.paymentType = matchingListing.gigUseType === 'Business' ? 'Business' : 'Personal';
             console.log('✅ Fetched price from listings:', jobData.price, jobData.paymentType);
         }
     }
@@ -10292,33 +10446,16 @@ async function updateTabCounts(options = {}) {
         // };
         
         // Get data directly from their respective arrays
-        const listingsJobs = await JobsDataService.getAllJobs({ skipLiveApplicationCounts: true });
-        const allHiredJobs = await JobsDataService.getAllHiredJobs();
-        const completedJobs = await JobsDataService.getCompletedJobs();
-        const offeredJobs = await JobsDataService.getOfferedJobs();
-        
-        // Separate hired jobs by perspective and status
-        // Customer Hiring tab: Shows 'hired' and 'accepted' status (both pending and accepted workers)
-        const customerHiringJobs = allHiredJobs.filter(job => 
-            job.role === 'customer' && (job.status === 'hired' || job.status === 'accepted')
-        );
-        // Worker Working tab: Shows only 'accepted' status (offers they've accepted)
-        const workerAcceptedJobs = allHiredJobs.filter(job => 
-            job.role === 'worker' && job.status === 'accepted'
-        );
-        
-        // Separate completed jobs by perspective
-        const customerCompletedJobs = completedJobs.filter(job => job.role === 'customer');
-        const workerCompletedJobs = completedJobs.filter(job => job.role === 'worker');
-        
-        // Count actual jobs in each data set
+        const tabKeys = ['listings', 'hiring', 'previous', 'offered', 'accepted', 'worker-completed'];
+        await Promise.all(tabKeys.map((tabKey) => ensureGigsTabFirstPage(tabKey)));
+        const stateOf = (tabKey) => gigsTabPageState.get(tabKey) || { jobs: [], hasMore: false };
         const counts = {
-            listings: listingsJobs.length,              // Active/paused jobs posted by user
-            hiring: customerHiringJobs.length,          // Jobs where user hired workers (customer perspective)
-            previous: customerCompletedJobs.length,     // Completed jobs where user was customer
-            offered: offeredJobs.length,                // Jobs offered to user (worker perspective)
-            accepted: workerAcceptedJobs.length,        // Jobs where user was hired (worker perspective)
-            workerCompleted: workerCompletedJobs.length // Jobs where user worked and completed
+            listings: gigsBadgeText(stateOf('listings').jobs.length, stateOf('listings').hasMore),
+            hiring: gigsBadgeText(stateOf('hiring').jobs.length, stateOf('hiring').hasMore),
+            previous: gigsBadgeText(stateOf('previous').jobs.length, stateOf('previous').hasMore),
+            offered: gigsBadgeText(stateOf('offered').jobs.length, stateOf('offered').hasMore),
+            accepted: gigsBadgeText(stateOf('accepted').jobs.length, stateOf('accepted').hasMore),
+            workerCompleted: gigsBadgeText(stateOf('worker-completed').jobs.length, stateOf('worker-completed').hasMore)
         };
         
         applyJobsTabCounts(counts);

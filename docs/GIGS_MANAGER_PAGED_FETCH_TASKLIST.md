@@ -1,6 +1,6 @@
 # Gigs Manager — one page per tab
 
-> Status: **Not started.**
+> Status: **Steps 1–8 done 2026-11-15. Step 9 is the live cursor check after the indexes deploy.**
 > Written: 2026-11-15.
 > Scope: the six Gigs Manager tabs. Profile reviews are already shipped. View Applications row-cap and the saved application count stay for later. Admin suspended and banned lists stay parked.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
@@ -20,7 +20,7 @@
 | WORKING | someone else posted it, and you accepted | `accepted` | `datePosted` descending. The tab does not sort again. |
 | COMPLETED (worker) | someone else posted it, and you finished the work | `completed` | `completedAt` descending. |
 
-`datePosted` is the text already stored on the gig. `scheduledEnd` and `completedAt` are timestamps.
+`datePosted`, `scheduledEnd`, and `completedAt` are timestamps. All 89 live gigs have the timestamp their tab orders by.
 
 - A person cannot work a gig they posted. Apply already rejects that. Do not add code for that case.
 - While another page still exists, the badge is the number loaded so far followed by a plus. When the last page has been loaded, the badge is the exact number. Scrolling updates it. Do not read the unread gigs just to count them. Do not add a stored counter.
@@ -31,14 +31,14 @@
 
 ## Micro tasklist
 
-- [ ] **1. Confirm the map below, including the field check.** No code change in this step. Read production only far enough to count gigs that are missing the order field for their tab.
-- [ ] **2. Audit step 1.** The six tabs, the orders, and the one-gig callers match the code. If any tab has a gig missing its order field, stop. Do not write the page query until that row is decided.
-- [ ] **3. Add only the indexes those six queries need.** No index for a merged list.
-- [ ] **4. Audit step 3.** Each index is named against one tab. An index that no query uses is a fail.
-- [ ] **5. Add one paged read per tab and use it on every device.** First 20, then 15. The cursor is that tab’s order field plus the gig id. iPhone uses the timed request with that same cursor.
-- [ ] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. A customer tab does not also query gigs where this person was hired.
-- [ ] **7. Wire the six tabs, the badges, and the one-gig buttons.** Scroll appends the next page. The warm list for LISTINGS follows `scheduledEnd`, not `jobDate`.
-- [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` and `new-post.html` were not edited. `new-post2.html` was not edited either.
+- [x] **1. Confirm the map below, including the field check.** No code change in this step. Read production only far enough to count gigs that are missing the order field for their tab.
+- [x] **2. Audit step 1.** The six tabs, the orders, and the one-gig callers match the code. If any tab has a gig missing its order field, stop. Do not write the page query until that row is decided.
+- [x] **3. Add only the indexes those six queries need.** No index for a merged list.
+- [x] **4. Audit step 3.** Each index is named against one tab. An index that no query uses is a fail.
+- [x] **5. Add one paged read per tab and use it on every device.** First 20, then 15. The cursor is that tab’s order field plus the gig id. iPhone uses the timed request with that same cursor.
+- [x] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. A customer tab does not also query gigs where this person was hired.
+- [x] **7. Wire the six tabs, the badges, and the one-gig buttons.** Scroll appends the next page. The warm list for LISTINGS follows `scheduledEnd`, not `jobDate`.
+- [x] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` and `new-post.html` were not edited. `new-post2.html` was not edited either.
 - [ ] **9. Audit on the live site.** For each tab, record how many gigs that person has and whether a second page was requested. If a tab has 20 or fewer, say so and still prove the end signal. Prove one cursor with a one-gig page followed by `startAfter`. Do not post, hire, or complete a gig to force a second page.
 
 ## Step 1 map (confirm before any edit)
@@ -92,3 +92,34 @@ Use this on steps 4, 6, and 8, in addition to the step’s own checks.
 - Android uses the same page function as a computer. The only device branch is the iPhone and iPad transport.
 - A second page uses `startAfter` the last shown gig and does not request the first 20 again.
 - `new-post.js`, `new-post.html`, and `new-post2.html` were not edited.
+
+## Step 2 audit (2026-11-15)
+
+89 jobs. Statuses: 52 active, 3 accepted, 32 completed, 1 hired, 1 reported. No paused and no expired right now. The reported gig is not on these tabs.
+
+Missing `scheduledEnd` on listing statuses: 0. Missing `datePosted` on hired or accepted: 0. Missing `completedAt` on completed: 0. Every `datePosted` is a timestamp. The page queries were allowed to proceed.
+
+The six tab filters match the code. The one-gig buttons were still downloading a whole tab. `new-post.js` is the abandoned caller and was left alone.
+
+## Step 4 audit (2026-11-15)
+
+Five indexes, each used:
+
+- LISTINGS: `posterId`, `status`, `scheduledEnd` ascending.
+- HIRING: `posterId`, `status`, `datePosted` descending.
+- OFFERS and WORKING: `hiredWorkerId`, `status`, `datePosted` descending. One index, two tabs, same order field.
+- Customer COMPLETED: `posterId`, `status`, `completedAt` descending.
+- Worker COMPLETED: `hiredWorkerId`, `status`, `completedAt` descending.
+
+## Step 6 audit (2026-11-15)
+
+`getGigsManagerPage` is the read. `fetchGigsTabPage` is the live caller for every tab. Poster tabs query `posterId`. Worker tabs query `hiredWorkerId`. A full page of 20 sets more. A shorter page does not. The cursor is that order field plus the gig id. iPhone and iPad use the timed request with the same limit and cursor. The old 200 dump is not on these tab paths.
+
+## Step 8 audit (2026-11-15)
+
+Opening Gigs Manager asks for the first 20 of each tab through `updateTabCounts`. A tab that is already loaded is not fetched again. Scroll asks for the next 15 and appends. The LISTINGS application-count scan runs when that tab is shown, not from the badge pass.
+
+Complete, relist, resign, completion feedback, the completed-relist branch, and the missing-price applications fallback each read one gig with `getJobById`.
+
+`new-post.js`, `new-post.html`, and `new-post2.html` were not edited. The warm LISTINGS paint sorts by `scheduledEnd`.
+
