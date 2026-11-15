@@ -20,7 +20,7 @@
 | WORKING | the hired worker | `accepted` | `datePosted` descending. The tab does not sort again. |
 | COMPLETED (worker) | the hired worker | `completed` | `completedAt` descending. |
 
-- A gig you posted is the customer side only, even if you are also the hired worker. HIRING and the customer COMPLETED tab keep it. WORKING, OFFERS, and the worker COMPLETED tab do not. After a hired-worker page returns, drop a gig whose `posterId` is this person. If that drop leaves the page short and more exist, ask for the next page.
+- A person cannot work a gig they posted. Apply already rejects that. These queries do not plan for it, and they do not drop or reshuffle rows to handle it.
 - The badge is the real count when the first page is the whole tab. When that page is full, the badge shows that more exist. Do not read the rest of the tab to count it. Do not add a stored counter.
 - Opening Gigs Manager may ask for the first 20 of each tab so the six badges can be painted. It does not ask for a second page until that tab is scrolled. The visible tab reuses the first page already fetched for its badge.
 - LISTINGS still runs the existing pending-application count, capped at 500, when that tab is shown. The badge refresh does not run that count.
@@ -29,14 +29,14 @@
 
 ## Micro tasklist
 
-- [ ] **1. Confirm the map below, including the field check.** No code change in this step. Read production only far enough to count, per tab, gigs that are missing the order field, and LISTINGS gigs that would show today only because this person is the hired worker.
+- [ ] **1. Confirm the map below, including the field check.** No code change in this step. Read production only far enough to count gigs that are missing the order field for their tab.
 - [ ] **2. Audit step 1.** The six tabs, the orders, and the one-gig callers match the code. If any tab has a gig missing its order field, or LISTINGS has a hired-worker-only gig, stop. Do not write the page query until that row is decided.
 - [ ] **3. Add only the indexes those six queries need.** No index for a merged list.
 - [ ] **4. Audit step 3.** Each index is named against one tab. An index that no query uses is a fail.
 - [ ] **5. Add one paged read per tab and use it on every device.** First 20, then 15. The cursor is that tab’s order field plus the gig id. iPhone uses the timed request with that same cursor.
 - [ ] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. No query merges poster and hired worker.
 - [ ] **7. Wire the six tabs, the badges, and the one-gig buttons.** Scroll appends the next page. The warm list for LISTINGS follows `scheduledEnd`, not `jobDate`.
-- [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. A poster-and-worker gig stays on the customer tab only. Each one-gig button reads one document. `new-post.js` was not edited.
+- [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` was not edited.
 - [ ] **9. Audit on the live site.** For each tab, record how many gigs that person has and whether a second page was requested. If a tab has 20 or fewer, say so and still prove the end signal. Prove one cursor with a one-gig page followed by `startAfter`. Do not post, hire, or complete a gig to force a second page.
 
 ## Step 1 map (confirm before any edit)
@@ -50,7 +50,7 @@
 - WORKING calls `getAllHiredJobs()`, then keeps `role === 'worker'` and `status === 'accepted'`. Order is `datePosted` descending. A `hired` gig you have not accepted is OFFERS, not WORKING.
 - Worker COMPLETED calls `getCompletedJobs()`, then keeps `role === 'worker'`, `completedAt` descending.
 
-`getUserJobListings` sets `role` to customer when `posterId` is this person, otherwise worker. That is why a gig you both posted and worked stays on the customer tab.
+`getUserJobListings` labels a row customer when `posterId` is this person, and worker otherwise. That label only splits gigs you posted from gigs you were hired on by someone else. Apply already refuses a poster who tries to apply to their own gig.
 
 **Badges**
 
@@ -78,9 +78,7 @@ Count, read-only:
 - LISTINGS-status gigs with no `scheduledEnd`.
 - HIRING, OFFERS, and WORKING gigs with no `datePosted`.
 - Both COMPLETED tabs’ gigs with no `completedAt`.
-- Gigs in `active`, `paused`, or `expired` where this person is `hiredWorkerId` and is not `posterId`.
-
-A missing order field disappears from an `orderBy` query. A hired-worker-only listing disappears from a poster-only query. Either count above zero stops the list before step 3.
+A missing order field disappears from an `orderBy` query. A count above zero stops the list before step 3.
 
 ## What each later audit must check
 
