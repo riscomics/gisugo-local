@@ -9,20 +9,22 @@
 ## Locked choices
 
 - One page rule on a computer, Android, iPhone, and iPad. First paint is 20. The next ask is 15 after the last gig shown. A short page means there are no more. iPhone and iPad keep the timed web request. That request uses this page, not the old download of 200 unsorted gigs.
-- The six tabs stay separate. Nothing is merged.
+- The six tabs stay separate. Do not combine a customer tab’s query with a worker tab’s query.
 
-| Tab the person sees | Who | Statuses | Order |
+| Tab the person sees | Whose gig | Statuses | Order |
 |---|---|---|---|
-| LISTINGS | the poster | `active`, `paused`, `expired` | ending soonest first (`scheduledEnd` ascending). This is the cold load in `loadListingsContent`. It is not `datePosted`. |
-| HIRING | the poster | `hired`, `accepted` | `datePosted` descending. The tab does not sort again. |
-| COMPLETED (customer) | the poster | `completed` | `completedAt` descending. Most recently finished first. |
-| OFFERS | the hired worker | `hired` | `datePosted` descending. Today this tab has no sort. The page needs one, and this is that order. |
-| WORKING | the hired worker | `accepted` | `datePosted` descending. The tab does not sort again. |
-| COMPLETED (worker) | the hired worker | `completed` | `completedAt` descending. |
+| LISTINGS | you posted it | `active`, `paused`, `expired` | ending soonest first (`scheduledEnd` ascending). This is the cold load in `loadListingsContent`. It is not `datePosted`. |
+| HIRING | you posted it | `hired`, `accepted` | `datePosted` descending. The tab does not sort again. |
+| COMPLETED (customer) | you posted it | `completed` | `completedAt` descending. Most recently finished first. |
+| OFFERS | someone else posted it, and they hired you | `hired` | `datePosted` descending. Today this tab has no sort. The page needs one, and this is that order. |
+| WORKING | someone else posted it, and you accepted | `accepted` | `datePosted` descending. The tab does not sort again. |
+| COMPLETED (worker) | someone else posted it, and you finished the work | `completed` | `completedAt` descending. |
 
-- A person cannot work a gig they posted. Apply already rejects that. These queries do not plan for it, and they do not drop or reshuffle rows to handle it.
-- The badge is the real count when the first page is the whole tab. When that page is full, the badge shows that more exist. Do not read the rest of the tab to count it. Do not add a stored counter.
-- Opening Gigs Manager may ask for the first 20 of each tab so the six badges can be painted. It does not ask for a second page until that tab is scrolled. The visible tab reuses the first page already fetched for its badge.
+`datePosted` is the text already stored on the gig. `scheduledEnd` and `completedAt` are timestamps.
+
+- A person cannot work a gig they posted. Apply already rejects that. Do not add code for that case.
+- While another page still exists, the badge is the number loaded so far followed by a plus. When the last page has been loaded, the badge is the exact number. Scrolling updates it. Do not read the unread gigs just to count them. Do not add a stored counter.
+- Opening Gigs Manager asks for the first 20 of each of the six tabs, including the role that is not on screen, so every badge can be painted. It does not ask for a second page until that tab is scrolled. The visible tab reuses the first page already fetched for its badge.
 - LISTINGS still runs the existing pending-application count, capped at 500, when that tab is shown. The badge refresh does not run that count.
 - A button that only needs one gig reads that gig. It does not download a tab.
 - `new-post.js` and `new-post.html` are unlinked. Do not change them.
@@ -30,11 +32,11 @@
 ## Micro tasklist
 
 - [ ] **1. Confirm the map below, including the field check.** No code change in this step. Read production only far enough to count gigs that are missing the order field for their tab.
-- [ ] **2. Audit step 1.** The six tabs, the orders, and the one-gig callers match the code. If any tab has a gig missing its order field, or LISTINGS has a hired-worker-only gig, stop. Do not write the page query until that row is decided.
+- [ ] **2. Audit step 1.** The six tabs, the orders, and the one-gig callers match the code. If any tab has a gig missing its order field, stop. Do not write the page query until that row is decided.
 - [ ] **3. Add only the indexes those six queries need.** No index for a merged list.
 - [ ] **4. Audit step 3.** Each index is named against one tab. An index that no query uses is a fail.
 - [ ] **5. Add one paged read per tab and use it on every device.** First 20, then 15. The cursor is that tab’s order field plus the gig id. iPhone uses the timed request with that same cursor.
-- [ ] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. No query merges poster and hired worker.
+- [ ] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. A customer tab does not also query gigs where this person was hired.
 - [ ] **7. Wire the six tabs, the badges, and the one-gig buttons.** Scroll appends the next page. The warm list for LISTINGS follows `scheduledEnd`, not `jobDate`.
 - [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` was not edited.
 - [ ] **9. Audit on the live site.** For each tab, record how many gigs that person has and whether a second page was requested. If a tab has 20 or fewer, say so and still prove the end signal. Prove one cursor with a one-gig page followed by `startAfter`. Do not post, hire, or complete a gig to force a second page.
@@ -45,12 +47,12 @@
 
 - LISTINGS calls `JobsDataService.getAllJobs()`, which calls `getUserJobListings` for `active`, `paused`, and `expired`. That function downloads every gig this person posted and every gig where they were hired, then keeps those three statuses. `loadListingsContent` then sorts by `getListingEndTimeMs`: `scheduledEnd` when it is present, otherwise the date and end-time text. Ending soonest is first.
 - HIRING calls `getAllHiredJobs()`, same dump, statuses `hired` and `accepted`, then keeps `role === 'customer'`. Order is `datePosted` descending from the dump. No second sort.
-- Customer COMPLETED calls `getCompletedJobs()`. On a computer that is two unlimited queries, `status == completed` with `posterId`, and the same with `hiredWorkerId`, then keeps `role === 'customer'`, then sorts `completedAt` descending. On iPhone it uses the 200 dump and then sorts by `completedAt`.
+- Customer COMPLETED calls `getCompletedJobs()`. Today, on a computer, that is two unlimited queries (`posterId` and `hiredWorkerId`, both `status == completed`), then it keeps the rows you posted and sorts `completedAt` descending. On iPhone it uses the 200 dump and then sorts by `completedAt`. The new page is only the poster row in the table above.
 - OFFERS calls `getOfferedJobsForWorker`. On a computer: `status == hired` and `hiredWorkerId`, no order. On iPhone: the 200 dump of every gig where they were hired, then keeps `hired`.
 - WORKING calls `getAllHiredJobs()`, then keeps `role === 'worker'` and `status === 'accepted'`. Order is `datePosted` descending. A `hired` gig you have not accepted is OFFERS, not WORKING.
 - Worker COMPLETED calls `getCompletedJobs()`, then keeps `role === 'worker'`, `completedAt` descending.
 
-`getUserJobListings` labels a row customer when `posterId` is this person, and worker otherwise. That label only splits gigs you posted from gigs you were hired on by someone else. Apply already refuses a poster who tries to apply to their own gig.
+`getUserJobListings` labels a row customer when you posted it, and worker when someone else posted it and hired you. Apply already refuses a poster who tries to apply to their own gig.
 
 **Badges**
 
