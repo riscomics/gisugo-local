@@ -4,7 +4,7 @@
 > Written: 2026-11-15.
 > Scope: the six Gigs Manager tabs. Profile reviews are already shipped. View Applications row-cap and the saved application count stay for later. Admin suspended and banned lists stay parked.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
-> Do not merge two sides into one list. Each tab is one query.
+> Each tab is its own query. A customer tab never also loads gigs someone else posted.
 
 ## Locked choices
 
