@@ -27,7 +27,7 @@
 - Opening Gigs Manager asks for the first 20 of each of the six tabs, including the role that is not on screen, so every badge can be painted. It does not ask for a second page until that tab is scrolled. The visible tab reuses the first page already fetched for its badge.
 - LISTINGS still runs the existing pending-application count, capped at 500, when that tab is shown. The badge refresh does not run that count.
 - A button that only needs one gig reads that gig. It does not download a tab.
-- `new-post.js` and `new-post.html` are unlinked. Do not change them.
+- `new-post2.html` is the live post page. This list does not change it. `new-post.html` and `new-post.js` were abandoned more than a year ago. Do not change them, and do not point anything back at them.
 
 ## Micro tasklist
 
@@ -38,7 +38,7 @@
 - [ ] **5. Add one paged read per tab and use it on every device.** First 20, then 15. The cursor is that tab’s order field plus the gig id. iPhone uses the timed request with that same cursor.
 - [ ] **6. Audit step 5.** Each tab is one query. Statuses and order match the table. A full page reports more. A short page reports done. Two gigs with the same order value do not skip or repeat. The old 200 dump is not on these paths. A customer tab does not also query gigs where this person was hired.
 - [ ] **7. Wire the six tabs, the badges, and the one-gig buttons.** Scroll appends the next page. The warm list for LISTINGS follows `scheduledEnd`, not `jobDate`.
-- [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` was not edited.
+- [ ] **8. Audit step 7.** A hidden tab’s second page is not fetched. Page 2 does not re-download page 1. Each one-gig button reads one document. `new-post.js` and `new-post.html` were not edited. `new-post2.html` was not edited either.
 - [ ] **9. Audit on the live site.** For each tab, record how many gigs that person has and whether a second page was requested. If a tab has 20 or fewer, say so and still prove the end signal. Prove one cursor with a one-gig page followed by `startAfter`. Do not post, hire, or complete a gig to force a second page.
 
 ## Step 1 map (confirm before any edit)
@@ -69,7 +69,7 @@
 
 **Not this list**
 
-- `new-post.js` also calls `getCompletedJobs` and `getAllHiredJobs`. Nothing links to `new-post.html`. Leave that file.
+- `new-post.js` also calls `getCompletedJobs` and `getAllHiredJobs`. That file and `new-post.html` were abandoned more than a year ago. `new-post2.html` is the live post page. Leave both abandoned files alone.
 - The LISTINGS pending-application scan (`getPendingApplicationCountsByOwner`, stop at 500) stays. It is not the tab page.
 - `fix-review-counts.html` and the old cleanup page are not part of this.
 
@@ -91,4 +91,4 @@ Use this on steps 4, 6, and 8, in addition to the step’s own checks.
 - No `onSnapshot` on that tab’s jobs query, and no download of every gig this person posted or worked.
 - Android uses the same page function as a computer. The only device branch is the iPhone and iPad transport.
 - A second page uses `startAfter` the last shown gig and does not request the first 20 again.
-- `new-post.js` was not edited.
+- `new-post.js`, `new-post.html`, and `new-post2.html` were not edited.
