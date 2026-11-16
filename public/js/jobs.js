@@ -8528,12 +8528,16 @@ async function showApplicationsOverlay(jobData) {
     
     // Set subtitle first (we know the job title)
     subtitle.textContent = jobData.title;
-    
-    // Get applications for this job
-    // Fetch applications (now async)
-    let jobApplications = [];
+    const storedApplicationCount = Number(jobData && jobData.applicationCount) || 0;
+    title.textContent = `Applications (${storedApplicationCount})`;
+
+    resetAppsPanelState(jobData.jobId, requestToken);
+    appsPanelState.gigTitle = jobData.title || '';
+    appsPanelState.price = jobData.price;
+    appsPanelState.paymentType = jobData.paymentType || 'Personal';
+    let page = { cards: [], hasMore: false, cursor: null };
     try {
-        jobApplications = await getApplicationsForJob(jobData.jobId);
+        page = await fetchPendingApplicationCards(jobData.jobId, { limit: APPS_PAGE_FIRST, cursor: null });
     } catch (error) {
         console.error('❌ Failed to load applications for job overlay:', error);
         applicationsList.innerHTML = `
@@ -8546,31 +8550,23 @@ async function showApplicationsOverlay(jobData) {
         delete overlay.dataset.loadingJobId;
         return;
     }
-    if (overlay.dataset.requestToken !== requestToken) {
+    if (overlay.dataset.requestToken !== requestToken || appsPanelState.token !== requestToken) {
         console.warn('⚠️ Ignoring stale applications overlay render (token mismatch)');
         return;
     }
-    
-    // ═══════════════════════════════════════════════════════════════
-    // USE ACTUAL COUNT (not stored count which might be wrong)
-    // ═══════════════════════════════════════════════════════════════
-    const actualCount = jobApplications ? jobApplications.length : 0;
-    title.textContent = `Applications (${actualCount})`;
-    
-    if (jobApplications && jobApplications.length > 0) {
-        // Generate applications HTML  
-        const applicationsHTML = jobApplications.map(app => {
-            // Ensure application has the correct jobId and pass original job price
+
+    appsPanelState.rows = page.cards;
+    appsPanelState.cursor = page.cursor;
+    appsPanelState.hasMore = page.hasMore === true;
+
+    if (page.cards.length > 0) {
+        applicationsList.innerHTML = page.cards.map((app) => {
             app.jobId = jobData.jobId;
             return generateApplicationCardHTML(app, jobData.title, jobData.price, jobData.paymentType);
         }).join('');
-        
-        applicationsList.innerHTML = applicationsHTML;
-        
-        // Initialize application card event listeners
         initializeApplicationCardHandlers();
+        bindApplicationsPanelScroll(jobData.jobId, requestToken);
     } else {
-        // Show empty state
         applicationsList.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📋</div>
@@ -8579,27 +8575,163 @@ async function showApplicationsOverlay(jobData) {
             </div>
         `;
     }
-    
-    // Store job data for handlers
+
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
-    
-    if (typeof updateListingCardApplicationCount === 'function') {
-        updateListingCardApplicationCount(jobData.jobId, actualCount);
-    }
-    const listingStatus = String((jobData && jobData.status) || '').toLowerCase();
-    const storedCount = Number(jobData && jobData.applicationCount) || 0;
-    if (
-        (listingStatus === 'active' || listingStatus === 'paused')
-        && storedCount !== actualCount
-        && typeof persistJobApplicationCount === 'function'
-    ) {
-        persistJobApplicationCount(jobData.jobId, actualCount);
-    }
-    
-    // Initialize close button handler
     initializeApplicationsOverlayHandlers();
     delete overlay.dataset.loadingJobId;
+}
+
+const APPS_PAGE_FIRST = 20;
+const APPS_PAGE_MORE = 15;
+const appsPanelState = {
+    jobId: '',
+    rows: [],
+    cursor: null,
+    hasMore: false,
+    loading: false,
+    token: ''
+};
+
+function resetAppsPanelState(jobId, token) {
+    appsPanelState.jobId = String(jobId || '');
+    appsPanelState.rows = [];
+    appsPanelState.cursor = null;
+    appsPanelState.hasMore = false;
+    appsPanelState.loading = false;
+    appsPanelState.token = String(token || '');
+}
+
+async function readApplicantRating(applicantId) {
+    if (!applicantId) return { averageRating: 0, totalReviews: 0 };
+    try {
+        if (typeof isIOSWebKitBrowserForDataPath === 'function'
+            && isIOSWebKitBrowserForDataPath()
+            && typeof fetchUserProfileViaFirestoreRest === 'function') {
+            const profile = typeof withFirestoreReadTimeout === 'function'
+                ? await withFirestoreReadTimeout(fetchUserProfileViaFirestoreRest(applicantId), 8000)
+                : await fetchUserProfileViaFirestoreRest(applicantId);
+            return {
+                averageRating: Number(profile && profile.averageRating) || 0,
+                totalReviews: Number(profile && profile.totalReviews) || 0
+            };
+        }
+        const userDoc = await firebase.firestore().collection('users').doc(applicantId).get();
+        const userData = userDoc && userDoc.exists ? userDoc.data() : {};
+        return {
+            averageRating: Number(userData.averageRating) || 0,
+            totalReviews: Number(userData.totalReviews) || 0
+        };
+    } catch (error) {
+        console.warn('⚠️ Could not read applicant rating:', error);
+        return { averageRating: 0, totalReviews: 0 };
+    }
+}
+
+async function fetchPendingApplicationCards(jobId, options = {}) {
+    if (typeof getPendingApplicationsPage !== 'function') {
+        return { cards: [], hasMore: false, cursor: null };
+    }
+    const page = await getPendingApplicationsPage(jobId, options);
+    const rawRows = Array.isArray(page.applications) ? page.applications : [];
+    const missingIds = Array.from(new Set(rawRows
+        .filter((app) => !Object.prototype.hasOwnProperty.call(app, 'averageRating') || !Object.prototype.hasOwnProperty.call(app, 'totalReviews'))
+        .map((app) => String(app.applicantId || '').trim())
+        .filter(Boolean)));
+    const metricsById = {};
+    await Promise.all(missingIds.map(async (applicantId) => {
+        metricsById[applicantId] = await readApplicantRating(applicantId);
+    }));
+    const cards = rawRows.map((app) => {
+        const applicantId = String(app.applicantId || '').trim();
+        const fallback = metricsById[applicantId] || { averageRating: 0, totalReviews: 0 };
+        const hasAverageRating = Object.prototype.hasOwnProperty.call(app, 'averageRating');
+        const hasTotalReviews = Object.prototype.hasOwnProperty.call(app, 'totalReviews');
+        const averageRating = hasAverageRating ? (Number(app.averageRating) || 0) : fallback.averageRating;
+        const totalReviews = hasTotalReviews ? (Number(app.totalReviews) || 0) : fallback.totalReviews;
+        return {
+            applicationId: app.id,
+            applicantUid: app.applicantId,
+            jobId: app.jobId,
+            status: app.status || 'pending',
+            appliedAt: app.appliedAt,
+            updatedAt: app.updatedAt || app.appliedAt,
+            applicantProfile: {
+                displayName: app.applicantName || 'Anonymous',
+                photoURL: app.applicantThumbnail || 'public/images/Gisugo-icon.png',
+                averageRating: averageRating,
+                totalReviews: totalReviews,
+                verified: app.verified || false,
+                lastActive: app.lastActive || new Date()
+            },
+            pricing: {
+                offeredAmount: app.counterOffer || 0,
+                originalAmount: app.originalAmount || 0,
+                currency: 'PHP',
+                paymentType: 'Personal',
+                isCounterOffer: !!app.counterOffer
+            },
+            applicationMessage: app.message || '',
+            qualifications: app.qualifications || {},
+            displayData: {
+                appliedDate: app.appliedAt ? formatDateForDisplay(app.appliedAt) : 'Unknown',
+                appliedTime: app.appliedAt ? formatTimeForDisplay(app.appliedAt) : '',
+                formattedPrice: app.counterOffer ? `₱${app.counterOffer}` : 'No offer',
+                originalAmount: app.originalAmount || 0
+            }
+        };
+    });
+    return { cards: cards, hasMore: page.hasMore === true, cursor: page.cursor || null };
+}
+
+function bindApplicationsPanelScroll(jobId, token) {
+    const scroller = document.querySelector('#applicationsOverlay .applications-scroll-container');
+    if (!scroller) return;
+    const handler = async () => {
+        if (appsPanelState.token !== token || appsPanelState.jobId !== String(jobId || '')) return;
+        const overlay = document.getElementById('applicationsOverlay');
+        if (!overlay || !overlay.classList.contains('show')) return;
+        const remaining = scroller.scrollHeight - (scroller.scrollTop + scroller.clientHeight);
+        if (remaining > 280 || appsPanelState.loading || !appsPanelState.hasMore) return;
+        appsPanelState.loading = true;
+        try {
+            const page = await fetchPendingApplicationCards(jobId, {
+                limit: APPS_PAGE_MORE,
+                cursor: appsPanelState.cursor
+            });
+            if (appsPanelState.token !== token) return;
+            const seen = new Set(appsPanelState.rows.map((row) => String(row.applicationId || '')));
+            const incoming = (page.cards || []).filter((row) => {
+                const id = String(row.applicationId || '');
+                if (id && seen.has(id)) return false;
+                if (id) seen.add(id);
+                return true;
+            });
+            appsPanelState.rows = appsPanelState.rows.concat(incoming);
+            appsPanelState.cursor = page.cursor;
+            appsPanelState.hasMore = page.hasMore === true;
+            const list = document.getElementById('applicationsList');
+            if (list && incoming.length) {
+                list.insertAdjacentHTML('beforeend', incoming.map((app) => {
+                    app.jobId = jobId;
+                    return generateApplicationCardHTML(
+                        app,
+                        appsPanelState.gigTitle,
+                        appsPanelState.price,
+                        appsPanelState.paymentType
+                    );
+                }).join(''));
+            }
+        } catch (error) {
+            console.warn('⚠️ Could not load more applications:', error);
+        } finally {
+            if (appsPanelState.token === token) appsPanelState.loading = false;
+        }
+    };
+    scroller.addEventListener('scroll', handler, { passive: true });
+    registerCleanup('applications-overlay', 'apps-scroll', () => {
+        scroller.removeEventListener('scroll', handler);
+    });
 }
 
 async function getApplicationsForJob(jobId) {
@@ -9482,6 +9614,8 @@ function hideApplicationsOverlay() {
     // Clean up event listeners before hiding to prevent memory leaks
     executeCleanupsByType('application-cards');
     executeCleanupsByType('applications-overlay');
+    appsPanelState.token = '';
+    appsPanelState.loading = false;
     
     overlay.classList.remove('show');
     

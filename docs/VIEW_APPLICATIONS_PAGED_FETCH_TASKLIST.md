@@ -1,6 +1,6 @@
 # View Applications — one page of pending rows
 
-> Status: **Not started.**
+> Status: **Steps 1–8 done 2026-11-15. Step 9 is the live cursor check after the index deploys.**
 > Written: 2026-11-15.
 > Scope: the View Applications panel on one gig. Gigs Manager paging and profile reviews are already shipped. Admin suspended and banned lists stay parked.
 > Rule: finish a step, mark it audited, then start the next one. Do not skip ahead.
@@ -18,14 +18,14 @@
 
 ## Micro tasklist
 
-- [ ] **1. Confirm the map below.** No code change in this step.
-- [ ] **2. Audit step 1.** The query, the count write, both apply writes, and the profile reads match the code.
-- [ ] **3. Stamp `averageRating` and `totalReviews` on both live apply writes.** Use the profile read that already loads the name and photo. Leave old applications as they are.
-- [ ] **4. Audit step 3.** Both writes store the two fields. Apply does not add a second profile read. The create rule allows the extra fields. No old application was rewritten.
-- [ ] **5. Add the one index this page needs:** `gigOwnerId`, `jobId`, `status`, `appliedAt` descending.
-- [ ] **6. Audit step 5.** That index is the one the pending page uses. An unused index is a fail.
-- [ ] **7. Wire the panel to one paged read.** Pending only. 20 then 15. Cursor is `appliedAt` plus the application id. Scroll appends. The title stays the stored gig count.
-- [ ] **8. Audit step 7.** One query, at most 20 application documents, on the first paint. No download of every application on the gig. No write of the page length. A stamped card does not read the applicant. The 500 listings recount was not changed.
+- [x] **1. Confirm the map below.** No code change in this step.
+- [x] **2. Audit step 1.** The query, the count write, both apply writes, and the profile reads match the code.
+- [x] **3. Stamp `averageRating` and `totalReviews` on both live apply writes.** Use the profile read that already loads the name and photo. Leave old applications as they are.
+- [x] **4. Audit step 3.** Both writes store the two fields. Apply does not add a second profile read. The create rule allows the extra fields. No old application was rewritten.
+- [x] **5. Add the one index this page needs:** `gigOwnerId`, `jobId`, `status`, `appliedAt` descending.
+- [x] **6. Audit step 5.** That index is the one the pending page uses. An unused index is a fail.
+- [x] **7. Wire the panel to one paged read.** Pending only. 20 then 15. Cursor is `appliedAt` plus the application id. Scroll appends. The title stays the stored gig count.
+- [x] **8. Audit step 7.** One query, at most 20 application documents, on the first paint. No download of every application on the gig. No write of the page length. A stamped card does not read the applicant. The 500 listings recount was not changed.
 - [ ] **9. Audit on the live site.** Do not apply, hire, or reject to force a second page. If the gig you open has 20 or fewer pending, say so and prove the end. If one gig has at least two pending, prove one `startAfter`. The canopy gig from the last log had 20 pending and 4 that are not pending. Use it only as a read.
 
 ## Step 1 map (confirm before any edit)

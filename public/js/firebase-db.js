@@ -894,6 +894,8 @@ async function createApplicationViaFirestoreRest(applicationData, headers = null
         ? { doubleValue: safeCounterOffer }
         : { nullValue: null },
       jobTitle: { stringValue: String(applicationData && applicationData.jobTitle ? applicationData.jobTitle : '') },
+      averageRating: { doubleValue: Number.isFinite(Number(applicationData && applicationData.averageRating)) ? Number(applicationData.averageRating) : 0 },
+      totalReviews: { integerValue: String(Math.max(0, Math.floor(Number(applicationData && applicationData.totalReviews) || 0))) },
       coinHeld: { booleanValue: applicationData && applicationData.coinHeld === false ? false : true },
       coinConsumedAt: applicationData && applicationData.coinHeld === false
         ? { nullValue: null }
@@ -2901,6 +2903,8 @@ async function applyForJob(jobId, applicationData) {
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
     let applicantThumbnail = currentUser.photoURL || '';
+    let applicantAverageRating = 0;
+    let applicantTotalReviews = 0;
     
     console.log('🔍 Fetching applicant profile from Firestore for:', currentUser.uid);
     
@@ -2916,6 +2920,10 @@ async function applyForJob(jobId, applicationData) {
         console.log('✅ Using Firestore profile data for applicant');
         applicantName = applicantProfile.fullName || applicantName;
         applicantThumbnail = applicantProfile.profilePhoto || applicantThumbnail;
+        const profileRating = Number(applicantProfile.averageRating);
+        const profileReviews = Number(applicantProfile.totalReviews);
+        applicantAverageRating = Number.isFinite(profileRating) ? profileRating : 0;
+        applicantTotalReviews = Number.isFinite(profileReviews) ? profileReviews : 0;
       } else {
         console.warn('⚠️ No Firestore profile found for applicant, using Auth data');
       }
@@ -2938,6 +2946,8 @@ async function applyForJob(jobId, applicationData) {
       gigOwnerId: (job && job.posterId) ? job.posterId : '',
       applicantName: applicantName,
       applicantThumbnail: applicantThumbnail,
+      averageRating: Number.isFinite(applicantAverageRating) ? applicantAverageRating : 0,
+      totalReviews: Number.isFinite(applicantTotalReviews) ? applicantTotalReviews : 0,
       appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
       status: 'pending',
       message: applicationData.message || '',
@@ -3121,12 +3131,112 @@ async function getJobApplications(jobId) {
   }
 }
 
+function applicationCursorFromRow(row) {
+  if (!row || !row.id) return null;
+  const value = row.appliedAt;
+  let millis = 0;
+  let raw = '';
+  if (value && typeof value.toMillis === 'function') millis = value.toMillis();
+  else if (value && typeof value.seconds === 'number') millis = value.seconds * 1000;
+  else if (typeof value === 'string' || typeof value === 'number') {
+    if (typeof value === 'string') raw = value;
+    const parsed = new Date(value).getTime();
+    millis = Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return { millis: millis, raw: raw, id: String(row.id) };
+}
+
+async function fetchPendingApplicationsPageViaFirestoreRest(ownerId, jobId, limit, cursor) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for applications page');
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'applications' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            { fieldFilter: { field: { fieldPath: 'gigOwnerId' }, op: 'EQUAL', value: { stringValue: String(ownerId) } } },
+            { fieldFilter: { field: { fieldPath: 'jobId' }, op: 'EQUAL', value: { stringValue: String(jobId) } } },
+            { fieldFilter: { field: { fieldPath: 'status' }, op: 'EQUAL', value: { stringValue: 'pending' } } }
+          ]
+        }
+      },
+      orderBy: [
+        { field: { fieldPath: 'appliedAt' }, direction: 'DESCENDING' },
+        { field: { fieldPath: '__name__' }, direction: 'DESCENDING' }
+      ],
+      limit: Math.max(1, Math.min(Number(limit) || 20, 100))
+    }
+  };
+  if (cursor && cursor.id) {
+    const rawStamp = String(cursor.raw || '').trim();
+    const timestampValue = rawStamp || new Date(Number(cursor.millis) || 0).toISOString();
+    payload.structuredQuery.startAt = {
+      values: [
+        { timestampValue: timestampValue },
+        { referenceValue: `projects/${projectId}/databases/(default)/documents/applications/${cursor.id}` }
+      ],
+      before: false
+    };
+  }
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error(`REST applications page failed (${response.status})`);
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows.map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null)).filter(Boolean);
+}
+
+async function getPendingApplicationsPage(jobId, options = {}) {
+  const safeJobId = String(jobId || '').trim();
+  const currentUser = getCurrentUser();
+  const limit = Math.max(1, Math.min(100, Number(options.limit) || 20));
+  const cursor = options.cursor && options.cursor.id ? options.cursor : null;
+  if (!safeJobId || !currentUser || !currentUser.uid) {
+    return { applications: [], hasMore: false, cursor: null };
+  }
+  let records = [];
+  if (isIOSWebKitBrowserForDataPath()) {
+    const restRows = await withFirestoreReadTimeout(
+      fetchPendingApplicationsPageViaFirestoreRest(currentUser.uid, safeJobId, limit, cursor),
+      10000
+    );
+    records = Array.isArray(restRows) ? restRows : [];
+  } else {
+    const db = getFirestore();
+    if (!db) return { applications: [], hasMore: false, cursor: null };
+    let query = db.collection('applications')
+      .where('gigOwnerId', '==', currentUser.uid)
+      .where('jobId', '==', safeJobId)
+      .where('status', '==', 'pending')
+      .orderBy('appliedAt', 'desc')
+      .orderBy(firebase.firestore.FieldPath.documentId(), 'desc')
+      .limit(limit);
+    if (cursor) {
+      query = query.startAfter(firebase.firestore.Timestamp.fromMillis(Number(cursor.millis) || 0), String(cursor.id));
+    }
+    const snapshot = await query.get();
+    records = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+  const last = records.length ? records[records.length - 1] : null;
+  return {
+    applications: records,
+    hasMore: records.length === limit,
+    cursor: applicationCursorFromRow(last)
+  };
+}
+
 const OWNER_APPLICATION_COUNT_SCAN_LIMIT = 500;
 
 /**
  * Live pending-application counts for the signed-in gig owner, grouped by jobId.
  * Listings cards cannot trust jobs.applicationCount alone — that field only
- * moves on apply/reject, and View Applications was the only live recount.
+ * moves on apply/reject. View Applications pages pending rows and does not recount.
  * Returns null on failure so callers keep the stored count.
  * @param {string} ownerId
  * @returns {Promise<{ counts: Object<string, number>, complete: boolean }|null>}
@@ -7044,6 +7154,7 @@ window.fetchSupportRequestsViaFirestoreRest = fetchSupportRequestsViaFirestoreRe
 // Applications
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
+window.getPendingApplicationsPage = getPendingApplicationsPage;
 window.getPendingApplicationCountsByOwner = getPendingApplicationCountsByOwner;
 window.applyPendingApplicationCountsToListings = applyPendingApplicationCountsToListings;
 window.persistJobApplicationCount = persistJobApplicationCount;
