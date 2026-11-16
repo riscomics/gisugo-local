@@ -2839,6 +2839,8 @@ async function showListingOptionsOverlay(jobData) {
     overlay.setAttribute('data-title', jobData.title);
     overlay.setAttribute('data-price', jobData.price || '0');
     overlay.setAttribute('data-payment-type', jobData.paymentType || 'Personal');
+    const appCount = Number(jobData.applicationCount);
+    overlay.setAttribute('data-application-count', String(Number.isFinite(appCount) ? appCount : 0));
     
     // Show overlay
     overlay.classList.add('show');
@@ -8433,7 +8435,8 @@ function getJobDataFromOverlay() {
         currentStatus: overlay.getAttribute('data-current-status'),
         title: overlay.getAttribute('data-title'),
         price: overlay.getAttribute('data-price'),
-        paymentType: overlay.getAttribute('data-payment-type')
+        paymentType: overlay.getAttribute('data-payment-type'),
+        applicationCount: parseInt(overlay.getAttribute('data-application-count'), 10) || 0
     };
     
     console.log('🔍 DEBUG - getJobDataFromOverlay:', {
