@@ -2079,6 +2079,11 @@ function initializeNavigation() {
         shakeBeforeContinueDisclaimer();
         return;
       }
+
+      if (np2State.listingCapBlocked) {
+        showGigCapOverlay(np2State.listingCapMessage, { leaveOnClose: true });
+        return;
+      }
       
       const validationResult = validateCurrentStep();
       console.log('Validation result:', validationResult);
@@ -2294,6 +2299,10 @@ function initializePreviewOverlay() {
 // ========================== POST JOB ==========================
 
 async function postJob() {
+  if (np2State.listingCapBlocked) {
+    showGigCapOverlay(np2State.listingCapMessage, { leaveOnClose: true });
+    return;
+  }
   // Edit confirm uses showEditPreview → updateJob with form-collected data.
   // Never update from np2State here — edit form fields are NOT synced into np2State
   // (defaults are '', null AM/PM), which previously wiped live gigs.
@@ -2505,7 +2514,17 @@ function showSuccessOverlay() {
   triggerConfetti();
 }
 
-function showGigCapOverlay(detail) {
+function closeGigCapOverlay() {
+  const overlay = document.getElementById('gigCapOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  if (overlay.dataset.leaveOnClose === '1') {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = 'index.html';
+  }
+}
+
+function showGigCapOverlay(detail, options) {
   const overlay = document.getElementById('gigCapOverlay');
   if (!overlay) {
     alert(detail || 'You have reached the listing limit.');
@@ -2513,6 +2532,7 @@ function showGigCapOverlay(detail) {
   }
   const detailEl = document.getElementById('gigCapDetail');
   if (detailEl) detailEl.textContent = detail || '';
+  overlay.dataset.leaveOnClose = options && options.leaveOnClose ? '1' : '';
   const tabs = overlay.querySelectorAll('.np2-lang-tab');
   const panels = {
     english: document.getElementById('gigCapEnglish'),
@@ -2533,13 +2553,9 @@ function showGigCapOverlay(detail) {
       });
     });
     const closeBtn = document.getElementById('gigCapCloseBtn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', function() {
-        overlay.classList.remove('show');
-      });
-    }
+    if (closeBtn) closeBtn.addEventListener('click', closeGigCapOverlay);
     overlay.addEventListener('click', function(event) {
-      if (event.target === overlay) overlay.classList.remove('show');
+      if (event.target === overlay) closeGigCapOverlay();
     });
   }
   showLang('english');
@@ -4032,6 +4048,18 @@ async function applyNewPostPolicyGates() {
         if (el.id === 'backBtn' || (el.closest && el.closest('header'))) return;
         el.disabled = true;
       });
+    }
+    if (!isEditOnly && policy.maxActiveGigs > 0 && typeof listedGigCapMessage === 'function') {
+      const user = typeof DataService !== 'undefined' && DataService.waitForAuth
+        ? await DataService.waitForAuth()
+        : (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
+      const uid = user && user.uid ? user.uid : '';
+      if (!uid) return;
+      const capMessage = await listedGigCapMessage(uid, policy);
+      if (!capMessage) return;
+      np2State.listingCapBlocked = true;
+      np2State.listingCapMessage = capMessage;
+      showGigCapOverlay(capMessage, { leaveOnClose: true });
     }
   } catch (_) {}
 }

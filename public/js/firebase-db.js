@@ -135,6 +135,28 @@ let _superAdminCache = { uid: '', at: 0, value: false };
 
 // Own admins/{uid} doc only, and only when a cap would otherwise refuse.
 // Missing role is not super admin. A failed read stays capped.
+// Paused gigs stay off the public list and still occupy a slot.
+// Compat SDK has no count(); limit(cap) answers "at or over" without
+// reading every matching gig. posterId+status is already indexed.
+// Hired and accepted are not counted. Returns null when posting is allowed.
+async function listedGigCapMessage(uid, policy) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid) return null;
+  const resolved = policy || await getPublicPlatformPolicy();
+  const listedCap = Math.floor(Number(resolved && resolved.maxActiveGigs) || 0);
+  if (listedCap <= 0) return null;
+  const db = getFirestore();
+  if (!db) return null;
+  const listedSnap = await db.collection('jobs')
+    .where('posterId', '==', safeUid)
+    .where('status', 'in', ['active', 'paused'])
+    .limit(listedCap)
+    .get();
+  if (listedSnap.size < listedCap) return null;
+  if (await isCurrentUserSuperAdmin()) return null;
+  return `You already have ${listedCap} gigs listed right now, including paused ones. Close, complete, or delete one before posting another.`;
+}
+
 async function isCurrentUserSuperAdmin() {
   const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
   const uid = user && user.uid ? String(user.uid) : '';
@@ -1465,25 +1487,9 @@ async function createJob(jobData) {
         };
       }
     }
-    if (policy.maxActiveGigs > 0) {
-      const listedCap = policy.maxActiveGigs;
-      // Paused gigs stay off the public list and still occupy a slot.
-      // Compat SDK has no count(); limit(cap) answers "at or over" without
-      // reading every matching gig. posterId+status is already indexed.
-      // Hired and accepted are not counted. Unpause, decline, resign, and
-      // void do not call this check.
-      const listedSnap = await db.collection('jobs')
-        .where('posterId', '==', currentUser.uid)
-        .where('status', 'in', ['active', 'paused'])
-        .limit(listedCap)
-        .get();
-      if (listedSnap.size >= listedCap && !(await isCurrentUserSuperAdmin())) {
-        return {
-          success: false,
-          code: 'gig_cap',
-          message: `You already have ${listedCap} gigs listed right now, including paused ones. Close, complete, or delete one before posting another.`
-        };
-      }
+    const capMessage = await listedGigCapMessage(currentUser.uid, policy);
+    if (capMessage) {
+      return { success: false, code: 'gig_cap', message: capMessage };
     }
     
     const jobDoc = {
@@ -7136,6 +7142,7 @@ async function getUserProfile(userId) {
 
 // Jobs
 window.createJob = createJob;
+window.listedGigCapMessage = listedGigCapMessage;
 window.isCurrentUserSuperAdmin = isCurrentUserSuperAdmin;
 window.updateJob = updateJob;
 window.getJobById = getJobById;
