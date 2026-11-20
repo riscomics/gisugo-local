@@ -541,6 +541,20 @@ body {
   margin-bottom: 48px;
 }
 
+.updates-facebook-reminder {
+  margin: 0 0 18px;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.updates-facebook-reminder a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .changelog-entry {
   background: var(--bg-card);
   border: 1px solid var(--border);
