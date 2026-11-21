@@ -1714,7 +1714,7 @@ async function initializeOfferedTab() {
     await loadOfferedContent();
 }
 
-const GIGS_PAGE_FIRST = 20;
+const GIGS_PAGE_FIRST = 15;
 const GIGS_PAGE_MORE = 15;
 const GIGS_TAB_QUERY = {
     listings: { side: 'poster', statuses: ['active', 'paused', 'expired'], orderField: 'scheduledEnd', orderDirection: 'asc' },
@@ -8585,7 +8585,7 @@ async function showApplicationsOverlay(jobData) {
     delete overlay.dataset.loadingJobId;
 }
 
-const APPS_PAGE_FIRST = 20;
+const APPS_PAGE_FIRST = 15;
 const APPS_PAGE_MORE = 15;
 const appsPanelState = {
     jobId: '',
