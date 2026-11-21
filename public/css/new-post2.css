@@ -733,6 +733,30 @@ html body.page-post2:has(.uniform-header) {
   transform: translateY(-2px);
 }
 
+/* Listing-cap card: tabs are the first row, then icon, title, count, note. */
+#gigCapOverlay .np2-lang-tabs {
+  margin: 16px 16px 0;
+}
+
+#gigCapOverlay .np2-success-icon {
+  margin-top: 14px;
+  margin-bottom: 10px;
+}
+
+#gigCapOverlay .np2-success-title {
+  margin-bottom: 10px;
+}
+
+#gigCapOverlay .np2-success-content {
+  padding: 0 22px;
+  margin-bottom: 12px;
+}
+
+#gigCapOverlay .np2-success-subtitle {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
 /* Placeholder when no language selected */
 .np2-disclaimer-placeholder {
   display: flex;

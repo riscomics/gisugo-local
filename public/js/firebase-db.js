@@ -154,7 +154,7 @@ async function listedGigCapMessage(uid, policy) {
     .get();
   if (listedSnap.size < listedCap) return null;
   if (await isCurrentUserSuperAdmin()) return null;
-  return `You already have ${listedCap} gigs listed right now, including paused ones. Close, complete, or delete one before posting another.`;
+  return `You already have ${listedCap} gigs listed live right now. Complete or Delete a gig before posting another.`;
 }
 
 async function isCurrentUserSuperAdmin() {
