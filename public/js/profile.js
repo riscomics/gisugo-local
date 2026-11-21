@@ -6343,7 +6343,7 @@ function sanitizeUrl(url, fallback = '') {
   return fallback;
 }
 
-const REVIEW_PAGE_FIRST = 20;
+const REVIEW_PAGE_FIRST = 15;
 const REVIEW_PAGE_MORE = 15;
 const reviewPageState = window.__profileReviewPageState || new Map();
 window.__profileReviewPageState = reviewPageState;
