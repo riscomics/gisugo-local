@@ -542,7 +542,8 @@ body {
 }
 
 .updates-facebook-reminder {
-  margin: 0 0 18px;
+  margin: 18px auto 0;
+  max-width: 520px;
   font-size: 0.95rem;
   line-height: 1.55;
   color: var(--text);

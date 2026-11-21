@@ -2530,8 +2530,15 @@ function showGigCapOverlay(detail, options) {
     alert(detail || 'You have reached the listing limit.');
     return;
   }
-  const detailEl = document.getElementById('gigCapDetail');
-  if (detailEl) detailEl.textContent = detail || '';
+  const countMatch = String(detail || '').match(/\d+/);
+  if (countMatch) {
+    overlay.querySelectorAll('[data-gig-cap-count]').forEach(function(node) {
+      node.textContent = countMatch[0];
+    });
+  } else {
+    const detailEl = document.getElementById('gigCapDetail');
+    if (detailEl) detailEl.textContent = detail || '';
+  }
   overlay.dataset.leaveOnClose = options && options.leaveOnClose ? '1' : '';
   const tabs = overlay.querySelectorAll('.np2-lang-tab');
   const panels = {

@@ -78,19 +78,28 @@ body {
   box-shadow: var(--card-shadow);
 }
 
-.feature-icon {
-  font-size: 2.4rem;
-  margin-bottom: 12px;
-  display: block;
-  line-height: 1;
+.feature-card {
+  padding: 0 0 20px;
+  overflow: hidden;
 }
 
-.feature-card[data-color="#06b6d4"] .feature-icon { filter: drop-shadow(0 0 10px #06b6d4); }
-.feature-card[data-color="#f59e0b"] .feature-icon { filter: drop-shadow(0 0 10px #f59e0b); }
-.feature-card[data-color="#8b5cf6"] .feature-icon { filter: drop-shadow(0 0 10px #8b5cf6); }
-.feature-card[data-color="#f97316"] .feature-icon { filter: drop-shadow(0 0 10px #f97316); }
-.feature-card[data-color="#10b981"] .feature-icon { filter: drop-shadow(0 0 10px #10b981); }
-.feature-card[data-color="#ec4899"] .feature-icon { filter: drop-shadow(0 0 10px #ec4899); }
+.feature-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 16px;
+  background: #1a222e;
+}
+
+.feature-card .feature-title {
+  padding: 0 20px;
+}
+
+.feature-card .door-action {
+  width: calc(100% - 40px);
+  margin-left: 20px;
+  margin-right: 20px;
+}
 
 .feature-title,
 .account-name {
@@ -184,5 +193,19 @@ a.door-action:focus-visible {
   .feature-card,
   .account-door {
     padding: 20px 16px 16px;
+  }
+
+  .feature-card {
+    padding: 0 0 16px;
+  }
+
+  .feature-card .feature-title {
+    padding: 0 16px;
+  }
+
+  .feature-card .door-action {
+    width: calc(100% - 32px);
+    margin-left: 16px;
+    margin-right: 16px;
   }
 }
