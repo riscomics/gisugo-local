@@ -1541,11 +1541,11 @@ section {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
-/* Desktop centers the player in a 900px rounded box with a 2rem bottom margin; the
+/* Desktop centers the player in a 1280px rounded box with a 2rem bottom margin; the
    negative top margin collapses that gap so the caption stays attached to it. */
 @media (min-width: 1100px) {
   .video-caption {
-    max-width: 900px;
+    max-width: 1280px;
     margin: -2rem auto 2rem;
     border-radius: 0 0 12px 12px;
   }
@@ -2135,11 +2135,20 @@ section {
 
   .video-container {
     width: 100% !important;
-    max-width: 900px !important;
+    max-width: 1280px !important;
     margin: 2rem auto !important;
-    padding-top: 30% !important;
+    /* Height follows this box's own width. The banner is 1672×941, so a 1280px
+       player is 720px tall. A padding-top percentage is of the viewport, which
+       made the old 900px player too tall on a 1920px screen and cropped the
+       right side of the banner. */
+    padding-top: 0 !important;
+    aspect-ratio: 1672 / 941;
     border-radius: 12px !important;
     overflow: hidden !important;
+  }
+
+  .custom-thumbnail {
+    object-fit: contain;
   }
 
   .category-header {
@@ -2699,7 +2708,7 @@ section {
   }
 
   .hero-essentials {
-    width: calc(2 * clamp(160px, 18vw, 180px) + clamp(1.5rem, 3vw, 2rem));
+    width: min(640px, 100%);
   }
 
   .hero-essentials .service-grid.service-grid--hero {
