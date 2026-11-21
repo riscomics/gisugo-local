@@ -86,7 +86,10 @@ body {
 .feature-art {
   display: block;
   width: 100%;
+  aspect-ratio: 16 / 9;
   height: auto;
+  object-fit: contain;
+  object-position: center;
   margin: 0 0 16px;
   background: #1a222e;
 }
