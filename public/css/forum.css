@@ -124,32 +124,36 @@ body {
 }
 
 .account-door {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 8px;
+  align-items: center;
   text-align: left;
-  padding: 0 0 20px;
-  overflow: hidden;
 }
 
 .account-mark {
+  grid-column: 1;
+  grid-row: 1;
   display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  height: auto;
+  width: auto;
+  height: 1.2rem;
+  margin: 0;
+  justify-self: start;
+  align-self: center;
   object-fit: contain;
   object-position: center;
-  margin: 0 0 16px;
-  background: #1a222e;
+  background: none;
 }
 
-.account-door .account-name,
-.account-door .account-purpose {
-  padding-left: 20px;
-  padding-right: 20px;
+.account-door .account-name {
+  grid-column: 2;
+  grid-row: 1;
+  line-height: 1.2;
 }
 
+.account-door .account-purpose,
 .account-door .door-action {
-  width: calc(100% - 40px);
-  margin-left: 20px;
-  margin-right: 20px;
+  grid-column: 1 / -1;
 }
 
 .account-purpose {
@@ -232,22 +236,6 @@ a.door-action:focus-visible {
   }
 
   .feature-card .door-action {
-    width: calc(100% - 32px);
-    margin-left: 16px;
-    margin-right: 16px;
-  }
-
-  .account-door {
-    padding: 0 0 16px;
-  }
-
-  .account-door .account-name,
-  .account-door .account-purpose {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-
-  .account-door .door-action {
     width: calc(100% - 32px);
     margin-left: 16px;
     margin-right: 16px;
